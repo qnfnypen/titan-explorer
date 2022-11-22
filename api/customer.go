@@ -287,13 +287,15 @@ func GetDeviceInfoHandler(c *gin.Context) {
 	}
 	list, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
 	if err != nil {
-		log.Error("args error")
+		log.Errorf("get device info list: %v", err)
+		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
 	}
 	var dataList []*model.DeviceInfo
 	for _, data := range list {
 		err = getProfitByDeviceID(data, &res)
 		if err != nil {
 			log.Error("getProfitByDeviceID：", data.DeviceID)
+			c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
 		}
 		dataList = append(dataList, data)
 	}

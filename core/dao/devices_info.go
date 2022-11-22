@@ -2,67 +2,125 @@ package dao
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/gnasnik/titan-explorer/core/generated/query"
-	"gorm.io/gorm"
 )
 
-func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option QueryOption) ([]*model.DeviceInfo, int64, error) {
-	limit := option.PageSize
-	offset := option.PageSize * (option.Page - 1)
+var tableNameDeviceInfo = "device_info"
 
-	db := DB.Model(&model.DeviceInfo{}).WithContext(ctx)
-	var di []*model.DeviceInfo
-	var total int64
+func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option QueryOption) ([]*model.DeviceInfo, int64, error) {
+	var args []interface{}
+	where := `WHERE 1=1`
 	if cond.DeviceID != "" {
-		db = db.Where("device_id = ?", cond.DeviceID)
+		where += ` AND device_id = ?`
+		args = append(args, cond.DeviceID)
 	}
 	if cond.UserID != "" {
-		db = db.Where("user_id = ?", cond.UserID)
+		where += ` AND user_id = ?`
+		args = append(args, cond.UserID)
 	}
 	if cond.DeviceStatus != "" && cond.DeviceStatus != "allDevices" {
-		db = db.Where("device_status = ?", cond.DeviceStatus)
+		where += ` AND device_status = ?`
+		args = append(args, cond.DeviceStatus)
 	}
-	err := db.Count(&total).Error
+
+	limit := option.PageSize
+	offset := option.Page
+	if option.Page > 0 {
+		offset = option.PageSize * (option.Page - 1)
+	}
+	if option.PageSize <= 0 {
+		limit = 50
+	}
+
+	var total int64
+	var out []*model.DeviceInfo
+
+	err := DB.GetContext(ctx, &total, fmt.Sprintf(
+		`SELECT count(*) FROM %s %s`, tableNameDeviceInfo, where,
+	), args...)
 	if err != nil {
 		return nil, 0, err
 	}
-	err = db.Limit(limit).Offset(offset).Find(&di).Error
-	return di, total, err
+
+	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
+		`SELECT * FROM %s %s LIMIT %d OFFSET %d`, tableNameDeviceInfo, where, limit, offset,
+	), args...)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return out, total, err
 }
 
-func CreateDeviceInfo(ctx context.Context, deviceInfo *model.DeviceInfo) error {
-	db := query.DeviceInfo.WithContext(ctx)
+func GetDeviceInfoByID(ctx context.Context, deviceID string) (*model.DeviceInfo, error) {
+	var out model.DeviceInfo
+	if err := DB.QueryRowxContext(ctx, fmt.Sprintf(
+		`SELECT * FROM %s WHERE device_id = ?`, tableNameDeviceInfo), deviceID,
+	).StructScan(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
 
-	take, err := db.Where(query.DeviceInfo.DeviceID.Eq(deviceInfo.DeviceID)).Take()
-	if err != nil && err != gorm.ErrRecordNotFound {
+func UpdateDeviceInfo(ctx context.Context, deviceInfo *model.DeviceInfo) error {
+	_, err := DB.NamedExec(fmt.Sprintf(
+		`UPDATE %s SET device_id = :device_id, secret = :secret,  node_type = :node_type,  device_name = :device_name,
+				user_id = :user_id,  sn_code = :sn_code,  operator = :operator, network_type = :network_type,
+				today_income = :today_income,  yesterday_income = :yesterday_income,  cumu_profit = :cumu_profit,
+				system_version = :system_version,  product_type = :product_type, network_info = :network_info,
+				external_ip = :external_ip,  internal_ip = :internal_ip,  ip_location = :ip_location,  
+				mac_location = :mac_location,  nat_type = :nat_type,  upnp = :upnp, pkg_loss_ratio = :pkg_loss_ratio,  
+				nat_ratio = :nat_ratio,  latency = :latency,  cpu_usage = :cpu_usage,  memory_usage = :memory_usage,
+				disk_usage = :disk_usage,  work_status = :work_status, device_status = :device_status,  disk_type = :disk_type,
+				io_system = :io_system,  today_online_time = :today_online_time,  today_profit = :today_profit,
+				seven_days_profit = :seven_days_profit, month_profit = :month_profit,  bandwidth_up = :bandwidth_up,  
+				bandwidth_down = :bandwidth_down, updated_at = :updated_at WHERE id = :id`, tableNameDeviceInfo),
+		deviceInfo)
+	return err
+}
+
+func CreateDeviceInfoNotExist(ctx context.Context, deviceInfo *model.DeviceInfo) error {
+	old, err := GetDeviceInfoByID(ctx, deviceInfo.DeviceID)
+	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
 
-	if take != nil {
+	if old != nil {
 		return nil
 	}
 
-	return db.Create(deviceInfo)
+	return CreateDeviceInfo(ctx, deviceInfo)
+}
+
+func CreateDeviceInfo(ctx context.Context, deviceInfo *model.DeviceInfo) error {
+	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
+		`INSERT INTO %s (device_id, secret, node_type, device_name, user_id, sn_code, operator,
+				network_type, today_income, yesterday_income, cumu_profit, system_version, product_type,
+				network_info, external_ip, internal_ip, ip_location, mac_location, nat_type, upnp,
+				pkg_loss_ratio, nat_ratio, latency, cpu_usage, memory_usage, disk_usage, work_status,
+				device_status, disk_type, io_system, today_online_time, today_profit, seven_days_profit,
+				month_profit, bandwidth_up, bandwidth_down, created_at, updated_at, deleted_at)
+			VALUES (:device_id, :secret, :node_type, :device_name, :user_id, :sn_code, :operator,
+			    :network_type, :today_income, :yesterday_income, :cumu_profit, :system_version, :product_type, 
+			    :network_info, :external_ip, :internal_ip, :ip_location, :mac_location, :nat_type, :upnp, 
+			    :pkg_loss_ratio, :nat_ratio, :latency, :cpu_usage, :memory_usage, :disk_usage, :work_status, 
+			    :device_status, :disk_type, :io_system, :today_online_time, :today_profit, :seven_days_profit, 
+			    :month_profit, :bandwidth_up, :bandwidth_down, :created_at, :updated_at, :deleted_at);`, tableNameDeviceInfo,
+	), deviceInfo)
+	return err
 }
 
 func UpsertUserDevice(ctx context.Context, deviceInfo *model.DeviceInfo) error {
-	var di model.DeviceInfo
-	result := DB.Where("device_id = ?", deviceInfo.DeviceID).First(&di)
-	if result.RowsAffected <= 0 {
-		err := DB.Create(deviceInfo).Error
-		if err != nil {
-			return err
-		}
-	} else {
-		result := DB.Where("device_id = ?", deviceInfo.DeviceID).Where("user_id = ?", deviceInfo.UserID).First(di)
-		if result.RowsAffected <= 0 {
-			di.UserID = deviceInfo.UserID
-			err := DB.Save(&di).Error
-			if err != nil {
-				return err
-			}
-		}
+	old, err := GetDeviceInfoByID(ctx, deviceInfo.DeviceID)
+	if err != nil && err != sql.ErrNoRows {
+		return err
 	}
-	return nil
+
+	if old != nil && old.UserID != deviceInfo.UserID {
+		return nil
+	}
+
+	return CreateDeviceInfo(ctx, deviceInfo)
 }

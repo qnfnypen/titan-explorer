@@ -197,25 +197,30 @@ func (t *DeviceTask) SaveDeviceInfo(url string, Df string) error {
 	data.SevenDaysProfit = 0
 	data.MonthProfit = 0
 	data.YesterdayIncome = 0
-	result := dao.DB.Where("device_id = ?", data.DeviceID).First(&DeviceInfoOld)
-	if result.RowsAffected <= 0 {
-		data.CreatedAt = time.Now()
-		err := dao.DB.Create(&data).Error
+
+	ctx := context.Background()
+	old, err := dao.GetDeviceInfoByID(ctx, data.DeviceID)
+	if err != nil {
+		log.Errorf("get device info by id: %v", err)
+		return err
+	}
+
+	if old == nil {
+		err = dao.CreateDeviceInfo(ctx, &data)
 		if err != nil {
-			log.Error(err.Error())
-			return err
-		}
-	} else {
-		data.ID = DeviceInfoOld.ID
-		data.UpdatedAt = time.Now()
-		err := dao.DB.Updates(&data).Error
-		if err != nil {
-			log.Error(err.Error())
+			log.Errorf("create device info: %v", err)
 			return err
 		}
 	}
-	return nil
 
+	data.ID = DeviceInfoOld.ID
+	data.UpdatedAt = time.Now()
+	err = dao.UpdateDeviceInfo(ctx, &data)
+	if err != nil {
+		log.Errorf("update device info: %v", err)
+		return err
+	}
+	return nil
 }
 
 func SaveTaskInfo(data model.TaskInfo) error {
@@ -224,82 +229,70 @@ func SaveTaskInfo(data model.TaskInfo) error {
 		return nil
 	}
 
-	var DeviceInfoOld model.TaskInfo
-	result := dao.DB.Where("device_id = ?", data.DeviceID).Where("cid = ?", data.Cid).Where("time = ?", data.Time).First(&DeviceInfoOld)
-	if result.RowsAffected <= 0 {
-		data.CreatedAt = time.Now()
-		err := dao.DB.Create(&data).Error
-		if err != nil {
-			log.Error(err.Error())
-			return err
-		}
-	} else {
-		data.ID = DeviceInfoOld.ID
-		data.UpdatedAt = time.Now()
-		err := dao.DB.Updates(&data).Error
-		if err != nil {
-			log.Error(err.Error())
-			return err
-		}
+	ctx := context.Background()
+	old, err := dao.GetTaskInfoByTime(ctx, data.DeviceID, data.Cid, data.Time)
+	if err != nil {
+		log.Errorf("get task info by time: %v", err)
+		return err
 	}
-	return nil
 
+	if old == nil {
+		data.CreatedAt = time.Now()
+		return dao.CreateTaskInfo(ctx, &data)
+	}
+
+	data.ID = old.ID
+	data.UpdatedAt = time.Now()
+	return dao.UpdateTaskInfo(ctx, &data)
 }
 
 func TransferData(hourDaily model.HourDaily) error {
 	if hourDaily.DeviceID == "" {
 		return nil
 	}
-	var dailyOld model.HourDaily
-	hourDaily.UpdatedAt = time.Now()
-	result := dao.DB.Where("device_id = ?", hourDaily.DeviceID).Where("time = ?", hourDaily.Time).First(&dailyOld)
-	if result.RowsAffected <= 0 {
-		hourDaily.CreatedAt = time.Now()
-		err := dao.DB.Create(&hourDaily).Error
-		if err != nil {
-			log.Error(err.Error())
-			return err
-		}
-	} else {
-		hourDaily.ID = dailyOld.ID
-		err := dao.DB.Updates(&hourDaily).Error
-		if err != nil {
-			log.Error(err.Error())
-			return err
-		}
-	}
-	return nil
 
+	hourDaily.UpdatedAt = time.Now()
+	ctx := context.Background()
+	old, err := dao.GetHourDailyByTime(ctx, hourDaily.DeviceID, hourDaily.Time)
+	if err != nil {
+		log.Errorf("get hour daily by time: %v", err)
+		return err
+	}
+
+	if old == nil {
+		hourDaily.CreatedAt = time.Now()
+		return dao.CreateHourDaily(ctx, &hourDaily)
+	}
+
+	hourDaily.ID = old.ID
+	return dao.UpdateHourDaily(ctx, &hourDaily)
 }
 
-func (t *DeviceTask) SavaIncomeDailyInfo(daily model.HourDaily) {
+func (t *DeviceTask) SavaIncomeDailyInfo(daily model.IncomeDaily) error {
 	if daily.DeviceID == "" {
-		return
+		return nil
 	}
-	var dailyOld model.IncomeDaily
+
 	daily.UpdatedAt = time.Now()
 	_, ok := t.DeviceIDAndUserId[daily.DeviceID]
 	if ok {
 		daily.UserID = t.DeviceIDAndUserId[daily.DeviceID]
 	}
-	result := dao.DB.Where("device_id = ?", daily.DeviceID).Where("time = ?", daily.Time).First(&dailyOld)
-	if result.RowsAffected <= 0 {
-		daily.CreatedAt = time.Now()
-		err := dao.DB.Create(&daily).Error
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}
-	} else {
-		daily.ID = dailyOld.ID
-		err := dao.DB.Updates(&daily).Error
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}
-	}
-	return
 
+	ctx := context.Background()
+	old, err := dao.GetIncomeDailyByTime(ctx, daily.DeviceID, daily.Time)
+	if err != nil {
+		log.Errorf("get hour daily by time: %v", err)
+		return err
+	}
+
+	if old == nil {
+		daily.CreatedAt = time.Now()
+		return dao.CreateIncomeDaily(ctx, &daily)
+	}
+
+	daily.ID = old.ID
+	return dao.UpdateIncomeDaily(ctx, &daily)
 }
 
 func (t *DeviceTask) FormatIncomeDailyList(DeviceID string) {
@@ -314,11 +307,11 @@ func (t *DeviceTask) FormatIncomeDailyList(DeviceID string) {
 		return
 	}
 	for _, data := range datas {
-		var InPage model.HourDaily
+		var InPage model.IncomeDaily
 		InPage.Time, _ = time.Parse(TimeFormatYMD, data["date"])
 		InPage.DiskUsage = Str2Float64(data["disk_usage"])
 		InPage.NatRatio = Str2Float64(data["nat_ratio"])
-		InPage.HourIncome = Str2Float64(data["hour_income"])
+		InPage.Income = Str2Float64(data["hour_income"])
 		InPage.OnlineTime = Str2Float64(data["online_time_max"]) - Str2Float64(data["online_time_min"])
 		InPage.PkgLossRatio = Str2Float64(data["pkg_loss_ratio"])
 		InPage.Latency = Str2Float64(data["latency"])
@@ -342,11 +335,11 @@ func (t *DeviceTask) CountDataByUser(userId string) {
 		return
 	}
 	for _, data := range dataBase {
-		var InPage model.HourDaily
+		var InPage model.IncomeDaily
 		InPage.Time, _ = time.Parse(TimeFormatYMD, data["date"])
 		InPage.DiskUsage = Str2Float64(data["disk_usage"])
 		InPage.NatRatio = Str2Float64(data["nat_ratio"])
-		InPage.HourIncome = Str2Float64(data["hour_income"])
+		InPage.Income = Str2Float64(data["hour_income"])
 		InPage.OnlineTime = Str2Float64(data["online_time_max"]) - Str2Float64(data["online_time_min"])
 		InPage.PkgLossRatio = Str2Float64(data["pkg_loss_ratio"])
 		InPage.Latency = Str2Float64(data["latency"])
@@ -356,7 +349,7 @@ func (t *DeviceTask) CountDataByUser(userId string) {
 	return
 }
 
-func (t *DeviceTask) UpdateYesTodayIncome(DeviceID string) {
+func (t *DeviceTask) UpdateYesTodayIncome(DeviceID string) error {
 	dd, _ := time.ParseDuration("-24h")
 	timeBase := time.Now().Add(dd * 1).Format("2006-01-02")
 	timeNow := time.Now().Format("2006-01-02")
@@ -403,33 +396,33 @@ func (t *DeviceTask) UpdateYesTodayIncome(DeviceID string) {
 		dataUpdate.UserID = t.DeviceIDAndUserId[DeviceID]
 	}
 	//err := dao.DB.Save(&data).Error
-	var dataOld model.DeviceInfo
-	result := dao.DB.Where("device_id = ?", DeviceID).First(&dataOld)
-	if result.RowsAffected <= 0 {
-		dataUpdate.CreatedAt = time.Now()
-		err := dao.DB.Create(&dataUpdate).Error
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}
-	} else {
-		dataOld.YesterdayIncome = dataUpdate.YesterdayIncome
-		dataOld.SevenDaysProfit = dataUpdate.SevenDaysProfit
-		dataOld.MonthProfit = dataUpdate.MonthProfit
-		dataOld.CumuProfit = dataUpdate.CumuProfit
-		dataOld.UpdatedAt = dataUpdate.UpdatedAt
-		dataOld.TodayOnlineTime = dataUpdate.TodayOnlineTime
-		dataOld.TodayProfit = dataUpdate.TodayProfit
-		if dataUpdate.UserID != "" {
-			dataOld.UserID = dataUpdate.UserID
-		}
-		err := dao.DB.Save(&dataOld).Error
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}
+
+	ctx := context.Background()
+	old, err := dao.GetDeviceInfoByID(ctx, DeviceID)
+	if err != nil {
+		log.Errorf("get device info by id: %v", err)
+		return err
 	}
-	return
+
+	if old == nil {
+		dataUpdate.CreatedAt = time.Now()
+		return dao.CreateDeviceInfo(ctx, &dataUpdate)
+	}
+	old.YesterdayIncome = dataUpdate.YesterdayIncome
+	old.SevenDaysProfit = dataUpdate.SevenDaysProfit
+	old.MonthProfit = dataUpdate.MonthProfit
+	old.CumuProfit = dataUpdate.CumuProfit
+	old.UpdatedAt = dataUpdate.UpdatedAt
+	old.TodayOnlineTime = dataUpdate.TodayOnlineTime
+	old.TodayProfit = dataUpdate.TodayProfit
+	if dataUpdate.UserID != "" {
+		old.UserID = dataUpdate.UserID
+	}
+	err = dao.UpdateDeviceInfo(ctx, old)
+	if err != nil {
+		log.Errorf("update device info: %v", err)
+	}
+	return nil
 }
 
 func QueryDataByDate(DeviceID, DateFrom, DateTo string) map[string]string {
@@ -481,7 +474,7 @@ func (t *DeviceTask) Initial(interval int64) {
 func (t *DeviceTask) GetDeviceIDs() {
 	list, _, err := dao.GetDeviceInfoList(context.Background(), &model.DeviceInfo{}, dao.QueryOption{})
 	if err != nil {
-		log.Error("args error")
+		log.Errorf("get device inf list: %v", err)
 		return
 	}
 	for _, DeviceID := range list {
@@ -510,7 +503,7 @@ func (t *DeviceTask) itemRun(url string) {
 			GTime = time.Now()
 			GUpdate = true
 		}
-		
+
 		//today := time.Now().Format(TimeFormatYMD)
 		//if GUpdateTagNew == "" || GUpdateTagNew != today {
 		//	GUpdate = true
@@ -562,7 +555,7 @@ func RunTask() {
 	log.Infof("total scheduler: %d", len(schedulers))
 
 	GWg.Add(1)
-	go GDevice.itemRun(schedulers[0].Address)
+	go GDevice.itemRun(schedulers[1].Address)
 
 	GWg.Wait()
 	log.Debug("run loop end")

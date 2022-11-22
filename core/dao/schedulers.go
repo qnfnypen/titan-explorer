@@ -2,24 +2,19 @@ package dao
 
 import (
 	"context"
+	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/gnasnik/titan-explorer/core/generated/query"
 )
 
+var tableNameScheduler = "schedulers"
+
 func GetSchedulers(ctx context.Context) ([]*model.Scheduler, error) {
-	return query.Scheduler.WithContext(ctx).Find()
-}
-
-func AddScheduler(ctx context.Context, scheduler *model.Scheduler) error {
-	return query.Scheduler.WithContext(ctx).Create(scheduler)
-}
-
-func DeleteScheduler(ctx context.Context, id int64) error {
-	scheduler, err := query.Scheduler.WithContext(ctx).Select(query.Scheduler.ID.Eq(id)).Take()
+	var out []*model.Scheduler
+	err := DB.SelectContext(ctx, &out, fmt.Sprintf(
+		`SELECT * FROM %s`, tableNameScheduler,
+	))
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	_, err = query.Scheduler.WithContext(ctx).Delete(scheduler)
-	return err
+	return out, nil
 }

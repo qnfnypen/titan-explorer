@@ -2,14 +2,14 @@ package dao
 
 import (
 	"database/sql"
-	"gorm.io/gorm"
+	"github.com/jmoiron/sqlx"
 	"strings"
 	"time"
 )
 
 var (
 	// DB reference to database
-	DB *gorm.DB
+	DB *sqlx.DB
 )
 
 type QueryOption struct {
@@ -23,7 +23,7 @@ type QueryOption struct {
 }
 
 func GetQueryDataList(sqlClause string, args ...interface{}) ([]map[string]string, error) {
-	rows, err := DB.Raw(sqlClause, args...).Rows()
+	rows, err := DB.Query(sqlClause, args...)
 	if err != nil {
 		return nil, err
 	}

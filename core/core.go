@@ -4,12 +4,18 @@ import (
 	"context"
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
-	"github.com/gnasnik/titan-explorer/core/generated/query"
 	"github.com/gnasnik/titan-explorer/core/oplog"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"gorm.io/driver/mysql"
-	_ "gorm.io/driver/mysql"
-	"gorm.io/gorm"
+	"time"
+)
+
+const (
+	maxOpenConnections = 60
+	connMaxLifetime    = 120
+	maxIdleConnections = 30
+	connMaxIdleTime    = 20
 )
 
 func Init(cfg *config.Config) error {
@@ -17,12 +23,16 @@ func Init(cfg *config.Config) error {
 		return errors.New("database url not setup")
 	}
 
-	db, err := gorm.Open(mysql.Open(cfg.DatabaseURL), &gorm.Config{})
+	db, err := sqlx.Connect("mysql", cfg.DatabaseURL)
 	if err != nil {
 		return err
 	}
 
-	query.SetDefault(db)
+	db.SetMaxOpenConns(maxOpenConnections)
+	db.SetConnMaxLifetime(connMaxLifetime * time.Second)
+	db.SetMaxIdleConns(maxIdleConnections)
+	db.SetConnMaxIdleTime(connMaxIdleTime * time.Second)
+
 	dao.DB = db
 	oplog.Subscribe(context.Background())
 	return nil

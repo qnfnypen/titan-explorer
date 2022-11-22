@@ -2,73 +2,182 @@ package dao
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"strconv"
+	"time"
 )
 
-func GetIncomeDailyHourList(ctx context.Context, cond *model.HourDaily, option QueryOption) ([]*model.HourDaily, int64, error) {
-	limit := option.PageSize
-	offset := option.PageSize * (option.Page - 1)
+var (
+	tableNameHourDaily   = "hour_daily"
+	tableNameIncomeDaily = "income_daily"
+)
 
-	db := DB.Model(&model.HourDaily{}).WithContext(ctx)
-	var hd []*model.HourDaily
-	var total int64
+func GetHourDailyByTime(ctx context.Context, deviceID string, time time.Time) (*model.HourDaily, error) {
+	var out model.HourDaily
+	if err := DB.QueryRowxContext(ctx, fmt.Sprintf(
+		`SELECT * FROM %s WHERE device_id =? AND time = ?`, tableNameHourDaily),
+		deviceID, time,
+	).StructScan(&out); err != nil && err != sql.ErrNoRows {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func UpdateHourDaily(ctx context.Context, hourDaily *model.HourDaily) error {
+	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
+		`UPDATE %s SET updated_at = :updated_at, deleted_at = :deleted_at, user_id =:user_id,
+			device_id = :device_id, hour_income = :hour_income,
+			online_time = :online_time, pkg_loss_ratio = :pkg_loss_ratio, latency = :latency,
+			nat_ratio = :nat_ratio, disk_usage = :disk_usage, time = :time,
+			WHERE id = :id`, tableNameHourDaily),
+		hourDaily)
+	return err
+}
+
+func CreateHourDaily(ctx context.Context, hourDaily *model.HourDaily) error {
+	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
+		`INSERT INTO %s ("created_at", "updated_at", "deleted_at", "user_id", "miner_id", "device_id", "file_name",
+                "ip_address", "cid", "bandwidth_up", "bandwidth_down", "time_need", "time", "service_country", "region", 
+                "status", "price", "file_size", "download_url")
+			VALUES (:created_at, :updated_at, :deleted_at, :user_id, :miner_id, :device_id, :file_name, :ip_address, 
+			    :cid, :bandwidth_up, :bandwidth_down, :time_need, :time, :service_country, :region, :status, :price, :file_size, :download_url);`,
+		tableNameHourDaily,
+	), hourDaily)
+	return err
+}
+
+func GetIncomeDailyByTime(ctx context.Context, deviceID string, time time.Time) (*model.IncomeDaily, error) {
+	var out model.IncomeDaily
+	if err := DB.QueryRowxContext(ctx, fmt.Sprintf(
+		`SELECT * FROM %s WHERE device_id =? AND time = ?`, tableNameIncomeDaily),
+		deviceID, time,
+	).StructScan(&out); err != nil && err != sql.ErrNoRows {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func CreateIncomeDaily(ctx context.Context, daily *model.IncomeDaily) error {
+	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
+		`INSERT INTO %s ("created_at", "updated_at", "deleted_at", "user_id", "miner_id", "device_id", "file_name",
+                "ip_address", "cid", "bandwidth_up", "bandwidth_down", "time_need", "time", "service_country", "region", 
+                "status", "price", "file_size", "download_url")
+			VALUES (:created_at, :updated_at, :deleted_at, :user_id, :miner_id, :device_id, :file_name, :ip_address, 
+			    :cid, :bandwidth_up, :bandwidth_down, :time_need, :time, :service_country, :region, :status, :price, :file_size, :download_url);`,
+		tableNameIncomeDaily,
+	), daily)
+	return err
+}
+
+func UpdateIncomeDaily(ctx context.Context, daily *model.IncomeDaily) error {
+	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
+		`UPDATE %s SET updated_at = :updated_at, deleted_at = :deleted_at, user_id =:user_id,
+			device_id = :device_id, hour_income = :hour_income,
+			online_time = :online_time, pkg_loss_ratio = :pkg_loss_ratio, latency = :latency,
+			nat_ratio = :nat_ratio, disk_usage = :disk_usage, time = :time,
+			WHERE id = :id`, tableNameIncomeDaily),
+		daily)
+	return err
+}
+
+func GetIncomeDailyHourList(ctx context.Context, cond *model.HourDaily, option QueryOption) ([]*model.HourDaily, int64, error) {
+	var args []interface{}
+	where := `WHERE 1=1`
 	if cond.DeviceID != "" {
-		db = db.Where("device_id = ?", cond.DeviceID)
+		where += ` AND device_id = ?`
+		args = append(args, cond.DeviceID)
 	}
 	if cond.UserID != "" {
-		db = db.Where("user_id = ?", cond.UserID)
+		where += ` AND user_id = ?`
+		args = append(args, cond.UserID)
 	}
 	if !option.StartTime.IsZero() {
-		db = db.Where("time >= ?", option.StartTime)
+		where += ` AND time >= ?`
+		args = append(args, option.StartTime)
 	}
 	if !option.EndTime.IsZero() {
-		db = db.Where("time <= ?", option.EndTime)
+		where += ` AND time <= ?`
+		args = append(args, option.EndTime)
 	}
-	err := db.Count(&total).Error
+
+	limit := option.PageSize
+	offset := option.Page
+	if option.Page > 0 {
+		offset = option.PageSize * (option.Page - 1)
+	}
+	if option.PageSize <= 0 {
+		limit = 50
+	}
+
+	var total int64
+	var out []*model.HourDaily
+
+	err := DB.GetContext(ctx, &total, fmt.Sprintf(
+		`SELECT count(*) FROM %s %s`, tableNameHourDaily, where,
+	), args...)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	err = db.Limit(limit).Offset(offset).Find(&hd).Error
+	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
+		`SELECT * FROM %s %s LIMIT %d OFFSET %d`, tableNameHourDaily, where, limit, offset,
+	), args...)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	return hd, total, nil
+	return out, total, err
 }
 
 func GetIncomeDailyList(ctx context.Context, cond *model.IncomeDaily, option QueryOption) ([]*model.IncomeDaily, int64, error) {
-	limit := option.PageSize
-	offset := option.PageSize * (option.Page - 1)
-
-	db := DB.Model(&model.IncomeDaily{}).WithContext(ctx)
-	var incomeDailies []*model.IncomeDaily
-	var total int64
+	var args []interface{}
+	where := `WHERE 1=1`
 	if cond.DeviceID != "" {
-		db = db.Where("device_id = ?", cond.DeviceID)
+		where += ` AND device_id = ?`
+		args = append(args, cond.DeviceID)
 	}
 	if cond.UserID != "" {
-		db = db.Where("user_id = ?", cond.UserID)
+		where += ` AND user_id = ?`
+		args = append(args, cond.UserID)
 	}
 	if !option.StartTime.IsZero() {
-		db = db.Where("time >= ?", option.StartTime)
+		where += ` AND time >= ?`
+		args = append(args, option.StartTime)
 	}
 	if !option.EndTime.IsZero() {
-		db = db.Where("time <= ?", option.EndTime)
+		where += ` AND time <= ?`
+		args = append(args, option.EndTime)
 	}
-	err := db.Count(&total).Error
+
+	limit := option.PageSize
+	offset := option.Page
+	if option.Page > 0 {
+		offset = option.PageSize * (option.Page - 1)
+	}
+	if option.PageSize <= 0 {
+		limit = 50
+	}
+
+	var total int64
+	var out []*model.IncomeDaily
+
+	err := DB.GetContext(ctx, &total, fmt.Sprintf(
+		`SELECT count(*) FROM %s %s`, tableNameIncomeDaily, where,
+	), args)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	err = db.Limit(limit).Offset(offset).Find(&incomeDailies).Error
+	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
+		`SELECT * FROM %s %s LIMIT %d OFFSET %d`, tableNameIncomeDaily, where, limit, offset,
+	), args)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	return incomeDailies, total, nil
+	return out, total, err
 }
 
 func GetIncomeAllList(ctx context.Context, cond *model.IncomeDaily, option QueryOption) []map[string]interface{} {

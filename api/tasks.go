@@ -27,6 +27,7 @@ func CreateTaskHandler(c *gin.Context) {
 
 	err := dao.UpsertTaskInfo(c.Request.Context(), taskInfo)
 	if err != nil {
+		log.Errorf("upsert task info: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
 		return
 	}
@@ -48,7 +49,7 @@ func GetTaskInfoHandler(c *gin.Context) {
 
 	list, total, err := dao.GetTaskInfoList(c.Request.Context(), taskInfo, dao.QueryOption{})
 	if err != nil {
-		log.Error(err.Error())
+		log.Errorf("get task info: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInvalidParams))
 		return
 	}

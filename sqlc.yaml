@@ -1,0 +1,16 @@
+version: "2"
+sql:
+- schema: "scripts/create_tables.sql"
+  queries: "scripts/query.sql"
+  engine: "mysql"
+  gen:
+    go:
+      emit_db_tags: true
+      emit_json_tags: true
+      emit_methods_with_db_argument: true
+      json_tags_case_style: "snake"
+      output_db_file_name: "db_gen.go"
+      output_models_file_name: "model_gen.go"
+      output_querier_file_name: "querier_gen.go"
+      package: "model"
+      out: "core/generated/model"

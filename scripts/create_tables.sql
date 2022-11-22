@@ -1,197 +1,234 @@
-DROP TABLE IF EXISTS `users`;
+DROP TABLE
+    IF
+    EXISTS `users`;
 CREATE TABLE `users` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `uuid` longtext,
-  `username` longtext,
-  `pass_hash` longtext,
-  `user_email` longtext,
-  `address` longtext,
-  `role` tinyint(4) NOT NULL DEFAULT 0,
-  `created_at` datetime(3) DEFAULT NULL,
-  `updated_at` datetime(3) DEFAULT NULL,
-  `deleted_at` datetime(3) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-
-DROP TABLE IF EXISTS `login_log`;
-CREATE TABLE `login_log`  (
-`id` bigint(20) NOT NULL AUTO_INCREMENT,
-`login_username` varchar(50) NULL DEFAULT '',
-`ipaddr` varchar(50)  NULL DEFAULT '',
-`login_location` varchar(255)  NULL DEFAULT '',
-`browser` varchar(50)  NULL DEFAULT '',
-`os` varchar(50)  NULL DEFAULT '',
-`status` tinyint(4) NULL DEFAULT 0,
-`msg` varchar(255)  NULL DEFAULT '',
-`created_at` datetime(3) DEFAULT NULL,
-PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4;
-
-DROP TABLE IF EXISTS `operation_log`;
-CREATE TABLE `operation_log`  (
- `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
- `title` varchar(50)  NULL DEFAULT '',
- `business_type` int(2) NULL DEFAULT 0 ,
- `method` varchar(100)  NULL DEFAULT '',
- `request_method` varchar(10)  NULL DEFAULT '',
- `operator_type` int(1) NULL DEFAULT 0,
- `operator_username` varchar(50)  NULL DEFAULT '',
- `operator_url` varchar(500)  NULL DEFAULT '',
- `operator_ip` varchar(50)  NULL DEFAULT '',
- `operator_location` varchar(255)  NULL DEFAULT '',
- `operator_param` text  NULL,
- `json_result` text  NULL,
- `status` int(1) NULL DEFAULT 0,
- `error_msg` varchar(2000)  NULL DEFAULT '',
- `created_at` datetime(6) DEFAULT NULL,
- `updated_at` datetime(6) DEFAULT NULL,
- PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4;
-
-
-DROP TABLE IF EXISTS `schedulers`;
+`id` BIGINT ( 20 ) NOT NULL AUTO_INCREMENT,
+`uuid` VARCHAR ( 255 ) NOT NULL DEFAULT '',
+`username` VARCHAR ( 255 ) NOT NULL DEFAULT '',
+`pass_hash` VARCHAR ( 255 ) NOT NULL DEFAULT '',
+`user_email` VARCHAR ( 255 ) NOT NULL DEFAULT '',
+`address` VARCHAR ( 255 ) NOT NULL DEFAULT '',
+`role` TINYINT ( 4 ) NOT NULL DEFAULT 0,
+`created_at` DATETIME ( 3 ) NOT NULL DEFAULT 0,
+`updated_at` DATETIME ( 3 ) NOT NULL DEFAULT 0,
+`deleted_at` DATETIME ( 3 ) NOT NULL DEFAULT 0,
+PRIMARY KEY ( `id` )
+) ENGINE = INNODB DEFAULT CHARSET = utf8mb4;
+DROP TABLE
+    IF
+    EXISTS `login_log`;
+CREATE TABLE `login_log` (
+    `id` BIGINT ( 20 ) NOT NULL AUTO_INCREMENT,
+    `login_username` VARCHAR ( 50 ) NOT NULL DEFAULT '',
+    `ipaddr` VARCHAR ( 50 ) NOT NULL DEFAULT '',
+    `login_location` VARCHAR ( 255 ) NOT NULL DEFAULT '',
+    `browser` VARCHAR ( 50 ) NOT NULL DEFAULT '',
+    `os` VARCHAR ( 50 ) NOT NULL DEFAULT '',
+    `status` TINYINT ( 4 ) NOT NULL DEFAULT 0,
+    `msg` VARCHAR ( 255 ) NOT NULL DEFAULT '',
+    `created_at` DATETIME ( 3 ) NOT NULL DEFAULT 0,
+    PRIMARY KEY ( `id` ) USING BTREE
+) ENGINE = INNODB CHARACTER
+SET = utf8mb4;
+DROP TABLE
+    IF
+    EXISTS `operation_log`;
+CREATE TABLE `operation_log` (
+        `id` BIGINT ( 20 ) UNSIGNED NOT NULL AUTO_INCREMENT,
+        `title` VARCHAR ( 50 ) NOT NULL DEFAULT '',
+        `business_type` INT ( 2 ) NOT NULL DEFAULT 0,
+        `method` VARCHAR ( 100 ) NOT NULL DEFAULT '',
+        `request_method` VARCHAR ( 10 ) NOT NULL DEFAULT '',
+        `operator_type` INT ( 1 ) NOT NULL DEFAULT 0,
+        `operator_username` VARCHAR ( 50 ) NOT NULL DEFAULT '',
+        `operator_url` VARCHAR ( 500 ) NOT NULL DEFAULT '',
+        `operator_ip` VARCHAR ( 50 ) NOT NULL DEFAULT '',
+        `operator_location` VARCHAR ( 255 ) NOT NULL DEFAULT '',
+        `operator_param` VARCHAR ( 2000 ) NOT NULL DEFAULT '',
+        `json_result` VARCHAR ( 2000 ) NOT NULL DEFAULT '',
+        `status` INT ( 1 ) NOT NULL DEFAULT 0,
+        `error_msg` VARCHAR ( 2000 ) NOT NULL DEFAULT '',
+        `created_at` DATETIME ( 6 ) NOT NULL DEFAULT 0,
+        `updated_at` DATETIME ( 6 ) NOT NULL DEFAULT 0,
+        PRIMARY KEY ( `id` ) USING BTREE
+) ENGINE = INNODB CHARACTER
+SET = utf8mb4;
+DROP TABLE
+    IF
+    EXISTS `schedulers`;
 CREATE TABLE `schedulers` (
-`id` bigint(20) NOT NULL AUTO_INCREMENT,
-`name` longtext,
-`group` longtext,
-`address` longtext,
-`status` int(1) NULL DEFAULT 0,
-`created_at` datetime(3) DEFAULT NULL,
-`updated_at` datetime(3) DEFAULT NULL,
-`deleted_at` datetime(3) DEFAULT NULL,
-PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-
-DROP TABLE IF EXISTS `device_info`;
-CREATE TABLE `device_info`  (
-    `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
-    `created_at` datetime(3) NULL DEFAULT NULL,
-    `updated_at` datetime(3) NULL DEFAULT NULL,
-    `deleted_at` datetime(3) NULL DEFAULT NULL,
-    `device_id` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-    `secret` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-    `node_type` int(2)  NULL DEFAULT 0,
-    `device_name` char(56) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-    `user_id` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-    `sn_code` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-    `operator` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-    `network_type` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-    `today_income` double NULL DEFAULT NULL,
-    `yesterday_income` double NULL DEFAULT NULL,
-    `cumu_profit` double NULL DEFAULT NULL,
-    `system_version` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-    `product_type` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-    `network_info` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-    `external_ip` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-    `internal_ip` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-    `ip_location` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-    `mac_location` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-    `nat_type` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-    `upnp` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-    `pkg_loss_ratio` float(32) NOT NULL DEFAULT '0' COMMENT '',
-    `nat_ratio` float(32) NOT NULL DEFAULT '0' COMMENT 'Nat',
-    `latency` float(32) NOT NULL DEFAULT '0' COMMENT '',
-    `cpu_usage` float(32) NOT NULL DEFAULT '0' COMMENT '',
-    `memory_usage` float(32) NOT NULL DEFAULT '0' COMMENT '',
-    `disk_usage` float(32) NOT NULL DEFAULT '0' COMMENT '',
-    `work_status` char(28) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-    `device_status` char(28) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-    `disk_type` char(28) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-    `io_system` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-    `today_online_time` float(32) NOT NULL DEFAULT '0',
-    `today_profit` float(32) NOT NULL DEFAULT '0' ,
-    `seven_days_profit` float(32) NOT NULL DEFAULT '0',
-    `month_profit` float(32) NOT NULL DEFAULT '0',
-    `bandwidth_up` float(32) NOT NULL DEFAULT '0' ,
-    `bandwidth_down` float(32) NOT NULL DEFAULT '0',
-    PRIMARY KEY (`id`) USING BTREE,
-    INDEX `idx_device_info_deleted_at`(`deleted_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4;
-
-
-DROP TABLE IF EXISTS `task_info`;
+     `id` BIGINT ( 20 ) NOT NULL AUTO_INCREMENT,
+     `name` VARCHAR ( 255 ) NOT NULL DEFAULT '',
+     `group` VARCHAR ( 255 ) NOT NULL DEFAULT '',
+     `address` VARCHAR ( 255 ) NOT NULL DEFAULT '',
+     `status` INT ( 1 ) NOT NULL DEFAULT 0,
+     `created_at` DATETIME ( 3 ) NOT NULL DEFAULT 0,
+     `updated_at` DATETIME ( 3 ) NOT NULL DEFAULT 0,
+     `deleted_at` DATETIME ( 3 ) NOT NULL DEFAULT 0,
+     PRIMARY KEY ( `id` )
+) ENGINE = INNODB DEFAULT CHARSET = utf8mb4;
+DROP TABLE
+    IF
+    EXISTS `device_info`;
+CREATE TABLE `device_info` (
+      `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      `created_at` DATETIME ( 3 ) NOT NULL DEFAULT 0,
+      `updated_at` DATETIME ( 3 ) NOT NULL DEFAULT 0,
+      `deleted_at` DATETIME ( 3 ) NOT NULL DEFAULT 0,
+      `device_id` VARCHAR ( 191 ) CHARACTER
+          SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+      `secret` VARCHAR ( 191 ) CHARACTER
+          SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+      `node_type` INT ( 2 ) NOT NULL DEFAULT 0,
+      `device_name` CHAR ( 56 ) CHARACTER
+          SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+      `user_id` VARCHAR ( 191 ) CHARACTER
+          SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+      `sn_code` VARCHAR ( 191 ) CHARACTER
+          SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+      `operator` VARCHAR ( 191 ) CHARACTER
+          SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+      `network_type` VARCHAR ( 191 ) CHARACTER
+          SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+      `today_income` DOUBLE NOT NULL DEFAULT 0,
+      `yesterday_income` DOUBLE NOT NULL DEFAULT 0,
+      `cumu_profit` DOUBLE NOT NULL DEFAULT 0,
+      `system_version` VARCHAR ( 191 ) CHARACTER
+          SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+      `product_type` VARCHAR ( 191 ) CHARACTER
+          SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+      `network_info` VARCHAR ( 191 ) CHARACTER
+          SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+      `external_ip` VARCHAR ( 191 ) CHARACTER
+          SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+      `internal_ip` VARCHAR ( 191 ) CHARACTER
+          SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+      `ip_location` VARCHAR ( 191 ) CHARACTER
+          SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+      `mac_location` VARCHAR ( 191 ) CHARACTER
+          SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+      `nat_type` VARCHAR ( 191 ) CHARACTER
+          SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+      `upnp` VARCHAR ( 191 ) CHARACTER
+          SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+      `pkg_loss_ratio` FLOAT ( 32 ) NOT NULL DEFAULT '0' COMMENT '',
+      `nat_ratio` FLOAT ( 32 ) NOT NULL DEFAULT '0' COMMENT 'Nat',
+      `latency` FLOAT ( 32 ) NOT NULL DEFAULT '0' COMMENT '',
+      `cpu_usage` FLOAT ( 32 ) NOT NULL DEFAULT '0' COMMENT '',
+      `memory_usage` FLOAT ( 32 ) NOT NULL DEFAULT '0' COMMENT '',
+      `disk_usage` FLOAT ( 32 ) NOT NULL DEFAULT '0' COMMENT '',
+      `work_status` CHAR ( 28 ) CHARACTER
+          SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+      `device_status` CHAR ( 28 ) CHARACTER
+          SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+      `disk_type` CHAR ( 28 ) CHARACTER
+          SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+      `io_system` VARCHAR ( 191 ) CHARACTER
+          SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+      `today_online_time` FLOAT ( 32 ) NOT NULL DEFAULT '0',
+      `today_profit` FLOAT ( 32 ) NOT NULL DEFAULT '0',
+      `seven_days_profit` FLOAT ( 32 ) NOT NULL DEFAULT '0',
+      `month_profit` FLOAT ( 32 ) NOT NULL DEFAULT '0',
+      `bandwidth_up` FLOAT ( 32 ) NOT NULL DEFAULT '0',
+      `bandwidth_down` FLOAT ( 32 ) NOT NULL DEFAULT '0',
+      PRIMARY KEY ( `id` ) USING BTREE,
+      INDEX `idx_device_info_deleted_at` ( `deleted_at` ASC ) USING BTREE
+) ENGINE = INNODB AUTO_INCREMENT = 1 CHARACTER
+SET = utf8mb4;
+DROP TABLE
+    IF
+    EXISTS `task_info`;
 CREATE TABLE `task_info` (
-`id` bigint(20) NOT NULL AUTO_INCREMENT ,
-`created_at` datetime(3) NULL DEFAULT NULL,
-`updated_at` datetime(3) NULL DEFAULT NULL,
-`deleted_at` datetime(3) NULL DEFAULT NULL,
-`user_id` varchar(128) NOT NULL DEFAULT '',
-`miner_id` varchar(128) NOT NULL DEFAULT '' ,
-`device_id` varchar(128) NOT NULL DEFAULT '' ,
-`file_name` varchar(128) NOT NULL DEFAULT '',
-`ip_address` varchar(32) NOT NULL DEFAULT '' ,
-`cid` varchar(128) NOT NULL DEFAULT '' ,
-`bandwidth_up` varchar(32) NOT NULL DEFAULT '',
-`bandwidth_down` varchar(32) NOT NULL DEFAULT '',
-`time_need` varchar(32) NOT NULL DEFAULT '',
-`time` timestamp  NULL DEFAULT NULL,
-`service_country` varchar(56) NOT NULL DEFAULT '',
-`region` varchar(56) NOT NULL DEFAULT '',
-`status` varchar(56) NOT NULL DEFAULT '',
-`price` float(32) NOT NULL DEFAULT '0',
-`file_size` float(32) NOT NULL DEFAULT '0',
-`download_url` varchar(256) NOT NULL DEFAULT '',
-PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-
-DROP TABLE IF EXISTS `income_daily`;
-CREATE TABLE `income_daily`  (
-   `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
-   `created_at` timestamp NULL DEFAULT NULL ,
-   `updated_at` timestamp NULL DEFAULT NULL ,
-   `deleted_at` datetime(3) NULL DEFAULT NULL,
-   `user_id` varchar(128) NOT NULL DEFAULT '' ,
-   `device_id` varchar(128) NOT NULL DEFAULT '',
-   `time` timestamp  NULL DEFAULT NULL ,
-   `income` float(32) NOT NULL DEFAULT '0' ,
-   `online_time` float(32) NOT NULL DEFAULT '0' ,
-   `pkg_loss_ratio` float(32) NOT NULL DEFAULT '0',
-   `latency` float(32) NOT NULL DEFAULT '0' ,
-   `nat_ratio` float(32) NOT NULL DEFAULT '0' ,
-   `disk_usage` float(32) NOT NULL DEFAULT '0' ,
-   PRIMARY KEY (`id`) USING BTREE,
-   INDEX `idx_income_daily_deleted_at`(`deleted_at` ASC) USING BTREE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-DROP TABLE IF EXISTS `hour_daily`;
-CREATE TABLE `hour_daily`  (
- `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
- `created_at` timestamp NULL DEFAULT NULL,
- `updated_at` timestamp NULL DEFAULT NULL,
- `deleted_at` datetime(3) NULL DEFAULT NULL,
- `user_id` varchar(128) NOT NULL DEFAULT '' ,
- `device_id` varchar(128) NOT NULL DEFAULT '' ,
- `time` timestamp NULL DEFAULT NULL ,
- `hour_income` float(32) NOT NULL DEFAULT '0' ,
- `online_time` float(32) NOT NULL DEFAULT '0' ,
- `pkg_loss_ratio` float(32) NOT NULL DEFAULT '0' ,
- `latency` float(32) NOT NULL DEFAULT '0' ,
- `nat_ratio` float(32) NOT NULL DEFAULT '0',
- `disk_usage` float(32) NOT NULL DEFAULT '0',
- PRIMARY KEY (`id`) USING BTREE,
- INDEX `idx_hour_daily_deleted_at`(`deleted_at` ASC) USING BTREE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-
-DROP TABLE IF EXISTS `retrieval_info`;
-CREATE TABLE `retrieval_info`  (
-`id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
-`created_at` datetime(3) NULL DEFAULT NULL,
-`updated_at` datetime(3) NULL DEFAULT NULL,
-`deleted_at` datetime(3) NULL DEFAULT NULL,
-`service_country` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-`service_status` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-`task_status` char(56) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-`file_name` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-`file_size` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-`create_time` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-`cid` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-`price` double NULL DEFAULT NULL,
-`miner_id` char(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-`user_id` char(56) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-PRIMARY KEY (`id`) USING BTREE,
-INDEX `idx_retrieval_info_deleted_at`(`deleted_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci;
+    `id` BIGINT ( 20 ) NOT NULL AUTO_INCREMENT,
+    `created_at` DATETIME ( 3 ) NOT NULL DEFAULT 0,
+    `updated_at` DATETIME ( 3 ) NOT NULL DEFAULT 0,
+    `deleted_at` DATETIME ( 3 ) NOT NULL DEFAULT 0,
+    `user_id` VARCHAR ( 128 ) NOT NULL DEFAULT '',
+    `miner_id` VARCHAR ( 128 ) NOT NULL DEFAULT '',
+    `device_id` VARCHAR ( 128 ) NOT NULL DEFAULT '',
+    `file_name` VARCHAR ( 128 ) NOT NULL DEFAULT '',
+    `ip_address` VARCHAR ( 32 ) NOT NULL DEFAULT '',
+    `cid` VARCHAR ( 128 ) NOT NULL DEFAULT '',
+    `bandwidth_up` VARCHAR ( 32 ) NOT NULL DEFAULT '',
+    `bandwidth_down` VARCHAR ( 32 ) NOT NULL DEFAULT '',
+    `time_need` VARCHAR ( 32 ) NOT NULL DEFAULT '',
+    `time` TIMESTAMP NOT NULL DEFAULT 0,
+    `service_country` VARCHAR ( 56 ) NOT NULL DEFAULT '',
+    `region` VARCHAR ( 56 ) NOT NULL DEFAULT '',
+    `status` VARCHAR ( 56 ) NOT NULL DEFAULT '',
+    `price` FLOAT ( 32 ) NOT NULL DEFAULT '0',
+    `file_size` FLOAT ( 32 ) NOT NULL DEFAULT '0',
+    `download_url` VARCHAR ( 256 ) NOT NULL DEFAULT '',
+    PRIMARY KEY ( `id` )
+) ENGINE = INNODB DEFAULT CHARSET = utf8;
+DROP TABLE
+    IF
+    EXISTS `income_daily`;
+CREATE TABLE `income_daily` (
+       `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+       `created_at` TIMESTAMP NOT NULL DEFAULT 0,
+       `updated_at` TIMESTAMP NOT NULL DEFAULT 0,
+       `deleted_at` DATETIME ( 3 ) NOT NULL DEFAULT 0,
+       `user_id` VARCHAR ( 128 ) NOT NULL DEFAULT '',
+       `device_id` VARCHAR ( 128 ) NOT NULL DEFAULT '',
+       `time` TIMESTAMP NOT NULL DEFAULT 0,
+       `income` FLOAT ( 32 ) NOT NULL DEFAULT '0',
+       `online_time` FLOAT ( 32 ) NOT NULL DEFAULT '0',
+       `pkg_loss_ratio` FLOAT ( 32 ) NOT NULL DEFAULT '0',
+       `latency` FLOAT ( 32 ) NOT NULL DEFAULT '0',
+       `nat_ratio` FLOAT ( 32 ) NOT NULL DEFAULT '0',
+       `disk_usage` FLOAT ( 32 ) NOT NULL DEFAULT '0',
+       PRIMARY KEY ( `id` ) USING BTREE,
+       INDEX `idx_income_daily_deleted_at` ( `deleted_at` ASC ) USING BTREE
+) ENGINE = INNODB DEFAULT CHARSET = utf8;
+DROP TABLE
+    IF
+    EXISTS `hour_daily`;
+CREATE TABLE `hour_daily` (
+     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+     `created_at` TIMESTAMP NOT NULL DEFAULT 0,
+     `updated_at` TIMESTAMP NOT NULL DEFAULT 0,
+     `deleted_at` DATETIME ( 3 ) NOT NULL DEFAULT 0,
+     `user_id` VARCHAR ( 128 ) NOT NULL DEFAULT '',
+     `device_id` VARCHAR ( 128 ) NOT NULL DEFAULT '',
+     `time` TIMESTAMP NOT NULL DEFAULT 0,
+     `hour_income` FLOAT ( 32 ) NOT NULL DEFAULT '0',
+     `online_time` FLOAT ( 32 ) NOT NULL DEFAULT '0',
+     `pkg_loss_ratio` FLOAT ( 32 ) NOT NULL DEFAULT '0',
+     `latency` FLOAT ( 32 ) NOT NULL DEFAULT '0',
+     `nat_ratio` FLOAT ( 32 ) NOT NULL DEFAULT '0',
+     `disk_usage` FLOAT ( 32 ) NOT NULL DEFAULT '0',
+     PRIMARY KEY ( `id` ) USING BTREE,
+     INDEX `idx_hour_daily_deleted_at` ( `deleted_at` ASC ) USING BTREE
+) ENGINE = INNODB DEFAULT CHARSET = utf8;
+DROP TABLE
+    IF
+    EXISTS `retrieval_info`;
+CREATE TABLE `retrieval_info` (
+         `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+         `created_at` DATETIME ( 3 ) NOT NULL DEFAULT 0,
+         `updated_at` DATETIME ( 3 ) NOT NULL DEFAULT 0,
+         `deleted_at` DATETIME ( 3 ) NOT NULL DEFAULT 0,
+         `service_country` VARCHAR ( 191 ) CHARACTER
+             SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+         `service_status` VARCHAR ( 191 ) CHARACTER
+             SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+         `task_status` CHAR ( 56 ) CHARACTER
+             SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+         `file_name` VARCHAR ( 191 ) CHARACTER
+             SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+         `file_size` VARCHAR ( 191 ) CHARACTER
+             SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+         `create_time` VARCHAR ( 191 ) CHARACTER
+             SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+         `cid` VARCHAR ( 191 ) CHARACTER
+             SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+         `price` DOUBLE NOT NULL DEFAULT 0,
+         `miner_id` CHAR ( 50 ) CHARACTER
+             SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+         `user_id` CHAR ( 56 ) CHARACTER
+             SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+         PRIMARY KEY ( `id` ) USING BTREE,
+         INDEX `idx_retrieval_info_deleted_at` ( `deleted_at` ASC ) USING BTREE
+) ENGINE = INNODB AUTO_INCREMENT = 6 CHARACTER
+SET = utf8mb4 COLLATE = utf8mb4_general_ci;

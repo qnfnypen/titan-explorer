@@ -132,5 +132,5 @@ func loginByPassword(ctx context.Context, username, password string) (interface{
 		return nil, errors.ErrInvalidPassword
 	}
 
-	return &model2.User{UUID: user.UUID, Username: user.Username, Role: user.Role}, nil
+	return &model2.User{Uuid: user.Uuid, Username: user.Username, Role: user.Role}, nil
 }

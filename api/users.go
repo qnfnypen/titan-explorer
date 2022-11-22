@@ -54,6 +54,7 @@ func DeviceBidingHandler(c *gin.Context) {
 
 	err := dao.UpsertUserDevice(c.Request.Context(), deviceInfo)
 	if err != nil {
+		log.Errorf("upsert user device: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
 		return
 	}

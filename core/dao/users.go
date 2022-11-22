@@ -2,14 +2,26 @@ package dao
 
 import (
 	"context"
+	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/gnasnik/titan-explorer/core/generated/query"
 )
 
+var tableNameUser = "users"
+
 func CreateUser(ctx context.Context, user *model.User) error {
-	return query.User.WithContext(ctx).Create(user)
+	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
+		`INSERT INTO %s (uuid, username, pass_hash, user_email, address, role)
+			VALUES (:uuid, :username, :pass_hash, :user_email, :address, :role);`, tableNameUser,
+	), user)
+	return err
 }
 
 func GetUserByUsername(ctx context.Context, username string) (*model.User, error) {
-	return query.User.WithContext(ctx).Where(query.User.Username.Eq(username)).Take()
+	var out model.User
+	if err := DB.QueryRowxContext(ctx, fmt.Sprintf(
+		`SELECT * FROM %s WHERE username = ?`, tableNameUser), username,
+	).StructScan(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
