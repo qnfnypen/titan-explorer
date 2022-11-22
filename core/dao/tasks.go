@@ -15,6 +15,9 @@ func GetTaskInfoByCID(ctx context.Context, cid string) (*model.TaskInfo, error) 
 	if err := DB.QueryRowxContext(ctx, fmt.Sprintf(
 		`SELECT * FROM %s WHERE cid = ?`, tableNameTaskInfo), cid,
 	).StructScan(&out); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &out, nil
@@ -25,7 +28,10 @@ func GetTaskInfoByTime(ctx context.Context, deviceID, cid string, time time.Time
 	if err := DB.QueryRowxContext(ctx, fmt.Sprintf(
 		`SELECT * FROM %s WHERE device_id =? AND cid = ? AND time = ?`, tableNameTaskInfo),
 		deviceID, cid, time,
-	).StructScan(&out); err != nil && err != sql.ErrNoRows {
+	).StructScan(&out); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &out, nil
@@ -44,7 +50,7 @@ func CreateTaskInfo(ctx context.Context, task *model.TaskInfo) error {
 
 func UpsertTaskInfo(ctx context.Context, task *model.TaskInfo) error {
 	old, err := GetTaskInfoByCID(ctx, task.Cid)
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil {
 		return err
 	}
 

@@ -17,9 +17,12 @@ var (
 func GetHourDailyByTime(ctx context.Context, deviceID string, time time.Time) (*model.HourDaily, error) {
 	var out model.HourDaily
 	if err := DB.QueryRowxContext(ctx, fmt.Sprintf(
-		`SELECT * FROM %s WHERE device_id =? AND time = ?`, tableNameHourDaily),
+		`SELECT * FROM %s WHERE device_id = ? AND time = ?`, tableNameHourDaily),
 		deviceID, time,
-	).StructScan(&out); err != nil && err != sql.ErrNoRows {
+	).StructScan(&out); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &out, nil
@@ -27,22 +30,19 @@ func GetHourDailyByTime(ctx context.Context, deviceID string, time time.Time) (*
 
 func UpdateHourDaily(ctx context.Context, hourDaily *model.HourDaily) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`UPDATE %s SET updated_at = :updated_at, deleted_at = :deleted_at, user_id =:user_id,
-			device_id = :device_id, hour_income = :hour_income,
+		`UPDATE %s SET updated_at = :updated_at, hour_income = :hour_income,
 			online_time = :online_time, pkg_loss_ratio = :pkg_loss_ratio, latency = :latency,
-			nat_ratio = :nat_ratio, disk_usage = :disk_usage, time = :time,
-			WHERE id = :id`, tableNameHourDaily),
+			nat_ratio = :nat_ratio, disk_usage = :disk_usage, time = :time WHERE id = :id`, tableNameHourDaily),
 		hourDaily)
 	return err
 }
 
 func CreateHourDaily(ctx context.Context, hourDaily *model.HourDaily) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s ("created_at", "updated_at", "deleted_at", "user_id", "miner_id", "device_id", "file_name",
-                "ip_address", "cid", "bandwidth_up", "bandwidth_down", "time_need", "time", "service_country", "region", 
-                "status", "price", "file_size", "download_url")
-			VALUES (:created_at, :updated_at, :deleted_at, :user_id, :miner_id, :device_id, :file_name, :ip_address, 
-			    :cid, :bandwidth_up, :bandwidth_down, :time_need, :time, :service_country, :region, :status, :price, :file_size, :download_url);`,
+		`INSERT INTO %s (created_at, updated_at, hour_income,
+				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage, time)
+			VALUES (:created_at, :updated_at, :hour_income, :online_time, :pkg_loss_ratio, :latency, 
+			    :nat_ratio, :disk_usage, :time);`,
 		tableNameHourDaily,
 	), hourDaily)
 	return err
@@ -53,7 +53,10 @@ func GetIncomeDailyByTime(ctx context.Context, deviceID string, time time.Time) 
 	if err := DB.QueryRowxContext(ctx, fmt.Sprintf(
 		`SELECT * FROM %s WHERE device_id =? AND time = ?`, tableNameIncomeDaily),
 		deviceID, time,
-	).StructScan(&out); err != nil && err != sql.ErrNoRows {
+	).StructScan(&out); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &out, nil
@@ -61,11 +64,10 @@ func GetIncomeDailyByTime(ctx context.Context, deviceID string, time time.Time) 
 
 func CreateIncomeDaily(ctx context.Context, daily *model.IncomeDaily) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s ("created_at", "updated_at", "deleted_at", "user_id", "miner_id", "device_id", "file_name",
-                "ip_address", "cid", "bandwidth_up", "bandwidth_down", "time_need", "time", "service_country", "region", 
-                "status", "price", "file_size", "download_url")
-			VALUES (:created_at, :updated_at, :deleted_at, :user_id, :miner_id, :device_id, :file_name, :ip_address, 
-			    :cid, :bandwidth_up, :bandwidth_down, :time_need, :time, :service_country, :region, :status, :price, :file_size, :download_url);`,
+		`INSERT INTO %s (created_at, updated_at, hour_income,
+				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage, time)
+			VALUES (:created_at, :updated_at, :hour_income,
+				:online_time, :pkg_loss_ratio, :latency, :nat_ratio, :disk_usage, :time);`,
 		tableNameIncomeDaily,
 	), daily)
 	return err
@@ -76,8 +78,7 @@ func UpdateIncomeDaily(ctx context.Context, daily *model.IncomeDaily) error {
 		`UPDATE %s SET updated_at = :updated_at, deleted_at = :deleted_at, user_id =:user_id,
 			device_id = :device_id, hour_income = :hour_income,
 			online_time = :online_time, pkg_loss_ratio = :pkg_loss_ratio, latency = :latency,
-			nat_ratio = :nat_ratio, disk_usage = :disk_usage, time = :time,
-			WHERE id = :id`, tableNameIncomeDaily),
+			nat_ratio = :nat_ratio, disk_usage = :disk_usage, time = :time WHERE id = :id`, tableNameIncomeDaily),
 		daily)
 	return err
 }

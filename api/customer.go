@@ -71,8 +71,9 @@ func GetUserDeviceInfoHandler(c *gin.Context) {
 
 	list, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
 	if err != nil {
-		log.Error("args error")
+		log.Errorf("get device info list: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrNotFound))
+		return
 	}
 	var dataList []*model.DeviceInfo
 	var res DeviceInfoPage
@@ -278,9 +279,6 @@ func GetDeviceInfoHandler(c *gin.Context) {
 	info.DeviceStatus = c.Query("device_status")
 	pageSize, _ := strconv.Atoi("page_size")
 	page, _ := strconv.Atoi("page")
-	if pageSize == 0 {
-		pageSize = 50
-	}
 	option := dao.QueryOption{
 		Page:     page,
 		PageSize: pageSize,
@@ -289,13 +287,15 @@ func GetDeviceInfoHandler(c *gin.Context) {
 	if err != nil {
 		log.Errorf("get device info list: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		return
 	}
 	var dataList []*model.DeviceInfo
 	for _, data := range list {
 		err = getProfitByDeviceID(data, &res)
 		if err != nil {
-			log.Error("getProfitByDeviceID：", data.DeviceID)
+			log.Errorf("get profit by device id: %v", data.DeviceID)
 			c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+			return
 		}
 		dataList = append(dataList, data)
 	}

@@ -42,7 +42,7 @@ func (t *DeviceTask) DeviceInfoGetFromRpc(url string, DeviceID string) (DeviceIn
 		log.Error(err.Error())
 		return
 	}
-	log.Debug(string(respBytes))
+
 	DeviceMap := make(map[string]interface{})
 	err = json.Unmarshal(respBytes, &DeviceMap)
 	if err != nil {
@@ -54,6 +54,7 @@ func (t *DeviceTask) DeviceInfoGetFromRpc(url string, DeviceID string) (DeviceIn
 		log.Error(err.Error())
 		return
 	}
+
 	if GUpdate {
 		var hourDaily model.HourDaily
 		hourDaily.Time = GTime
@@ -62,7 +63,7 @@ func (t *DeviceTask) DeviceInfoGetFromRpc(url string, DeviceID string) (DeviceIn
 		hourDaily.PkgLossRatio = data.Result.PkgLossRatio
 		hourDaily.HourIncome = data.Result.TodayProfit
 		//data.Result.TodayOnlineTime = data.Result.TodayOnlineTime
-		hourDaily.OnlineTime = data.Result.TodayOnlineTime
+		hourDaily.OnlineTime = data.Result.OnlineTime
 		hourDaily.Latency = data.Result.Latency
 		hourDaily.DiskUsage = data.Result.DiskUsage
 		_, ok := t.DeviceIDAndUserId[hourDaily.DeviceID]
@@ -542,6 +543,7 @@ func RunTask() {
 	GDevice = &DeviceTask{}
 	GDevice.Initial(60)
 	GWg = &sync.WaitGroup{}
+	GTime = time.Now()
 
 	schedulers, err := dao.GetSchedulers(context.Background())
 	if err != nil {

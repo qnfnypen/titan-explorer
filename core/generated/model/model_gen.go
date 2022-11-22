@@ -44,6 +44,7 @@ type DeviceInfo struct {
 	DeviceStatus    string  `db:"device_status" json:"device_status"`
 	DiskType        string  `db:"disk_type" json:"disk_type"`
 	IoSystem        string  `db:"io_system" json:"io_system"`
+	OnlineTime      float64 `db:"online_time" json:"online_time"`
 	TodayOnlineTime float64 `db:"today_online_time" json:"today_online_time"`
 	TodayProfit     float64 `db:"today_profit" json:"today_profit"`
 	SevenDaysProfit float64 `db:"seven_days_profit" json:"seven_days_profit"`

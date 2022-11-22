@@ -125,6 +125,7 @@ CREATE TABLE `device_info` (
           SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
       `io_system` VARCHAR ( 191 ) CHARACTER
           SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+      `online_time` FLOAT ( 32 ) NOT NULL DEFAULT '0',
       `today_online_time` FLOAT ( 32 ) NOT NULL DEFAULT '0',
       `today_profit` FLOAT ( 32 ) NOT NULL DEFAULT '0',
       `seven_days_profit` FLOAT ( 32 ) NOT NULL DEFAULT '0',
