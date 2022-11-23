@@ -46,8 +46,6 @@ func NewServer(cfg config.Config) (*Server, error) {
 		closer:          func() { closer() },
 	}
 
-	go s.Run()
-
 	return s, nil
 }
 

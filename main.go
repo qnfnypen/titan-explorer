@@ -37,15 +37,15 @@ func main() {
 	}
 
 	go api.RunTask()
-
 	srv, err := api.NewServer(cfg)
 	if err != nil {
 		log.Fatalf("create api server: %v\n", err)
 	}
+	go srv.Run()
 
 	signal.Notify(OsSignal, syscall.SIGINT, syscall.SIGTERM)
 	_ = <-OsSignal
-
 	srv.Close()
+
 	fmt.Printf("Exiting received OsSignal\n")
 }
