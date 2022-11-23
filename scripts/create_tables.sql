@@ -62,6 +62,7 @@ CREATE TABLE `schedulers` (
      `group` VARCHAR ( 255 ) NOT NULL DEFAULT '',
      `address` VARCHAR ( 255 ) NOT NULL DEFAULT '',
      `status` INT ( 1 ) NOT NULL DEFAULT 0,
+     `token` VARCHAR ( 255 ) NOT NULL DEFAULT '',
      `created_at` DATETIME ( 3 ) NOT NULL DEFAULT 0,
      `updated_at` DATETIME ( 3 ) NOT NULL DEFAULT 0,
      `deleted_at` DATETIME ( 3 ) NOT NULL DEFAULT 0,

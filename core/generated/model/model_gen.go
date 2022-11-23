@@ -139,6 +139,7 @@ type Scheduler struct {
 	Group     string    `db:"group" json:"group"`
 	Address   string    `db:"address" json:"address"`
 	Status    int32     `db:"status" json:"status"`
+	Token     string    `db:"token" json:"token"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 	DeletedAt time.Time `db:"deleted_at" json:"deleted_at"`

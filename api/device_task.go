@@ -43,6 +43,7 @@ func (t *DeviceTask) DeviceInfoGetFromRpc(url string, DeviceID string) (DeviceIn
 		return
 	}
 
+	log.Debug(string(respBytes))
 	DeviceMap := make(map[string]interface{})
 	err = json.Unmarshal(respBytes, &DeviceMap)
 	if err != nil {
@@ -557,7 +558,7 @@ func RunTask() {
 	log.Infof("total scheduler: %d", len(schedulers))
 
 	GWg.Add(1)
-	go GDevice.itemRun(schedulers[1].Address)
+	go GDevice.itemRun(schedulers[0].Address)
 
 	GWg.Wait()
 	log.Debug("run loop end")
