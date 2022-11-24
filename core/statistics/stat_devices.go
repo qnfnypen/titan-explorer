@@ -6,17 +6,17 @@ import (
 )
 
 const DKeyUpdateDeviceInfo = "dk_update_device_info"
+const LockerTTL = 30 * time.Second
 
 func (s *Statistic) UpdateDeviceInfo() {
-	s.once(context.Background(), DKeyUpdateDeviceInfo, time.Minute, func() error {
+	s.Once(context.Background(), DKeyUpdateDeviceInfo, LockerTTL, func() error {
 		log.Info("start update device info")
 		start := time.Now()
 		defer func() {
 			log.Infof("update device info done, cost: %v", time.Since(start))
 		}()
 
-		log.Infof("doing")
-		time.Sleep(2 * time.Second)
+		time.Sleep(1 * time.Second)
 		return nil
 	})
 }

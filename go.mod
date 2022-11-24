@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/appleboy/gin-jwt/v2 v2.9.0
+	github.com/bsm/redislock v0.8.2
 	github.com/filecoin-project/pubsub v1.0.0
 	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-gonic/gin v1.8.1
