@@ -111,10 +111,6 @@ func GetIncomeDailyHourList(ctx context.Context, cond *model.HourDaily, option Q
 		offset = limit * (option.Page - 1)
 	}
 
-	fmt.Println(fmt.Sprintf(
-		`SELECT * FROM %s %s LIMIT %d OFFSET %d`, tableNameHourDaily, where, limit, offset,
-	), args)
-
 	var total int64
 	var out []*model.HourDaily
 
@@ -169,14 +165,14 @@ func GetIncomeDailyList(ctx context.Context, cond *model.IncomeDaily, option Que
 
 	err := DB.GetContext(ctx, &total, fmt.Sprintf(
 		`SELECT count(*) FROM %s %s`, tableNameIncomeDaily, where,
-	), args)
+	), args...)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
 		`SELECT * FROM %s %s LIMIT %d OFFSET %d`, tableNameIncomeDaily, where, limit, offset,
-	), args)
+	), args...)
 	if err != nil {
 		return nil, 0, err
 	}
