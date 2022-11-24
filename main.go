@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/api"
 	"github.com/gnasnik/titan-explorer/config"
-	"github.com/gnasnik/titan-explorer/core"
+	"github.com/gnasnik/titan-explorer/core/dao"
+	"github.com/gnasnik/titan-explorer/core/oplog"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/spf13/viper"
 	"log"
@@ -32,11 +34,12 @@ func main() {
 		logging.SetDebugLogging()
 	}
 
-	if err := core.Init(&cfg); err != nil {
+	if err := dao.Init(&cfg); err != nil {
 		log.Fatalf("initital: %v\n", err)
 	}
 
-	go api.RunTask()
+	oplog.Subscribe(context.Background())
+
 	srv, err := api.NewServer(cfg)
 	if err != nil {
 		log.Fatalf("create api server: %v\n", err)

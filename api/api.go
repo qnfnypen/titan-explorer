@@ -40,6 +40,8 @@ func NewServer(cfg config.Config) (*Server, error) {
 		closer:          func() { closer() },
 	}
 
+	go RunTask()
+
 	return s, nil
 }
 

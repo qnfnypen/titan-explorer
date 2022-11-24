@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
@@ -169,8 +168,6 @@ func timeFormatHour(p IncomeDailySearch) (m map[string]interface{}) {
 		log.Errorf("get incoming hour daily: %v", err)
 		return
 	}
-
-	fmt.Println(fmt.Sprintf("==============%+v", list[0]))
 
 	return getDaysDataHour(list)
 }

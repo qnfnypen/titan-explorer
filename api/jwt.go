@@ -65,7 +65,7 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			user, err := loginByPassword(c.Request.Context(), userID, password)
 			if err != nil {
 				oplog.AddLoginLog(&model2.LoginLog{
-					Ipaddr:        clientIP,
+					IpAddress:     clientIP,
 					Browser:       explorer,
 					Os:            os,
 					Status:        loginStatusFailure,
@@ -78,7 +78,7 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			oplog.AddLoginLog(&model2.LoginLog{
 				LoginUsername: userID,
 				LoginLocation: location,
-				Ipaddr:        clientIP,
+				IpAddress:     clientIP,
 				Browser:       explorer,
 				Os:            os,
 				Status:        loginStatusSuccess,

@@ -20,7 +20,7 @@ DROP TABLE
 CREATE TABLE `login_log` (
     `id` BIGINT ( 20 ) NOT NULL AUTO_INCREMENT,
     `login_username` VARCHAR ( 50 ) NOT NULL DEFAULT '',
-    `ipaddr` VARCHAR ( 50 ) NOT NULL DEFAULT '',
+    `ip_address` VARCHAR ( 50 ) NOT NULL DEFAULT '',
     `login_location` VARCHAR ( 255 ) NOT NULL DEFAULT '',
     `browser` VARCHAR ( 50 ) NOT NULL DEFAULT '',
     `os` VARCHAR ( 50 ) NOT NULL DEFAULT '',

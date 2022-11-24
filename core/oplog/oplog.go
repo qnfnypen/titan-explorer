@@ -21,6 +21,7 @@ func init() {
 	o = &oplog{
 		logger: pubsub.New(50),
 	}
+	o.sub(context.Background())
 }
 
 type oplog struct {

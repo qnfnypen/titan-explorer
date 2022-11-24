@@ -88,7 +88,7 @@ type IncomeDaily struct {
 type LoginLog struct {
 	ID            int64     `db:"id" json:"id"`
 	LoginUsername string    `db:"login_username" json:"login_username"`
-	Ipaddr        string    `db:"ipaddr" json:"ipaddr"`
+	IpAddress     string    `db:"ip_address" json:"ip_address"`
 	LoginLocation string    `db:"login_location" json:"login_location"`
 	Browser       string    `db:"browser" json:"browser"`
 	Os            string    `db:"os" json:"os"`

@@ -42,3 +42,7 @@ func (s *Statistic) Run() {
 func (s *Statistic) Stop() context.Context {
 	return s.cron.Stop()
 }
+
+func (s *Statistic) once(ctx context.Context, key string, expiration time.Duration, callback func() error) error {
+	return callback()
+}
