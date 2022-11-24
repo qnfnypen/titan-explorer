@@ -55,7 +55,7 @@ func (t *DeviceTask) DeviceInfoGetFromRpc(url string, DeviceID string) (DeviceIn
 		log.Error(err.Error())
 		return
 	}
-
+	GUpdate = true
 	if GUpdate {
 		var hourDaily model.HourDaily
 		hourDaily.Time = GTime

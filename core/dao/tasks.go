@@ -91,11 +91,11 @@ func GetTaskInfoList(ctx context.Context, cond *model.TaskInfo, option QueryOpti
 
 	limit := option.PageSize
 	offset := option.Page
-	if option.Page > 0 {
-		offset = option.PageSize * (option.Page - 1)
-	}
 	if option.PageSize <= 0 {
 		limit = 50
+	}
+	if option.Page > 0 {
+		offset = limit * (option.Page - 1)
 	}
 
 	var total int64

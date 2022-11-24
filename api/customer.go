@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
@@ -60,13 +61,11 @@ func GetUserDeviceInfoHandler(c *gin.Context) {
 	info.DeviceStatus = c.Query("device_status")
 	pageSize, _ := strconv.Atoi("page_size")
 	page, _ := strconv.Atoi("page")
-	startTime, _ := time.Parse(TimeFormatYMDHMS, c.Query("from"))
-	endTime, _ := time.Parse(TimeFormatYMDHMS, c.Query("to"))
 	option := dao.QueryOption{
 		Page:      page,
 		PageSize:  pageSize,
-		StartTime: startTime,
-		EndTime:   endTime,
+		StartTime: c.Query("from"),
+		EndTime:   c.Query("to"),
 	}
 
 	list, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
@@ -120,12 +119,9 @@ func timeFormat(p IncomeDailySearch) (m map[string]interface{}) {
 	p.DateFrom = p.DateFrom + " 00:00:00"
 	p.DateTo = p.DateTo + " 23:59:59"
 
-	startTime, _ := time.Parse(TimeFormatYMDHMS, p.DateFrom)
-	endTime, _ := time.Parse(TimeFormatYMDHMS, p.DateTo)
-
 	option := dao.QueryOption{
-		StartTime: startTime,
-		EndTime:   endTime,
+		StartTime: p.DateFrom,
+		EndTime:   p.DateTo,
 	}
 
 	condition := &model.IncomeDaily{
@@ -134,6 +130,7 @@ func timeFormat(p IncomeDailySearch) (m map[string]interface{}) {
 
 	list, _, err := dao.GetIncomeDailyList(context.Background(), condition, option)
 	if err != nil {
+		log.Errorf("get incoming daily: %v", err)
 		return
 	}
 
@@ -157,22 +154,23 @@ func timeFormatHour(p IncomeDailySearch) (m map[string]interface{}) {
 	p.DateFrom = p.Date + " 00:00:00"
 	p.DateTo = p.Date + " 23:59:59"
 
-	startTime, _ := time.Parse(TimeFormatYMDHMS, p.DateFrom)
-	endTime, _ := time.Parse(TimeFormatYMDHMS, p.DateTo)
-
 	option := dao.QueryOption{
-		StartTime: startTime,
-		EndTime:   endTime,
+		StartTime: p.DateFrom,
+		EndTime:   p.DateTo,
 	}
 
 	condition := &model.HourDaily{
 		DeviceID: p.DeviceID,
+		UserID:   p.UserID,
 	}
 
 	list, _, err := dao.GetIncomeDailyHourList(context.Background(), condition, option)
 	if err != nil {
+		log.Errorf("get incoming hour daily: %v", err)
 		return
 	}
+
+	fmt.Println(fmt.Sprintf("==============%+v", list[0]))
 
 	return getDaysDataHour(list)
 }
@@ -323,6 +321,7 @@ func GetDeviceDiagnosisHourHandler(c *gin.Context) {
 	var p IncomeDailySearch
 	p.DeviceID = c.Query("device_id")
 	p.Date = c.Query("date")
+	p.UserID = c.Query("userId")
 	var res IncomeDailyRes
 	m := timeFormatHour(p)
 

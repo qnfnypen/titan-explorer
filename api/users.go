@@ -52,9 +52,21 @@ func DeviceBidingHandler(c *gin.Context) {
 	deviceInfo.DeviceID = c.Query("device_id")
 	deviceInfo.UserID = c.Query("userId")
 
-	err := dao.UpsertUserDevice(c.Request.Context(), deviceInfo)
+	old, err := dao.GetDeviceInfoByID(c.Request.Context(), deviceInfo.DeviceID)
 	if err != nil {
-		log.Errorf("upsert user device: %v", err)
+		log.Errorf("get user device: %v", err)
+		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		return
+	}
+
+	if old != nil {
+		c.JSON(http.StatusBadRequest, respError(errors.ErrDeviceExists))
+		return
+	}
+
+	err = dao.CreateDeviceInfo(c.Request.Context(), deviceInfo)
+	if err != nil {
+		log.Errorf("create user device: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
 		return
 	}

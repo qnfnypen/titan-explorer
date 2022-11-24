@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"time"
 )
 
 var tableNameDeviceInfo = "device_info"
@@ -28,11 +27,11 @@ func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option Query
 
 	limit := option.PageSize
 	offset := option.Page
-	if option.Page > 0 {
-		offset = option.PageSize * (option.Page - 1)
-	}
 	if option.PageSize <= 0 {
 		limit = 50
+	}
+	if option.Page > 0 {
+		offset = limit * (option.Page - 1)
 	}
 
 	var total int64
@@ -85,15 +84,6 @@ func UpdateDeviceInfo(ctx context.Context, deviceInfo *model.DeviceInfo) error {
 	return err
 }
 
-func CreateDeviceInfoNotExist(ctx context.Context, deviceInfo *model.DeviceInfo) error {
-	_, err := GetDeviceInfoByID(ctx, deviceInfo.DeviceID)
-	if err != nil {
-		return err
-	}
-
-	return CreateDeviceInfo(ctx, deviceInfo)
-}
-
 func CreateDeviceInfo(ctx context.Context, deviceInfo *model.DeviceInfo) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
 		`INSERT INTO %s (device_id, secret, node_type, device_name, user_id, sn_code, operator,
@@ -110,18 +100,4 @@ func CreateDeviceInfo(ctx context.Context, deviceInfo *model.DeviceInfo) error {
 			    :month_profit, :bandwidth_up, :bandwidth_down, :created_at, :updated_at, :deleted_at);`, tableNameDeviceInfo,
 	), deviceInfo)
 	return err
-}
-
-func UpsertUserDevice(ctx context.Context, deviceInfo *model.DeviceInfo) error {
-	old, err := GetDeviceInfoByID(ctx, deviceInfo.DeviceID)
-	if err != nil {
-		return err
-	}
-
-	if old != nil && old.UserID != deviceInfo.UserID {
-		return nil
-	}
-
-	deviceInfo.CreatedAt = time.Now()
-	return CreateDeviceInfo(ctx, deviceInfo)
 }

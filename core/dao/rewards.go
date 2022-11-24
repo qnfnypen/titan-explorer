@@ -39,9 +39,9 @@ func UpdateHourDaily(ctx context.Context, hourDaily *model.HourDaily) error {
 
 func CreateHourDaily(ctx context.Context, hourDaily *model.HourDaily) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s (created_at, updated_at, hour_income,
+		`INSERT INTO %s (created_at, updated_at, hour_income, user_id, device_id,
 				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage, time)
-			VALUES (:created_at, :updated_at, :hour_income, :online_time, :pkg_loss_ratio, :latency, 
+			VALUES (:created_at, :updated_at, :hour_income, :user_id, :device_id, :online_time, :pkg_loss_ratio, :latency, 
 			    :nat_ratio, :disk_usage, :time);`,
 		tableNameHourDaily,
 	), hourDaily)
@@ -64,9 +64,9 @@ func GetIncomeDailyByTime(ctx context.Context, deviceID string, time time.Time) 
 
 func CreateIncomeDaily(ctx context.Context, daily *model.IncomeDaily) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s (created_at, updated_at, hour_income,
+		`INSERT INTO %s (created_at, updated_at, hour_income, user_id, device_id,
 				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage, time)
-			VALUES (:created_at, :updated_at, :hour_income,
+			VALUES (:created_at, :updated_at, :hour_income, :user_id, :device_id,
 				:online_time, :pkg_loss_ratio, :latency, :nat_ratio, :disk_usage, :time);`,
 		tableNameIncomeDaily,
 	), daily)
@@ -75,8 +75,7 @@ func CreateIncomeDaily(ctx context.Context, daily *model.IncomeDaily) error {
 
 func UpdateIncomeDaily(ctx context.Context, daily *model.IncomeDaily) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`UPDATE %s SET updated_at = :updated_at, deleted_at = :deleted_at, user_id =:user_id,
-			device_id = :device_id, hour_income = :hour_income,
+		`UPDATE %s SET updated_at = :updated_at, deleted_at = :deleted_at, hour_income = :hour_income,
 			online_time = :online_time, pkg_loss_ratio = :pkg_loss_ratio, latency = :latency,
 			nat_ratio = :nat_ratio, disk_usage = :disk_usage, time = :time WHERE id = :id`, tableNameIncomeDaily),
 		daily)
@@ -94,23 +93,27 @@ func GetIncomeDailyHourList(ctx context.Context, cond *model.HourDaily, option Q
 		where += ` AND user_id = ?`
 		args = append(args, cond.UserID)
 	}
-	if !option.StartTime.IsZero() {
+	if option.StartTime != "" {
 		where += ` AND time >= ?`
 		args = append(args, option.StartTime)
 	}
-	if !option.EndTime.IsZero() {
+	if option.EndTime != "" {
 		where += ` AND time <= ?`
 		args = append(args, option.EndTime)
 	}
 
 	limit := option.PageSize
 	offset := option.Page
-	if option.Page > 0 {
-		offset = option.PageSize * (option.Page - 1)
-	}
 	if option.PageSize <= 0 {
 		limit = 50
 	}
+	if option.Page > 0 {
+		offset = limit * (option.Page - 1)
+	}
+
+	fmt.Println(fmt.Sprintf(
+		`SELECT * FROM %s %s LIMIT %d OFFSET %d`, tableNameHourDaily, where, limit, offset,
+	), args)
 
 	var total int64
 	var out []*model.HourDaily
@@ -143,22 +146,22 @@ func GetIncomeDailyList(ctx context.Context, cond *model.IncomeDaily, option Que
 		where += ` AND user_id = ?`
 		args = append(args, cond.UserID)
 	}
-	if !option.StartTime.IsZero() {
+	if option.StartTime != "" {
 		where += ` AND time >= ?`
 		args = append(args, option.StartTime)
 	}
-	if !option.EndTime.IsZero() {
+	if option.EndTime != "" {
 		where += ` AND time <= ?`
 		args = append(args, option.EndTime)
 	}
 
 	limit := option.PageSize
 	offset := option.Page
-	if option.Page > 0 {
-		offset = option.PageSize * (option.Page - 1)
-	}
 	if option.PageSize <= 0 {
 		limit = 50
+	}
+	if option.Page > 0 {
+		offset = limit * (option.Page - 1)
 	}
 
 	var total int64

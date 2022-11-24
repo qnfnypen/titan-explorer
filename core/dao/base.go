@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"github.com/jmoiron/sqlx"
 	"strings"
-	"time"
 )
 
 var (
@@ -13,13 +12,13 @@ var (
 )
 
 type QueryOption struct {
-	Page       int       `json:"page" form:"page"`
-	PageSize   int       `json:"page_size" form:"page_size"`
-	Order      string    `json:"order" form:"order"`
-	OrderField string    `json:"order_field" form:"order_field"`
-	StartTime  time.Time `json:"startTime" form:"start_time"`
-	EndTime    time.Time `json:"endTime" form:"end_time"`
-	UserID     string    `json:"userId" form:"user_id"`
+	Page       int    `json:"page" form:"page"`
+	PageSize   int    `json:"page_size" form:"page_size"`
+	Order      string `json:"order" form:"order"`
+	OrderField string `json:"order_field" form:"order_field"`
+	StartTime  string `json:"startTime" form:"start_time"`
+	EndTime    string `json:"endTime" form:"end_time"`
+	UserID     string `json:"userId" form:"user_id"`
 }
 
 func GetQueryDataList(sqlClause string, args ...interface{}) ([]map[string]string, error) {

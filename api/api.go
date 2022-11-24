@@ -6,10 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
+	"github.com/gnasnik/titan-explorer/core/statistics"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
-	"github.com/robfig/cron/v3"
-	"time"
 )
 
 var schedulerClient api.Scheduler
@@ -18,7 +17,7 @@ type Server struct {
 	cfg             config.Config
 	router          *gin.Engine
 	schedulerClient api.Scheduler
-	cron            *cron.Cron
+	statistic       *statistics.Statistic
 	closer          func()
 }
 
@@ -28,11 +27,6 @@ func NewServer(cfg config.Config) (*Server, error) {
 	router.Use(cors.Default())
 	ConfigRouter(router, cfg)
 
-	c := cron.New(
-		cron.WithSeconds(),
-		cron.WithLocation(time.Local),
-	)
-
 	client, closer, err := getSchedulerClient()
 	if err != nil {
 		return nil, err
@@ -41,7 +35,7 @@ func NewServer(cfg config.Config) (*Server, error) {
 	s := &Server{
 		cfg:             cfg,
 		router:          router,
-		cron:            c,
+		statistic:       statistics.New(client),
 		schedulerClient: client,
 		closer:          func() { closer() },
 	}
@@ -50,8 +44,7 @@ func NewServer(cfg config.Config) (*Server, error) {
 }
 
 func (s *Server) Run() {
-	s.AddStatisticsTask()
-	s.cron.Start()
+	s.statistic.Run()
 
 	err := s.router.Run(s.cfg.ApiListen)
 	if err != nil {
@@ -61,7 +54,7 @@ func (s *Server) Run() {
 
 func (s *Server) Close() {
 	select {
-	case <-s.cron.Stop().Done():
+	case <-s.statistic.Stop().Done():
 	}
 	s.closer()
 }
