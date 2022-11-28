@@ -16,10 +16,19 @@ func AddLoginLog(ctx context.Context, log *model.LoginLog) error {
 	return err
 }
 
-func ListLoginLog(ctx context.Context, offset, limit int) ([]*model.LoginLog, int64, error) {
+func ListLoginLog(ctx context.Context, option QueryOption) ([]*model.LoginLog, int64, error) {
 	var args []interface{}
 	var total int64
 	var out []*model.LoginLog
+
+	limit := option.PageSize
+	offset := option.Page
+	if option.PageSize <= 0 {
+		limit = 50
+	}
+	if option.Page > 0 {
+		offset = limit * (option.Page - 1)
+	}
 
 	err := DB.GetContext(ctx, &total, fmt.Sprintf(
 		`SELECT count(*) FROM %s`, tableNameDeviceInfo,

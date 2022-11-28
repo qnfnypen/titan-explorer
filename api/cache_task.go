@@ -10,7 +10,8 @@ import (
 func AddCacheTaskHandler(c *gin.Context) {
 	carFileCID := c.Query("carfile_cid")
 	reliability, _ := strconv.ParseInt(c.Query("reliability"), 10, 64)
-	err := schedulerClient.AddCacheTask(c.Request.Context(), carFileCID, int(reliability))
+	expiration := 365 * 24
+	err := schedulerClient.AddCacheTask(c.Request.Context(), carFileCID, int(reliability), expiration)
 	if err != nil {
 		log.Errorf("add cahce task: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))

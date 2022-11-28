@@ -51,4 +51,6 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	admin.POST("/cancel_cache_task", CancelCacheTaskHandler)
 	admin.GET("/get_cache_info", GetCarFileInfoHandler)
 	admin.POST("/remove_cache", RemoveCacheHandler)
+	admin.GET("/get_login_log", GetLoginLogHandler)
+	admin.GET("/get_operation_log", GetOperationLogHandler)
 }
