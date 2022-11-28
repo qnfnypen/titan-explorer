@@ -61,9 +61,9 @@ type FullNodeInfoDay struct {
 	TotalStorage           float64   `db:"total_storage" json:"total_storage"`
 	TotalUplinkBandwidth   float64   `db:"total_uplink_bandwidth" json:"total_uplink_bandwidth"`
 	TotalDownloadBandwidth float64   `db:"total_download_bandwidth" json:"total_download_bandwidth"`
-	CarFileCount           int64     `db:"car_file_count" json:"car_file_count"`
-	TotalFileSize          float64   `db:"total_file_size" json:"total_file_size"`
-	FileDownloadCount      int64     `db:"file_download_count" json:"file_download_count"`
+	TotalCarfile           int64     `db:"total_carfile" json:"total_carfile"`
+	TotalCarfileSize       float64   `db:"total_carfile_size" json:"total_carfile_size"`
+	DownloadCount          int64     `db:"download_count" json:"download_count"`
 	Time                   time.Time `db:"time" json:"time"`
 	CreatedAt              time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt              time.Time `db:"updated_at" json:"updated_at"`
@@ -77,9 +77,9 @@ type FullNodeInfoHour struct {
 	TotalStorage           float64   `db:"total_storage" json:"total_storage"`
 	TotalUplinkBandwidth   float64   `db:"total_uplink_bandwidth" json:"total_uplink_bandwidth"`
 	TotalDownloadBandwidth float64   `db:"total_download_bandwidth" json:"total_download_bandwidth"`
-	CarFileCount           int64     `db:"car_file_count" json:"car_file_count"`
-	TotalFileSize          float64   `db:"total_file_size" json:"total_file_size"`
-	FileDownloadCount      int64     `db:"file_download_count" json:"file_download_count"`
+	TotalCarfile           int64     `db:"total_carfile" json:"total_carfile"`
+	TotalCarfileSize       float64   `db:"total_carfile_size" json:"total_carfile_size"`
+	DownloadCount          int64     `db:"download_count" json:"download_count"`
 	Time                   time.Time `db:"time" json:"time"`
 	CreatedAt              time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt              time.Time `db:"updated_at" json:"updated_at"`

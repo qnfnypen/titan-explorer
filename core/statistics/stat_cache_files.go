@@ -9,7 +9,7 @@ import (
 
 const DKeyCacheFiles = "dk_cache_files"
 
-func (s *Statistic) StatCacheFilesMinutes() {
+func (s *Statistic) StatFullNodeInfoByMinutes() {
 	ctx := context.Background()
 	s.Once(ctx, DKeyCacheFiles, func() error {
 		log.Info("start get cache files info")
@@ -31,9 +31,9 @@ func (s *Statistic) StatCacheFilesMinutes() {
 			return err
 		}
 
-		fullNodeInfoHour.CarFileCount = int64(resp.CarFileCount)
-		fullNodeInfoHour.FileDownloadCount = int64(resp.DownloadCount)
-		fullNodeInfoHour.TotalFileSize = float64(resp.TotalSize)
+		fullNodeInfoHour.TotalCarfile = int64(resp.CarFileCount)
+		fullNodeInfoHour.DownloadCount = int64(resp.DownloadCount)
+		fullNodeInfoHour.TotalCarfileSize = float64(resp.TotalSize)
 		fullNodeInfoHour.ValidatorCount = int32(state.AllVerifier)
 		fullNodeInfoHour.CandidateCount = int32(state.AllCandidate)
 		fullNodeInfoHour.EdgeCount = int32(state.AllEdgeNode)

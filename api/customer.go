@@ -26,29 +26,13 @@ func GetAllMinerInfoHandler(c *gin.Context) {
 }
 
 func GetIndexInfoHandler(c *gin.Context) {
-	var dataRes IndexPageRes
-	dataRes.StorageT = 1080.99
-	dataRes.BandwidthMb = 666.99
-	// AllMinerNum MinerInfo
-	dataRes.AllCandidate = AllM.AllCandidate
-	dataRes.AllEdgeNode = AllM.AllEdgeNode
-	dataRes.AllVerifier = AllM.AllVerifier
-	// OnlineMinerNum MinerInfo
-	dataRes.OnlineCandidate = 11
-	dataRes.OnlineEdgeNode = 252
-	dataRes.OnlineVerifier = 88
-	// Devices
-	dataRes.AbnormalNum = 12
-	dataRes.OfflineNum = 12
-	dataRes.OnlineNum = 12
-	dataRes.TotalNum = 36
-	// Profit
-	dataRes.CumulativeProfit = 36
-	dataRes.MonthProfit = 36
-	dataRes.SevenDaysProfit = 36
-	dataRes.YesterdayProfit = 36
-
-	c.JSON(http.StatusOK, respJSON(dataRes))
+	fullNodeInfo, err := dao.GetFullNodeInfo(c.Request.Context())
+	if err != nil {
+		log.Errorf("get full node info: %v", err)
+		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		return
+	}
+	c.JSON(http.StatusOK, respJSON(fullNodeInfo))
 }
 
 // GetUserDeviceInfoHandler devices overview
