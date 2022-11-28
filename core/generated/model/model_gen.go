@@ -53,6 +53,38 @@ type DeviceInfo struct {
 	BandwidthDown   float64 `db:"bandwidth_down" json:"bandwidth_down"`
 }
 
+type FullNodeInfoDay struct {
+	ID                     int64     `db:"id" json:"id"`
+	ValidatorCount         int32     `db:"validator_count" json:"validator_count"`
+	CandidateCount         int32     `db:"candidate_count" json:"candidate_count"`
+	EdgeCount              int32     `db:"edge_count" json:"edge_count"`
+	TotalStorage           float64   `db:"total_storage" json:"total_storage"`
+	TotalUplinkBandwidth   float64   `db:"total_uplink_bandwidth" json:"total_uplink_bandwidth"`
+	TotalDownloadBandwidth float64   `db:"total_download_bandwidth" json:"total_download_bandwidth"`
+	CarFileCount           int64     `db:"car_file_count" json:"car_file_count"`
+	TotalFileSize          float64   `db:"total_file_size" json:"total_file_size"`
+	FileDownloadCount      int64     `db:"file_download_count" json:"file_download_count"`
+	Time                   time.Time `db:"time" json:"time"`
+	CreatedAt              time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt              time.Time `db:"updated_at" json:"updated_at"`
+}
+
+type FullNodeInfoHour struct {
+	ID                     int64     `db:"id" json:"id"`
+	ValidatorCount         int32     `db:"validator_count" json:"validator_count"`
+	CandidateCount         int32     `db:"candidate_count" json:"candidate_count"`
+	EdgeCount              int32     `db:"edge_count" json:"edge_count"`
+	TotalStorage           float64   `db:"total_storage" json:"total_storage"`
+	TotalUplinkBandwidth   float64   `db:"total_uplink_bandwidth" json:"total_uplink_bandwidth"`
+	TotalDownloadBandwidth float64   `db:"total_download_bandwidth" json:"total_download_bandwidth"`
+	CarFileCount           int64     `db:"car_file_count" json:"car_file_count"`
+	TotalFileSize          float64   `db:"total_file_size" json:"total_file_size"`
+	FileDownloadCount      int64     `db:"file_download_count" json:"file_download_count"`
+	Time                   time.Time `db:"time" json:"time"`
+	CreatedAt              time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt              time.Time `db:"updated_at" json:"updated_at"`
+}
+
 type HourDaily struct {
 	ID           int64     `db:"id" json:"id"`
 	CreatedAt    time.Time `db:"created_at" json:"created_at"`

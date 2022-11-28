@@ -19,7 +19,8 @@ type Statistic struct {
 }
 
 func (s *Statistic) initContabs() {
-	s.cron.AddFunc("1 * * * * *", s.UpdateDeviceInfo)
+	s.cron.AddFunc("0 * * * * *", s.UpdateDeviceInfo)
+	s.cron.AddFunc("0 */10 * * * *", s.StatCacheFilesMinutes)
 }
 
 func New(api api.Scheduler) *Statistic {
@@ -47,8 +48,10 @@ func (s *Statistic) Stop() context.Context {
 	return s.cron.Stop()
 }
 
-func (s *Statistic) Once(ctx context.Context, key string, expiration time.Duration, fn func() error) error {
-	lock, err := s.locker.Obtain(ctx, key, expiration, nil)
+const LockerTTL = 30 * time.Second
+
+func (s *Statistic) Once(ctx context.Context, key string, fn func() error) error {
+	lock, err := s.locker.Obtain(ctx, key, LockerTTL, nil)
 	if err == redislock.ErrNotObtained {
 		log.Debug(redislock.ErrNotObtained)
 		return nil
