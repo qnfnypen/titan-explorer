@@ -12,15 +12,22 @@ import (
 
 var log = logging.Logger("statistics")
 
+const LockerTTL = 30 * time.Second
+
+const (
+	DKeyUpdateDeviceInfo = "dk_update_device_info"
+	DKeyFullNodeInfo     = "dk_full_node_info"
+)
+
+func (s *Statistic) initContabs() {
+	s.cron.AddFunc("0 * * * * *", s.Once(DKeyUpdateDeviceInfo, s.UpdateDeviceInfo))
+	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeyFullNodeInfo, s.StatFullNodeInfoByMinutes))
+}
+
 type Statistic struct {
 	cron   *cron.Cron
 	api    api.Scheduler
 	locker *redislock.Client
-}
-
-func (s *Statistic) initContabs() {
-	s.cron.AddFunc("0 * * * * *", s.UpdateDeviceInfo)
-	s.cron.AddFunc("0 */10 * * * *", s.StatCacheFilesMinutes)
 }
 
 func New(api api.Scheduler) *Statistic {
@@ -48,21 +55,24 @@ func (s *Statistic) Stop() context.Context {
 	return s.cron.Stop()
 }
 
-const LockerTTL = 30 * time.Second
+func (s *Statistic) Once(key string, fn func() error) func() {
+	return func() {
+		ctx := context.Background()
+		lock, err := s.locker.Obtain(ctx, key, LockerTTL, nil)
+		if err == redislock.ErrNotObtained {
+			log.Debug(redislock.ErrNotObtained)
+			return
+		}
 
-func (s *Statistic) Once(ctx context.Context, key string, fn func() error) error {
-	lock, err := s.locker.Obtain(ctx, key, LockerTTL, nil)
-	if err == redislock.ErrNotObtained {
-		log.Debug(redislock.ErrNotObtained)
-		return nil
+		if err != nil {
+			log.Fatalf("obtain redis lock: %v", err)
+			return
+		}
+
+		defer lock.Release(ctx)
+
+		if err = fn(); err != nil {
+			log.Errorf("execute cron job: %v", err)
+		}
 	}
-
-	if err != nil {
-		log.Fatalf("obtain redis lock: %v", err)
-		return err
-	}
-
-	defer lock.Release(ctx)
-
-	return fn()
 }

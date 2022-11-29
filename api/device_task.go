@@ -139,51 +139,6 @@ func CidInfoGetFromRpc(url string, DeviceID string) error {
 	return nil
 }
 
-func AllMinerInfoGetFromRpc(url string) {
-	var data AllMinerInfo
-	song := make(map[string]interface{})
-	song["jsonrpc"] = "2.0"
-	song["method"] = "titan.StateNetwork"
-	song["id"] = 3
-	song["params"] = []string{}
-	bytesData, err := json.Marshal(song)
-	if err != nil {
-		return
-	}
-	reader := bytes.NewReader(bytesData)
-	request, err := http.NewRequest("POST", url, reader)
-	if err != nil {
-		log.Error(err.Error())
-		return
-	}
-	request.Header.Set("Content-Type", "application/json;charset=UTF-8")
-	client := http.Client{}
-	//defer client.CloseIdleConnections()
-	resp, err := client.Do(request)
-	if err != nil {
-		log.Error(err.Error())
-		return
-	}
-	respBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Error(err.Error())
-		return
-	}
-	DeviceMap := make(map[string]interface{})
-	err = json.Unmarshal(respBytes, &DeviceMap)
-	if err != nil {
-		log.Error(err.Error())
-		return
-	}
-	err = json.Unmarshal(respBytes, &data)
-	if err != nil {
-		log.Error(err.Error())
-		return
-	}
-	AllM = data
-	return
-}
-
 func (t *DeviceTask) SaveDeviceInfo(url string, Df string) error {
 	data, err := t.DeviceInfoGetFromRpc(url, Df)
 	if err != nil {
@@ -319,7 +274,10 @@ func (t *DeviceTask) FormatIncomeDailyList(DeviceID string) {
 		InPage.Latency = Str2Float64(data["latency"])
 		InPage.DeviceID = DeviceID
 		InPage.UserID = data["user_id"]
-		t.SavaIncomeDailyInfo(InPage)
+		err = t.SavaIncomeDailyInfo(InPage)
+		if err != nil {
+			log.Errorf("save daily info: %v", err)
+		}
 	}
 	return
 }
@@ -346,7 +304,10 @@ func (t *DeviceTask) CountDataByUser(userId string) {
 		InPage.PkgLossRatio = Str2Float64(data["pkg_loss_ratio"])
 		InPage.Latency = Str2Float64(data["latency"])
 		InPage.UserID = data["user_id"]
-		t.SavaIncomeDailyInfo(InPage)
+		err = t.SavaIncomeDailyInfo(InPage)
+		if err != nil {
+			log.Errorf("save daily info: %v", err)
+		}
 	}
 	return
 }
@@ -511,29 +472,27 @@ func (t *DeviceTask) itemRun(url string) {
 		//	GUpdate = true
 		//	GUpdateTagNew = today
 		//}
-		for _, DeviceID := range t.DeviceIDs {
-			err := t.SaveDeviceInfo(url, DeviceID)
-			if err != nil {
-				log.Infof("wrong msg %v", err)
-				<-ticker
-				continue
-			}
-			if GUpdate {
-				// 定时任务更新每日设备参数信息
-				t.FormatIncomeDailyList(DeviceID)
-				// 定时任务更新统计收入信息
-				t.UpdateYesTodayIncome(DeviceID)
-				// 定时更新全网数据
-				AllMinerInfoGetFromRpc(url)
-				// 更新设备完成任务
-				err := CidInfoGetFromRpc(url, DeviceID)
+		for _, id := range t.DeviceIDs {
+			go func(deviceID string) {
+				err := t.SaveDeviceInfo(url, deviceID)
 				if err != nil {
 					log.Infof("wrong msg %v", err)
 					<-ticker
-					continue
+					return
 				}
-			}
-
+				if GUpdate {
+					// 定时任务更新每日设备参数信息
+					t.FormatIncomeDailyList(deviceID)
+					// 定时任务更新统计收入信息
+					t.UpdateYesTodayIncome(deviceID)
+					// 更新设备完成任务
+					err := CidInfoGetFromRpc(url, deviceID)
+					if err != nil {
+						log.Infof("wrong msg %v", err)
+						<-ticker
+					}
+				}
+			}(id)
 		}
 		GUpdate = false
 		<-ticker

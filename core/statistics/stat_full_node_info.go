@@ -7,18 +7,15 @@ import (
 	"time"
 )
 
-const DKeyCacheFiles = "dk_cache_files"
-
-func (s *Statistic) StatCacheFilesMinutes() error {
-	ctx := context.Background()
-
-	log.Info("start get cache files info")
+func (s *Statistic) StatFullNodeInfoByMinutes() error {
+	log.Info("start state full node info")
 	start := time.Now()
 	defer func() {
-		log.Infof("get cache files info done, cost: %v", time.Since(start))
+		log.Infof("state full node done, cost: %v", time.Since(start))
 	}()
 
 	fullNodeInfoHour := &model.FullNodeInfoHour{}
+	ctx := context.Background()
 	resp, err := s.api.StatCaches(ctx)
 	if err != nil {
 		log.Errorf("stat caches: %v", err)
@@ -37,6 +34,7 @@ func (s *Statistic) StatCacheFilesMinutes() error {
 	fullNodeInfoHour.ValidatorCount = int32(state.AllVerifier)
 	fullNodeInfoHour.CandidateCount = int32(state.AllCandidate)
 	fullNodeInfoHour.EdgeCount = int32(state.AllEdgeNode)
+	fullNodeInfoHour.TotalNodeCount = int32(state.AllVerifier + state.AllEdgeNode + state.AllCandidate)
 	fullNodeInfoHour.TotalDownloadBandwidth = state.TotalBandwidthDown
 	fullNodeInfoHour.TotalUplinkBandwidth = state.TotalBandwidthUp
 	fullNodeInfoHour.TotalStorage = state.StorageT

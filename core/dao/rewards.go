@@ -64,9 +64,9 @@ func GetIncomeDailyByTime(ctx context.Context, deviceID string, time time.Time) 
 
 func CreateIncomeDaily(ctx context.Context, daily *model.IncomeDaily) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s (created_at, updated_at, hour_income, user_id, device_id,
+		`INSERT INTO %s (created_at, updated_at, income, user_id, device_id,
 				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage, time)
-			VALUES (:created_at, :updated_at, :hour_income, :user_id, :device_id,
+			VALUES (:created_at, :updated_at, :income, :user_id, :device_id,
 				:online_time, :pkg_loss_ratio, :latency, :nat_ratio, :disk_usage, :time);`,
 		tableNameIncomeDaily,
 	), daily)
@@ -75,7 +75,7 @@ func CreateIncomeDaily(ctx context.Context, daily *model.IncomeDaily) error {
 
 func UpdateIncomeDaily(ctx context.Context, daily *model.IncomeDaily) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`UPDATE %s SET updated_at = :updated_at, deleted_at = :deleted_at, hour_income = :hour_income,
+		`UPDATE %s SET updated_at = :updated_at, deleted_at = :deleted_at, income = :income,
 			online_time = :online_time, pkg_loss_ratio = :pkg_loss_ratio, latency = :latency,
 			nat_ratio = :nat_ratio, disk_usage = :disk_usage, time = :time WHERE id = :id`, tableNameIncomeDaily),
 		daily)

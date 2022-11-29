@@ -27,7 +27,6 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	// dashboard
 	apiV0.GET("/schedulers", GetSchedulersHandler)
 	apiV0.GET("/get_miner_info", GetAllMinerInfoHandler)
-	apiV0.GET("/get_retrieval", RetrievalHandler)
 	apiV0.GET("/get_user_device_info", GetUserDeviceInfoHandler)
 	apiV0.GET("/get_index_info", GetIndexInfoHandler)
 	apiV0.GET("/get_device_info", GetDeviceInfoHandler)
