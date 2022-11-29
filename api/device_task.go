@@ -163,7 +163,7 @@ func (t *DeviceTask) SaveDeviceInfo(url string, Df string) error {
 	}
 
 	if old == nil {
-		err = dao.CreateDeviceInfo(ctx, &data)
+		err = dao.AddDeviceInfo(ctx, &data)
 		if err != nil {
 			log.Errorf("create device info: %v", err)
 			return err
@@ -369,7 +369,7 @@ func (t *DeviceTask) UpdateYesTodayIncome(DeviceID string) error {
 
 	if old == nil {
 		dataUpdate.CreatedAt = time.Now()
-		return dao.CreateDeviceInfo(ctx, &dataUpdate)
+		return dao.AddDeviceInfo(ctx, &dataUpdate)
 	}
 	old.YesterdayProfit = dataUpdate.YesterdayProfit
 	old.SevenDaysProfit = dataUpdate.SevenDaysProfit

@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func (s *Statistic) StatFullNodeInfoByMinutes() error {
+func (s *Statistic) FetchFullNodeInfo() error {
 	log.Info("start state full node info")
 	start := time.Now()
 	defer func() {

@@ -17,6 +17,7 @@ type DeviceInfo struct {
 	SchedulerID   string    `db:"scheduler_id" json:"scheduler_id"`
 	Secret        string    `db:"secret" json:"secret"`
 	NodeType      int32     `db:"node_type" json:"node_type"`
+	Rank          int32     `db:"rank" json:"rank"`
 	DeviceName    string    `db:"device_name" json:"device_name"`
 	UserID        string    `db:"user_id" json:"user_id"`
 	SnCode        string    `db:"sn_code" json:"sn_code"`

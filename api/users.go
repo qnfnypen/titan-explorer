@@ -36,7 +36,7 @@ func DeviceCreateHandler(c *gin.Context) {
 	res["device_id"] = deviceID
 	res["secret"] = secret
 
-	err = dao.CreateDeviceInfo(c.Request.Context(), deviceInfo)
+	err = dao.AddDeviceInfo(c.Request.Context(), deviceInfo)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
 		return
@@ -64,7 +64,7 @@ func DeviceBidingHandler(c *gin.Context) {
 		return
 	}
 
-	err = dao.CreateDeviceInfo(c.Request.Context(), deviceInfo)
+	err = dao.AddDeviceInfo(c.Request.Context(), deviceInfo)
 	if err != nil {
 		log.Errorf("create user device: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
