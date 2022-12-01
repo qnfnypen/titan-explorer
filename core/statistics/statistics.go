@@ -15,14 +15,19 @@ var log = logging.Logger("statistics")
 const LockerTTL = 30 * time.Second
 
 const (
-	DKeyFetchAllNodes     = "titan::dk_fetch_all_nodes"
-	DKeyFetchFullNodeInfo = "titan::dk_fetch_full_node_info"
+	DKeyFetchAllNodes        = "titan::dk_fetch_all_nodes"
+	DKeyFetchFullNodeInfo    = "titan::dk_fetch_full_node_info"
+	DKeyFetchIncomeDaily     = "titan::dk_fetch_income_daily"
+	DKeyFetchYesterdayIncome = "titan::dk_fetch_yesterday_income"
 )
 
 func (s *Statistic) initContabs() {
-	go s.FetchAllNodes()
-	s.cron.AddFunc("1 * * * * *", s.Once(DKeyFetchAllNodes, s.FetchAllNodes))
-	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeyFetchFullNodeInfo, s.FetchFullNodeInfo))
+	s.FetchAllNodes()
+
+	s.cron.AddFunc("0 */10 * * * *", s.Once(DKeyFetchAllNodes, s.FetchAllNodes))
+	s.cron.AddFunc("0 * * * * *", s.Once(DKeyFetchFullNodeInfo, s.FetchFullNodeInfo))
+	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeyFetchIncomeDaily, s.FetchIncomeDaily))
+	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeyFetchYesterdayIncome, s.FetchYesTodayIncome))
 }
 
 type Statistic struct {

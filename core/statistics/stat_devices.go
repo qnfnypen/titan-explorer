@@ -9,15 +9,15 @@ import (
 )
 
 func (s *Statistic) FetchAllNodes() error {
-	log.Info("start get all nodes")
+	log.Info("start getch all nodes")
 	start := time.Now()
 	defer func() {
-		log.Infof("get all nodes done, cost: %v", time.Since(start))
+		log.Infof("fetch all nodes done, cost: %v", time.Since(start))
 	}()
 
 	ctx := context.Background()
 	var total int64
-	page, size := 0, 50
+	page, size := 1, 50
 
 loop:
 	resp, err := s.api.ListNodes(ctx, page, size)
@@ -26,6 +26,7 @@ loop:
 	}
 
 	total += resp.Total
+	page++
 
 	var nodes []*model.DeviceInfo
 	for _, node := range resp.Data {

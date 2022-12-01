@@ -41,8 +41,6 @@ func DeviceCreateHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
 		return
 	}
-	//
-	go GDevice.GetDeviceIDs()
 
 	c.JSON(http.StatusOK, respJSON(nil))
 }
@@ -70,8 +68,7 @@ func DeviceBidingHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
 		return
 	}
-
-	GDevice.GetDeviceIDs()
+	
 	c.JSON(http.StatusOK, respJSON(nil))
 }
 

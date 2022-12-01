@@ -8,10 +8,10 @@ import (
 )
 
 func (s *Statistic) FetchFullNodeInfo() error {
-	log.Info("start state full node info")
+	log.Info("start fetch full node info")
 	start := time.Now()
 	defer func() {
-		log.Infof("state full node done, cost: %v", time.Since(start))
+		log.Infof("fetch full node done, cost: %v", time.Since(start))
 	}()
 
 	fullNodeInfoHour := &model.FullNodeInfoHour{}

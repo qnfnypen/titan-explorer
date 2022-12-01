@@ -70,7 +70,7 @@ func GetDeviceInfoByID(ctx context.Context, deviceID string) (*model.DeviceInfo,
 func UpdateDeviceInfo(ctx context.Context, deviceInfo *model.DeviceInfo) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
 		`UPDATE %s SET  node_type = :node_type,  device_name = :device_name,
-				sn_code = :sn_code,  operator = :operator, network_type = :network_type,
+				sn_code = :sn_code,  operator = :operator, network_type = :network_type, user_id = :user_id,
 				system_version = :system_version,  product_type = :product_type, network_info = :network_info,
 				external_ip = :external_ip,  internal_ip = :internal_ip,  ip_location = :ip_location, ip_country = :ip_country, ip_city = :ip_city, 
 				mac_location = :mac_location,  nat_type = :nat_type,  upnp = :upnp, pkg_loss_ratio = :pkg_loss_ratio,  
@@ -86,7 +86,7 @@ func UpdateDeviceInfo(ctx context.Context, deviceInfo *model.DeviceInfo) error {
 func AddDeviceInfo(ctx context.Context, deviceInfo *model.DeviceInfo) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
 		`UPDATE %s SET  node_type = :node_type,  device_name = :device_name,
-				sn_code = :sn_code,  operator = :operator, network_type = :network_type,
+				sn_code = :sn_code,  operator = :operator, network_type = :network_type, user_id = :user_id,
 				system_version = :system_version,  product_type = :product_type, network_info = :network_info,
 				external_ip = :external_ip,  internal_ip = :internal_ip,  ip_location = :ip_location, ip_country = :ip_country, ip_city = :ip_city, 
 				mac_location = :mac_location,  nat_type = :nat_type,  upnp = :upnp, pkg_loss_ratio = :pkg_loss_ratio,  
