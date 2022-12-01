@@ -14,6 +14,7 @@ type DeviceInfo struct {
 	UpdatedAt       time.Time `db:"updated_at" json:"updated_at"`
 	DeletedAt       time.Time `db:"deleted_at" json:"deleted_at"`
 	DeviceID        string    `db:"device_id" json:"device_id"`
+	SchedulerId     string    `db:"scheduler_id" json:"scheduler_id"`
 	Secret          string    `db:"secret" json:"secret"`
 	NodeType        int32     `db:"node_type" json:"node_type"`
 	DeviceName      string    `db:"device_name" json:"device_name"`
@@ -21,15 +22,14 @@ type DeviceInfo struct {
 	SnCode          string    `db:"sn_code" json:"sn_code"`
 	Operator        string    `db:"operator" json:"operator"`
 	NetworkType     string    `db:"network_type" json:"network_type"`
-	TodayIncome     float64   `db:"today_income" json:"today_income"`
-	YesterdayIncome float64   `db:"yesterday_income" json:"yesterday_income"`
-	CumuProfit      float64   `db:"cumu_profit" json:"cumu_profit"`
 	SystemVersion   string    `db:"system_version" json:"system_version"`
 	ProductType     string    `db:"product_type" json:"product_type"`
 	NetworkInfo     string    `db:"network_info" json:"network_info"`
 	ExternalIp      string    `db:"external_ip" json:"external_ip"`
 	InternalIp      string    `db:"internal_ip" json:"internal_ip"`
 	IpLocation      string    `db:"ip_location" json:"ip_location"`
+	IpCountry     	string    `db:"ip_country" json:"ip_country"`
+	IpCity     		string    `db:"ip_city" json:"ip_city"`
 	MacLocation     string    `db:"mac_location" json:"mac_location"`
 	NatType         string    `db:"nat_type" json:"nat_type"`
 	Upnp            string    `db:"upnp" json:"upnp"`
@@ -47,8 +47,10 @@ type DeviceInfo struct {
 	OnlineTime      float64 `db:"online_time" json:"online_time"`
 	TodayOnlineTime float64 `db:"today_online_time" json:"today_online_time"`
 	TodayProfit     float64 `db:"today_profit" json:"today_profit"`
+	YesterdayProfit float64  `db:"yesterday_profit" json:"yesterday_profit"`
 	SevenDaysProfit float64 `db:"seven_days_profit" json:"seven_days_profit"`
 	MonthProfit     float64 `db:"month_profit" json:"month_profit"`
+	CumuProfit      float64  `db:"cumu_profit" json:"cumu_profit"`
 	BandwidthUp     float64 `db:"bandwidth_up" json:"bandwidth_up"`
 	BandwidthDown   float64 `db:"bandwidth_down" json:"bandwidth_down"`
 }
@@ -61,9 +63,9 @@ type FullNodeInfoDay struct {
 	TotalStorage           float64   `db:"total_storage" json:"total_storage"`
 	TotalUplinkBandwidth   float64   `db:"total_uplink_bandwidth" json:"total_uplink_bandwidth"`
 	TotalDownloadBandwidth float64   `db:"total_download_bandwidth" json:"total_download_bandwidth"`
-	TotalCarfile           int64     `db:"total_carfile" json:"total_carfile"`
-	TotalCarfileSize       float64   `db:"total_carfile_size" json:"total_carfile_size"`
-	DownloadCount          int64     `db:"download_count" json:"download_count"`
+	CarFileCount           int64     `db:"car_file_count" json:"car_file_count"`
+	TotalFileSize          float64   `db:"total_file_size" json:"total_file_size"`
+	FileDownloadCount      int64     `db:"file_download_count" json:"file_download_count"`
 	Time                   time.Time `db:"time" json:"time"`
 	CreatedAt              time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt              time.Time `db:"updated_at" json:"updated_at"`
@@ -77,9 +79,9 @@ type FullNodeInfoHour struct {
 	TotalStorage           float64   `db:"total_storage" json:"total_storage"`
 	TotalUplinkBandwidth   float64   `db:"total_uplink_bandwidth" json:"total_uplink_bandwidth"`
 	TotalDownloadBandwidth float64   `db:"total_download_bandwidth" json:"total_download_bandwidth"`
-	TotalCarfile           int64     `db:"total_carfile" json:"total_carfile"`
-	TotalCarfileSize       float64   `db:"total_carfile_size" json:"total_carfile_size"`
-	DownloadCount          int64     `db:"download_count" json:"download_count"`
+	CarFileCount           int64     `db:"car_file_count" json:"car_file_count"`
+	TotalFileSize          float64   `db:"total_file_size" json:"total_file_size"`
+	FileDownloadCount      int64     `db:"file_download_count" json:"file_download_count"`
 	Time                   time.Time `db:"time" json:"time"`
 	CreatedAt              time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt              time.Time `db:"updated_at" json:"updated_at"`

@@ -42,8 +42,8 @@ func GetUserDeviceInfoHandler(c *gin.Context) {
 	DeviceID := c.Query("device_id")
 	info.DeviceID = DeviceID
 	info.DeviceStatus = c.Query("device_status")
-	pageSize, _ := strconv.Atoi("page_size")
-	page, _ := strconv.Atoi("page")
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+	page, _ := strconv.Atoi(c.Query("page"))
 	option := dao.QueryOption{
 		Page:      page,
 		PageSize:  pageSize,
@@ -65,7 +65,7 @@ func GetUserDeviceInfoHandler(c *gin.Context) {
 		dataRes.CumulativeProfit += data.CumuProfit
 		dataRes.TodayProfit += data.TodayProfit
 		dataRes.SevenDaysProfit += data.SevenDaysProfit
-		dataRes.YesterdayProfit += data.YesterdayIncome
+		dataRes.YesterdayProfit += data.YesterdayProfit
 		dataRes.MonthProfit += data.MonthProfit
 		if err != nil {
 			log.Error("getProfitByDeviceID：", data.DeviceID)

@@ -20,7 +20,7 @@ type Statistic struct {
 
 func (s *Statistic) initContabs() {
 	s.cron.AddFunc("0 * * * * *", s.UpdateDeviceInfo)
-	s.cron.AddFunc("0 */1 * * * *", s.StatFullNodeInfoByMinutes)
+	s.cron.AddFunc("0 */10 * * * *", s.StatCacheFilesMinutes)
 }
 
 func New(api api.Scheduler) *Statistic {

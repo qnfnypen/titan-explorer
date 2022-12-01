@@ -198,7 +198,7 @@ func (t *DeviceTask) SaveDeviceInfo(url string, Df string) error {
 	var DeviceInfoOld model.DeviceInfo
 	data.SevenDaysProfit = 0
 	data.MonthProfit = 0
-	data.YesterdayIncome = 0
+	data.YesterdayProfit = 0
 
 	ctx := context.Background()
 	old, err := dao.GetDeviceInfoByID(ctx, data.DeviceID)
@@ -370,14 +370,14 @@ func (t *DeviceTask) UpdateYesTodayIncome(DeviceID string) error {
 	DateTo = timeNow + " 23:59:59"
 	dataT := QueryDataByDate(DeviceID, DateFrom, DateTo)
 	var dataUpdate model.DeviceInfo
-	dataUpdate.YesterdayIncome = 0
+	dataUpdate.YesterdayProfit = 0
 	dataUpdate.SevenDaysProfit = 0
 	dataUpdate.MonthProfit = 0
 	dataUpdate.CumuProfit = 0
 	dataUpdate.TodayOnlineTime = 0
 	dataUpdate.TodayProfit = 0
 	if len(dataY) > 0 {
-		dataUpdate.YesterdayIncome = Str2Float64(dataY["income"])
+		dataUpdate.YesterdayProfit = Str2Float64(dataY["income"])
 	}
 	if len(dataS) > 0 {
 		dataUpdate.SevenDaysProfit = Str2Float64(dataS["income"])
@@ -410,7 +410,7 @@ func (t *DeviceTask) UpdateYesTodayIncome(DeviceID string) error {
 		dataUpdate.CreatedAt = time.Now()
 		return dao.CreateDeviceInfo(ctx, &dataUpdate)
 	}
-	old.YesterdayIncome = dataUpdate.YesterdayIncome
+	old.YesterdayProfit = dataUpdate.YesterdayProfit
 	old.SevenDaysProfit = dataUpdate.SevenDaysProfit
 	old.MonthProfit = dataUpdate.MonthProfit
 	old.CumuProfit = dataUpdate.CumuProfit

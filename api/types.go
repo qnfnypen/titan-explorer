@@ -93,8 +93,8 @@ type RetrievalPageRes struct {
 
 type Base struct {
 	ID        uint      `json:"id" gorm:"primarykey"`
-	CreatedAt time.Time `json:"id" gorm:"comment:'创建时间';type:timestamp;"`
-	UpdatedAt time.Time `json:"id" gorm:"comment:'更新时间';type:timestamp;"`
+	CreatedAt time.Time `json:"created_at" gorm:"comment:'Created time';type:timestamp;"`
+	UpdatedAt time.Time `json:"updated_at" gorm:"comment:'Updated time';type:timestamp;"`
 }
 
 type RpcDevice struct {
