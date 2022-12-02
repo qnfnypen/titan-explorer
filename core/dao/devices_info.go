@@ -25,6 +25,10 @@ func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option Query
 		args = append(args, cond.DeviceStatus)
 	}
 
+	if option.Order != "" && option.OrderField != "" {
+		where += fmt.Sprintf(` ORDER BY %s %s`, option.OrderField, option.Order)
+	}
+
 	limit := option.PageSize
 	offset := option.Page
 	if option.PageSize <= 0 {
@@ -76,7 +80,7 @@ func UpdateUserDeviceInfo(ctx context.Context, deviceInfo *model.DeviceInfo) err
 
 func UpdateDeviceInfo(ctx context.Context, deviceInfo *model.DeviceInfo) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`UPDATE %s SET  node_type = :node_type,  device_name = :device_name,
+		`UPDATE %s SET  node_type = :node_type,  device_name = :device_name, rank = :rank,
 				sn_code = :sn_code,  operator = :operator, network_type = :network_type, user_id = :user_id,
 				system_version = :system_version,  product_type = :product_type, network_info = :network_info,
 				external_ip = :external_ip,  internal_ip = :internal_ip,  ip_location = :ip_location, ip_country = :ip_country, ip_city = :ip_city, 

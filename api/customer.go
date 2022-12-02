@@ -258,10 +258,19 @@ func GetDeviceInfoHandler(c *gin.Context) {
 	info.DeviceStatus = c.Query("device_status")
 	pageSize, _ := strconv.Atoi("page_size")
 	page, _ := strconv.Atoi("page")
+	order := c.Query("order")
+	orderField := c.Query("order_field")
 	option := dao.QueryOption{
-		Page:     page,
-		PageSize: pageSize,
+		Page:       page,
+		PageSize:   pageSize,
+		Order:      order,
+		OrderField: orderField,
 	}
+	if option.OrderField == "" {
+		option.OrderField = "rank"
+		option.Order = "ASC"
+	}
+
 	list, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
 	if err != nil {
 		log.Errorf("get device info list: %v", err)

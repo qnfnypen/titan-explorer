@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"sort"
 	"strconv"
 	"time"
 )
@@ -200,7 +201,11 @@ loop:
 		goto loop
 	}
 
-	for _, device := range deviceInfos {
+	sort.Slice(deviceInfos, func(i, j int) bool {
+		return deviceInfos[i].CumuProfit < deviceInfos[j].CumuProfit
+	})
+
+	for rank, device := range deviceInfos {
 		dd, _ := time.ParseDuration("-24h")
 		timeBase := time.Now().Add(dd * 1).Format("2006-01-02")
 		timeNow := time.Now().Format("2006-01-02")
@@ -266,6 +271,7 @@ loop:
 		old.UpdatedAt = dataUpdate.UpdatedAt
 		old.TodayOnlineTime = dataUpdate.TodayOnlineTime
 		old.TodayProfit = dataUpdate.TodayProfit
+		old.Rank = int32(rank + 1)
 		if dataUpdate.UserID != "" {
 			old.UserID = dataUpdate.UserID
 		}

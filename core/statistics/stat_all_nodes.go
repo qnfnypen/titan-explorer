@@ -33,6 +33,8 @@ loop:
 		nodes = append(nodes, toDeviceInfo(node))
 	}
 
+	log.Infof("fetch %d nodes, prepare to update", len(nodes))
+
 	err = dao.BulkUpsertDeviceInfo(ctx, nodes)
 	if err != nil {
 		log.Errorf("bulk upsert device info: %v", err)
