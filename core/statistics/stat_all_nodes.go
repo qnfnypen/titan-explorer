@@ -9,7 +9,7 @@ import (
 )
 
 func (s *Statistic) FetchAllNodes() error {
-	log.Info("start getch all nodes")
+	log.Info("start fetch all nodes")
 	start := time.Now()
 	defer func() {
 		log.Infof("fetch all nodes done, cost: %v", time.Since(start))

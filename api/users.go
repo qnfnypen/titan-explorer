@@ -45,7 +45,7 @@ func DeviceCreateHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(nil))
 }
 
-func DeviceBidingHandler(c *gin.Context) {
+func DeviceBindingHandler(c *gin.Context) {
 	deviceInfo := &model.DeviceInfo{}
 	deviceInfo.DeviceID = c.Query("device_id")
 	deviceInfo.UserID = c.Query("userId")
@@ -57,18 +57,18 @@ func DeviceBidingHandler(c *gin.Context) {
 		return
 	}
 
-	if old != nil {
+	if old != nil && old.UserID != "" {
 		c.JSON(http.StatusBadRequest, respError(errors.ErrDeviceExists))
 		return
 	}
 
-	err = dao.AddDeviceInfo(c.Request.Context(), deviceInfo)
+	err = dao.UpdateUserDeviceInfo(c.Request.Context(), deviceInfo)
 	if err != nil {
-		log.Errorf("create user device: %v", err)
+		log.Errorf("update user device: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, respJSON(nil))
 }
 

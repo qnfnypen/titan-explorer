@@ -24,7 +24,7 @@ const (
 func (s *Statistic) initContabs() {
 	s.FetchAllNodes()
 
-	s.cron.AddFunc("0 */10 * * * *", s.Once(DKeyFetchAllNodes, s.FetchAllNodes))
+	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeyFetchAllNodes, s.FetchAllNodes))
 	s.cron.AddFunc("0 * * * * *", s.Once(DKeyFetchFullNodeInfo, s.FetchFullNodeInfo))
 	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeyFetchIncomeDaily, s.FetchIncomeDaily))
 	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeyFetchYesterdayIncome, s.FetchYesTodayIncome))

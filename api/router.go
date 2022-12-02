@@ -34,7 +34,7 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	apiV0.GET("/get_diagnosis_hours", GetDeviceDiagnosisHourHandler)
 
 	// console
-	apiV0.GET("/device_biding", DeviceBidingHandler)
+	apiV0.GET("/device_binding", DeviceBindingHandler)
 	apiV0.GET("/device_create", DeviceCreateHandler)
 	apiV0.GET("/create_task", CreateTaskHandler)
 	apiV0.GET("/get_task", GetTaskInfoHandler)
