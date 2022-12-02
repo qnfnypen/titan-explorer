@@ -86,7 +86,7 @@ func UpdateDeviceInfo(ctx context.Context, deviceInfo *model.DeviceInfo) error {
 				external_ip = :external_ip,  internal_ip = :internal_ip,  ip_location = :ip_location, ip_country = :ip_country, ip_city = :ip_city, 
 				mac_location = :mac_location,  nat_type = :nat_type,  upnp = :upnp, pkg_loss_ratio = :pkg_loss_ratio,  
 				nat_ratio = :nat_ratio,  latency = :latency,  cpu_usage = :cpu_usage, cpu_cores = :cpu_cores,  memory_usage = :memory_usage, memory = :memory,
-				disk_usage = :disk_usage,  work_status = :work_status, device_status = :device_status,  disk_type = :disk_type,
+				disk_usage = :disk_usage, disk_space = :disk_space,  work_status = :work_status, device_status = :device_status,  disk_type = :disk_type,
 				io_system = :io_system, online_time = :online_time, today_online_time = :today_online_time,  today_profit = :today_profit,
 				yesterday_profit = :yesterday_profit, seven_days_profit = :seven_days_profit, month_profit = :month_profit, cumu_profit = :cumu_profit, bandwidth_up = :bandwidth_up,  
 				bandwidth_down = :bandwidth_down, updated_at = now() WHERE device_id = :device_id`, tableNameDeviceInfo),
@@ -102,7 +102,7 @@ func AddDeviceInfo(ctx context.Context, deviceInfo *model.DeviceInfo) error {
 				external_ip = :external_ip,  internal_ip = :internal_ip,  ip_location = :ip_location, ip_country = :ip_country, ip_city = :ip_city, 
 				mac_location = :mac_location,  nat_type = :nat_type,  upnp = :upnp, pkg_loss_ratio = :pkg_loss_ratio,  
 				nat_ratio = :nat_ratio,  latency = :latency,  cpu_usage = :cpu_usage, cpu_cores = :cpu_cores,  memory_usage = :memory_usage, memory = :memory,
-				disk_usage = :disk_usage,  work_status = :work_status, device_status = :device_status,  disk_type = :disk_type,
+				disk_usage = :disk_usage,  disk_space = :disk_space, work_status = :work_status, device_status = :device_status,  disk_type = :disk_type,
 				io_system = :io_system, online_time = :online_time, today_online_time = :today_online_time,  today_profit = :today_profit,
 				yesterday_profit = :yesterday_profit, seven_days_profit = :seven_days_profit, month_profit = :month_profit, cumu_profit = :cumu_profit, bandwidth_up = :bandwidth_up,  
 				bandwidth_down = :bandwidth_down, updated_at = now() WHERE device_id = :device_id`, tableNameDeviceInfo),
@@ -131,13 +131,13 @@ func upsertDeviceInfoStatement() string {
 		`INSERT INTO %s (device_id, secret, node_type, device_name, user_id, sn_code, operator,
 				network_type, system_version, product_type,
 				network_info, external_ip, internal_ip, ip_location, ip_country, ip_city, mac_location, nat_type, upnp,
-				pkg_loss_ratio, nat_ratio, latency, cpu_usage, memory_usage, cpu_cores, memory, disk_usage, work_status,
+				pkg_loss_ratio, nat_ratio, latency, cpu_usage, memory_usage, cpu_cores, memory, disk_usage, disk_space, work_status,
 				device_status, disk_type, io_system, online_time, today_online_time, today_profit,
 				yesterday_profit, seven_days_profit, month_profit, cumu_profit, bandwidth_up, bandwidth_down, created_at, updated_at)
 			VALUES (:device_id, :secret, :node_type, :device_name, :user_id, :sn_code, :operator,
 			    :network_type, :system_version, :product_type, 
 			    :network_info, :external_ip, :internal_ip, :ip_location, :ip_country, :ip_city, :mac_location, :nat_type, :upnp, 
-			    :pkg_loss_ratio, :nat_ratio, :latency, :cpu_usage, :memory_usage, :cpu_cores, :memory, :disk_usage, :work_status, 
+			    :pkg_loss_ratio, :nat_ratio, :latency, :cpu_usage, :memory_usage, :cpu_cores, :memory, :disk_usage, :disk_space, :work_status, 
 			    :device_status, :disk_type, :io_system, :online_time, :today_online_time, :today_profit,
 				:yesterday_profit, :seven_days_profit, :month_profit, :cumu_profit, :bandwidth_up, :bandwidth_down, now(), now())`, tableNameDeviceInfo,
 	)
@@ -147,9 +147,21 @@ func upsertDeviceInfoStatement() string {
 				external_ip = :external_ip,  internal_ip = :internal_ip,  ip_location = :ip_location, ip_country = :ip_country, ip_city = :ip_city, 
 				mac_location = :mac_location,  nat_type = :nat_type,  upnp = :upnp, pkg_loss_ratio = :pkg_loss_ratio,  
 				nat_ratio = :nat_ratio,  latency = :latency,  cpu_usage = :cpu_usage, cpu_cores = :cpu_cores,  memory_usage = :memory_usage, memory = :memory,
-				disk_usage = :disk_usage,  work_status = :work_status, device_status = :device_status,  disk_type = :disk_type,
+				disk_usage = :disk_usage, disk_space = :disk_space,  work_status = :work_status, device_status = :device_status,  disk_type = :disk_type,
 				io_system = :io_system, online_time = :online_time, today_online_time = :today_online_time,  today_profit = :today_profit,
 				yesterday_profit = :yesterday_profit, seven_days_profit = :seven_days_profit, month_profit = :month_profit, cumu_profit = :cumu_profit, bandwidth_up = :bandwidth_up,  
 				bandwidth_down = :bandwidth_down, updated_at = now()`
 	return insertStatement + updateStatement
+}
+
+func CountFullNodeInfo(ctx context.Context) (*model.FullNodeInfoHour, error) {
+	queryStatement := fmt.Sprintf(`SELECT count( device_id ) AS total_node_count ,  SUM(IF(node_type = 1, 1, 0)) AS edge_count, 
+       SUM(IF(node_type = 2 OR node_type = 3, 1, 0)) AS candidate_count, SUM(IF(node_type = 3, 1, 0)) AS validator_count, SUM( disk_space) AS total_storage, 
+       SUM(bandwidth_up) AS total_uplink_bandwidth, SUM(bandwidth_down) AS total_download_bandwidth FROM %s;`, tableNameDeviceInfo)
+
+	var out model.FullNodeInfoHour
+	if err := DB.QueryRowxContext(ctx, queryStatement).StructScan(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
 }

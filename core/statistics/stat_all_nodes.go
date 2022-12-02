@@ -44,7 +44,7 @@ loop:
 		goto loop
 	}
 
-	return nil
+	return s.CountFullNodeInfo()
 }
 
 func toDeviceInfo(v interface{}) *model.DeviceInfo {
@@ -61,4 +61,39 @@ func toDeviceInfo(v interface{}) *model.DeviceInfo {
 	}
 
 	return &deviceInfo
+}
+
+func (s *Statistic) CountFullNodeInfo() error {
+	log.Info("start count full node info")
+	start := time.Now()
+	defer func() {
+		log.Infof("count full node done, cost: %v", time.Since(start))
+	}()
+
+	ctx := context.Background()
+	resp, err := s.api.StatCaches(ctx)
+	if err != nil {
+		log.Errorf("stat caches: %v", err)
+		return err
+	}
+
+	fullNodeInfoHour, err := dao.CountFullNodeInfo(ctx)
+	if err != nil {
+		log.Errorf("count full node: %v", err)
+		return err
+	}
+
+	fullNodeInfoHour.TotalCarfile = int64(resp.CarFileCount)
+	fullNodeInfoHour.DownloadCount = int64(resp.DownloadCount)
+	fullNodeInfoHour.TotalCarfileSize = float64(resp.TotalSize)
+
+	fullNodeInfoHour.Time = time.Now()
+	fullNodeInfoHour.CreatedAt = time.Now()
+	err = dao.AddFullNodeInfoHours(ctx, fullNodeInfoHour)
+	if err != nil {
+		log.Errorf("add full node info hours: %v", err)
+		return err
+	}
+
+	return nil
 }

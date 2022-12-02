@@ -102,6 +102,7 @@ CREATE TABLE `device_info` (
   `memory_usage` FLOAT(32) NOT NULL DEFAULT '0' COMMENT '',
   `memory` FLOAT(32) NOT NULL DEFAULT '0' COMMENT '',
   `disk_usage` FLOAT(32) NOT NULL DEFAULT '0' COMMENT '',
+  `disk_space` FLOAT(32) NOT NULL DEFAULT '0' COMMENT '',
   `work_status` CHAR(28) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `device_status` CHAR(28) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `disk_type` CHAR(28) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
