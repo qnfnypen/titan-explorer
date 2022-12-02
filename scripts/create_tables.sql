@@ -113,7 +113,7 @@ CREATE TABLE `device_info` (
   `yesterday_profit` FLOAT(32) NOT NULL DEFAULT '0',
   `seven_days_profit` FLOAT(32) NOT NULL DEFAULT '0',
   `month_profit` FLOAT(32) NOT NULL DEFAULT '0',
-  `cumu_profit` FLOAT(32) NOT NULL DEFAULT '0',
+  `cumulative_profit` FLOAT(32) NOT NULL DEFAULT '0',
   `bandwidth_up` FLOAT(32) NOT NULL DEFAULT '0',
   `bandwidth_down` FLOAT(32) NOT NULL DEFAULT '0',
   PRIMARY KEY USING BTREE (`id`),

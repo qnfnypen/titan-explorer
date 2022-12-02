@@ -202,7 +202,7 @@ loop:
 	}
 
 	sort.Slice(deviceInfos, func(i, j int) bool {
-		return deviceInfos[i].CumuProfit < deviceInfos[j].CumuProfit
+		return deviceInfos[i].CumulativeProfit < deviceInfos[j].CumulativeProfit
 	})
 
 	for rank, device := range deviceInfos {
@@ -227,7 +227,7 @@ loop:
 		dataUpdate.YesterdayProfit = 0
 		dataUpdate.SevenDaysProfit = 0
 		dataUpdate.MonthProfit = 0
-		dataUpdate.CumuProfit = 0
+		dataUpdate.CumulativeProfit = 0
 		dataUpdate.TodayOnlineTime = 0
 		dataUpdate.TodayProfit = 0
 		if len(dataY) > 0 {
@@ -240,7 +240,7 @@ loop:
 			dataUpdate.MonthProfit = Str2Float64(dataM["income"])
 		}
 		if len(dataA) > 0 {
-			dataUpdate.CumuProfit = Str2Float64(dataA["income"])
+			dataUpdate.CumulativeProfit = Str2Float64(dataA["income"])
 		}
 		if len(dataT) > 0 {
 			dataUpdate.TodayProfit = Str2Float64(dataT["income"])
@@ -267,7 +267,7 @@ loop:
 		old.YesterdayProfit = dataUpdate.YesterdayProfit
 		old.SevenDaysProfit = dataUpdate.SevenDaysProfit
 		old.MonthProfit = dataUpdate.MonthProfit
-		old.CumuProfit = dataUpdate.CumuProfit
+		old.CumulativeProfit = dataUpdate.CumulativeProfit
 		old.UpdatedAt = dataUpdate.UpdatedAt
 		old.TodayOnlineTime = dataUpdate.TodayOnlineTime
 		old.TodayProfit = dataUpdate.TodayProfit

@@ -54,7 +54,7 @@ type DeviceInfo struct {
 	YesterdayProfit float64 `db:"yesterday_profit" json:"yesterday_profit"`
 	SevenDaysProfit float64 `db:"seven_days_profit" json:"seven_days_profit"`
 	MonthProfit     float64 `db:"month_profit" json:"month_profit"`
-	CumuProfit      float64 `db:"cumu_profit" json:"cumu_profit"`
+	CumulativeProfit      float64 `db:"cumulative_profit" json:"cumulative_profit"`
 	BandwidthUp     float64 `db:"bandwidth_up" json:"bandwidth_up"`
 	BandwidthDown   float64 `db:"bandwidth_down" json:"bandwidth_down"`
 }

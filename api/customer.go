@@ -62,7 +62,7 @@ func GetUserDeviceInfoHandler(c *gin.Context) {
 	var dataRes IndexUserDeviceRes
 	for _, data := range list {
 		err = getProfitByDeviceID(data, &res)
-		dataRes.CumulativeProfit += data.CumuProfit
+		dataRes.CumulativeProfit += data.CumulativeProfit
 		dataRes.TodayProfit += data.TodayProfit
 		dataRes.SevenDaysProfit += data.SevenDaysProfit
 		dataRes.YesterdayProfit += data.YesterdayProfit
@@ -258,19 +258,10 @@ func GetDeviceInfoHandler(c *gin.Context) {
 	info.DeviceStatus = c.Query("device_status")
 	pageSize, _ := strconv.Atoi("page_size")
 	page, _ := strconv.Atoi("page")
-	order := c.Query("order")
-	orderField := c.Query("order_field")
 	option := dao.QueryOption{
-		Page:       page,
-		PageSize:   pageSize,
-		Order:      order,
-		OrderField: orderField,
+		Page:     page,
+		PageSize: pageSize,
 	}
-	if option.OrderField == "" {
-		option.OrderField = "rank"
-		option.Order = "ASC"
-	}
-
 	list, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
 	if err != nil {
 		log.Errorf("get device info list: %v", err)
