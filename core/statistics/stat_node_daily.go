@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"sort"
 	"strconv"
 	"time"
 )
@@ -18,35 +17,14 @@ var (
 	DeviceIDAndUserId map[string]string
 )
 
-func (s *Statistic) FetchDeviceInfoDaily() error {
-	log.Info("start fetch income daily")
+func addDeviceInfoHours(ctx context.Context, deviceInfo []*model.DeviceInfo) error {
+	log.Info("start fetch device info hours")
 	start := time.Now()
 	defer func() {
-		log.Infof("fetch income daily done, cost: %v", time.Since(start))
+		log.Infof("fetch device info hours done, cost: %v", time.Since(start))
 	}()
 
-	var deviceInfos []*model.DeviceInfo
-	opt := dao.QueryOption{
-		Page:     1,
-		PageSize: 100,
-	}
-loop:
-	devices, total, err := dao.GetDeviceInfoList(context.Background(), &model.DeviceInfo{}, opt)
-	if err != nil {
-		return err
-	}
-
-	for _, device := range devices {
-		deviceInfos = append(deviceInfos, device)
-	}
-
-	opt.Page++
-
-	if int64(len(deviceInfos)) < total {
-		goto loop
-	}
-
-	for _, device := range deviceInfos {
+	for _, device := range deviceInfo {
 		var deviceInfoHour model.DeviceInfoHour
 		deviceInfoHour.Time = start
 		deviceInfoHour.DiskUsage = device.DiskUsage
@@ -60,7 +38,7 @@ loop:
 		if ok {
 			deviceInfoHour.UserID = DeviceIDAndUserId[deviceInfoHour.DeviceID]
 		}
-		err = TransferData(deviceInfoHour)
+		err := TransferData(deviceInfoHour)
 		if err != nil {
 			log.Error(err.Error())
 		}
@@ -173,14 +151,14 @@ func QueryDataByDate(DeviceID, DateFrom, DateTo string) map[string]string {
 	return nil
 }
 
-func (s *Statistic) FetchYesTodayIncome() error {
-	log.Info("start fetch yesterday income")
+func (s *Statistic) SumDeviceInfoDaily() error {
+	log.Info("start sum device info daily")
 	start := time.Now()
 	defer func() {
-		log.Infof("fetch yesterday income done, cost: %v", time.Since(start))
+		log.Infof("sum device info daily done, cost: %v", time.Since(start))
 	}()
 
-	var deviceInfos []*model.DeviceInfo
+	var sum int64
 	opt := dao.QueryOption{
 		Page:     1,
 		PageSize: 100,
@@ -192,20 +170,6 @@ loop:
 	}
 
 	for _, device := range devices {
-		deviceInfos = append(deviceInfos, device)
-	}
-
-	opt.Page++
-
-	if int64(len(deviceInfos)) < total {
-		goto loop
-	}
-
-	sort.Slice(deviceInfos, func(i, j int) bool {
-		return deviceInfos[i].CumulativeProfit < deviceInfos[j].CumulativeProfit
-	})
-
-	for rank, device := range deviceInfos {
 		dd, _ := time.ParseDuration("-24h")
 		timeBase := time.Now().Add(dd * 1).Format("2006-01-02")
 		timeNow := time.Now().Format("2006-01-02")
@@ -223,62 +187,40 @@ loop:
 		DateFrom = timeNow + " 00:00:00"
 		DateTo = timeNow + " 23:59:59"
 		dataT := QueryDataByDate(device.DeviceID, DateFrom, DateTo)
-		var dataUpdate model.DeviceInfo
-		dataUpdate.YesterdayProfit = 0
-		dataUpdate.SevenDaysProfit = 0
-		dataUpdate.MonthProfit = 0
-		dataUpdate.CumulativeProfit = 0
-		dataUpdate.TodayOnlineTime = 0
-		dataUpdate.TodayProfit = 0
 		if len(dataY) > 0 {
-			dataUpdate.YesterdayProfit = Str2Float64(dataY["income"])
+			device.YesterdayProfit = Str2Float64(dataY["income"])
 		}
 		if len(dataS) > 0 {
-			dataUpdate.SevenDaysProfit = Str2Float64(dataS["income"])
+			device.SevenDaysProfit = Str2Float64(dataS["income"])
 		}
 		if len(dataM) > 0 {
-			dataUpdate.MonthProfit = Str2Float64(dataM["income"])
+			device.MonthProfit = Str2Float64(dataM["income"])
 		}
 		if len(dataA) > 0 {
-			dataUpdate.CumulativeProfit = Str2Float64(dataA["income"])
+			device.CumulativeProfit = Str2Float64(dataA["income"])
 		}
 		if len(dataT) > 0 {
-			dataUpdate.TodayProfit = Str2Float64(dataT["income"])
-			dataUpdate.TodayOnlineTime = Str2Float64(dataT["online_time"])
+			device.TodayProfit = Str2Float64(dataT["income"])
+			device.TodayOnlineTime = Str2Float64(dataT["online_time"])
 		}
-		dataUpdate.UpdatedAt = time.Now()
+		device.UpdatedAt = time.Now()
 		_, ok := DeviceIDAndUserId[device.DeviceID]
 		if ok {
-			dataUpdate.UserID = DeviceIDAndUserId[device.DeviceID]
-		}
-		//err := dao.DB.Save(&data).Error
-
-		ctx := context.Background()
-		old, err := dao.GetDeviceInfoByID(ctx, device.DeviceID)
-		if err != nil {
-			log.Errorf("get device info by id: %v", err)
-			return err
+			device.UserID = DeviceIDAndUserId[device.DeviceID]
 		}
 
-		if old == nil {
-			dataUpdate.CreatedAt = time.Now()
-			return dao.AddDeviceInfo(ctx, &dataUpdate)
-		}
-		old.YesterdayProfit = dataUpdate.YesterdayProfit
-		old.SevenDaysProfit = dataUpdate.SevenDaysProfit
-		old.MonthProfit = dataUpdate.MonthProfit
-		old.CumulativeProfit = dataUpdate.CumulativeProfit
-		old.UpdatedAt = dataUpdate.UpdatedAt
-		old.TodayOnlineTime = dataUpdate.TodayOnlineTime
-		old.TodayProfit = dataUpdate.TodayProfit
-		old.Rank = int32(rank + 1)
-		if dataUpdate.UserID != "" {
-			old.UserID = dataUpdate.UserID
-		}
-		err = dao.UpdateDeviceInfo(ctx, old)
+		err = dao.UpdateDeviceInfo(context.Background(), device)
 		if err != nil {
 			log.Errorf("update device info: %v", err)
 		}
 	}
+
+	opt.Page++
+	sum += int64(len(devices))
+
+	if sum < total {
+		goto loop
+	}
+
 	return nil
 }

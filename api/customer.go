@@ -51,17 +51,15 @@ func GetUserDeviceInfoHandler(c *gin.Context) {
 		EndTime:   c.Query("to"),
 	}
 
-	list, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
+	list, _, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
 	if err != nil {
 		log.Errorf("get device info list: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrNotFound))
 		return
 	}
 	var dataList []*model.DeviceInfo
-	var res DeviceInfoPage
 	var dataRes IndexUserDeviceRes
 	for _, data := range list {
-		err = getProfitByDeviceID(data, &res)
 		dataRes.CumulativeProfit += data.CumulativeProfit
 		dataRes.TodayProfit += data.TodayProfit
 		dataRes.SevenDaysProfit += data.SevenDaysProfit
@@ -73,12 +71,6 @@ func GetUserDeviceInfoHandler(c *gin.Context) {
 		dataList = append(dataList, data)
 	}
 
-	// Devices
-	dataRes.AbnormalNum = res.Abnormal
-	dataRes.OfflineNum = res.Offline
-	dataRes.OnlineNum = res.Online
-	dataRes.TotalNum = total
-	dataRes.TotalBandwidth = res.BandwidthMb
 	// Profit
 	p := &model.DeviceInfoDaily{}
 	p.UserID = info.UserID
@@ -191,10 +183,13 @@ func getDaysDataHour(list []*model.DeviceInfoHour) (returnMapList map[string]int
 	}
 	returnMap["income"] = queryMapTo
 	returnMap["online"] = onlineJsonDailyTo
-	returnMap["pkgLoss"] = pkgLossRatioTo
+	returnMap["pkg_loss"] = pkgLossRatioTo
 	returnMap["latency"] = latencyTo
-	returnMap["natType"] = natTypeTo
-	returnMap["diskUsage"] = diskUsageTo
+	returnMap["nat_type"] = natTypeTo
+	returnMap["disk_usage"] = diskUsageTo
+	// TODO:
+	returnMap["traffic"] = latencyTo
+	returnMap["retrieval"] = latencyTo
 	returnMapList = returnMap
 	return
 }
@@ -218,10 +213,10 @@ func getDaysData(list []*model.DeviceInfoDaily) (returnMapList map[string]interf
 	}
 	returnMap["income"] = queryMapTo
 	returnMap["online"] = onlineJsonDailyTo
-	returnMap["pkgLoss"] = pkgLossRatioTo
+	returnMap["pkg_loss"] = pkgLossRatioTo
 	returnMap["latency"] = latencyTo
-	returnMap["natType"] = natTypeTo
-	returnMap["diskUsage"] = diskUsageTo
+	returnMap["nat_type"] = natTypeTo
+	returnMap["disk_usage"] = diskUsageTo
 	returnMapList = returnMap
 	return
 }
@@ -251,7 +246,6 @@ func RetrievalHandler(c *gin.Context) {
 }
 
 func GetDeviceInfoHandler(c *gin.Context) {
-	var res DeviceInfoPage
 	info := &model.DeviceInfo{}
 	info.UserID = c.Query("userId")
 	info.DeviceID = c.Query("device_id")
@@ -268,20 +262,11 @@ func GetDeviceInfoHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
 		return
 	}
-	var dataList []*model.DeviceInfo
-	for _, data := range list {
-		err = getProfitByDeviceID(data, &res)
-		if err != nil {
-			log.Errorf("get profit by device id: %v", data.DeviceID)
-			c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
-			return
-		}
-		dataList = append(dataList, data)
-	}
-	res.List = dataList
-	res.Count = total
-	res.AllDevices = total
-	c.JSON(http.StatusOK, respJSON(res))
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list":  list,
+		"total": total,
+	}))
 }
 
 func GetDeviceDiagnosisDailyHandler(c *gin.Context) {
@@ -291,11 +276,10 @@ func GetDeviceDiagnosisDailyHandler(c *gin.Context) {
 	p.DateFrom = from
 	p.DateTo = to
 	p.DeviceID = c.Query("device_id")
-	var res DeviceInfoDailyRes
 	m := timeFormat(p)
-	res.DailyIncome = m
-	res.DeviceDiagnosis = "good"
-	c.JSON(http.StatusOK, respJSON(res))
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"series_data": m,
+	}))
 }
 
 func GetDeviceDiagnosisHourHandler(c *gin.Context) {
@@ -303,23 +287,21 @@ func GetDeviceDiagnosisHourHandler(c *gin.Context) {
 	p.DeviceID = c.Query("device_id")
 	p.Date = c.Query("date")
 	p.UserID = c.Query("userId")
-	var res DeviceInfoDailyRes
 	m := timeFormatHour(p)
-
-	res.DailyIncome = m
-	res.DeviceDiagnosis = "good"
-	c.JSON(http.StatusOK, respJSON(res))
-}
-
-func getProfitByDeviceID(rt *model.DeviceInfo, dt *DeviceInfoPage) error {
-	switch rt.DeviceStatus {
-	case "online":
-		dt.Online += 1
-	case "offline":
-		dt.Offline += 1
-	case "abnormal":
-		dt.Abnormal += 1
+	deviceInfo, err := dao.GetDeviceInfoByID(c.Request.Context(), p.DeviceID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		return
 	}
-	dt.BandwidthMb += rt.BandwidthUp
-	return nil
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"series_data":  m,
+		"cpu_usage":    deviceInfo.CpuUsage,
+		"cpu_cores":    deviceInfo.CpuCores,
+		"memory":       deviceInfo.Memory,
+		"memory_usage": deviceInfo.MemoryUsage * deviceInfo.Memory,
+		"disk_usage":   deviceInfo.DiskUsage,
+		"disk_type":    deviceInfo.DiskType,
+		"file_system":  deviceInfo.IoSystem,
+	}))
 }

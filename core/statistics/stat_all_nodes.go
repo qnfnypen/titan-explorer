@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"sort"
 	"strings"
 	"time"
 )
@@ -16,17 +17,18 @@ func (s *Statistic) FetchAllNodes() error {
 		log.Infof("fetch all nodes done, cost: %v", time.Since(start))
 	}()
 
-	ctx := context.Background()
 	var total int64
 	page, size := 1, 50
 
 loop:
-	resp, err := s.api.ListNodes(ctx, page, size)
+	offset := (page - 1) * size
+	ctx := context.Background()
+	resp, err := s.api.ListNodes(ctx, offset, size)
 	if err != nil {
 		return err
 	}
 
-	total += resp.Total
+	total += int64(len(resp.Data))
 	page++
 
 	var nodes []*model.DeviceInfo
@@ -41,11 +43,15 @@ loop:
 		log.Errorf("bulk upsert device info: %v", err)
 	}
 
+	if err = addDeviceInfoHours(ctx, nodes); err != nil {
+		log.Errorf("add device info hours: %v", err)
+	}
+
 	if total < resp.Total {
 		goto loop
 	}
 
-	return s.CountFullNodeInfo()
+	return nil
 }
 
 func toDeviceInfo(v interface{}) *model.DeviceInfo {
@@ -89,7 +95,7 @@ func (s *Statistic) CountFullNodeInfo() error {
 	}
 
 	fullNodeInfoHour.TotalCarfile = int64(resp.CarFileCount)
-	fullNodeInfoHour.DownloadCount = int64(resp.DownloadCount)
+	fullNodeInfoHour.RetrievalCount = int64(resp.DownloadCount)
 	fullNodeInfoHour.TotalCarfileSize = float64(resp.TotalSize)
 
 	fullNodeInfoHour.Time = time.Now()
@@ -101,4 +107,40 @@ func (s *Statistic) CountFullNodeInfo() error {
 	}
 
 	return nil
+}
+
+func (s *Statistic) RankingNodes() error {
+	log.Info("start ranking nodes")
+	start := time.Now()
+	defer func() {
+		log.Infof("ranking nodes done, cost: %v", time.Since(start))
+	}()
+
+	var deviceInfos []*model.DeviceInfo
+	opt := dao.QueryOption{
+		Page:     1,
+		PageSize: 100,
+	}
+loop:
+	devices, total, err := dao.GetDeviceInfoList(context.Background(), &model.DeviceInfo{}, opt)
+	if err != nil {
+		return err
+	}
+
+	deviceInfos = append(deviceInfos, devices...)
+	opt.Page++
+
+	if int64(len(deviceInfos)) < total {
+		goto loop
+	}
+
+	sort.Slice(deviceInfos, func(i, j int) bool {
+		return deviceInfos[i].CumulativeProfit > deviceInfos[j].CumulativeProfit
+	})
+
+	for i := 0; i < len(deviceInfos); i++ {
+		deviceInfos[i].Rank = int32(i + 1)
+	}
+
+	return dao.BulkUpdateDeviceInfo(context.Background(), deviceInfos)
 }

@@ -112,15 +112,6 @@ type RpcTask struct {
 type DeviceInfoPage struct {
 	List  []*model.DeviceInfo `json:"list"`
 	Count int64               `json:"count"`
-	DeviceType
-}
-
-type DeviceType struct {
-	Online      int64   `json:"online"`       // 在线
-	Offline     int64   `json:"offline"`      // 离线
-	Abnormal    int64   `json:"abnormal"`     // 异常
-	AllDevices  int64   `json:"all_devices"`  // 全部设备
-	BandwidthMb float64 `json:"bandwidth_mb"` // 全网上行带宽（MB/S）
 }
 
 type DeviceInfoDailySearch struct {

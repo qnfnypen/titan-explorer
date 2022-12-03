@@ -59,40 +59,20 @@ type DeviceInfo struct {
 	BandwidthDown    float64 `db:"bandwidth_down" json:"bandwidth_down"`
 }
 
-type FullNodeInfoDay struct {
-	ID                     int64     `db:"id" json:"id"`
-	TotalNodeCount         int32     `db:"total_node_count" json:"total_node_count"`
-	ValidatorCount         int32     `db:"validator_count" json:"validator_count"`
-	CandidateCount         int32     `db:"candidate_count" json:"candidate_count"`
-	EdgeCount              int32     `db:"edge_count" json:"edge_count"`
-	TotalStorage           float64   `db:"total_storage" json:"total_storage"`
-	TotalUplinkBandwidth   float64   `db:"total_uplink_bandwidth" json:"total_uplink_bandwidth"`
-	TotalDownloadBandwidth float64   `db:"total_download_bandwidth" json:"total_download_bandwidth"`
-	TotalCarfile           int64     `db:"total_carfile" json:"total_carfile"`
-	TotalCarfileSize       float64   `db:"total_carfile_size" json:"total_carfile_size"`
-	DownloadCount          int64     `db:"download_count" json:"download_count"`
-	NextElectionTime       time.Time `db:"next_election_time" json:"next_election_time"`
-	Time                   time.Time `db:"time" json:"time"`
-	CreatedAt              time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt              time.Time `db:"updated_at" json:"updated_at"`
-}
-
-type FullNodeInfoHour struct {
-	ID                     int64     `db:"id" json:"id"`
-	TotalNodeCount         int32     `db:"total_node_count" json:"total_node_count"`
-	ValidatorCount         int32     `db:"validator_count" json:"validator_count"`
-	CandidateCount         int32     `db:"candidate_count" json:"candidate_count"`
-	EdgeCount              int32     `db:"edge_count" json:"edge_count"`
-	TotalStorage           float64   `db:"total_storage" json:"total_storage"`
-	TotalUplinkBandwidth   float64   `db:"total_uplink_bandwidth" json:"total_uplink_bandwidth"`
-	TotalDownloadBandwidth float64   `db:"total_download_bandwidth" json:"total_download_bandwidth"`
-	TotalCarfile           int64     `db:"total_carfile" json:"total_carfile"`
-	TotalCarfileSize       float64   `db:"total_carfile_size" json:"total_carfile_size"`
-	DownloadCount          int64     `db:"download_count" json:"download_count"`
-	NextElectionTime       time.Time `db:"next_election_time" json:"next_election_time"`
-	Time                   time.Time `db:"time" json:"time"`
-	CreatedAt              time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt              time.Time `db:"updated_at" json:"updated_at"`
+type DeviceInfoDaily struct {
+	ID           int64     `db:"id" json:"id"`
+	CreatedAt    time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt    time.Time `db:"updated_at" json:"updated_at"`
+	DeletedAt    time.Time `db:"deleted_at" json:"deleted_at"`
+	UserID       string    `db:"user_id" json:"user_id"`
+	DeviceID     string    `db:"device_id" json:"device_id"`
+	Time         time.Time `db:"time" json:"time"`
+	Income       float64   `db:"income" json:"income"`
+	OnlineTime   float64   `db:"online_time" json:"online_time"`
+	PkgLossRatio float64   `db:"pkg_loss_ratio" json:"pkg_loss_ratio"`
+	Latency      float64   `db:"latency" json:"latency"`
+	NatRatio     float64   `db:"nat_ratio" json:"nat_ratio"`
+	DiskUsage    float64   `db:"disk_usage" json:"disk_usage"`
 }
 
 type DeviceInfoHour struct {
@@ -111,20 +91,40 @@ type DeviceInfoHour struct {
 	DiskUsage    float64   `db:"disk_usage" json:"disk_usage"`
 }
 
-type DeviceInfoDaily struct {
-	ID           int64     `db:"id" json:"id"`
-	CreatedAt    time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt    time.Time `db:"updated_at" json:"updated_at"`
-	DeletedAt    time.Time `db:"deleted_at" json:"deleted_at"`
-	UserID       string    `db:"user_id" json:"user_id"`
-	DeviceID     string    `db:"device_id" json:"device_id"`
-	Time         time.Time `db:"time" json:"time"`
-	Income       float64   `db:"income" json:"income"`
-	OnlineTime   float64   `db:"online_time" json:"online_time"`
-	PkgLossRatio float64   `db:"pkg_loss_ratio" json:"pkg_loss_ratio"`
-	Latency      float64   `db:"latency" json:"latency"`
-	NatRatio     float64   `db:"nat_ratio" json:"nat_ratio"`
-	DiskUsage    float64   `db:"disk_usage" json:"disk_usage"`
+type FullNodeInfoDay struct {
+	ID                     int64     `db:"id" json:"id"`
+	TotalNodeCount         int32     `db:"total_node_count" json:"total_node_count"`
+	ValidatorCount         int32     `db:"validator_count" json:"validator_count"`
+	CandidateCount         int32     `db:"candidate_count" json:"candidate_count"`
+	EdgeCount              int32     `db:"edge_count" json:"edge_count"`
+	TotalStorage           float64   `db:"total_storage" json:"total_storage"`
+	TotalUplinkBandwidth   float64   `db:"total_uplink_bandwidth" json:"total_uplink_bandwidth"`
+	TotalDownloadBandwidth float64   `db:"total_download_bandwidth" json:"total_download_bandwidth"`
+	TotalCarfile           int64     `db:"total_carfile" json:"total_carfile"`
+	TotalCarfileSize       float64   `db:"total_carfile_size" json:"total_carfile_size"`
+	RetrievalCount         int64     `db:"retrieval_count" json:"retrieval_count"`
+	NextElectionTime       time.Time `db:"next_election_time" json:"next_election_time"`
+	Time                   time.Time `db:"time" json:"time"`
+	CreatedAt              time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt              time.Time `db:"updated_at" json:"updated_at"`
+}
+
+type FullNodeInfoHour struct {
+	ID                     int64     `db:"id" json:"id"`
+	TotalNodeCount         int32     `db:"total_node_count" json:"total_node_count"`
+	ValidatorCount         int32     `db:"validator_count" json:"validator_count"`
+	CandidateCount         int32     `db:"candidate_count" json:"candidate_count"`
+	EdgeCount              int32     `db:"edge_count" json:"edge_count"`
+	TotalStorage           float64   `db:"total_storage" json:"total_storage"`
+	TotalUplinkBandwidth   float64   `db:"total_uplink_bandwidth" json:"total_uplink_bandwidth"`
+	TotalDownloadBandwidth float64   `db:"total_download_bandwidth" json:"total_download_bandwidth"`
+	TotalCarfile           int64     `db:"total_carfile" json:"total_carfile"`
+	TotalCarfileSize       float64   `db:"total_carfile_size" json:"total_carfile_size"`
+	RetrievalCount         int64     `db:"retrieval_count" json:"retrieval_count"`
+	NextElectionTime       time.Time `db:"next_election_time" json:"next_election_time"`
+	Time                   time.Time `db:"time" json:"time"`
+	CreatedAt              time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt              time.Time `db:"updated_at" json:"updated_at"`
 }
 
 type LoginLog struct {
