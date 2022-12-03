@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	tableNameHourDaily   = "hour_daily"
-	tableNameIncomeDaily = "income_daily"
+	tableNameHourDaily   = "device_info_hour"
+	tableNameIncomeDaily = "device_info_daily"
 )
 
 func GetHourDailyByTime(ctx context.Context, deviceID string, time time.Time) (*model.HourDaily, error) {
@@ -181,10 +181,10 @@ func GetIncomeDailyList(ctx context.Context, cond *model.IncomeDaily, option Que
 }
 
 func GetIncomeAllList(ctx context.Context, cond *model.IncomeDaily, option QueryOption) []map[string]interface{} {
-	sqlClause := fmt.Sprintf("select date_format(time, '%%Y-%%m-%%d') as date, , sum(income) as income from income_daily "+
+	sqlClause := fmt.Sprintf("select date_format(time, '%%Y-%%m-%%d') as date, , sum(income) as income from device_info_daily "+
 		"where device_id='%s' and time>='%s' and time<='%s' group by date", cond.DeviceID, option.StartTime, option.EndTime)
 	if cond.UserID != "" {
-		sqlClause = fmt.Sprintf("select date_format(time, '%%Y-%%m-%%d') as date, sum(income) as income from income_daily "+
+		sqlClause = fmt.Sprintf("select date_format(time, '%%Y-%%m-%%d') as date, sum(income) as income from device_info_daily "+
 			"where user_id='%s' and time>='%s' and time<='%s' group by date", cond.UserID, option.StartTime, option.EndTime)
 	}
 	datas, err := GetQueryDataList(sqlClause)

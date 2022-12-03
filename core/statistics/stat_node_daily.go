@@ -68,7 +68,7 @@ loop:
 		timeNow := time.Now().Format("2006-01-02")
 		DateFrom := timeNow + " 00:00:00"
 		DateTo := timeNow + " 23:59:59"
-		sqlClause := fmt.Sprintf("select user_id,date_format(time, '%%Y-%%m-%%d') as date, avg(nat_ratio) as nat_ratio, avg(disk_usage) as disk_usage, avg(latency) as latency, avg(pkg_loss_ratio) as pkg_loss_ratio, max(hour_income) as hour_income,max(online_time) as online_time_max,min(online_time) as online_time_min from hour_daily "+
+		sqlClause := fmt.Sprintf("select user_id,date_format(time, '%%Y-%%m-%%d') as date, avg(nat_ratio) as nat_ratio, avg(disk_usage) as disk_usage, avg(latency) as latency, avg(pkg_loss_ratio) as pkg_loss_ratio, max(hour_income) as hour_income,max(online_time) as online_time_max,min(online_time) as online_time_min from device_info_hour "+
 			"where device_id='%s' and time>='%s' and time<='%s' group by date", device.DeviceID, DateFrom, DateTo)
 		datas, err := dao.GetQueryDataList(sqlClause)
 		if err != nil {
@@ -156,10 +156,10 @@ func Str2Float64(s string) float64 {
 
 func QueryDataByDate(DeviceID, DateFrom, DateTo string) map[string]string {
 
-	sqlClause := fmt.Sprintf("select sum(income) as income,online_time from income_daily "+
+	sqlClause := fmt.Sprintf("select sum(income) as income,online_time from device_info_daily "+
 		"where  time>='%s' and time<='%s' and device_id='%s' group by user_id;", DateFrom, DateTo, DeviceID)
 	if DateFrom == "" {
-		sqlClause = fmt.Sprintf("select sum(income) as income,online_time from income_daily "+
+		sqlClause = fmt.Sprintf("select sum(income) as income,online_time from device_info_daily "+
 			"where device_id='%s' group by user_id;", DeviceID)
 	}
 	data, err := dao.GetQueryDataList(sqlClause)

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"strings"
 	"time"
 )
 
@@ -59,7 +60,11 @@ func toDeviceInfo(v interface{}) *model.DeviceInfo {
 	if err != nil {
 		return nil
 	}
-
+	ipLocationList := strings.Split(deviceInfo.IpLocation, "-")
+	if len(ipLocationList) >= 2 {
+		deviceInfo.IpCountry = ipLocationList[0]
+		deviceInfo.IpCity = ipLocationList[len(ipLocationList)-1]
+	}
 	return &deviceInfo
 }
 

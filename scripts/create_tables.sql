@@ -147,9 +147,9 @@ CREATE TABLE `task_info` (
 PRIMARY KEY (`id`)
 ) ENGINE = INNODB CHARSET = utf8;
 
-DROP TABLE IF EXISTS `income_daily`;
+DROP TABLE IF EXISTS `device_info_daily`;
 
-CREATE TABLE `income_daily` (
+CREATE TABLE `device_info_daily` (
    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
    `created_at` TIMESTAMP NOT NULL DEFAULT 0,
    `updated_at` TIMESTAMP NOT NULL DEFAULT 0,
@@ -164,12 +164,12 @@ CREATE TABLE `income_daily` (
    `nat_ratio` FLOAT(32) NOT NULL DEFAULT '0',
    `disk_usage` FLOAT(32) NOT NULL DEFAULT '0',
    PRIMARY KEY USING BTREE (`id`),
-   INDEX `idx_income_daily_deleted_at` USING BTREE(`deleted_at` ASC)
+   INDEX `idx_device_info_daily_deleted_at` USING BTREE(`deleted_at` ASC)
 ) ENGINE = INNODB CHARSET = utf8;
 
-DROP TABLE IF EXISTS `hour_daily`;
+DROP TABLE IF EXISTS `device_info_hour`;
 
-CREATE TABLE `hour_daily` (
+CREATE TABLE `device_info_hour` (
  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
  `created_at` TIMESTAMP NOT NULL DEFAULT 0,
  `updated_at` TIMESTAMP NOT NULL DEFAULT 0,
@@ -184,7 +184,7 @@ CREATE TABLE `hour_daily` (
  `nat_ratio` FLOAT(32) NOT NULL DEFAULT '0',
  `disk_usage` FLOAT(32) NOT NULL DEFAULT '0',
  PRIMARY KEY USING BTREE (`id`),
- INDEX `idx_hour_daily_deleted_at` USING BTREE(`deleted_at` ASC)
+ INDEX `idx_device_info_hour_deleted_at` USING BTREE(`deleted_at` ASC)
 ) ENGINE = INNODB CHARSET = utf8;
 
 DROP TABLE IF EXISTS `retrieval_info`;

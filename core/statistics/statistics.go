@@ -17,7 +17,7 @@ const LockerTTL = 30 * time.Second
 const (
 	DKeyFetchAllNodes        = "titan::dk_fetch_all_nodes"
 	DKeyFetchFullNodeInfo    = "titan::dk_fetch_full_node_info"
-	DKeyFetchIncomeDaily     = "titan::dk_fetch_income_daily"
+	DKeyFetchIncomeDaily     = "titan::dk_fetch_device_info_daily"
 	DKeyFetchYesterdayIncome = "titan::dk_fetch_yesterday_income"
 )
 
