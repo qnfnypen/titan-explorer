@@ -18,7 +18,7 @@ var (
 	DeviceIDAndUserId map[string]string
 )
 
-func (s *Statistic) FetchIncomeDaily() error {
+func (s *Statistic) FetchDeviceInfoDaily() error {
 	log.Info("start fetch income daily")
 	start := time.Now()
 	defer func() {
@@ -47,20 +47,20 @@ loop:
 	}
 
 	for _, device := range deviceInfos {
-		var hourDaily model.HourDaily
-		hourDaily.Time = start
-		hourDaily.DiskUsage = device.DiskUsage
-		hourDaily.DeviceID = device.DeviceID
-		hourDaily.PkgLossRatio = device.PkgLossRatio
-		hourDaily.HourIncome = device.TodayProfit
-		hourDaily.OnlineTime = device.OnlineTime
-		hourDaily.Latency = device.Latency
-		hourDaily.DiskUsage = device.DiskUsage
-		_, ok := DeviceIDAndUserId[hourDaily.DeviceID]
+		var deviceInfoHour model.DeviceInfoHour
+		deviceInfoHour.Time = start
+		deviceInfoHour.DiskUsage = device.DiskUsage
+		deviceInfoHour.DeviceID = device.DeviceID
+		deviceInfoHour.PkgLossRatio = device.PkgLossRatio
+		deviceInfoHour.HourIncome = device.TodayProfit
+		deviceInfoHour.OnlineTime = device.OnlineTime
+		deviceInfoHour.Latency = device.Latency
+		deviceInfoHour.DiskUsage = device.DiskUsage
+		_, ok := DeviceIDAndUserId[deviceInfoHour.DeviceID]
 		if ok {
-			hourDaily.UserID = DeviceIDAndUserId[hourDaily.DeviceID]
+			deviceInfoHour.UserID = DeviceIDAndUserId[deviceInfoHour.DeviceID]
 		}
-		err = TransferData(hourDaily)
+		err = TransferData(deviceInfoHour)
 		if err != nil {
 			log.Error(err.Error())
 		}
@@ -76,7 +76,7 @@ loop:
 			return err
 		}
 		for _, data := range datas {
-			var InPage model.IncomeDaily
+			var InPage model.DeviceInfoDaily
 			InPage.Time, _ = time.Parse(TimeFormatYMD, data["date"])
 			InPage.DiskUsage = Str2Float64(data["disk_usage"])
 			InPage.NatRatio = Str2Float64(data["nat_ratio"])
@@ -86,7 +86,7 @@ loop:
 			InPage.Latency = Str2Float64(data["latency"])
 			InPage.DeviceID = device.DeviceID
 			InPage.UserID = data["user_id"]
-			err = SavaIncomeDailyInfo(InPage)
+			err = SavaDeviceInfoDailyInfo(InPage)
 			if err != nil {
 				log.Errorf("save daily info: %v", err)
 			}
@@ -96,29 +96,29 @@ loop:
 	return nil
 }
 
-func TransferData(hourDaily model.HourDaily) error {
-	if hourDaily.DeviceID == "" {
+func TransferData(deviceInfoHour model.DeviceInfoHour) error {
+	if deviceInfoHour.DeviceID == "" {
 		return nil
 	}
 
-	hourDaily.UpdatedAt = time.Now()
+	deviceInfoHour.UpdatedAt = time.Now()
 	ctx := context.Background()
-	old, err := dao.GetHourDailyByTime(ctx, hourDaily.DeviceID, hourDaily.Time)
+	old, err := dao.GetDeviceInfoHourByTime(ctx, deviceInfoHour.DeviceID, deviceInfoHour.Time)
 	if err != nil {
 		log.Errorf("get hour daily by time: %v", err)
 		return err
 	}
 
 	if old == nil {
-		hourDaily.CreatedAt = time.Now()
-		return dao.CreateHourDaily(ctx, &hourDaily)
+		deviceInfoHour.CreatedAt = time.Now()
+		return dao.CreateDeviceInfoHour(ctx, &deviceInfoHour)
 	}
 
-	hourDaily.ID = old.ID
-	return dao.UpdateHourDaily(ctx, &hourDaily)
+	deviceInfoHour.ID = old.ID
+	return dao.UpdateDeviceInfoHour(ctx, &deviceInfoHour)
 }
 
-func SavaIncomeDailyInfo(daily model.IncomeDaily) error {
+func SavaDeviceInfoDailyInfo(daily model.DeviceInfoDaily) error {
 	if daily.DeviceID == "" {
 		return nil
 	}
@@ -130,7 +130,7 @@ func SavaIncomeDailyInfo(daily model.IncomeDaily) error {
 	}
 
 	ctx := context.Background()
-	old, err := dao.GetIncomeDailyByTime(ctx, daily.DeviceID, daily.Time)
+	old, err := dao.GetDeviceInfoDailyByTime(ctx, daily.DeviceID, daily.Time)
 	if err != nil {
 		log.Errorf("get hour daily by time: %v", err)
 		return err
@@ -138,11 +138,11 @@ func SavaIncomeDailyInfo(daily model.IncomeDaily) error {
 
 	if old == nil {
 		daily.CreatedAt = time.Now()
-		return dao.CreateIncomeDaily(ctx, &daily)
+		return dao.CreateDeviceInfoDaily(ctx, &daily)
 	}
 
 	daily.ID = old.ID
-	return dao.UpdateIncomeDaily(ctx, &daily)
+	return dao.UpdateDeviceInfoDaily(ctx, &daily)
 }
 
 func Str2Float64(s string) float64 {

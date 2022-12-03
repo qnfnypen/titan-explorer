@@ -123,12 +123,12 @@ type DeviceType struct {
 	BandwidthMb float64 `json:"bandwidth_mb"` // 全网上行带宽（MB/S）
 }
 
-type IncomeDailySearch struct {
+type DeviceInfoDailySearch struct {
 	PageInfo
-	model.IncomeDaily
+	model.DeviceInfoDaily
 }
 
-type IncomeDailyRes struct {
+type DeviceInfoDailyRes struct {
 	DailyIncome      interface{} `json:"daily_income"`      // 日常收益
 	DefYesterday     string      `json:"def_yesterday"`     // 较昨日
 	CumulativeProfit float64     `json:"cumulative_profit"` // 累计收益

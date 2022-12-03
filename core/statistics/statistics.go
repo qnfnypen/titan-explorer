@@ -17,7 +17,7 @@ const LockerTTL = 30 * time.Second
 const (
 	DKeyFetchAllNodes        = "titan::dk_fetch_all_nodes"
 	DKeyFetchFullNodeInfo    = "titan::dk_fetch_full_node_info"
-	DKeyFetchIncomeDaily     = "titan::dk_fetch_device_info_daily"
+	DKeyFetchDeviceInfoDaily = "titan::dk_fetch_device_info_daily"
 	DKeyFetchYesterdayIncome = "titan::dk_fetch_yesterday_income"
 )
 
@@ -26,7 +26,7 @@ func (s *Statistic) initContabs() {
 
 	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeyFetchAllNodes, s.FetchAllNodes))
 	s.cron.AddFunc("0 * * * * *", s.Once(DKeyFetchFullNodeInfo, s.CountFullNodeInfo))
-	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeyFetchIncomeDaily, s.FetchIncomeDaily))
+	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeyFetchDeviceInfoDaily, s.FetchDeviceInfoDaily))
 	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeyFetchYesterdayIncome, s.FetchYesTodayIncome))
 }
 

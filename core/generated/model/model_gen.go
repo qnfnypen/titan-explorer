@@ -36,27 +36,27 @@ type DeviceInfo struct {
 	Upnp          string    `db:"upnp" json:"upnp"`
 	PkgLossRatio  float64   `db:"pkg_loss_ratio" json:"pkg_loss_ratio"`
 	// Nat
-	NatRatio        float64 `db:"nat_ratio" json:"nat_ratio"`
-	Latency         float64 `db:"latency" json:"latency"`
-	CpuUsage        float64 `db:"cpu_usage" json:"cpu_usage"`
-	CpuCores        int32   `db:"cpu_cores" json:"cpu_cores"`
-	MemoryUsage     float64 `db:"memory_usage" json:"memory_usage"`
-	Memory          float64 `db:"memory" json:"memory"`
-	DiskUsage       float64 `db:"disk_usage" json:"disk_usage"`
-	DiskSpace       float64 `db:"disk_space" json:"disk_space"`
-	WorkStatus      string  `db:"work_status" json:"work_status"`
-	DeviceStatus    string  `db:"device_status" json:"device_status"`
-	DiskType        string  `db:"disk_type" json:"disk_type"`
-	IoSystem        string  `db:"io_system" json:"io_system"`
-	OnlineTime      float64 `db:"online_time" json:"online_time"`
-	TodayOnlineTime float64 `db:"today_online_time" json:"today_online_time"`
-	TodayProfit     float64 `db:"today_profit" json:"today_profit"`
-	YesterdayProfit float64 `db:"yesterday_profit" json:"yesterday_profit"`
-	SevenDaysProfit float64 `db:"seven_days_profit" json:"seven_days_profit"`
-	MonthProfit     float64 `db:"month_profit" json:"month_profit"`
-	CumulativeProfit      float64 `db:"cumulative_profit" json:"cumulative_profit"`
-	BandwidthUp     float64 `db:"bandwidth_up" json:"bandwidth_up"`
-	BandwidthDown   float64 `db:"bandwidth_down" json:"bandwidth_down"`
+	NatRatio         float64 `db:"nat_ratio" json:"nat_ratio"`
+	Latency          float64 `db:"latency" json:"latency"`
+	CpuUsage         float64 `db:"cpu_usage" json:"cpu_usage"`
+	CpuCores         int32   `db:"cpu_cores" json:"cpu_cores"`
+	MemoryUsage      float64 `db:"memory_usage" json:"memory_usage"`
+	Memory           float64 `db:"memory" json:"memory"`
+	DiskUsage        float64 `db:"disk_usage" json:"disk_usage"`
+	DiskSpace        float64 `db:"disk_space" json:"disk_space"`
+	WorkStatus       string  `db:"work_status" json:"work_status"`
+	DeviceStatus     string  `db:"device_status" json:"device_status"`
+	DiskType         string  `db:"disk_type" json:"disk_type"`
+	IoSystem         string  `db:"io_system" json:"io_system"`
+	OnlineTime       float64 `db:"online_time" json:"online_time"`
+	TodayOnlineTime  float64 `db:"today_online_time" json:"today_online_time"`
+	TodayProfit      float64 `db:"today_profit" json:"today_profit"`
+	YesterdayProfit  float64 `db:"yesterday_profit" json:"yesterday_profit"`
+	SevenDaysProfit  float64 `db:"seven_days_profit" json:"seven_days_profit"`
+	MonthProfit      float64 `db:"month_profit" json:"month_profit"`
+	CumulativeProfit float64 `db:"cumulative_profit" json:"cumulative_profit"`
+	BandwidthUp      float64 `db:"bandwidth_up" json:"bandwidth_up"`
+	BandwidthDown    float64 `db:"bandwidth_down" json:"bandwidth_down"`
 }
 
 type FullNodeInfoDay struct {
@@ -95,7 +95,7 @@ type FullNodeInfoHour struct {
 	UpdatedAt              time.Time `db:"updated_at" json:"updated_at"`
 }
 
-type HourDaily struct {
+type DeviceInfoHour struct {
 	ID           int64     `db:"id" json:"id"`
 	CreatedAt    time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt    time.Time `db:"updated_at" json:"updated_at"`
@@ -111,7 +111,7 @@ type HourDaily struct {
 	DiskUsage    float64   `db:"disk_usage" json:"disk_usage"`
 }
 
-type IncomeDaily struct {
+type DeviceInfoDaily struct {
 	ID           int64     `db:"id" json:"id"`
 	CreatedAt    time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt    time.Time `db:"updated_at" json:"updated_at"`

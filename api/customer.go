@@ -80,7 +80,7 @@ func GetUserDeviceInfoHandler(c *gin.Context) {
 	dataRes.TotalNum = total
 	dataRes.TotalBandwidth = res.BandwidthMb
 	// Profit
-	p := &model.IncomeDaily{}
+	p := &model.DeviceInfoDaily{}
 	p.UserID = info.UserID
 	m := dao.GetIncomeAllList(c.Request.Context(), p, option)
 	dataRes.DailyIncome = m
@@ -88,7 +88,7 @@ func GetUserDeviceInfoHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(dataRes))
 }
 
-func timeFormat(p IncomeDailySearch) (m map[string]interface{}) {
+func timeFormat(p DeviceInfoDailySearch) (m map[string]interface{}) {
 	timeNow := time.Now().Format("2006-01-02")
 
 	dd, _ := time.ParseDuration("-24h")
@@ -107,11 +107,11 @@ func timeFormat(p IncomeDailySearch) (m map[string]interface{}) {
 		EndTime:   p.DateTo,
 	}
 
-	condition := &model.IncomeDaily{
+	condition := &model.DeviceInfoDaily{
 		DeviceID: p.DeviceID,
 	}
 
-	list, _, err := dao.GetIncomeDailyList(context.Background(), condition, option)
+	list, _, err := dao.GetDeviceInfoDailyList(context.Background(), condition, option)
 	if err != nil {
 		log.Errorf("get incoming daily: %v", err)
 		return
@@ -120,7 +120,7 @@ func timeFormat(p IncomeDailySearch) (m map[string]interface{}) {
 	return getDaysData(list)
 }
 
-func timeFormatHour(p IncomeDailySearch) (m map[string]interface{}) {
+func timeFormatHour(p DeviceInfoDailySearch) (m map[string]interface{}) {
 	timeNow := time.Now().Format("2006-01-02")
 
 	dd, _ := time.ParseDuration("-24h")
@@ -142,12 +142,12 @@ func timeFormatHour(p IncomeDailySearch) (m map[string]interface{}) {
 		EndTime:   p.DateTo,
 	}
 
-	condition := &model.HourDaily{
+	condition := &model.DeviceInfoHour{
 		DeviceID: p.DeviceID,
 		UserID:   p.UserID,
 	}
 
-	list, _, err := dao.GetIncomeDailyHourList(context.Background(), condition, option)
+	list, _, err := dao.GetDeviceInfoDailyHourList(context.Background(), condition, option)
 	if err != nil {
 		log.Errorf("get incoming hour daily: %v", err)
 		return
@@ -156,7 +156,7 @@ func timeFormatHour(p IncomeDailySearch) (m map[string]interface{}) {
 	return getDaysDataHour(list)
 }
 
-func getDaysDataHour(list []*model.HourDaily) (returnMapList map[string]interface{}) {
+func getDaysDataHour(list []*model.DeviceInfoHour) (returnMapList map[string]interface{}) {
 	returnMap := make(map[string]interface{})
 	queryMapTo := make(map[string]float64)
 	pkgLossRatioTo := make(map[string]float64)
@@ -199,7 +199,7 @@ func getDaysDataHour(list []*model.HourDaily) (returnMapList map[string]interfac
 	return
 }
 
-func getDaysData(list []*model.IncomeDaily) (returnMapList map[string]interface{}) {
+func getDaysData(list []*model.DeviceInfoDaily) (returnMapList map[string]interface{}) {
 	returnMap := make(map[string]interface{})
 	queryMapTo := make(map[string]float64)
 	pkgLossRatioTo := make(map[string]float64)
@@ -285,13 +285,13 @@ func GetDeviceInfoHandler(c *gin.Context) {
 }
 
 func GetDeviceDiagnosisDailyHandler(c *gin.Context) {
-	var p IncomeDailySearch
+	var p DeviceInfoDailySearch
 	from := c.Query("from")
 	to := c.Query("to")
 	p.DateFrom = from
 	p.DateTo = to
 	p.DeviceID = c.Query("device_id")
-	var res IncomeDailyRes
+	var res DeviceInfoDailyRes
 	m := timeFormat(p)
 	res.DailyIncome = m
 	res.DeviceDiagnosis = "good"
@@ -299,11 +299,11 @@ func GetDeviceDiagnosisDailyHandler(c *gin.Context) {
 }
 
 func GetDeviceDiagnosisHourHandler(c *gin.Context) {
-	var p IncomeDailySearch
+	var p DeviceInfoDailySearch
 	p.DeviceID = c.Query("device_id")
 	p.Date = c.Query("date")
 	p.UserID = c.Query("userId")
-	var res IncomeDailyRes
+	var res DeviceInfoDailyRes
 	m := timeFormatHour(p)
 
 	res.DailyIncome = m
