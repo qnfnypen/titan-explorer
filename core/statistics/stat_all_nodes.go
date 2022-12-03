@@ -142,5 +142,10 @@ loop:
 		deviceInfos[i].Rank = int32(i + 1)
 	}
 
-	return dao.BulkUpdateDeviceInfo(context.Background(), deviceInfos)
+	err = dao.BulkUpdateDeviceInfo(context.Background(), deviceInfos)
+	if err != nil {
+		log.Errorf("bulk update device info: %v", err)
+	}
+
+	return nil
 }

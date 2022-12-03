@@ -16,7 +16,6 @@ const LockerTTL = 30 * time.Second
 
 const (
 	DKeyFetchAllNodes      = "titan::dk_fetch_all_nodes"
-	DKeyRankNodes          = "titan::dk_rank_nodes"
 	DKeySumDeviceInfoDaily = "titan::dk_sum_device_info_daily"
 )
 
@@ -25,7 +24,6 @@ func (s *Statistic) initContabs() {
 
 	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeyFetchAllNodes, s.FetchAllNodes))
 	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeySumDeviceInfoDaily, s.SumDeviceInfoDaily))
-	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeyRankNodes, s.RankingNodes))
 }
 
 type Statistic struct {

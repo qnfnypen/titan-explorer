@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"sort"
 	"strconv"
 	"time"
 )
@@ -158,7 +159,7 @@ func (s *Statistic) SumDeviceInfoDaily() error {
 		log.Infof("sum device info daily done, cost: %v", time.Since(start))
 	}()
 
-	var sum int64
+	var deviceInfos []*model.DeviceInfo
 	opt := dao.QueryOption{
 		Page:     1,
 		PageSize: 100,
@@ -169,7 +170,18 @@ loop:
 		return err
 	}
 
-	for _, device := range devices {
+	deviceInfos = append(deviceInfos, devices...)
+	opt.Page++
+	if int64(len(deviceInfos)) < total {
+		goto loop
+	}
+
+	sort.Slice(deviceInfos, func(i, j int) bool {
+		return deviceInfos[i].CumulativeProfit > deviceInfos[j].CumulativeProfit
+	})
+
+	for i := 0; i < len(deviceInfos); i++ {
+		device := deviceInfos[i]
 		dd, _ := time.ParseDuration("-24h")
 		timeBase := time.Now().Add(dd * 1).Format("2006-01-02")
 		timeNow := time.Now().Format("2006-01-02")
@@ -203,23 +215,16 @@ loop:
 			device.TodayProfit = Str2Float64(dataT["income"])
 			device.TodayOnlineTime = Str2Float64(dataT["online_time"])
 		}
+		device.Rank = int32(i + 1)
 		device.UpdatedAt = time.Now()
 		_, ok := DeviceIDAndUserId[device.DeviceID]
 		if ok {
 			device.UserID = DeviceIDAndUserId[device.DeviceID]
 		}
-
-		err = dao.UpdateDeviceInfo(context.Background(), device)
-		if err != nil {
-			log.Errorf("update device info: %v", err)
-		}
 	}
 
-	opt.Page++
-	sum += int64(len(devices))
-
-	if sum < total {
-		goto loop
+	if err = dao.BulkUpdateDeviceInfo(context.Background(), deviceInfos); err != nil {
+		log.Errorf("bulk update device: %v", err)
 	}
 
 	return nil

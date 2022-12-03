@@ -137,7 +137,7 @@ func BulkUpdateDeviceInfo(ctx context.Context, deviceInfos []*model.DeviceInfo) 
 
 	for _, deviceInfo := range deviceInfos {
 		_, err = tx.NamedExecContext(ctx, fmt.Sprintf(
-			`UPDATE %s SET  node_type = :node_type,  device_name = :device_name, rank = :rank,
+			`UPDATE %s SET node_type = :node_type,  device_name = :device_name, rank = :rank,
 				sn_code = :sn_code,  operator = :operator, network_type = :network_type, user_id = :user_id,
 				system_version = :system_version,  product_type = :product_type, network_info = :network_info,
 				external_ip = :external_ip,  internal_ip = :internal_ip,  ip_location = :ip_location, ip_country = :ip_country, ip_city = :ip_city, 
@@ -148,7 +148,9 @@ func BulkUpdateDeviceInfo(ctx context.Context, deviceInfos []*model.DeviceInfo) 
 				yesterday_profit = :yesterday_profit, seven_days_profit = :seven_days_profit, month_profit = :month_profit, cumulative_profit = :cumulative_profit, bandwidth_up = :bandwidth_up,  
 				bandwidth_down = :bandwidth_down, updated_at = now() WHERE device_id = :device_id`, tableNameDeviceInfo),
 			deviceInfo)
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	return tx.Commit()
@@ -173,7 +175,7 @@ func upsertDeviceInfoStatement() string {
 				sn_code = :sn_code,  operator = :operator, network_type = :network_type,
 				system_version = :system_version,  product_type = :product_type, network_info = :network_info,
 				external_ip = :external_ip,  internal_ip = :internal_ip,  ip_location = :ip_location, ip_country = :ip_country, ip_city = :ip_city, 
-				mac_location = :mac_location,  nat_type = :nat_type,  upnp = :upnp, pkg_loss_ratio = :pkg_loss_ratio,  online_time = :online_time,
+				mac_location = :mac_location,  nat_type = :nat_type,  upnp = :upnp, pkg_loss_ratio = :pkg_loss_ratio, online_time = :online_time,
 				nat_ratio = :nat_ratio,  latency = :latency,  cpu_usage = :cpu_usage, cpu_cores = :cpu_cores,  memory_usage = :memory_usage, memory = :memory,
 				disk_usage = :disk_usage, disk_space = :disk_space,  work_status = :work_status, device_status = :device_status,  disk_type = :disk_type,
 				io_system = :io_system, bandwidth_up = :bandwidth_up, bandwidth_down = :bandwidth_down, updated_at = now()`
