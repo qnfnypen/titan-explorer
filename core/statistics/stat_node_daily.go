@@ -215,7 +215,7 @@ loop:
 			device.TodayProfit = Str2Float64(dataT["income"])
 			device.TodayOnlineTime = Str2Float64(dataT["online_time"])
 		}
-		device.Rank = int32(i + 1)
+		device.DeviceRank = int32(i + 1)
 		device.UpdatedAt = time.Now()
 		_, ok := DeviceIDAndUserId[device.DeviceID]
 		if ok {

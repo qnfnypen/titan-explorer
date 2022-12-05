@@ -10,7 +10,7 @@ import (
 )
 
 const getDeviceInfo = `-- name: GetDeviceInfo :one
-SELECT id, created_at, updated_at, deleted_at, device_id, scheduler_id, secret, node_type, ` + "`" + `rank` + "`" + `, device_name, user_id, sn_code, operator, network_type, system_version, product_type, network_info, external_ip, internal_ip, ip_location, ip_country, ip_city, mac_location, nat_type, upnp, pkg_loss_ratio, nat_ratio, latency, cpu_usage, cpu_cores, memory_usage, memory, disk_usage, disk_space, work_status, device_status, disk_type, io_system, online_time, today_online_time, today_profit, yesterday_profit, seven_days_profit, month_profit, cumulative_profit, bandwidth_up, bandwidth_down FROM ` + "`" + `device_info` + "`" + ` WHERE device_id = ? LIMIT 1
+SELECT id, created_at, updated_at, deleted_at, device_id, scheduler_id, secret, node_type, device_rank, device_name, user_id, sn_code, operator, network_type, system_version, product_type, network_info, external_ip, internal_ip, ip_location, ip_country, ip_city, mac_location, nat_type, upnp, pkg_loss_ratio, nat_ratio, latency, cpu_usage, cpu_cores, memory_usage, memory, disk_usage, disk_space, work_status, device_status, disk_type, io_system, online_time, today_online_time, today_profit, yesterday_profit, seven_days_profit, month_profit, cumulative_profit, bandwidth_up, bandwidth_down FROM ` + "`" + `device_info` + "`" + ` WHERE device_id = ? LIMIT 1
 `
 
 func (q *Queries) GetDeviceInfo(ctx context.Context, db DBTX, deviceID string) (DeviceInfo, error) {
@@ -25,7 +25,7 @@ func (q *Queries) GetDeviceInfo(ctx context.Context, db DBTX, deviceID string) (
 		&i.SchedulerID,
 		&i.Secret,
 		&i.NodeType,
-		&i.Rank,
+		&i.DeviceRank,
 		&i.DeviceName,
 		&i.UserID,
 		&i.SnCode,

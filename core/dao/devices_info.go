@@ -49,7 +49,7 @@ func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option Query
 	}
 
 	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT * FROM %s %s ORDER BY rank LIMIT %d OFFSET %d`, tableNameDeviceInfo, where, limit, offset,
+		`SELECT * FROM %s %s ORDER BY device_rank LIMIT %d OFFSET %d`, tableNameDeviceInfo, where, limit, offset,
 	), args...)
 	if err != nil {
 		return nil, 0, err
@@ -80,7 +80,7 @@ func UpdateUserDeviceInfo(ctx context.Context, deviceInfo *model.DeviceInfo) err
 
 func UpdateDeviceInfo(ctx context.Context, deviceInfo *model.DeviceInfo) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`UPDATE %s SET  node_type = :node_type,  device_name = :device_name, rank = :rank,
+		`UPDATE %s SET  node_type = :node_type,  device_name = :device_name, device_rank = :device_rank,
 				sn_code = :sn_code,  operator = :operator, network_type = :network_type, user_id = :user_id,
 				system_version = :system_version,  product_type = :product_type, network_info = :network_info,
 				external_ip = :external_ip,  internal_ip = :internal_ip,  ip_location = :ip_location, ip_country = :ip_country, ip_city = :ip_city, 
@@ -137,7 +137,7 @@ func BulkUpdateDeviceInfo(ctx context.Context, deviceInfos []*model.DeviceInfo) 
 
 	for _, deviceInfo := range deviceInfos {
 		_, err = tx.NamedExecContext(ctx, fmt.Sprintf(
-			`UPDATE %s SET node_type = :node_type,  device_name = :device_name, rank = :rank,
+			`UPDATE %s SET node_type = :node_type,  device_name = :device_name, device_rank = :device_rank,
 				sn_code = :sn_code,  operator = :operator, network_type = :network_type, user_id = :user_id,
 				system_version = :system_version,  product_type = :product_type, network_info = :network_info,
 				external_ip = :external_ip,  internal_ip = :internal_ip,  ip_location = :ip_location, ip_country = :ip_country, ip_city = :ip_city, 

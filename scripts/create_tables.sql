@@ -77,7 +77,7 @@ CREATE TABLE `device_info` (
   `scheduler_id` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `secret` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `node_type` INT(2) NOT NULL DEFAULT 0,
-  `rank` INT(20) NOT NULL DEFAULT '0' COMMENT '',
+  `device_rank` INT(20) NOT NULL DEFAULT '0' COMMENT '',
   `device_name` CHAR(56) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `user_id` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `sn_code` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"sort"
 	"strings"
 	"time"
 )
@@ -104,47 +103,6 @@ func (s *Statistic) CountFullNodeInfo() error {
 	if err != nil {
 		log.Errorf("add full node info hours: %v", err)
 		return err
-	}
-
-	return nil
-}
-
-func (s *Statistic) RankingNodes() error {
-	log.Info("start ranking nodes")
-	start := time.Now()
-	defer func() {
-		log.Infof("ranking nodes done, cost: %v", time.Since(start))
-	}()
-
-	var deviceInfos []*model.DeviceInfo
-	opt := dao.QueryOption{
-		Page:     1,
-		PageSize: 100,
-	}
-loop:
-	devices, total, err := dao.GetDeviceInfoList(context.Background(), &model.DeviceInfo{}, opt)
-	if err != nil {
-		return err
-	}
-
-	deviceInfos = append(deviceInfos, devices...)
-	opt.Page++
-
-	if int64(len(deviceInfos)) < total {
-		goto loop
-	}
-
-	sort.Slice(deviceInfos, func(i, j int) bool {
-		return deviceInfos[i].CumulativeProfit > deviceInfos[j].CumulativeProfit
-	})
-
-	for i := 0; i < len(deviceInfos); i++ {
-		deviceInfos[i].Rank = int32(i + 1)
-	}
-
-	err = dao.BulkUpdateDeviceInfo(context.Background(), deviceInfos)
-	if err != nil {
-		log.Errorf("bulk update device info: %v", err)
 	}
 
 	return nil
