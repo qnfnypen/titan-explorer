@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
@@ -193,6 +194,9 @@ func getDaysData(list []*model.DeviceInfoDaily) (returnMapList map[string]interf
 	returnMap["latency"] = latencyTo
 	returnMap["nat_type"] = natTypeTo
 	returnMap["disk_usage"] = diskUsageTo
+	// TODO:
+	returnMap["traffic"] = latencyTo
+	returnMap["retrieval"] = latencyTo
 	returnMapList = returnMap
 	return
 }
@@ -267,11 +271,12 @@ func GetDeviceDiagnosisHourHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"series_data":  m,
-		"cpu_usage":    deviceInfo.CpuUsage,
 		"cpu_cores":    deviceInfo.CpuCores,
-		"memory":       deviceInfo.Memory,
-		"memory_usage": deviceInfo.MemoryUsage * deviceInfo.Memory,
-		"disk_usage":   deviceInfo.DiskUsage,
+		"cpu_usage":    fmt.Sprintf("%.2f", deviceInfo.CpuUsage),
+		"memory":       fmt.Sprintf("%.2f", deviceInfo.Memory/float64(10<<20)),
+		"memory_usage": fmt.Sprintf("%.2f", deviceInfo.MemoryUsage*deviceInfo.Memory/float64(10<<20)),
+		"disk_usage":   fmt.Sprintf("%.2f", (deviceInfo.DiskUsage*deviceInfo.DiskSpace/100)/float64(10<<30)),
+		"disk_space":   fmt.Sprintf("%.2f", deviceInfo.DiskSpace/float64(10<<30)),
 		"disk_type":    deviceInfo.DiskType,
 		"file_system":  deviceInfo.IoSystem,
 	}))
