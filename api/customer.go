@@ -6,9 +6,9 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/golang-module/carbon/v2"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 const (
@@ -80,30 +80,23 @@ func GetUserDeviceInfoHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(dataRes))
 }
 
-func timeFormat(p DeviceInfoDailySearch) (m map[string]interface{}) {
-	timeNow := time.Now().Format("2006-01-02")
-
-	dd, _ := time.ParseDuration("-24h")
-	FromTime := time.Now().Add(dd * 14).Format("2006-01-02")
-	if p.DateFrom == "" && p.Date == "" {
-		p.DateFrom = FromTime
-	}
-	if p.DateTo == "" && p.Date == "" {
-		p.DateTo = timeNow
-	}
-	p.DateFrom = p.DateFrom + " 00:00:00"
-	p.DateTo = p.DateTo + " 23:59:59"
-
+func timeFormat(deviceID, startTime, endTime string) (m map[string]interface{}) {
 	option := dao.QueryOption{
-		StartTime: p.DateFrom,
-		EndTime:   p.DateTo,
+		StartTime: startTime,
+		EndTime:   endTime,
+	}
+	if startTime == "" {
+		option.StartTime = carbon.Now().SubDays(14).StartOfDay().String()
+	}
+	if endTime == "" {
+		option.EndTime = carbon.Now().EndOfDay().String()
 	}
 
 	condition := &model.DeviceInfoDaily{
-		DeviceID: p.DeviceID,
+		DeviceID: deviceID,
 	}
 
-	list, _, err := dao.GetDeviceInfoDailyList(context.Background(), condition, option)
+	list, err := dao.GetDeviceInfoDailyList(context.Background(), condition, option)
 	if err != nil {
 		log.Errorf("get incoming daily: %v", err)
 		return
@@ -112,34 +105,21 @@ func timeFormat(p DeviceInfoDailySearch) (m map[string]interface{}) {
 	return getDaysData(list)
 }
 
-func timeFormatHour(p DeviceInfoDailySearch) (m map[string]interface{}) {
-	timeNow := time.Now().Format("2006-01-02")
-
-	dd, _ := time.ParseDuration("-24h")
-	FromTime := time.Now().Add(dd * 14).Format("2006-01-02")
-	if p.DateFrom == "" && p.Date == "" {
-		p.DateFrom = FromTime
-	}
-	if p.DateTo == "" && p.Date == "" {
-		p.DateTo = timeNow
-	}
-	if p.Date == "" {
-		p.Date = time.Now().Format("2006-01-02")
-	}
-	p.DateFrom = p.Date + " 00:00:00"
-	p.DateTo = p.Date + " 23:59:59"
-
-	option := dao.QueryOption{
-		StartTime: p.DateFrom,
-		EndTime:   p.DateTo,
+func timeFormatHour(deviceID, date string) (m map[string]interface{}) {
+	option := dao.QueryOption{}
+	if date != "" {
+		option.StartTime = carbon.Parse(date).StartOfDay().String()
+		option.EndTime = carbon.Parse(date).EndOfDay().String()
+	} else {
+		option.StartTime = carbon.Now().StartOfDay().String()
+		option.EndTime = carbon.Now().EndOfDay().String()
 	}
 
 	condition := &model.DeviceInfoHour{
-		DeviceID: p.DeviceID,
-		UserID:   p.UserID,
+		DeviceID: deviceID,
 	}
 
-	list, _, err := dao.GetDeviceInfoDailyHourList(context.Background(), condition, option)
+	list, err := dao.GetDeviceInfoDailyHourList(context.Background(), condition, option)
 	if err != nil {
 		log.Errorf("get incoming hour daily: %v", err)
 		return
@@ -149,6 +129,9 @@ func timeFormatHour(p DeviceInfoDailySearch) (m map[string]interface{}) {
 }
 
 func getDaysDataHour(list []*model.DeviceInfoHour) (returnMapList map[string]interface{}) {
+	if len(list) == 0 {
+		return
+	}
 	returnMap := make(map[string]interface{})
 	queryMapTo := make(map[string]float64)
 	pkgLossRatioTo := make(map[string]float64)
@@ -156,25 +139,18 @@ func getDaysDataHour(list []*model.DeviceInfoHour) (returnMapList map[string]int
 	onlineJsonDailyTo := make(map[string]float64)
 	natTypeTo := make(map[string]float64)
 	diskUsageTo := make(map[string]float64)
-	incomeHourBefore := float64(0)
-	onlineHourBefore := float64(0)
-	firstData := true
+	incomeHourBefore := list[0].HourIncome
+	onlineHourBefore := list[0].OnlineTime
 	for _, v := range list {
 		timeStr := v.Time.Format(TimeFormatHM)
-		if firstData {
-			incomeHourBefore = v.HourIncome
-			onlineHourBefore = v.OnlineTime
-			firstData = false
-			continue
-		}
-		timeMinStr := v.Time.Format(TimeFormatM)
-		if timeMinStr == "00" {
+		minute := v.Time.Minute()
+		if minute == 0 {
 			queryMapTo[timeStr] = v.HourIncome - incomeHourBefore
 			incomeHourBefore = v.HourIncome
 			onlineJsonDailyTo[timeStr] = v.OnlineTime - onlineHourBefore
 			onlineHourBefore = v.OnlineTime
 		}
-		if timeMinStr == "00" || timeMinStr == "30" {
+		if minute == 0 || minute == 30 {
 			pkgLossRatioTo[timeStr] = v.PkgLossRatio * 100
 			latencyTo[timeStr] = v.Latency
 			natTypeTo[timeStr] = v.NatRatio
@@ -270,25 +246,20 @@ func GetDeviceInfoHandler(c *gin.Context) {
 }
 
 func GetDeviceDiagnosisDailyHandler(c *gin.Context) {
-	var p DeviceInfoDailySearch
 	from := c.Query("from")
 	to := c.Query("to")
-	p.DateFrom = from
-	p.DateTo = to
-	p.DeviceID = c.Query("device_id")
-	m := timeFormat(p)
+	deviceID := c.Query("device_id")
+	m := timeFormat(deviceID, from, to)
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"series_data": m,
 	}))
 }
 
 func GetDeviceDiagnosisHourHandler(c *gin.Context) {
-	var p DeviceInfoDailySearch
-	p.DeviceID = c.Query("device_id")
-	p.Date = c.Query("date")
-	p.UserID = c.Query("userId")
-	m := timeFormatHour(p)
-	deviceInfo, err := dao.GetDeviceInfoByID(c.Request.Context(), p.DeviceID)
+	deviceID := c.Query("device_id")
+	date := c.Query("date")
+	m := timeFormatHour(deviceID, date)
+	deviceInfo, err := dao.GetDeviceInfoByID(c.Request.Context(), deviceID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
 		return

@@ -82,16 +82,12 @@ func UpdateDeviceInfoDaily(ctx context.Context, daily *model.DeviceInfoDaily) er
 	return err
 }
 
-func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour, option QueryOption) ([]*model.DeviceInfoHour, int64, error) {
+func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour, option QueryOption) ([]*model.DeviceInfoHour, error) {
 	var args []interface{}
 	where := `WHERE 1=1`
 	if cond.DeviceID != "" {
 		where += ` AND device_id = ?`
 		args = append(args, cond.DeviceID)
-	}
-	if cond.UserID != "" {
-		where += ` AND user_id = ?`
-		args = append(args, cond.UserID)
 	}
 	if option.StartTime != "" {
 		where += ` AND time >= ?`
@@ -102,45 +98,24 @@ func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour,
 		args = append(args, option.EndTime)
 	}
 
-	limit := option.PageSize
-	offset := option.Page
-	if option.PageSize <= 0 {
-		limit = 50
-	}
-	if option.Page > 0 {
-		offset = limit * (option.Page - 1)
-	}
+	where += ` AND (RIGHT(time,5)='00:00' OR RIGHT(time,5)='30:00')`
 
-	var total int64
 	var out []*model.DeviceInfoHour
-
-	err := DB.GetContext(ctx, &total, fmt.Sprintf(
-		`SELECT count(*) FROM %s %s`, tableNameDeviceInfoHour, where,
-	), args...)
+	err := DB.SelectContext(ctx, &out, fmt.Sprintf(
+		`SELECT * FROM %s %s`, tableNameDeviceInfoHour, where), args...)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
-	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT * FROM %s %s LIMIT %d OFFSET %d`, tableNameDeviceInfoHour, where, limit, offset,
-	), args...)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return out, total, err
+	return out, err
 }
 
-func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*model.DeviceInfoDaily, int64, error) {
+func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*model.DeviceInfoDaily, error) {
 	var args []interface{}
 	where := `WHERE 1=1`
 	if cond.DeviceID != "" {
 		where += ` AND device_id = ?`
 		args = append(args, cond.DeviceID)
-	}
-	if cond.UserID != "" {
-		where += ` AND user_id = ?`
-		args = append(args, cond.UserID)
 	}
 	if option.StartTime != "" {
 		where += ` AND time >= ?`
@@ -151,33 +126,14 @@ func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, op
 		args = append(args, option.EndTime)
 	}
 
-	limit := option.PageSize
-	offset := option.Page
-	if option.PageSize <= 0 {
-		limit = 50
-	}
-	if option.Page > 0 {
-		offset = limit * (option.Page - 1)
-	}
-
-	var total int64
 	var out []*model.DeviceInfoDaily
-
-	err := DB.GetContext(ctx, &total, fmt.Sprintf(
-		`SELECT count(*) FROM %s %s`, tableNameDeviceInfoDaily, where,
-	), args...)
+	err := DB.SelectContext(ctx, &out, fmt.Sprintf(
+		`SELECT * FROM %s %s`, tableNameDeviceInfoDaily, where), args...)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
-	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT * FROM %s %s LIMIT %d OFFSET %d`, tableNameDeviceInfoDaily, where, limit, offset,
-	), args...)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return out, total, err
+	return out, err
 }
 
 func GetIncomeAllList(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) []map[string]interface{} {
