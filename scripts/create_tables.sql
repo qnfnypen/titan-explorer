@@ -163,6 +163,9 @@ CREATE TABLE `device_info_daily` (
    `latency` FLOAT(32) NOT NULL DEFAULT '0',
    `nat_ratio` FLOAT(32) NOT NULL DEFAULT '0',
    `disk_usage` FLOAT(32) NOT NULL DEFAULT '0',
+   `upstream_traffic` FLOAT(32) NOT NULL DEFAULT '0',
+   `down_traffic` FLOAT(20) NOT NULL DEFAULT '0',
+   `retrieve_count` BIGINT(20) NOT NULL DEFAULT '0',
    PRIMARY KEY USING BTREE (`id`),
    INDEX `idx_device_info_daily_deleted_at` USING BTREE(`deleted_at` ASC)
 ) ENGINE = INNODB CHARSET = utf8;
@@ -183,6 +186,9 @@ CREATE TABLE `device_info_hour` (
  `latency` FLOAT(32) NOT NULL DEFAULT '0',
  `nat_ratio` FLOAT(32) NOT NULL DEFAULT '0',
  `disk_usage` FLOAT(32) NOT NULL DEFAULT '0',
+ `upstream_traffic` FLOAT(32) NOT NULL DEFAULT '0',
+ `down_traffic` FLOAT(20) NOT NULL DEFAULT '0',
+ `retrieve_count` BIGINT(20) NOT NULL DEFAULT '0',
  PRIMARY KEY USING BTREE (`id`),
  INDEX `idx_device_info_hour_deleted_at` USING BTREE(`deleted_at` ASC)
 ) ENGINE = INNODB CHARSET = utf8;
