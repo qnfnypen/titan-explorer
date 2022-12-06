@@ -24,6 +24,14 @@ func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option Query
 		where += ` AND device_status = ?`
 		args = append(args, cond.DeviceStatus)
 	}
+	if cond.IpLocation != "" {
+		where += ` AND ip_location = ?`
+		args = append(args, cond.IpLocation)
+	}
+	if cond.NodeType > 0 {
+		where += ` AND node_type = ?`
+		args = append(args, cond.NodeType)
+	}
 
 	if option.Order != "" && option.OrderField != "" {
 		where += fmt.Sprintf(` ORDER BY %s %s`, option.OrderField, option.Order)

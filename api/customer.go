@@ -231,8 +231,11 @@ func GetDeviceInfoHandler(c *gin.Context) {
 	info.UserID = c.Query("userId")
 	info.DeviceID = c.Query("device_id")
 	info.DeviceStatus = c.Query("device_status")
+	info.IpLocation = c.Query("ip_location")
 	pageSize, _ := strconv.Atoi("page_size")
 	page, _ := strconv.Atoi("page")
+	nodeType, _ := strconv.ParseInt(c.Query("node_type"), 10, 64)
+	info.NodeType = int32(nodeType)
 	option := dao.QueryOption{
 		Page:     page,
 		PageSize: pageSize,
