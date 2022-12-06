@@ -98,8 +98,6 @@ func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour,
 		args = append(args, option.EndTime)
 	}
 
-	where += ` AND (RIGHT(time,5)='00:00' OR RIGHT(time,5)='30:00')`
-
 	var out []*model.DeviceInfoHour
 	err := DB.SelectContext(ctx, &out, fmt.Sprintf(
 		`SELECT * FROM %s %s`, tableNameDeviceInfoHour, where), args...)

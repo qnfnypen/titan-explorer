@@ -60,41 +60,41 @@ type DeviceInfo struct {
 }
 
 type DeviceInfoDaily struct {
-	ID              int64       `db:"id" json:"id"`
-	CreatedAt       time.Time   `db:"created_at" json:"created_at"`
-	UpdatedAt       time.Time   `db:"updated_at" json:"updated_at"`
-	DeletedAt       time.Time   `db:"deleted_at" json:"deleted_at"`
-	UserID          string      `db:"user_id" json:"user_id"`
-	DeviceID        string      `db:"device_id" json:"device_id"`
-	Time            time.Time   `db:"time" json:"time"`
-	Income          float64     `db:"income" json:"income"`
-	OnlineTime      float64     `db:"online_time" json:"online_time"`
-	PkgLossRatio    float64     `db:"pkg_loss_ratio" json:"pkg_loss_ratio"`
-	Latency         float64     `db:"latency" json:"latency"`
-	NatRatio        float64     `db:"nat_ratio" json:"nat_ratio"`
-	DiskUsage       float64     `db:"disk_usage" json:"disk_usage"`
-	UpstreamTraffic float64     `db:"upstream_traffic" json:"upstream_traffic"`
-	DownTraffic     interface{} `db:"down_traffic" json:"down_traffic"`
-	RetrieveCount   int64       `db:"retrieve_count" json:"retrieve_count"`
+	ID              int64     `db:"id" json:"id"`
+	CreatedAt       time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt       time.Time `db:"updated_at" json:"updated_at"`
+	DeletedAt       time.Time `db:"deleted_at" json:"deleted_at"`
+	UserID          string    `db:"user_id" json:"user_id"`
+	DeviceID        string    `db:"device_id" json:"device_id"`
+	Time            time.Time `db:"time" json:"time"`
+	Income          float64   `db:"income" json:"income"`
+	OnlineTime      float64   `db:"online_time" json:"online_time"`
+	PkgLossRatio    float64   `db:"pkg_loss_ratio" json:"pkg_loss_ratio"`
+	Latency         float64   `db:"latency" json:"latency"`
+	NatRatio        float64   `db:"nat_ratio" json:"nat_ratio"`
+	DiskUsage       float64   `db:"disk_usage" json:"disk_usage"`
+	UpstreamTraffic float64   `db:"upstream_traffic" json:"upstream_traffic"`
+	DownTraffic     float64   `db:"down_traffic" json:"down_traffic"`
+	RetrieveCount   int64     `db:"retrieve_count" json:"retrieve_count"`
 }
 
 type DeviceInfoHour struct {
-	ID              int64       `db:"id" json:"id"`
-	CreatedAt       time.Time   `db:"created_at" json:"created_at"`
-	UpdatedAt       time.Time   `db:"updated_at" json:"updated_at"`
-	DeletedAt       time.Time   `db:"deleted_at" json:"deleted_at"`
-	UserID          string      `db:"user_id" json:"user_id"`
-	DeviceID        string      `db:"device_id" json:"device_id"`
-	Time            time.Time   `db:"time" json:"time"`
-	HourIncome      float64     `db:"hour_income" json:"hour_income"`
-	OnlineTime      float64     `db:"online_time" json:"online_time"`
-	PkgLossRatio    float64     `db:"pkg_loss_ratio" json:"pkg_loss_ratio"`
-	Latency         float64     `db:"latency" json:"latency"`
-	NatRatio        float64     `db:"nat_ratio" json:"nat_ratio"`
-	DiskUsage       float64     `db:"disk_usage" json:"disk_usage"`
-	UpstreamTraffic float64     `db:"upstream_traffic" json:"upstream_traffic"`
-	DownTraffic     interface{} `db:"down_traffic" json:"down_traffic"`
-	RetrieveCount   int64       `db:"retrieve_count" json:"retrieve_count"`
+	ID              int64     `db:"id" json:"id"`
+	CreatedAt       time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt       time.Time `db:"updated_at" json:"updated_at"`
+	DeletedAt       time.Time `db:"deleted_at" json:"deleted_at"`
+	UserID          string    `db:"user_id" json:"user_id"`
+	DeviceID        string    `db:"device_id" json:"device_id"`
+	Time            time.Time `db:"time" json:"time"`
+	HourIncome      float64   `db:"hour_income" json:"hour_income"`
+	OnlineTime      float64   `db:"online_time" json:"online_time"`
+	PkgLossRatio    float64   `db:"pkg_loss_ratio" json:"pkg_loss_ratio"`
+	Latency         float64   `db:"latency" json:"latency"`
+	NatRatio        float64   `db:"nat_ratio" json:"nat_ratio"`
+	DiskUsage       float64   `db:"disk_usage" json:"disk_usage"`
+	UpstreamTraffic float64   `db:"upstream_traffic" json:"upstream_traffic"`
+	DownTraffic     float64   `db:"down_traffic" json:"down_traffic"`
+	RetrieveCount   int64     `db:"retrieve_count" json:"retrieve_count"`
 }
 
 type FullNodeInfoDay struct {
