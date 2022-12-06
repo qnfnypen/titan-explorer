@@ -18,10 +18,16 @@ const (
 	TimeFormatHM = "15:04"
 )
 
-var AllM AllMinerInfo
+func GetAllAreas(c *gin.Context) {
+	areas, err := dao.GetAllAreaFromDeviceInfo(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		return
+	}
 
-func GetAllMinerInfoHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, respJSON(AllM))
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"areas": areas,
+	}))
 }
 
 func GetIndexInfoHandler(c *gin.Context) {
@@ -200,30 +206,6 @@ func getDaysData(list []*model.DeviceInfoDaily) (returnMapList map[string]interf
 	returnMap["retrieval"] = latencyTo
 	returnMapList = returnMap
 	return
-}
-
-func RetrievalHandler(c *gin.Context) {
-	taskInfo := &model.TaskInfo{}
-	taskInfo.UserID = c.Query("userId")
-	taskInfo.Status = c.Query("status")
-	taskInfo.Cid = c.Query("cid")
-	var res RetrievalPageRes
-	list, total, err := dao.GetTaskInfoList(c.Request.Context(), taskInfo, dao.QueryOption{})
-	if err != nil {
-		log.Error(err.Error())
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInvalidParams))
-		return
-	}
-	res.List = list
-	res.Count = total
-	res.StorageT = AllM.StorageT
-	res.BandwidthMb = AllM.BandwidthMb
-	// AllMinerNum MinerInfo
-	res.AllCandidate = AllM.AllCandidate
-	res.AllEdgeNode = AllM.AllEdgeNode
-	res.AllVerifier = AllM.AllVerifier
-
-	c.JSON(http.StatusOK, respJSON(res))
 }
 
 func GetDeviceInfoHandler(c *gin.Context) {

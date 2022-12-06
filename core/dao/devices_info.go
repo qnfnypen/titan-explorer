@@ -201,3 +201,13 @@ func CountFullNodeInfo(ctx context.Context) (*model.FullNodeInfoHour, error) {
 	}
 	return &out, nil
 }
+
+func GetAllAreaFromDeviceInfo(ctx context.Context) ([]string, error) {
+	queryStatement := fmt.Sprintf(`SELECT ip_location FROM %s GROUP BY ip_location;`, tableNameDeviceInfo)
+	var out []string
+	err := DB.SelectContext(ctx, &out, queryStatement)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}

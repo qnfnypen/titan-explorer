@@ -25,8 +25,8 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	apiV0.GET("/refresh_token", authMiddleware.RefreshHandler)
 
 	// dashboard
+	apiV0.GET("/all_areas", GetAllAreas)
 	apiV0.GET("/schedulers", GetSchedulersHandler)
-	apiV0.GET("/get_miner_info", GetAllMinerInfoHandler)
 	apiV0.GET("/get_user_device_info", GetUserDeviceInfoHandler)
 	apiV0.GET("/get_index_info", GetIndexInfoHandler)
 	apiV0.GET("/get_device_info", GetDeviceInfoHandler)
