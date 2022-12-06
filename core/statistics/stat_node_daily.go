@@ -6,7 +6,6 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/golang-module/carbon/v2"
-	"sort"
 	"strconv"
 	"time"
 )
@@ -98,33 +97,6 @@ func TransferData(deviceInfoHour model.DeviceInfoHour) error {
 	return dao.UpdateDeviceInfoHour(ctx, &deviceInfoHour)
 }
 
-func SavaDeviceInfoDailyInfo(daily model.DeviceInfoDaily) error {
-	if daily.DeviceID == "" {
-		return nil
-	}
-
-	daily.UpdatedAt = time.Now()
-	_, ok := DeviceIDAndUserId[daily.DeviceID]
-	if ok {
-		daily.UserID = DeviceIDAndUserId[daily.DeviceID]
-	}
-
-	ctx := context.Background()
-	old, err := dao.GetDeviceInfoDailyByTime(ctx, daily.DeviceID, daily.Time)
-	if err != nil {
-		log.Errorf("get hour daily by time: %v", err)
-		return err
-	}
-
-	if old == nil {
-		daily.CreatedAt = time.Now()
-		return dao.CreateDeviceInfoDaily(ctx, &daily)
-	}
-
-	daily.ID = old.ID
-	return dao.UpdateDeviceInfoDaily(ctx, &daily)
-}
-
 func Str2Float64(s string) float64 {
 	ret, err := strconv.ParseFloat(s, 64)
 	if err != nil {
@@ -160,59 +132,37 @@ func (s *Statistic) SumDeviceInfoDaily() error {
 		log.Infof("sum device info daily done, cost: %v", time.Since(start))
 	}()
 
-	var deviceInfos []*model.DeviceInfo
-	opt := dao.QueryOption{
-		Page:     1,
-		PageSize: 100,
-	}
-loop:
-	devices, total, err := dao.GetDeviceInfoList(context.Background(), &model.DeviceInfo{}, opt)
+	startOfTodayTime := carbon.Now().StartOfDay().String()
+	endOfTodayTime := carbon.Now().EndOfDay().String()
+	sqlClause := fmt.Sprintf("select user_id, device_id, date_format(time, '%%Y-%%m-%%d') as date, avg(nat_ratio) as nat_ratio, avg(disk_usage) as disk_usage, avg(latency) as latency, avg(pkg_loss_ratio) as pkg_loss_ratio, max(hour_income) as hour_income_max, min(hour_income) as hour_income_min ,max(online_time) as online_time_max,min(online_time) as online_time_min from device_info_hour "+
+		"where time>='%s' and time<='%s' group by date, device_id", startOfTodayTime, endOfTodayTime)
+	datas, err := dao.GetQueryDataList(sqlClause)
 	if err != nil {
+		log.Error(err.Error())
 		return err
 	}
 
-	deviceInfos = append(deviceInfos, devices...)
-	opt.Page++
-	if int64(len(deviceInfos)) < total {
-		goto loop
+	var dailyInfos []*model.DeviceInfoDaily
+	for _, data := range datas {
+		var daily model.DeviceInfoDaily
+		daily.Time, _ = time.Parse(TimeFormatYMD, data["date"])
+		daily.DiskUsage = Str2Float64(data["disk_usage"])
+		daily.NatRatio = Str2Float64(data["nat_ratio"])
+		daily.Income = Str2Float64(data["hour_income_max"]) - Str2Float64(data["hour_income_min"])
+		daily.OnlineTime = Str2Float64(data["online_time_max"]) - Str2Float64(data["online_time_min"])
+		daily.PkgLossRatio = Str2Float64(data["pkg_loss_ratio"])
+		daily.Latency = Str2Float64(data["latency"])
+		daily.DeviceID = data["device_id"]
+		daily.UserID = data["user_id"]
+		daily.CreatedAt = time.Now()
+		daily.UpdatedAt = time.Now()
+		dailyInfos = append(dailyInfos, &daily)
 	}
 
-	sort.Slice(deviceInfos, func(i, j int) bool {
-		return deviceInfos[i].CumulativeProfit > deviceInfos[j].CumulativeProfit
-	})
-
-	for i := 0; i < len(deviceInfos); i++ {
-		deviceInfos[i].DeviceRank = int32(i + 1)
-		startOfTodayTime := carbon.Now().StartOfDay().String()
-		endOfTodayTime := carbon.Now().EndOfDay().String()
-		sqlClause := fmt.Sprintf("select user_id,date_format(time, '%%Y-%%m-%%d') as date, avg(nat_ratio) as nat_ratio, avg(disk_usage) as disk_usage, avg(latency) as latency, avg(pkg_loss_ratio) as pkg_loss_ratio, max(hour_income) as hour_income_max, min(hour_income) as hour_income_min ,max(online_time) as online_time_max,min(online_time) as online_time_min from device_info_hour "+
-			"where device_id='%s' and time>='%s' and time<='%s' group by date", deviceInfos[i].DeviceID, startOfTodayTime, endOfTodayTime)
-		datas, err := dao.GetQueryDataList(sqlClause)
-		if err != nil {
-			log.Error(err.Error())
-			return err
-		}
-		for _, data := range datas {
-			var InPage model.DeviceInfoDaily
-			InPage.Time, _ = time.Parse(TimeFormatYMD, data["date"])
-			InPage.DiskUsage = Str2Float64(data["disk_usage"])
-			InPage.NatRatio = Str2Float64(data["nat_ratio"])
-			InPage.Income = Str2Float64(data["hour_income_max"]) - Str2Float64(data["hour_income_min"])
-			InPage.OnlineTime = Str2Float64(data["online_time_max"]) - Str2Float64(data["online_time_min"])
-			InPage.PkgLossRatio = Str2Float64(data["pkg_loss_ratio"])
-			InPage.Latency = Str2Float64(data["latency"])
-			InPage.DeviceID = deviceInfos[i].DeviceID
-			InPage.UserID = data["user_id"]
-			err = SavaDeviceInfoDailyInfo(InPage)
-			if err != nil {
-				log.Errorf("save daily info: %v", err)
-			}
-			deviceInfos[i].TodayProfit = InPage.Income
-		}
-	}
-
-	if err = dao.BulkUpdateDeviceInfo(context.Background(), deviceInfos); err != nil {
-		log.Errorf("bulk update device: %v", err)
+	err = dao.BulkUpsertDeviceInfoDaily(context.Background(), dailyInfos)
+	if err != nil {
+		log.Errorf("upsert device info daily: %v", err)
+		return err
 	}
 
 	return nil

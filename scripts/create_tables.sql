@@ -167,6 +167,7 @@ CREATE TABLE `device_info_daily` (
    `down_traffic` FLOAT(32) NOT NULL DEFAULT '0',
    `retrieve_count` BIGINT(20) NOT NULL DEFAULT '0',
    PRIMARY KEY USING BTREE (`id`),
+   UNIQUE KEY `idx_device_id_time` (`device_id`,`time`) USING BTREE,
    INDEX `idx_device_info_daily_deleted_at` USING BTREE(`deleted_at` ASC)
 ) ENGINE = INNODB CHARSET = utf8;
 

@@ -48,38 +48,25 @@ func CreateDeviceInfoHour(ctx context.Context, deviceInfoHour *model.DeviceInfoH
 	return err
 }
 
-func GetDeviceInfoDailyByTime(ctx context.Context, deviceID string, time time.Time) (*model.DeviceInfoDaily, error) {
-	var out model.DeviceInfoDaily
-	if err := DB.QueryRowxContext(ctx, fmt.Sprintf(
-		`SELECT * FROM %s WHERE device_id =? AND time = ?`, tableNameDeviceInfoDaily),
-		deviceID, time,
-	).StructScan(&out); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &out, nil
-}
-
-func CreateDeviceInfoDaily(ctx context.Context, daily *model.DeviceInfoDaily) error {
-	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s (created_at, updated_at, income, user_id, device_id,
+func BulkUpsertDeviceInfoDaily(ctx context.Context, dailyInfos []*model.DeviceInfoDaily) error {
+	upsertStatement := fmt.Sprintf(`INSERT INTO %s (created_at, updated_at, income, user_id, device_id,
 				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage, time)
 			VALUES (:created_at, :updated_at, :income, :user_id, :device_id,
-				:online_time, :pkg_loss_ratio, :latency, :nat_ratio, :disk_usage, :time);`,
-		tableNameDeviceInfoDaily,
-	), daily)
-	return err
-}
-
-func UpdateDeviceInfoDaily(ctx context.Context, daily *model.DeviceInfoDaily) error {
-	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`UPDATE %s SET updated_at = :updated_at, deleted_at = :deleted_at, income = :income,
+				:online_time, :pkg_loss_ratio, :latency, :nat_ratio, :disk_usage, :time) 
+			 ON DUPLICATE KEY UPDATE updated_at = now(), income = :income,
 			online_time = :online_time, pkg_loss_ratio = :pkg_loss_ratio, latency = :latency,
-			nat_ratio = :nat_ratio, disk_usage = :disk_usage, time = :time WHERE id = :id`, tableNameDeviceInfoDaily),
-		daily)
-	return err
+			nat_ratio = :nat_ratio, disk_usage = :disk_usage`, tableNameDeviceInfoDaily)
+	tx := DB.MustBegin()
+	defer tx.Rollback()
+
+	for _, dailyInfo := range dailyInfos {
+		_, err := tx.NamedExecContext(ctx, upsertStatement, dailyInfo)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour, option QueryOption) ([]*model.DeviceInfoHour, error) {
