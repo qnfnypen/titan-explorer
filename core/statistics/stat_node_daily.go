@@ -25,6 +25,7 @@ func addDeviceInfoHours(ctx context.Context, deviceInfo []*model.DeviceInfo) err
 		log.Infof("fetch device info hours done, cost: %v", time.Since(start))
 	}()
 
+	var upsertDevice []*model.DeviceInfoHour
 	for _, device := range deviceInfo {
 		var deviceInfoHour model.DeviceInfoHour
 		deviceInfoHour.Time = start
@@ -39,62 +40,15 @@ func addDeviceInfoHours(ctx context.Context, deviceInfo []*model.DeviceInfo) err
 		if ok {
 			deviceInfoHour.UserID = DeviceIDAndUserId[deviceInfoHour.DeviceID]
 		}
-		err := TransferData(deviceInfoHour)
-		if err != nil {
-			log.Error(err.Error())
-		}
 
-		//timeNow := time.Now().Format("2006-01-02")
-		//DateFrom := timeNow + " 00:00:00"
-		//DateTo := timeNow + " 23:59:59"
-		//sqlClause := fmt.Sprintf("select user_id,date_format(time, '%%Y-%%m-%%d') as date, avg(nat_ratio) as nat_ratio, avg(disk_usage) as disk_usage, avg(latency) as latency, avg(pkg_loss_ratio) as pkg_loss_ratio, max(hour_income) as hour_income_max, min(hour_income) as hour_income_min ,max(online_time) as online_time_max,min(online_time) as online_time_min from device_info_hour "+
-		//	"where device_id='%s' and time>='%s' and time<='%s' group by date", device.DeviceID, DateFrom, DateTo)
-		//datas, err := dao.GetQueryDataList(sqlClause)
-		//if err != nil {
-		//	log.Error(err.Error())
-		//	return err
-		//}
-		//for _, data := range datas {
-		//	var InPage model.DeviceInfoDaily
-		//	InPage.Time, _ = time.Parse(TimeFormatYMD, data["date"])
-		//	InPage.DiskUsage = Str2Float64(data["disk_usage"])
-		//	InPage.NatRatio = Str2Float64(data["nat_ratio"])
-		//	InPage.Income = Str2Float64(data["hour_income_max"]) - Str2Float64(data["hour_income_min"])
-		//	InPage.OnlineTime = Str2Float64(data["online_time_max"]) - Str2Float64(data["online_time_min"])
-		//	InPage.PkgLossRatio = Str2Float64(data["pkg_loss_ratio"])
-		//	InPage.Latency = Str2Float64(data["latency"])
-		//	InPage.DeviceID = device.DeviceID
-		//	InPage.UserID = data["user_id"]
-		//	err = SavaDeviceInfoDailyInfo(InPage)
-		//	if err != nil {
-		//		log.Errorf("save daily info: %v", err)
-		//	}
-		//}
+		upsertDevice = append(upsertDevice, &deviceInfoHour)
 	}
 
-	return nil
-}
-
-func TransferData(deviceInfoHour model.DeviceInfoHour) error {
-	if deviceInfoHour.DeviceID == "" {
-		return nil
-	}
-
-	deviceInfoHour.UpdatedAt = time.Now()
-	ctx := context.Background()
-	old, err := dao.GetDeviceInfoHourByTime(ctx, deviceInfoHour.DeviceID, deviceInfoHour.Time)
+	err := dao.BulkUpsertDeviceInfoHours(context.Background(), upsertDevice)
 	if err != nil {
-		log.Errorf("get hour daily by time: %v", err)
-		return err
+		log.Errorf("bulk upsert device info: %v", err)
 	}
-
-	if old == nil {
-		deviceInfoHour.CreatedAt = time.Now()
-		return dao.CreateDeviceInfoHour(ctx, &deviceInfoHour)
-	}
-
-	deviceInfoHour.ID = old.ID
-	return dao.UpdateDeviceInfoHour(ctx, &deviceInfoHour)
+	return nil
 }
 
 func Str2Float64(s string) float64 {
@@ -106,23 +60,21 @@ func Str2Float64(s string) float64 {
 	return ret
 }
 
-func QueryDataByDate(DeviceID, DateFrom, DateTo string) map[string]string {
+func QueryDataByDate(DateFrom, DateTo string) []map[string]string {
 
-	sqlClause := fmt.Sprintf("select sum(income) as income,online_time from device_info_daily "+
-		"where  time>='%s' and time<='%s' and device_id='%s' group by user_id;", DateFrom, DateTo, DeviceID)
+	sqlClause := fmt.Sprintf("select device_id, sum(income) as income,online_time from device_info_daily "+
+		"where  time>='%s' and time<='%s' group by device_id;", DateFrom, DateTo)
 	if DateFrom == "" {
-		sqlClause = fmt.Sprintf("select sum(income) as income,online_time from device_info_daily "+
-			"where device_id='%s' group by user_id;", DeviceID)
+		sqlClause = fmt.Sprintf("select device_id, sum(income) as income,online_time from device_info_daily " +
+			" group by device_id;")
 	}
 	data, err := dao.GetQueryDataList(sqlClause)
 	if err != nil {
 		log.Error(err.Error())
 		return nil
 	}
-	if len(data) > 0 {
-		return data[0]
-	}
-	return nil
+
+	return data
 }
 
 func (s *Statistic) SumDeviceInfoDaily() error {
@@ -168,71 +120,74 @@ func (s *Statistic) SumDeviceInfoDaily() error {
 	return nil
 }
 
-func (s *Statistic) SumDeviceInfoWeeklyMonthly() error {
-	log.Info("start sum device info weekly and monthly")
+func (s *Statistic) SumDeviceInfoProfit() error {
+	log.Info("start sum device info profit")
 	start := time.Now()
 	defer func() {
-		log.Infof("sum device info weekly and monthly done, cost: %v", time.Since(start))
+		log.Infof("sum device info profit done, cost: %v", time.Since(start))
 	}()
 
+	updatedDevices := make(map[string]*model.DeviceInfo)
+
+	startOfTodayTime := carbon.Now().StartOfDay().String()
+	endOfTodayTime := carbon.Now().EndOfDay().String()
+	startOfYesterday := carbon.Yesterday().StartOfDay().String()
+	endOfYesterday := carbon.Yesterday().EndOfDay().String()
+	dataY := QueryDataByDate(startOfYesterday, endOfYesterday)
+	for _, data := range dataY {
+		_, ok := updatedDevices[data["device_id"]]
+		if !ok {
+			updatedDevices[data["device_id"]] = &model.DeviceInfo{
+				DeviceID: data["device_id"],
+			}
+		}
+		updatedDevices[data["device_id"]].YesterdayProfit = Str2Float64(data["income"])
+	}
+
+	startOfWeekTime := carbon.Now().SubDays(6).StartOfDay().String()
+	dataS := QueryDataByDate(startOfWeekTime, endOfTodayTime)
+
+	for _, data := range dataS {
+		_, ok := updatedDevices[data["device_id"]]
+		if !ok {
+			updatedDevices[data["device_id"]] = &model.DeviceInfo{
+				DeviceID: data["device_id"],
+			}
+		}
+		updatedDevices[data["device_id"]].SevenDaysProfit = Str2Float64(data["income"])
+	}
+
+	startOfMonthTime := carbon.Now().SubDays(29).StartOfDay().String()
+	dataM := QueryDataByDate(startOfMonthTime, endOfTodayTime)
+
+	for _, data := range dataM {
+		_, ok := updatedDevices[data["device_id"]]
+		if !ok {
+			updatedDevices[data["device_id"]] = &model.DeviceInfo{
+				DeviceID: data["device_id"],
+			}
+		}
+		updatedDevices[data["device_id"]].MonthProfit = Str2Float64(data["income"])
+	}
+
+	dataT := QueryDataByDate(startOfTodayTime, endOfTodayTime)
+	for _, data := range dataT {
+		_, ok := updatedDevices[data["device_id"]]
+		if !ok {
+			updatedDevices[data["device_id"]] = &model.DeviceInfo{
+				DeviceID: data["device_id"],
+			}
+		}
+		updatedDevices[data["device_id"]].TodayProfit = Str2Float64(data["income"])
+		updatedDevices[data["device_id"]].TodayOnlineTime = Str2Float64(data["online_time"])
+	}
+
 	var deviceInfos []*model.DeviceInfo
-	opt := dao.QueryOption{
-		Page:     1,
-		PageSize: 100,
-	}
-loop:
-	devices, total, err := dao.GetDeviceInfoList(context.Background(), &model.DeviceInfo{}, opt)
-	if err != nil {
-		return err
+	for _, deviceInfo := range updatedDevices {
+		deviceInfos = append(deviceInfos, deviceInfo)
 	}
 
-	deviceInfos = append(deviceInfos, devices...)
-	opt.Page++
-	if int64(len(deviceInfos)) < total {
-		goto loop
-	}
-
-	for i := 0; i < len(deviceInfos); i++ {
-		startOfTodayTime := carbon.Now().StartOfDay().String()
-		endOfTodayTime := carbon.Now().EndOfDay().String()
-
-		startOfYesterday := carbon.Yesterday().StartOfDay().String()
-		endOfYesterday := carbon.Yesterday().EndOfDay().String()
-		dataY := QueryDataByDate(deviceInfos[i].DeviceID, startOfYesterday, endOfYesterday)
-
-		startOfWeekTime := carbon.Now().SubDays(6).StartOfDay().String()
-		dataS := QueryDataByDate(deviceInfos[i].DeviceID, startOfWeekTime, endOfTodayTime)
-
-		startOfMonthTime := carbon.Now().SubDays(29).StartOfDay().String()
-		dataM := QueryDataByDate(deviceInfos[i].DeviceID, startOfMonthTime, endOfTodayTime)
-		dataA := QueryDataByDate(deviceInfos[i].DeviceID, "", "")
-
-		dataT := QueryDataByDate(deviceInfos[i].DeviceID, startOfTodayTime, endOfTodayTime)
-		if len(dataY) > 0 {
-			deviceInfos[i].YesterdayProfit = Str2Float64(dataY["income"])
-		}
-		if len(dataS) > 0 {
-			deviceInfos[i].SevenDaysProfit = Str2Float64(dataS["income"])
-		}
-		if len(dataM) > 0 {
-			deviceInfos[i].MonthProfit = Str2Float64(dataM["income"])
-		}
-		if len(dataA) > 0 {
-			deviceInfos[i].CumulativeProfit = Str2Float64(dataA["income"])
-		}
-		if len(dataT) > 0 {
-			deviceInfos[i].TodayProfit = Str2Float64(dataT["income"])
-			deviceInfos[i].TodayOnlineTime = Str2Float64(dataT["online_time"])
-		}
-
-		deviceInfos[i].UpdatedAt = time.Now()
-		_, ok := DeviceIDAndUserId[deviceInfos[i].DeviceID]
-		if ok {
-			deviceInfos[i].UserID = DeviceIDAndUserId[deviceInfos[i].DeviceID]
-		}
-	}
-
-	if err = dao.BulkUpdateDeviceInfo(context.Background(), deviceInfos); err != nil {
+	if err := dao.BulkUpdateDeviceInfo(context.Background(), deviceInfos); err != nil {
 		log.Errorf("bulk update device: %v", err)
 	}
 

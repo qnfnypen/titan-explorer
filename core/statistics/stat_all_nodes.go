@@ -35,7 +35,7 @@ loop:
 		nodes = append(nodes, toDeviceInfo(node))
 	}
 
-	log.Infof("fetch %d nodes, prepare to update", len(nodes))
+	log.Infof("fetch %d nodes", len(nodes))
 
 	err = dao.BulkUpsertDeviceInfo(ctx, nodes)
 	if err != nil {
@@ -48,6 +48,10 @@ loop:
 
 	if total < resp.Total {
 		goto loop
+	}
+
+	if err = s.SumDeviceInfoProfit(); err != nil {
+		return err
 	}
 
 	return nil

@@ -2,11 +2,9 @@ package dao
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"strconv"
-	"time"
 )
 
 var (
@@ -14,38 +12,25 @@ var (
 	tableNameDeviceInfoDaily = "device_info_daily"
 )
 
-func GetDeviceInfoHourByTime(ctx context.Context, deviceID string, time time.Time) (*model.DeviceInfoHour, error) {
-	var out model.DeviceInfoHour
-	if err := DB.QueryRowxContext(ctx, fmt.Sprintf(
-		`SELECT * FROM %s WHERE device_id = ? AND time = ?`, tableNameDeviceInfoHour),
-		deviceID, time,
-	).StructScan(&out); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &out, nil
-}
-
-func UpdateDeviceInfoHour(ctx context.Context, deviceInfoHour *model.DeviceInfoHour) error {
-	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`UPDATE %s SET updated_at = :updated_at, hour_income = :hour_income,
-			online_time = :online_time, pkg_loss_ratio = :pkg_loss_ratio, latency = :latency,
-			nat_ratio = :nat_ratio, disk_usage = :disk_usage, time = :time WHERE id = :id`, tableNameDeviceInfoHour),
-		deviceInfoHour)
-	return err
-}
-
-func CreateDeviceInfoHour(ctx context.Context, deviceInfoHour *model.DeviceInfoHour) error {
-	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s (created_at, updated_at, hour_income, user_id, device_id,
+func BulkUpsertDeviceInfoHours(ctx context.Context, hourInfos []*model.DeviceInfoHour) error {
+	upsertStatement := fmt.Sprintf(`INSERT INTO %s (created_at, updated_at, hour_income, user_id, device_id,
 				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage, time)
 			VALUES (:created_at, :updated_at, :hour_income, :user_id, :device_id, :online_time, :pkg_loss_ratio, :latency, 
-			    :nat_ratio, :disk_usage, :time);`,
-		tableNameDeviceInfoHour,
-	), deviceInfoHour)
-	return err
+			    :nat_ratio, :disk_usage, :time) 
+			 ON DUPLICATE KEY UPDATE updated_at = now(), hour_income = :hour_income,
+			online_time = :online_time, pkg_loss_ratio = :pkg_loss_ratio, latency = :latency,
+			nat_ratio = :nat_ratio, disk_usage = :disk_usage`, tableNameDeviceInfoHour)
+	tx := DB.MustBegin()
+	defer tx.Rollback()
+
+	for _, hourInfo := range hourInfos {
+		_, err := tx.NamedExecContext(ctx, upsertStatement, hourInfo)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 func BulkUpsertDeviceInfoDaily(ctx context.Context, dailyInfos []*model.DeviceInfoDaily) error {
