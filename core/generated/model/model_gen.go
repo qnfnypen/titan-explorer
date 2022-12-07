@@ -8,6 +8,32 @@ import (
 	"time"
 )
 
+type Application struct {
+	ID                  int64     `db:"id" json:"id"`
+	UserID              string    `db:"user_id" json:"user_id"`
+	Email               string    `db:"email" json:"email"`
+	IpCountry           string    `db:"ip_country" json:"ip_country"`
+	IpCity              string    `db:"ip_city" json:"ip_city"`
+	NodeType            int32     `db:"node_type" json:"node_type"`
+	Amount              int32     `db:"amount" json:"amount"`
+	UpstreamBandwidth   float64   `db:"upstream_bandwidth" json:"upstream_bandwidth"`
+	DownstreamBandwidth float64   `db:"downstream_bandwidth" json:"downstream_bandwidth"`
+	Status              int32     `db:"status" json:"status"`
+	CreatedAt           time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt           time.Time `db:"updated_at" json:"updated_at"`
+}
+
+type ApplicationResult struct {
+	ID            int64     `db:"id" json:"id"`
+	ApplicationID int64     `db:"application_id" json:"application_id"`
+	UserID        string    `db:"user_id" json:"user_id"`
+	DeviceID      string    `db:"device_id" json:"device_id"`
+	NodeType      int32     `db:"node_type" json:"node_type"`
+	Secret        string    `db:"secret" json:"secret"`
+	CreatedAt     time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt     time.Time `db:"updated_at" json:"updated_at"`
+}
+
 type DeviceInfo struct {
 	ID            int64     `db:"id" json:"id"`
 	CreatedAt     time.Time `db:"created_at" json:"created_at"`
@@ -15,7 +41,6 @@ type DeviceInfo struct {
 	DeletedAt     time.Time `db:"deleted_at" json:"deleted_at"`
 	DeviceID      string    `db:"device_id" json:"device_id"`
 	SchedulerID   string    `db:"scheduler_id" json:"scheduler_id"`
-	Secret        string    `db:"secret" json:"secret"`
 	NodeType      int32     `db:"node_type" json:"node_type"`
 	DeviceRank    int32     `db:"device_rank" json:"device_rank"`
 	DeviceName    string    `db:"device_name" json:"device_name"`

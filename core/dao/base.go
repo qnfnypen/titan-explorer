@@ -56,13 +56,13 @@ func Init(cfg *config.Config) error {
 }
 
 type QueryOption struct {
-	Page       int    `json:"page" form:"page"`
-	PageSize   int    `json:"page_size" form:"page_size"`
-	Order      string `json:"order" form:"order"`
-	OrderField string `json:"order_field" form:"order_field"`
-	StartTime  string `json:"startTime" form:"start_time"`
-	EndTime    string `json:"endTime" form:"end_time"`
-	UserID     string `json:"userId" form:"user_id"`
+	Page       int    `json:"page"`
+	PageSize   int    `json:"page_size"`
+	Order      string `json:"order"`
+	OrderField string `json:"order_field"`
+	StartTime  string `json:"start_time"`
+	EndTime    string `json:"end_time" `
+	UserID     string `json:"user_id"`
 }
 
 func GetQueryDataList(sqlClause string, args ...interface{}) ([]map[string]string, error) {

@@ -6,9 +6,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
+	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/core/statistics"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
+	"time"
 )
 
 var schedulerClient api.Scheduler
@@ -46,6 +48,8 @@ func NewServer(cfg config.Config) (*Server, error) {
 func (s *Server) Run() {
 	s.statistic.Run()
 
+	go s.asyncHandleApplication()
+
 	err := s.router.Run(s.cfg.ApiListen)
 	if err != nil {
 		log.Fatal(err)
@@ -77,4 +81,71 @@ func getSchedulerClient() (api.Scheduler, func(), error) {
 
 	schedulerClient = client
 	return client, closeScheduler, nil
+}
+
+func (s *Server) asyncHandleApplication() {
+	handleApplicationInterval := time.Minute
+	ticker := time.NewTicker(handleApplicationInterval)
+	for {
+		select {
+		case <-ticker.C:
+			ctx := context.Background()
+			applications, err := dao.GetApplicationList(ctx)
+			if err != nil {
+				log.Errorf("get applications: %v", err)
+				continue
+			}
+
+			for _, application := range applications {
+				s.handleApplication(ctx, application)
+			}
+
+			ticker.Reset(handleApplicationInterval)
+		}
+	}
+}
+
+func (s *Server) handleApplication(ctx context.Context, application *model.Application) error {
+	var results []*model.ApplicationResult
+	for i := 0; i < int(application.Amount); i++ {
+		registration, err := s.schedulerClient.RegisterNode(ctx, api.NodeType(application.NodeType))
+		if err != nil {
+			log.Errorf("register node: %v", err)
+			continue
+		}
+
+		results = append(results, &model.ApplicationResult{
+			UserID:    application.UserID,
+			DeviceID:  registration.DeviceID,
+			NodeType:  application.NodeType,
+			Secret:    registration.Secret,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		})
+	}
+
+	if len(results) == 0 {
+		return nil
+	}
+
+	err := dao.AddApplicationResult(ctx, results)
+	if err != nil {
+		log.Errorf("create application result: %v", err)
+
+		err = dao.UpdateApplicationStatus(ctx, application.ID, dao.ApplicationStatusFailed)
+		if err != nil {
+			log.Errorf("update application status: %v", err)
+			return err
+		}
+
+		return err
+	}
+
+	err = dao.UpdateApplicationStatus(ctx, application.ID, dao.ApplicationStatusSuccess)
+	if err != nil {
+		log.Errorf("update application status: %v", err)
+		return err
+	}
+
+	return nil
 }

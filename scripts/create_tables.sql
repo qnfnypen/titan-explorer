@@ -75,7 +75,6 @@ CREATE TABLE `device_info` (
   `deleted_at` DATETIME(3) NOT NULL DEFAULT 0,
   `device_id` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `scheduler_id` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-  `secret` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `node_type` INT(2) NOT NULL DEFAULT 0,
   `device_rank` INT(20) NOT NULL DEFAULT '0' COMMENT '',
   `device_name` CHAR(56) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
@@ -255,4 +254,38 @@ CREATE TABLE `full_node_info_days` (
  `created_at` DATETIME(3) NOT NULL DEFAULT 0,
  `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
  PRIMARY KEY (`id`)
+) ENGINE = INNODB CHARSET = utf8mb4;
+
+
+DROP TABLE IF EXISTS `application`;
+
+CREATE TABLE `application` (
+`id` BIGINT(20) NOT NULL AUTO_INCREMENT,
+`user_id` VARCHAR(128) NOT NULL DEFAULT '',
+`email` VARCHAR(128) NOT NULL DEFAULT '',
+`ip_country` VARCHAR(128) NOT NULL DEFAULT '',
+`ip_city` VARCHAR(128) NOT NULL DEFAULT '',
+`node_type` TINYINT(4) NOT NULL DEFAULT 0,
+`amount` INT(20) NOT NULL DEFAULT 0,
+`upstream_bandwidth` FLOAT(32) NOT NULL DEFAULT 0,
+`downstream_bandwidth` FLOAT(32) NOT NULL DEFAULT 0,
+`status` TINYINT(4) NOT NULL DEFAULT 0,
+`created_at` DATETIME(3) NOT NULL DEFAULT 0,
+`updated_at` DATETIME(3) NOT NULL DEFAULT 0,
+PRIMARY KEY (`id`)
+) ENGINE = INNODB CHARSET = utf8mb4;
+
+
+DROP TABLE IF EXISTS `application_result`;
+
+CREATE TABLE `application_result` (
+`id` BIGINT(20) NOT NULL AUTO_INCREMENT,
+`application_id` BIGINT(20) NOT NULL DEFAULT 0,
+`user_id` VARCHAR(128) NOT NULL DEFAULT '',
+`device_id` VARCHAR(128) NOT NULL DEFAULT '',
+`node_type` TINYINT(4) NOT NULL DEFAULT 0,
+`secret` VARCHAR(256) NOT NULL DEFAULT 0,
+`created_at` DATETIME(3) NOT NULL DEFAULT 0,
+`updated_at` DATETIME(3) NOT NULL DEFAULT 0,
+PRIMARY KEY (`id`)
 ) ENGINE = INNODB CHARSET = utf8mb4;
