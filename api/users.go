@@ -11,7 +11,7 @@ import (
 func DeviceBindingHandler(c *gin.Context) {
 	deviceInfo := &model.DeviceInfo{}
 	deviceInfo.DeviceID = c.Query("device_id")
-	deviceInfo.UserID = c.Query("userId")
+	deviceInfo.UserID = c.Query("user_id")
 
 	old, err := dao.GetDeviceInfoByID(c.Request.Context(), deviceInfo.DeviceID)
 	if err != nil {

@@ -43,7 +43,7 @@ func GetIndexInfoHandler(c *gin.Context) {
 // GetUserDeviceInfoHandler devices overview
 func GetUserDeviceInfoHandler(c *gin.Context) {
 	info := &model.DeviceInfo{}
-	info.UserID = c.Query("userId")
+	info.UserID = c.Query("user_id")
 	DeviceID := c.Query("device_id")
 	info.DeviceID = DeviceID
 	info.DeviceStatus = c.Query("device_status")
@@ -210,7 +210,7 @@ func getDaysData(list []*model.DeviceInfoDaily) (returnMapList map[string]interf
 
 func GetDeviceInfoHandler(c *gin.Context) {
 	info := &model.DeviceInfo{}
-	info.UserID = c.Query("userId")
+	info.UserID = c.Query("user_id")
 	info.DeviceID = c.Query("device_id")
 	info.DeviceStatus = c.Query("device_status")
 	info.IpLocation = c.Query("ip_location")

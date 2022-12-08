@@ -12,7 +12,7 @@ import (
 
 func CreateTaskHandler(c *gin.Context) {
 	taskInfo := &model.TaskInfo{}
-	taskInfo.UserID = c.Query("userId")
+	taskInfo.UserID = c.Query("user_id")
 	taskInfo.Cid = c.Query("cid")
 	taskInfo.BandwidthUp = c.Query("bandwidth_up")
 	taskInfo.BandwidthDown = c.Query("bandwidth_down")
@@ -37,7 +37,7 @@ func CreateTaskHandler(c *gin.Context) {
 
 func GetTaskInfoHandler(c *gin.Context) {
 	taskInfo := &model.TaskInfo{}
-	taskInfo.UserID = c.Query("userId")
+	taskInfo.UserID = c.Query("user_id")
 	taskInfo.Status = c.Query("status")
 	if taskInfo.Status == "All" {
 		taskInfo.Status = ""

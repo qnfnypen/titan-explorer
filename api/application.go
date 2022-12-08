@@ -45,7 +45,7 @@ func CreateApplicationHandler(c *gin.Context) {
 }
 
 func GetApplicationsHandler(c *gin.Context) {
-	userID := c.Query("userId")
+	userID := c.Query("user_id")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 	option := dao.QueryOption{
