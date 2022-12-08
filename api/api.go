@@ -106,14 +106,14 @@ func (s *Server) asyncHandleApplication() {
 }
 
 func (s *Server) handleApplication(ctx context.Context, application *model.Application) error {
-	var results []*model.ApplicationResult
-	for i := 0; i < int(application.Amount); i++ {
-		registration, err := s.schedulerClient.RegisterNode(ctx, api.NodeType(application.NodeType))
-		if err != nil {
-			log.Errorf("register node: %v", err)
-			continue
-		}
+	registrations, err := s.schedulerClient.RegisterNode(ctx, api.NodeType(application.NodeType), int(application.Amount))
+	if err != nil {
+		log.Errorf("register node: %v", err)
+		return err
+	}
 
+	var results []*model.ApplicationResult
+	for _, registration := range registrations {
 		results = append(results, &model.ApplicationResult{
 			UserID:    application.UserID,
 			DeviceID:  registration.DeviceID,
@@ -128,7 +128,7 @@ func (s *Server) handleApplication(ctx context.Context, application *model.Appli
 		return nil
 	}
 
-	err := dao.AddApplicationResult(ctx, results)
+	err = dao.AddApplicationResult(ctx, results)
 	if err != nil {
 		log.Errorf("create application result: %v", err)
 
