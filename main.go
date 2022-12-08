@@ -7,6 +7,7 @@ import (
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/oplog"
+	"github.com/gnasnik/titan-explorer/utils"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/spf13/viper"
 	"log"
@@ -30,8 +31,12 @@ func main() {
 		log.Fatalf("unmarshaling config file: %v\n", err)
 	}
 
+	utils.EmailInit(cfg)
+
 	if cfg.Mode == "debug" {
 		logging.SetDebugLogging()
+		// email send test
+		//utils.Demo()
 	}
 
 	if err := dao.Init(&cfg); err != nil {

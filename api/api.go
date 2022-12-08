@@ -8,6 +8,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/core/statistics"
+	"github.com/gnasnik/titan-explorer/utils"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
 	"time"
@@ -111,7 +112,6 @@ func (s *Server) handleApplication(ctx context.Context, application *model.Appli
 		log.Errorf("register node: %v", err)
 		return err
 	}
-
 	var results []*model.ApplicationResult
 	for _, registration := range registrations {
 		results = append(results, &model.ApplicationResult{
@@ -127,6 +127,8 @@ func (s *Server) handleApplication(ctx context.Context, application *model.Appli
 	if len(results) == 0 {
 		return nil
 	}
+
+	go utils.HandleEmailInfo(application.Email, registrations)
 
 	err = dao.AddApplicationResult(ctx, results)
 	if err != nil {
