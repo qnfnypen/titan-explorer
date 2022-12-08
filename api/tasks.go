@@ -6,8 +6,8 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/utils"
 	"net/http"
-	"strconv"
 )
 
 func CreateTaskHandler(c *gin.Context) {
@@ -23,7 +23,7 @@ func CreateTaskHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInvalidParams))
 		return
 	}
-	taskInfo.Price = StrToFloat(Price)
+	taskInfo.Price = utils.StrToFloat(Price)
 
 	err := dao.UpsertTaskInfo(c.Request.Context(), taskInfo)
 	if err != nil {
@@ -80,14 +80,14 @@ func GetTaskListHandler(c *gin.Context) {
 	sqlClause = fmt.Sprintf("select count(1) as num_all, sum(file_size) as file_size_all from task_info "+
 		"where device_id='%s' and status in ('已完成','已连接')", TaskInfoSearch.DeviceID)
 	fmt.Println(sqlClause)
-	count_all, err := dao.GetQueryDataList(sqlClause)
+	countAll, err := dao.GetQueryDataList(sqlClause)
 	if err != nil {
 		log.Errorf("QueryClickData error[%v] sqlClause[%s]", err, sqlClause)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
 		return
 	}
 	resp := make(map[string]interface{})
-	resp["tot_num"] = count_all
+	resp["tot_num"] = countAll
 	resp["data_list"] = datas
 
 	c.JSON(http.StatusOK, respJSON(resp))
@@ -135,30 +135,4 @@ func GetTaskDetailHandler(c *gin.Context) {
 type TaskSearch struct {
 	model.TaskInfo
 	PageInfo
-}
-
-func Str2Float64(s string) float64 {
-	ret, err := strconv.ParseFloat(s, 64)
-	if err != nil {
-		log.Error(err.Error())
-		return 0.00
-	}
-	return ret
-}
-
-func StrToFloat(str string) float64 {
-	v, err := strconv.ParseFloat(str, 64)
-	if err != nil {
-		return float64(0)
-	}
-	return v
-}
-
-func Str2Int(s string) int {
-	ret, err := strconv.Atoi(s)
-	if err != nil {
-		log.Error(err.Error())
-		return 0
-	}
-	return ret
 }

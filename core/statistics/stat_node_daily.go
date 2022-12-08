@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/utils"
 	"github.com/golang-module/carbon/v2"
-	"strconv"
 	"time"
 )
 
@@ -51,15 +51,6 @@ func addDeviceInfoHours(ctx context.Context, deviceInfo []*model.DeviceInfo) err
 	return nil
 }
 
-func Str2Float64(s string) float64 {
-	ret, err := strconv.ParseFloat(s, 64)
-	if err != nil {
-		log.Error(err.Error())
-		return 0.00
-	}
-	return ret
-}
-
 func QueryDataByDate(DateFrom, DateTo string) []map[string]string {
 
 	sqlClause := fmt.Sprintf("select device_id, sum(income) as income,online_time from device_info_daily "+
@@ -98,12 +89,12 @@ func (s *Statistic) SumDeviceInfoDaily() error {
 	for _, data := range datas {
 		var daily model.DeviceInfoDaily
 		daily.Time, _ = time.Parse(TimeFormatYMD, data["date"])
-		daily.DiskUsage = Str2Float64(data["disk_usage"])
-		daily.NatRatio = Str2Float64(data["nat_ratio"])
-		daily.Income = Str2Float64(data["hour_income_max"]) - Str2Float64(data["hour_income_min"])
-		daily.OnlineTime = Str2Float64(data["online_time_max"]) - Str2Float64(data["online_time_min"])
-		daily.PkgLossRatio = Str2Float64(data["pkg_loss_ratio"])
-		daily.Latency = Str2Float64(data["latency"])
+		daily.DiskUsage = utils.Str2Float64(data["disk_usage"])
+		daily.NatRatio = utils.Str2Float64(data["nat_ratio"])
+		daily.Income = utils.Str2Float64(data["hour_income_max"]) - utils.Str2Float64(data["hour_income_min"])
+		daily.OnlineTime = utils.Str2Float64(data["online_time_max"]) - utils.Str2Float64(data["online_time_min"])
+		daily.PkgLossRatio = utils.Str2Float64(data["pkg_loss_ratio"])
+		daily.Latency = utils.Str2Float64(data["latency"])
 		daily.DeviceID = data["device_id"]
 		daily.UserID = data["user_id"]
 		daily.CreatedAt = time.Now()
@@ -141,7 +132,7 @@ func (s *Statistic) SumDeviceInfoProfit() error {
 				DeviceID: data["device_id"],
 			}
 		}
-		updatedDevices[data["device_id"]].YesterdayProfit = Str2Float64(data["income"])
+		updatedDevices[data["device_id"]].YesterdayProfit = utils.Str2Float64(data["income"])
 	}
 
 	startOfWeekTime := carbon.Now().SubDays(6).StartOfDay().String()
@@ -154,7 +145,7 @@ func (s *Statistic) SumDeviceInfoProfit() error {
 				DeviceID: data["device_id"],
 			}
 		}
-		updatedDevices[data["device_id"]].SevenDaysProfit = Str2Float64(data["income"])
+		updatedDevices[data["device_id"]].SevenDaysProfit = utils.Str2Float64(data["income"])
 	}
 
 	startOfMonthTime := carbon.Now().SubDays(29).StartOfDay().String()
@@ -167,7 +158,7 @@ func (s *Statistic) SumDeviceInfoProfit() error {
 				DeviceID: data["device_id"],
 			}
 		}
-		updatedDevices[data["device_id"]].MonthProfit = Str2Float64(data["income"])
+		updatedDevices[data["device_id"]].MonthProfit = utils.Str2Float64(data["income"])
 	}
 
 	dataT := QueryDataByDate(startOfTodayTime, endOfTodayTime)
@@ -178,8 +169,8 @@ func (s *Statistic) SumDeviceInfoProfit() error {
 				DeviceID: data["device_id"],
 			}
 		}
-		updatedDevices[data["device_id"]].TodayProfit = Str2Float64(data["income"])
-		updatedDevices[data["device_id"]].TodayOnlineTime = Str2Float64(data["online_time"])
+		updatedDevices[data["device_id"]].TodayProfit = utils.Str2Float64(data["income"])
+		updatedDevices[data["device_id"]].TodayOnlineTime = utils.Str2Float64(data["online_time"])
 	}
 
 	var deviceInfos []*model.DeviceInfo

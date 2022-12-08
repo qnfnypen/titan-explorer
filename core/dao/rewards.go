@@ -4,12 +4,16 @@ import (
 	"context"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/utils"
+	logging "github.com/ipfs/go-log/v2"
 	"strconv"
+	"strings"
 )
 
 var (
 	tableNameDeviceInfoHour  = "device_info_hour"
 	tableNameDeviceInfoDaily = "device_info_daily"
+	log                      = logging.Logger("statistics")
 )
 
 func BulkUpsertDeviceInfoHours(ctx context.Context, hourInfos []*model.DeviceInfoHour) error {
@@ -54,30 +58,22 @@ func BulkUpsertDeviceInfoDaily(ctx context.Context, dailyInfos []*model.DeviceIn
 	return tx.Commit()
 }
 
-func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour, option QueryOption) ([]*model.DeviceInfoHour, error) {
-	var args []interface{}
-	where := `WHERE 1=1`
-	if cond.DeviceID != "" {
-		where += ` AND device_id = ?`
-		args = append(args, cond.DeviceID)
-	}
-	if option.StartTime != "" {
-		where += ` AND time >= ?`
-		args = append(args, option.StartTime)
-	}
-	if option.EndTime != "" {
-		where += ` AND time <= ?`
-		args = append(args, option.EndTime)
-	}
-
-	var out []*model.DeviceInfoHour
-	err := DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT * FROM %s %s`, tableNameDeviceInfoHour, where), args...)
+func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour, option QueryOption) ([]map[string]string, error) {
+	sqlClause := fmt.Sprintf("select user_id,date_format(time, '%%Y-%%m-%%d %%H') as date, avg(nat_ratio) as nat_ratio, avg(disk_usage) as disk_usage, avg(latency) as latency, avg(pkg_loss_ratio) as pkg_loss_ratio, max(hour_income) as hour_income_max, min(hour_income) as hour_income_min ,max(online_time) as online_time_max,min(online_time) as online_time_min from device_info_hour "+
+		"where device_id='%s' and time>='%s' and time<='%s' group by date", cond.DeviceID, option.StartTime, option.EndTime)
+	dataS, err := GetQueryDataList(sqlClause)
 	if err != nil {
+		log.Error(err.Error())
 		return nil, err
 	}
-
-	return out, err
+	for _, data := range dataS {
+		onlineTime := fmt.Sprintf("%.2f", utils.Str2Float64(data["online_time_max"])-utils.Str2Float64(data["online_time_min"]))
+		hourIncome := fmt.Sprintf("%.2f", utils.Str2Float64(data["hour_income_max"])-utils.Str2Float64(data["hour_income_min"]))
+		data["online_time"] = onlineTime
+		data["hour_income"] = hourIncome
+		data["date"] = strings.Split(data["date"], " ")[1]
+	}
+	return dataS, err
 }
 
 func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*model.DeviceInfoDaily, error) {

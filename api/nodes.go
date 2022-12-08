@@ -110,7 +110,7 @@ func timeFormat(deviceID, startTime, endTime string) (m map[string]interface{}) 
 	return getDaysData(list)
 }
 
-func timeFormatHour(deviceID, start, end string) (m map[string]interface{}) {
+func timeFormatHour(deviceID, start, end string) (m []map[string]string) {
 	option := dao.QueryOption{
 		StartTime: start,
 		EndTime:   end,
@@ -132,7 +132,7 @@ func timeFormatHour(deviceID, start, end string) (m map[string]interface{}) {
 		return
 	}
 
-	return getDaysDataHour(list)
+	return list
 }
 
 func getDaysDataHour(list []*model.DeviceInfoHour) (returnMapList map[string]interface{}) {
