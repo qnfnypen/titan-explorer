@@ -66,7 +66,7 @@ func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour,
 	max(online_time) as online_time_max,min(online_time) as online_time_min,
 	max(upstream_traffic) as upstream_traffic_max, min(upstream_traffic) as upstream_traffic_min,
 	max(downstream_traffic) as downstream_traffic_max, min(downstream_traffic) as downstream_traffic_min,
-	max(retrieve_count) as retrieve_count_max, min(retrieve_count) as retrieve_count_min,
+	max(retrieve_count) as retrieve_count_max, min(retrieve_count) as retrieve_count_min
 	from device_info_hour where device_id='%s' and time>='%s' and time<='%s' group by date`, cond.DeviceID, option.StartTime, option.EndTime)
 	dataS, err := GetQueryDataList(sqlClause)
 	if err != nil {
