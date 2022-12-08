@@ -14,10 +14,10 @@ var (
 
 func AddFullNodeInfoHours(ctx context.Context, fullNodeInfoHour *model.FullNodeInfoHour) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s (total_node_count, validator_count, candidate_count, edge_count, total_storage, total_uplink_bandwidth, 
-                total_download_bandwidth, total_carfile, total_carfile_size, retrieval_count,  next_election_time, 
+		`INSERT INTO %s (total_node_count, validator_count, candidate_count, edge_count, total_storage, total_upstream_bandwidth, 
+                total_downstream_bandwidth, total_carfile, total_carfile_size, retrieval_count,  next_election_time, 
                 time, created_at) 
-		VALUES (:total_node_count, :validator_count, :candidate_count, :edge_count, :total_storage, :total_uplink_bandwidth, :total_download_bandwidth,
+		VALUES (:total_node_count, :validator_count, :candidate_count, :edge_count, :total_storage, :total_upstream_bandwidth, :total_downstream_bandwidth,
 		:total_carfile, :total_carfile_size, :retrieval_count, :next_election_time, :time, :created_at)`, tableNameFullNodeInfoHours),
 		fullNodeInfoHour)
 	return err
@@ -25,10 +25,10 @@ func AddFullNodeInfoHours(ctx context.Context, fullNodeInfoHour *model.FullNodeI
 
 func AddFullNodeInfoDays(ctx context.Context, fullNodeInfoDay *model.FullNodeInfoHour) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s (validator_count, candidate_count, edge_count, total_storage, total_uplink_bandwidth, 
-                total_download_bandwidth, total_carfile, total_carfile_size, retrieval_count, total_node_count, next_election_time, 
+		`INSERT INTO %s (validator_count, candidate_count, edge_count, total_storage, total_upstream_bandwidth, 
+                total_downstream_bandwidth, total_carfile, total_carfile_size, retrieval_count, total_node_count, next_election_time, 
                 time, created_at) 
-		VALUES (:validator_count, :candidate_count, :edge_count, :total_storage, :total_uplink_bandwidth, :total_download_bandwidth,
+		VALUES (:validator_count, :candidate_count, :edge_count, :total_storage, :total_upstream_bandwidth, :total_downstream_bandwidth,
 		 :next_election_time, :total_carfile, :total_carfile_size, :retrieval_count, :total_node_count, :time, :created_at)`, tableNameFullNodeInfoDays),
 		fullNodeInfoDay)
 	return err
