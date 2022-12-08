@@ -6,7 +6,6 @@ import (
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/utils"
 	logging "github.com/ipfs/go-log/v2"
-	"strconv"
 	"strings"
 )
 
@@ -71,7 +70,11 @@ func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour,
 		hourIncome := fmt.Sprintf("%.2f", utils.Str2Float64(data["hour_income_max"])-utils.Str2Float64(data["hour_income_min"]))
 		data["online_time"] = onlineTime
 		data["hour_income"] = hourIncome
-		data["date"] = strings.Split(data["date"], " ")[1]
+		delete(data, "online_time_max")
+		delete(data, "online_time_min")
+		delete(data, "hour_income_max")
+		delete(data, "hour_income_min")
+		data["date"] = strings.Split(data["date"], " ")[1] + ":00"
 	}
 	return dataS, err
 }
@@ -109,15 +112,15 @@ func GetIncomeAllList(ctx context.Context, cond *model.DeviceInfoDaily, option Q
 		sqlClause = fmt.Sprintf("select date_format(time, '%%Y-%%m-%%d') as date, sum(income) as income from device_info_daily "+
 			"where user_id='%s' and time>='%s' and time<='%s' group by date", cond.UserID, option.StartTime, option.EndTime)
 	}
-	datas, err := GetQueryDataList(sqlClause)
+	dataS, err := GetQueryDataList(sqlClause)
 	if err != nil {
 		return nil
 	}
 	var mapIncomeList []map[string]interface{}
-	for _, data := range datas {
+	for _, data := range dataS {
 		mapIncome := make(map[string]interface{})
 		mapIncome["date"] = data["date"]
-		mapIncome["income"], _ = strconv.ParseFloat(data["income"], 10)
+		mapIncome["income"] = utils.StrToFloat(data["income"])
 		mapIncomeList = append(mapIncomeList, mapIncome)
 	}
 	return mapIncomeList
