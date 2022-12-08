@@ -269,3 +269,28 @@ func GetDeviceDiagnosisHourHandler(c *gin.Context) {
 		"file_system":  deviceInfo.IoSystem,
 	}))
 }
+
+func GetDeviceInfoDailyHandler(c *gin.Context) {
+	cond := &model.DeviceInfoDaily{}
+	cond.DeviceID = c.Query("device_id")
+	pageSize, _ := strconv.Atoi("page_size")
+	page, _ := strconv.Atoi("page")
+	option := dao.QueryOption{
+		Page:       page,
+		PageSize:   pageSize,
+		OrderField: "created_at",
+		Order:      "DESC",
+	}
+
+	list, total, err := dao.GetDeviceInfoDailyByPage(context.Background(), cond, option)
+	if err != nil {
+		log.Errorf("get device info daily: %v", err)
+		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list":  list,
+		"total": total,
+	}))
+}

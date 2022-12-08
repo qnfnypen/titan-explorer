@@ -30,6 +30,7 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	apiV0.GET("/get_user_device_info", GetUserDeviceInfoHandler)
 	apiV0.GET("/get_index_info", GetIndexInfoHandler)
 	apiV0.GET("/get_device_info", GetDeviceInfoHandler)
+	apiV0.GET("/get_device_info_daily", GetDeviceInfoDailyHandler)
 	apiV0.GET("/get_diagnosis_days", GetDeviceDiagnosisDailyHandler)
 	apiV0.GET("/get_diagnosis_hours", GetDeviceDiagnosisHourHandler)
 	apiV0.POST("/create_application", CreateApplicationHandler)
