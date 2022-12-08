@@ -31,7 +31,7 @@ func GetAllAreas(c *gin.Context) {
 }
 
 func GetIndexInfoHandler(c *gin.Context) {
-	fullNodeInfo, err := dao.GetFullNodeInfo(c.Request.Context())
+	fullNodeInfo, err := dao.GetCacheFullNodeInfo(c.Request.Context())
 	if err != nil {
 		log.Errorf("get full node info: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))

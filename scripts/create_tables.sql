@@ -220,9 +220,9 @@ PRIMARY KEY USING BTREE (`id`),
 INDEX `idx_retrieval_info_deleted_at` USING BTREE(`deleted_at` ASC)
 ) ENGINE = INNODB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE utf8mb4_general_ci;
 
-DROP TABLE IF EXISTS `full_node_info_hours`;
+DROP TABLE IF EXISTS `full_node_info`;
 
-CREATE TABLE `full_node_info_hours` (
+CREATE TABLE `full_node_info` (
 `id` BIGINT(20) NOT NULL AUTO_INCREMENT,
 `total_node_count` INT(20) NOT NULL DEFAULT 0,
 `validator_count` INT(20) NOT NULL DEFAULT 0,
@@ -239,27 +239,6 @@ CREATE TABLE `full_node_info_hours` (
 `created_at` DATETIME(3) NOT NULL DEFAULT 0,
 `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
 PRIMARY KEY (`id`)
-) ENGINE = INNODB CHARSET = utf8mb4;
-
-DROP TABLE IF EXISTS `full_node_info_days`;
-
-CREATE TABLE `full_node_info_days` (
- `id` BIGINT(20) NOT NULL AUTO_INCREMENT,
- `total_node_count` INT(20) NOT NULL DEFAULT 0,
- `validator_count` INT(20) NOT NULL DEFAULT 0,
- `candidate_count` INT(20) NOT NULL DEFAULT 0,
- `edge_count` INT(20) NOT NULL DEFAULT 0,
- `total_storage` FLOAT(32) NOT NULL DEFAULT 0,
- `total_upstream_bandwidth` FLOAT(32) NOT NULL DEFAULT 0,
- `total_downstream_bandwidth` FLOAT(32) NOT NULL DEFAULT 0,
- `total_carfile` BIGINT(20) NOT NULL DEFAULT 0,
- `total_carfile_size` FLOAT(32) NOT NULL DEFAULT 0,
- `retrieval_count` BIGINT(20) NOT NULL DEFAULT 0,
- `next_election_time` TIMESTAMP NOT NULL DEFAULT 0,
- `time` TIMESTAMP NOT NULL DEFAULT 0,
- `created_at` DATETIME(3) NOT NULL DEFAULT 0,
- `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
- PRIMARY KEY (`id`)
 ) ENGINE = INNODB CHARSET = utf8mb4;
 
 

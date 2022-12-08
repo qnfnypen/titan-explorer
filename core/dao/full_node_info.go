@@ -2,46 +2,36 @@ package dao
 
 import (
 	"context"
-	"database/sql"
-	"fmt"
+	"encoding/json"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/go-redis/redis/v9"
 )
 
-var (
-	tableNameFullNodeInfoHours = "full_node_info_hours"
-	tableNameFullNodeInfoDays  = "full_node_info_days"
+var tableNameFullNodeInfoHours = "full_node_info"
+
+const (
+	FullNodeInfoKeyExpiration = 0
+	FullNodeInfoKey           = "titan::full_node_info"
 )
 
-func AddFullNodeInfoHours(ctx context.Context, fullNodeInfoHour *model.FullNodeInfoHour) error {
-	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s (total_node_count, validator_count, candidate_count, edge_count, total_storage, total_upstream_bandwidth, 
-                total_downstream_bandwidth, total_carfile, total_carfile_size, retrieval_count,  next_election_time, 
-                time, created_at) 
-		VALUES (:total_node_count, :validator_count, :candidate_count, :edge_count, :total_storage, :total_upstream_bandwidth, :total_downstream_bandwidth,
-		:total_carfile, :total_carfile_size, :retrieval_count, :next_election_time, :time, :created_at)`, tableNameFullNodeInfoHours),
-		fullNodeInfoHour)
+func CacheFullNodeInfo(ctx context.Context, fullNodeInfo *model.FullNodeInfo) error {
+	bytes, err := json.Marshal(fullNodeInfo)
+	if err != nil {
+		return err
+	}
+	_, err = Cache.Set(ctx, FullNodeInfoKey, bytes, FullNodeInfoKeyExpiration).Result()
 	return err
 }
 
-func AddFullNodeInfoDays(ctx context.Context, fullNodeInfoDay *model.FullNodeInfoHour) error {
-	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s (validator_count, candidate_count, edge_count, total_storage, total_upstream_bandwidth, 
-                total_downstream_bandwidth, total_carfile, total_carfile_size, retrieval_count, total_node_count, next_election_time, 
-                time, created_at) 
-		VALUES (:validator_count, :candidate_count, :edge_count, :total_storage, :total_upstream_bandwidth, :total_downstream_bandwidth,
-		 :next_election_time, :total_carfile, :total_carfile_size, :retrieval_count, :total_node_count, :time, :created_at)`, tableNameFullNodeInfoDays),
-		fullNodeInfoDay)
-	return err
-}
-
-func GetFullNodeInfo(ctx context.Context) (*model.FullNodeInfoHour, error) {
-	var out model.FullNodeInfoHour
-	if err := DB.QueryRowxContext(ctx, fmt.Sprintf(
-		`SELECT * FROM %s ORDER BY created_at DESC LIMIT 1`, tableNameFullNodeInfoHours)).StructScan(&out); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
+func GetCacheFullNodeInfo(ctx context.Context) (*model.FullNodeInfo, error) {
+	out := &model.FullNodeInfo{}
+	bytes, err := Cache.Get(ctx, FullNodeInfoKey).Bytes()
+	if err != nil && err != redis.Nil {
 		return nil, err
 	}
-	return &out, nil
+	err = json.Unmarshal(bytes, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
