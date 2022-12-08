@@ -31,3 +31,12 @@ func Str2Int(s string) int {
 	}
 	return ret
 }
+
+func Str2Int64(s string) int64 {
+	ret, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		log.Error(err.Error())
+		return 0
+	}
+	return ret
+}

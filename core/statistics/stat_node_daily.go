@@ -36,6 +36,12 @@ func addDeviceInfoHours(ctx context.Context, deviceInfo []*model.DeviceInfo) err
 		deviceInfoHour.OnlineTime = device.OnlineTime
 		deviceInfoHour.Latency = device.Latency
 		deviceInfoHour.DiskUsage = device.DiskUsage
+		deviceInfoHour.UpstreamTraffic = device.TotalUpload
+		deviceInfoHour.DownstreamTraffic = device.TotalDownload
+		deviceInfoHour.RetrieveCount = device.DownloadCount
+		deviceInfoHour.BlockCount = device.BlockCount
+		deviceInfoHour.CreatedAt = time.Now()
+		deviceInfoHour.UpdatedAt = time.Now()
 		_, ok := DeviceIDAndUserId[deviceInfoHour.DeviceID]
 		if ok {
 			deviceInfoHour.UserID = DeviceIDAndUserId[deviceInfoHour.DeviceID]
@@ -77,8 +83,15 @@ func (s *Statistic) SumDeviceInfoDaily() error {
 
 	startOfTodayTime := carbon.Now().StartOfDay().String()
 	endOfTodayTime := carbon.Now().EndOfDay().String()
-	sqlClause := fmt.Sprintf("select user_id, device_id, date_format(time, '%%Y-%%m-%%d') as date, avg(nat_ratio) as nat_ratio, avg(disk_usage) as disk_usage, avg(latency) as latency, avg(pkg_loss_ratio) as pkg_loss_ratio, max(hour_income) as hour_income_max, min(hour_income) as hour_income_min ,max(online_time) as online_time_max,min(online_time) as online_time_min from device_info_hour "+
-		"where time>='%s' and time<='%s' group by date, device_id", startOfTodayTime, endOfTodayTime)
+	sqlClause := fmt.Sprintf(`select user_id, device_id, date_format(time, '%%Y-%%m-%%d') as date, 
+			avg(nat_ratio) as nat_ratio, avg(disk_usage) as disk_usage, avg(latency) as latency, 
+			avg(pkg_loss_ratio) as pkg_loss_ratio, max(hour_income) as hour_income_max, min(hour_income) as hour_income_min,
+			max(online_time) as online_time_max,min(online_time) as online_time_min,
+			max(upstream_traffic) as upstream_traffic_max, min(upstream_traffic) as upstream_traffic_min,
+			max(downstream_traffic) as downstream_traffic_max, min(downstream_traffic) as downstream_traffic_min,
+			max(retrieve_count) as retrieve_count_max, min(retrieve_count) as retrieve_count_min,
+			max(block_count) as block_count_max, min(block_count) as block_count_min  from device_info_hour                                                                                      
+			where time>='%s' and time<='%s' group by date, device_id`, startOfTodayTime, endOfTodayTime)
 	datas, err := dao.GetQueryDataList(sqlClause)
 	if err != nil {
 		log.Error(err.Error())
@@ -93,6 +106,10 @@ func (s *Statistic) SumDeviceInfoDaily() error {
 		daily.NatRatio = utils.Str2Float64(data["nat_ratio"])
 		daily.Income = utils.Str2Float64(data["hour_income_max"]) - utils.Str2Float64(data["hour_income_min"])
 		daily.OnlineTime = utils.Str2Float64(data["online_time_max"]) - utils.Str2Float64(data["online_time_min"])
+		daily.UpstreamTraffic = utils.Str2Float64(data["upstream_traffic_max"]) - utils.Str2Float64(data["upstream_traffic_min"])
+		daily.DownstreamTraffic = utils.Str2Float64(data["downstream_traffic_max"]) - utils.Str2Float64(data["downstream_traffic_min"])
+		daily.RetrieveCount = utils.Str2Int64(data["retrieve_count_max"]) - utils.Str2Int64(data["retrieve_count_min"])
+		daily.BlockCount = utils.Str2Int64(data["block_count_max"]) - utils.Str2Int64(data["block_count_min"])
 		daily.PkgLossRatio = utils.Str2Float64(data["pkg_loss_ratio"])
 		daily.Latency = utils.Str2Float64(data["latency"])
 		daily.DeviceID = data["device_id"]

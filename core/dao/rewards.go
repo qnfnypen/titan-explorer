@@ -17,11 +17,12 @@ var (
 
 func BulkUpsertDeviceInfoHours(ctx context.Context, hourInfos []*model.DeviceInfoHour) error {
 	upsertStatement := fmt.Sprintf(`INSERT INTO %s (created_at, updated_at, hour_income, user_id, device_id,
-				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage, time)
+				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage, upstream_traffic, downstream_traffic, retrieve_count, block_count, time)
 			VALUES (:created_at, :updated_at, :hour_income, :user_id, :device_id, :online_time, :pkg_loss_ratio, :latency, 
-			    :nat_ratio, :disk_usage, :time) 
+			    :nat_ratio, :disk_usage, :upstream_traffic, :downstream_traffic, :retrieve_count, :block_count, :time) 
 			 ON DUPLICATE KEY UPDATE updated_at = now(), hour_income = :hour_income,
 			online_time = :online_time, pkg_loss_ratio = :pkg_loss_ratio, latency = :latency,
+			upstream_traffic = :upstream_traffic, downstream_traffic = :downstream_traffic, retrieve_count = :retrieve_count, block_count = :block_count,
 			nat_ratio = :nat_ratio, disk_usage = :disk_usage`, tableNameDeviceInfoHour)
 	tx := DB.MustBegin()
 	defer tx.Rollback()
@@ -38,11 +39,12 @@ func BulkUpsertDeviceInfoHours(ctx context.Context, hourInfos []*model.DeviceInf
 
 func BulkUpsertDeviceInfoDaily(ctx context.Context, dailyInfos []*model.DeviceInfoDaily) error {
 	upsertStatement := fmt.Sprintf(`INSERT INTO %s (created_at, updated_at, income, user_id, device_id,
-				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage, time)
+				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage, upstream_traffic, downstream_traffic, retrieve_count, block_count, time)
 			VALUES (:created_at, :updated_at, :income, :user_id, :device_id,
-				:online_time, :pkg_loss_ratio, :latency, :nat_ratio, :disk_usage, :time) 
+				:online_time, :pkg_loss_ratio, :latency, :nat_ratio, :disk_usage, :upstream_traffic, :downstream_traffic, :retrieve_count, :block_count, :time) 
 			 ON DUPLICATE KEY UPDATE updated_at = now(), income = :income,
 			online_time = :online_time, pkg_loss_ratio = :pkg_loss_ratio, latency = :latency,
+			upstream_traffic = :upstream_traffic, downstream_traffic = :downstream_traffic, retrieve_count = :retrieve_count, block_count = :block_count,
 			nat_ratio = :nat_ratio, disk_usage = :disk_usage`, tableNameDeviceInfoDaily)
 	tx := DB.MustBegin()
 	defer tx.Rollback()
@@ -58,8 +60,14 @@ func BulkUpsertDeviceInfoDaily(ctx context.Context, dailyInfos []*model.DeviceIn
 }
 
 func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour, option QueryOption) ([]map[string]string, error) {
-	sqlClause := fmt.Sprintf("select user_id,date_format(time, '%%Y-%%m-%%d %%H') as date, avg(nat_ratio) as nat_ratio, avg(disk_usage) as disk_usage, avg(latency) as latency, avg(pkg_loss_ratio) as pkg_loss_ratio, max(hour_income) as hour_income_max, min(hour_income) as hour_income_min ,max(online_time) as online_time_max,min(online_time) as online_time_min from device_info_hour "+
-		"where device_id='%s' and time>='%s' and time<='%s' group by date", cond.DeviceID, option.StartTime, option.EndTime)
+	sqlClause := fmt.Sprintf(`select user_id,date_format(time, '%%Y-%%m-%%d %%H') as date, avg(nat_ratio) as nat_ratio, 
+	avg(disk_usage) as disk_usage, avg(latency) as latency, avg(pkg_loss_ratio) as pkg_loss_ratio, 
+	max(hour_income) as hour_income_max, min(hour_income) as hour_income_min,
+	max(online_time) as online_time_max,min(online_time) as online_time_min,
+	max(upstream_traffic) as upstream_traffic_max, min(upstream_traffic) as upstream_traffic_min,
+	max(downstream_traffic) as downstream_traffic_max, min(downstream_traffic) as downstream_traffic_min,
+	max(retrieve_count) as retrieve_count_max, min(retrieve_count) as retrieve_count_min,
+	from device_info_hour where device_id='%s' and time>='%s' and time<='%s' group by date`, cond.DeviceID, option.StartTime, option.EndTime)
 	dataS, err := GetQueryDataList(sqlClause)
 	if err != nil {
 		log.Error(err.Error())
@@ -68,12 +76,24 @@ func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour,
 	for _, data := range dataS {
 		onlineTime := fmt.Sprintf("%.2f", utils.Str2Float64(data["online_time_max"])-utils.Str2Float64(data["online_time_min"]))
 		hourIncome := fmt.Sprintf("%.2f", utils.Str2Float64(data["hour_income_max"])-utils.Str2Float64(data["hour_income_min"]))
+		upstreamTraffic := fmt.Sprintf("%.2f", utils.Str2Float64(data["upstream_traffic_max"])-utils.Str2Float64(data["upstream_traffic_min"]))
+		downstreamTraffic := fmt.Sprintf("%.2f", utils.Str2Float64(data["downstream_traffic_max"])-utils.Str2Float64(data["downstream_traffic_min"]))
+		RetrieveCount := fmt.Sprintf("%d", utils.Str2Int64(data["retrieve_count_max"])-utils.Str2Int64(data["retrieve_count_min"]))
 		data["online_time"] = onlineTime
 		data["hour_income"] = hourIncome
+		data["upstream_traffic"] = upstreamTraffic
+		data["downstream_traffic"] = downstreamTraffic
+		data["retrieve_count"] = RetrieveCount
 		delete(data, "online_time_max")
 		delete(data, "online_time_min")
 		delete(data, "hour_income_max")
 		delete(data, "hour_income_min")
+		delete(data, "upstream_traffic_min")
+		delete(data, "upstream_traffic_max")
+		delete(data, "downstream_traffic_min")
+		delete(data, "downstream_traffic_max")
+		delete(data, "retrieve_count_min")
+		delete(data, "retrieve_count_max")
 		data["date"] = strings.Split(data["date"], " ")[1] + ":00"
 	}
 	return dataS, err

@@ -131,13 +131,13 @@ func upsertDeviceInfoStatement() string {
 				network_type, system_version, product_type,
 				network_info, external_ip, internal_ip, ip_location, ip_country, ip_city, mac_location, nat_type, upnp,
 				pkg_loss_ratio, nat_ratio, latency, cpu_usage, memory_usage, cpu_cores, memory, disk_usage, disk_space, work_status,
-				device_status, disk_type, io_system, online_time, today_online_time, today_profit,
+				device_status, disk_type, io_system, online_time, today_online_time, today_profit, total_upload, total_download, download_count, block_count,
 				yesterday_profit, seven_days_profit, month_profit, cumulative_profit, bandwidth_up, bandwidth_down, created_at, updated_at)
 			VALUES (:device_id, :node_type, :device_name, :user_id, :sn_code, :operator,
 			    :network_type, :system_version, :product_type, 
 			    :network_info, :external_ip, :internal_ip, :ip_location, :ip_country, :ip_city, :mac_location, :nat_type, :upnp, 
 			    :pkg_loss_ratio, :nat_ratio, :latency, :cpu_usage, :memory_usage, :cpu_cores, :memory, :disk_usage, :disk_space, :work_status, 
-			    :device_status, :disk_type, :io_system, :online_time, :today_online_time, :today_profit,
+			    :device_status, :disk_type, :io_system, :online_time, :today_online_time, :today_profit, :total_upload, :total_download, :download_count, block_count,
 				:yesterday_profit, :seven_days_profit, :month_profit, :cumulative_profit, :bandwidth_up, :bandwidth_down, now(), now())`, tableNameDeviceInfo,
 	)
 	updateStatement := ` ON DUPLICATE KEY UPDATE node_type = :node_type,  device_name = :device_name,
@@ -147,6 +147,7 @@ func upsertDeviceInfoStatement() string {
 				mac_location = :mac_location,  nat_type = :nat_type,  upnp = :upnp, pkg_loss_ratio = :pkg_loss_ratio, online_time = :online_time,
 				nat_ratio = :nat_ratio,  latency = :latency,  cpu_usage = :cpu_usage, cpu_cores = :cpu_cores,  memory_usage = :memory_usage, memory = :memory,
 				disk_usage = :disk_usage, disk_space = :disk_space,  work_status = :work_status, device_status = :device_status,  disk_type = :disk_type,
+ 				total_upload = :total_upload, total_download = :total_download, download_count = :download_count, block_count = :block_count,
 				io_system = :io_system, bandwidth_up = :bandwidth_up, bandwidth_down = :bandwidth_down, updated_at = now()`
 	return insertStatement + updateStatement
 }

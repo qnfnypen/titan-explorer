@@ -82,6 +82,10 @@ type DeviceInfo struct {
 	CumulativeProfit float64 `db:"cumulative_profit" json:"cumulative_profit"`
 	BandwidthUp      float64 `db:"bandwidth_up" json:"bandwidth_up"`
 	BandwidthDown    float64 `db:"bandwidth_down" json:"bandwidth_down"`
+	TotalDownload    float64 `db:"total_download" json:"total_download"`
+	TotalUpload      float64 `db:"total_upload" json:"total_upload"`
+	BlockCount       int64   `db:"block_count" json:"block_count"`
+	DownloadCount    int64   `db:"download_count" json:"download_count"`
 }
 
 type DeviceInfoDaily struct {
@@ -101,6 +105,7 @@ type DeviceInfoDaily struct {
 	UpstreamTraffic   float64   `db:"upstream_traffic" json:"upstream_traffic"`
 	DownstreamTraffic float64   `db:"downstream_traffic" json:"downstream_traffic"`
 	RetrieveCount     int64     `db:"retrieve_count" json:"retrieve_count"`
+	BlockCount        int64     `db:"block_count" json:"block_count"`
 }
 
 type DeviceInfoHour struct {
@@ -120,6 +125,7 @@ type DeviceInfoHour struct {
 	UpstreamTraffic   float64   `db:"upstream_traffic" json:"upstream_traffic"`
 	DownstreamTraffic float64   `db:"downstream_traffic" json:"downstream_traffic"`
 	RetrieveCount     int64     `db:"retrieve_count" json:"retrieve_count"`
+	BlockCount        int64     `db:"block_count" json:"block_count"`
 }
 
 type FullNodeInfoDay struct {

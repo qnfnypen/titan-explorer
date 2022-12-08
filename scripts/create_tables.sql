@@ -115,6 +115,10 @@ CREATE TABLE `device_info` (
   `cumulative_profit` FLOAT(32) NOT NULL DEFAULT '0',
   `bandwidth_up` FLOAT(32) NOT NULL DEFAULT '0',
   `bandwidth_down` FLOAT(32) NOT NULL DEFAULT '0',
+  `total_download` FLOAT(32) NOT NULL DEFAULT '0',
+  `total_upload` FLOAT(32) NOT NULL DEFAULT '0',
+  `block_count` BIGINT(20) NOT NULL DEFAULT '0',
+  `download_count` BIGINT(20) NOT NULL DEFAULT '0',
   PRIMARY KEY USING BTREE (`id`),
   UNIQUE KEY `idx_device_id` (`device_id`) USING BTREE,
   INDEX `idx_device_info_deleted_at` USING BTREE(`deleted_at` ASC)
@@ -165,6 +169,7 @@ CREATE TABLE `device_info_daily` (
    `upstream_traffic` FLOAT(32) NOT NULL DEFAULT '0',
    `downstream_traffic` FLOAT(32) NOT NULL DEFAULT '0',
    `retrieve_count` BIGINT(20) NOT NULL DEFAULT '0',
+   `block_count` BIGINT(20) NOT NULL DEFAULT '0',
    PRIMARY KEY USING BTREE (`id`),
    UNIQUE KEY `idx_device_id_time` (`device_id`,`time`) USING BTREE,
    INDEX `idx_device_info_daily_deleted_at` USING BTREE(`deleted_at` ASC)
@@ -189,6 +194,7 @@ CREATE TABLE `device_info_hour` (
  `upstream_traffic` FLOAT(32) NOT NULL DEFAULT '0',
  `downstream_traffic` FLOAT(32) NOT NULL DEFAULT '0',
  `retrieve_count` BIGINT(20) NOT NULL DEFAULT '0',
+ `block_count` BIGINT(20) NOT NULL DEFAULT '0',
  PRIMARY KEY USING BTREE (`id`),
  INDEX `idx_device_info_hour_deleted_at` USING BTREE(`deleted_at` ASC)
 ) ENGINE = INNODB CHARSET = utf8;

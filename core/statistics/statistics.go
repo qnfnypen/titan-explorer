@@ -25,7 +25,7 @@ func (s *Statistic) initContabs() {
 
 	// @every 10m
 	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeyFetchAllNodes, s.FetchAllNodes))
-	// @every 1h
+	// @every 5m
 	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeySumDeviceInfoDaily, s.SumDeviceInfoDaily))
 	// @every 10m
 	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeyCountFullNodes, s.CountFullNodeInfo))
