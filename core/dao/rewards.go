@@ -62,11 +62,11 @@ func BulkUpsertDeviceInfoDaily(ctx context.Context, dailyInfos []*model.DeviceIn
 func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour, option QueryOption) ([]map[string]string, error) {
 	sqlClause := fmt.Sprintf(`select user_id,date_format(time, '%%Y-%%m-%%d %%H') as date, avg(nat_ratio) as nat_ratio, 
 	avg(disk_usage) as disk_usage, avg(latency) as latency, avg(pkg_loss_ratio) as pkg_loss_ratio, 
-	max(hour_income) as hour_income_max, min(hour_income) as hour_income_min,
-	max(online_time) as online_time_max,min(online_time) as online_time_min,
-	max(upstream_traffic) as upstream_traffic_max, min(upstream_traffic) as upstream_traffic_min,
-	max(downstream_traffic) as downstream_traffic_max, min(downstream_traffic) as downstream_traffic_min,
-	max(retrieve_count) as retrieve_count_max, min(retrieve_count) as retrieve_count_min
+	max(hour_income) - min(hour_income) as hour_income,
+	max(online_time) - min(online_time) as online_time,
+	max(upstream_traffic) - min(upstream_traffic) as upstream_traffic,
+	max(downstream_traffic) - min(downstream_traffic) as downstream_traffic,
+	max(retrieve_count) - min(retrieve_count) as retrieve_count
 	from device_info_hour where device_id='%s' and time>='%s' and time<='%s' group by date`, cond.DeviceID, option.StartTime, option.EndTime)
 	dataS, err := GetQueryDataList(sqlClause)
 	if err != nil {
@@ -74,26 +74,6 @@ func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour,
 		return nil, err
 	}
 	for _, data := range dataS {
-		onlineTime := fmt.Sprintf("%.2f", utils.Str2Float64(data["online_time_max"])-utils.Str2Float64(data["online_time_min"]))
-		hourIncome := fmt.Sprintf("%.2f", utils.Str2Float64(data["hour_income_max"])-utils.Str2Float64(data["hour_income_min"]))
-		upstreamTraffic := fmt.Sprintf("%.2f", utils.Str2Float64(data["upstream_traffic_max"])-utils.Str2Float64(data["upstream_traffic_min"]))
-		downstreamTraffic := fmt.Sprintf("%.2f", utils.Str2Float64(data["downstream_traffic_max"])-utils.Str2Float64(data["downstream_traffic_min"]))
-		RetrieveCount := fmt.Sprintf("%d", utils.Str2Int64(data["retrieve_count_max"])-utils.Str2Int64(data["retrieve_count_min"]))
-		data["online_time"] = onlineTime
-		data["hour_income"] = hourIncome
-		data["upstream_traffic"] = upstreamTraffic
-		data["downstream_traffic"] = downstreamTraffic
-		data["retrieve_count"] = RetrieveCount
-		delete(data, "online_time_max")
-		delete(data, "online_time_min")
-		delete(data, "hour_income_max")
-		delete(data, "hour_income_min")
-		delete(data, "upstream_traffic_min")
-		delete(data, "upstream_traffic_max")
-		delete(data, "downstream_traffic_min")
-		delete(data, "downstream_traffic_max")
-		delete(data, "retrieve_count_min")
-		delete(data, "retrieve_count_max")
 		data["date"] = strings.Split(data["date"], " ")[1] + ":00"
 	}
 	return dataS, err
