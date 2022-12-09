@@ -5,6 +5,7 @@
 package model
 
 import (
+	"database/sql"
 	"time"
 )
 
@@ -32,6 +33,28 @@ type ApplicationResult struct {
 	Secret        string    `db:"secret" json:"secret"`
 	CreatedAt     time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt     time.Time `db:"updated_at" json:"updated_at"`
+}
+
+type BlockInfo struct {
+	ID          int64         `db:"id" json:"id"`
+	DeviceID    string        `db:"device_id" json:"device_id"`
+	CarfileHash string        `db:"carfile_hash" json:"carfile_hash"`
+	CarfileCid  string        `db:"carfile_cid" json:"carfile_cid"`
+	Status      sql.NullInt32 `db:"status" json:"status"`
+	Size        sql.NullInt32 `db:"size" json:"size"`
+	CreatedTime sql.NullTime  `db:"created_time" json:"created_time"`
+	EndTime     sql.NullTime  `db:"end_time" json:"end_time"`
+}
+
+type CacheEvent struct {
+	ID         int64     `db:"id" json:"id"`
+	DeviceID   string    `db:"device_id" json:"device_id"`
+	CarfileCid string    `db:"carfile_cid" json:"carfile_cid"`
+	BlockSize  float64   `db:"block_size" json:"block_size"`
+	Blocks     int64     `db:"blocks" json:"blocks"`
+	Time       time.Time `db:"time" json:"time"`
+	CreatedAt  time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt  time.Time `db:"updated_at" json:"updated_at"`
 }
 
 type DeviceInfo struct {
@@ -141,6 +164,7 @@ type FullNodeInfo struct {
 	TotalCarfileSize         float64   `db:"total_carfile_size" json:"total_carfile_size"`
 	RetrievalCount           int64     `db:"retrieval_count" json:"retrieval_count"`
 	NextElectionTime         time.Time `db:"next_election_time" json:"next_election_time"`
+	Time                     time.Time `db:"time" json:"time"`
 	CreatedAt                time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt                time.Time `db:"updated_at" json:"updated_at"`
 }

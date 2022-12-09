@@ -18,6 +18,7 @@ const (
 	DKeyFetchAllNodes      = "titan::dk_fetch_all_nodes"
 	DKeySumDeviceInfoDaily = "titan::dk_sum_device_info_daily"
 	DKeyCountFullNodes     = "titan::dk_count_full_nodes"
+	DKeyCountCacheFiles    = "titan::dk_count_cache_files"
 )
 
 func (s *Statistic) initContabs() {
@@ -29,6 +30,8 @@ func (s *Statistic) initContabs() {
 	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeySumDeviceInfoDaily, s.SumDeviceInfoDaily))
 	// @every 10m
 	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeyCountFullNodes, s.CountFullNodeInfo))
+	// @every 5m
+	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeyCountCacheFiles, s.CountCacheFiles))
 }
 
 type Statistic struct {
