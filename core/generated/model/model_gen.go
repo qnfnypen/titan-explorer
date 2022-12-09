@@ -217,6 +217,16 @@ type RetrievalInfo struct {
 	UserID         string    `db:"user_id" json:"user_id"`
 }
 
+type RetrieveEvent struct {
+	ID                int64     `db:"id" json:"id"`
+	DeviceID          string    `db:"device_id" json:"device_id"`
+	Blocks            int64     `db:"blocks" json:"blocks"`
+	Time              time.Time `db:"time" json:"time"`
+	UpstreamBandwidth float64   `db:"upstream_bandwidth" json:"upstream_bandwidth"`
+	CreatedAt         time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt         time.Time `db:"updated_at" json:"updated_at"`
+}
+
 type Scheduler struct {
 	ID        int64     `db:"id" json:"id"`
 	Name      string    `db:"name" json:"name"`

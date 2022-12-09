@@ -128,7 +128,7 @@ func (s *Statistic) SumDeviceInfoDaily() error {
 	return nil
 }
 
-func (s *Statistic) SumDeviceInfoProfit() error {
+func (s *Statistic) SumDeviceInfoProfit() {
 	log.Info("start sum device info profit")
 	start := time.Now()
 	defer func() {
@@ -199,5 +199,5 @@ func (s *Statistic) SumDeviceInfoProfit() error {
 		log.Errorf("bulk update device: %v", err)
 	}
 
-	return nil
+	return
 }

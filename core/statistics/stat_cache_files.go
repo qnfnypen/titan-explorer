@@ -107,3 +107,7 @@ func hashToCID(hashString string) string {
 	cid := cid.NewCidV1(cid.Raw, multiphase)
 	return cid.String()
 }
+
+func (s *Statistic) CountRetrieve() {
+
+}

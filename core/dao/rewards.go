@@ -165,3 +165,57 @@ func GetDeviceInfoDailyByPage(ctx context.Context, cond *model.DeviceInfoDaily, 
 
 	return out, total, err
 }
+
+func GetRetrieveEventsFromDeviceByPage(ctx context.Context, cond *model.DeviceInfoHour, option QueryOption) ([]*model.DeviceInfoHour, int64, error) {
+	var args []interface{}
+	where := `WHERE 1=1`
+	if cond.DeviceID != "" {
+		where += ` AND device_id = ?`
+		args = append(args, cond.DeviceID)
+	}
+
+	limit := option.PageSize
+	offset := option.Page
+	if option.PageSize <= 0 {
+		limit = 50
+	}
+	if option.Page > 0 {
+		offset = limit * (option.Page - 1)
+	}
+
+	var total int64
+	var out []*model.DeviceInfoHour
+
+	err := DB.GetContext(ctx, &total, fmt.Sprintf(
+		`select count(*)  from (
+	select device_id, retrieve_count , upstream_traffic , created_at, 
+	@a.retrieve_count AS pre_retrieve_count,
+	@a.upstream_traffic AS pre_upstream_traffic,
+	@a.retrieve_count := a.retrieve_count, 
+	@a.upstream_traffic := a.upstream_traffic  
+	from %s a ,
+	(SELECT @a.retrieve_count := 0, @a.upstream_traffic := 0 ) b %s
+) c where (c.retrieve_count - c.pre_retrieve_count) > 0`, tableNameDeviceInfoHour, where,
+	), args...)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	query := fmt.Sprintf(`
+select device_id, created_at, (c.retrieve_count - c.pre_retrieve_count) as retrieve_count, (c.upstream_traffic - c.pre_upstream_traffic) as upstream_traffic  
+from (
+	select device_id, retrieve_count , upstream_traffic , created_at, 
+	@a.retrieve_count AS pre_retrieve_count,
+	@a.upstream_traffic AS pre_upstream_traffic,
+	@a.retrieve_count := a.retrieve_count, 
+	@a.upstream_traffic := a.upstream_traffic  
+	from %s a ,
+	(SELECT @a.retrieve_count := 0, @a.upstream_traffic := 0 ) b %s
+) c where (c.retrieve_count - c.pre_retrieve_count) > 0 ORDER BY created_at DESC limit %d offset %d`, tableNameDeviceInfoHour, where, limit, offset)
+	err = DB.SelectContext(ctx, &out, query, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return out, total, err
+}

@@ -24,11 +24,35 @@ func GetCacheListHandler(c *gin.Context) {
 
 	list, total, err := dao.GetCacheEventsByPage(c.Request.Context(), info, option)
 	if err != nil {
-		log.Errorf("get device info list: %v", err)
+		log.Errorf("get cache events by page: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrNotFound))
 		return
 	}
-	
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list":  list,
+		"total": total,
+	}))
+}
+
+func GetRetrieveListHandler(c *gin.Context) {
+	info := &model.DeviceInfoHour{
+		DeviceID: c.Query("device_id"),
+	}
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+	page, _ := strconv.Atoi(c.Query("page"))
+	option := dao.QueryOption{
+		Page:     page,
+		PageSize: pageSize,
+	}
+
+	list, total, err := dao.GetRetrieveEventsFromDeviceByPage(c.Request.Context(), info, option)
+	if err != nil {
+		log.Errorf("get retrives by page: %v", err)
+		c.JSON(http.StatusBadRequest, respError(errors.ErrNotFound))
+		return
+	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"list":  list,
 		"total": total,

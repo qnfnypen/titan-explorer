@@ -38,8 +38,6 @@ func deleteBlocksByTimeTx(ctx context.Context, tx *sqlx.Tx, startTime, endTime t
 }
 
 func TxStatisticDeviceBlocks(ctx context.Context, startTime, endTime time.Time) error {
-	log.Debug("TxStatisticDeviceBlocks ", startTime, endTime)
-
 	tx, err := DB.Beginx()
 	if err != nil {
 		return err

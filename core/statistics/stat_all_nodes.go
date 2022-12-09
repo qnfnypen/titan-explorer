@@ -50,9 +50,8 @@ loop:
 		goto loop
 	}
 
-	if err = s.SumDeviceInfoProfit(); err != nil {
-		return err
-	}
+	go s.SumDeviceInfoProfit()
+	go s.CountRetrieve()
 
 	return nil
 }
