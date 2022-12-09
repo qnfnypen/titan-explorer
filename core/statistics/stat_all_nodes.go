@@ -84,25 +84,25 @@ func (s *Statistic) CountFullNodeInfo() error {
 	}()
 
 	ctx := context.Background()
-	//resp, err := s.api.StatCaches(ctx)
-	//if err != nil {
-	//	log.Errorf("stat caches: %v", err)
-	//	return err
-	//}
+	resp, err := s.api.GetSystemInfo(ctx)
+	if err != nil {
+		log.Errorf("stat caches: %v", err)
+		return err
+	}
 
-	fullNodeInfoHour, err := dao.CountFullNodeInfo(ctx)
+	fullNodeInfo, err := dao.CountFullNodeInfo(ctx)
 	if err != nil {
 		log.Errorf("count full node: %v", err)
 		return err
 	}
 
-	//fullNodeInfoHour.TotalCarfile = int64(resp.CarFileCount)
-	//fullNodeInfoHour.RetrievalCount = int64(resp.DownloadCount)
-	//fullNodeInfoHour.TotalCarfileSize = float64(resp.TotalSize)
+	fullNodeInfo.TotalCarfile = int64(resp.CarFileCount)
+	fullNodeInfo.RetrievalCount = int64(resp.DownloadCount)
+	//fullNodeInfo.TotalCarfileSize = float64(resp.TotalSize)
 
-	//fullNodeInfoHour.Time = time.Now()
-	//fullNodeInfoHour.CreatedAt = time.Now()
-	err = dao.CacheFullNodeInfo(ctx, fullNodeInfoHour)
+	fullNodeInfo.Time = time.Now()
+	fullNodeInfo.CreatedAt = time.Now()
+	err = dao.CacheFullNodeInfo(ctx, fullNodeInfo)
 	if err != nil {
 		log.Errorf("add full node info hours: %v", err)
 		return err
