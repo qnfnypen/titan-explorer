@@ -128,7 +128,10 @@ func (s *Server) handleApplication(ctx context.Context, application *model.Appli
 		return nil
 	}
 
-	go utils.HandleEmailInfo(application.Email, registrations)
+	err = s.sendEmail(application.Email, registrations)
+	if err != nil {
+		log.Errorf("send email appicationID:%d, %v", application.ID, err)
+	}
 
 	err = dao.AddApplicationResult(ctx, results)
 	if err != nil {
@@ -149,5 +152,21 @@ func (s *Server) handleApplication(ctx context.Context, application *model.Appli
 		return err
 	}
 
+	return nil
+}
+
+func (s *Server) sendEmail(sendTo string, results []api.NodeRegisterInfo) error {
+	var EData utils.EmailData
+	EData.Subject = "YOUR DEVICE INFO"
+	EData.Tittle = "please check your device id and secret"
+	EData.SendTo = sendTo
+	EData.Content = ""
+	for _, registration := range results {
+		EData.Content += registration.DeviceID + ":" + registration.Secret + "\n"
+	}
+	err := utils.SendEmail(s.cfg.Email, EData)
+	if err != nil {
+		return err
+	}
 	return nil
 }

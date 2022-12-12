@@ -7,7 +7,13 @@ type Config struct {
 	SecretKey     string
 	RedisAddr     string
 	RedisPassword string
-	EmailName     string
-	EmailAddress  string
-	EmailSecret   string
+	Email         EmailConfig
+}
+
+type EmailConfig struct {
+	SMTP    string
+	Host    string
+	Name    string
+	Address string
+	Secret  string
 }

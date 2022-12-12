@@ -4,3 +4,10 @@ DatabaseURL = "root:example@tcp(localhost:3306)/example?charset=utf8mb4&parseTim
 SecretKey = "test"
 RedisAddr = "127.0.0.1:6379"
 RedisPassword = ""
+
+[Email]
+    SMTP = "smtp.qq.com:587"
+    Host = "smtp.qq.com"
+    Name = "titan"
+    Address = "titan@gmail.com"
+    Secret = "test"
