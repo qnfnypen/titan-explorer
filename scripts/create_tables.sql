@@ -253,7 +253,7 @@ CREATE TABLE `application` (
 `node_type` TINYINT(4) NOT NULL DEFAULT 0,
 `amount` INT(20) NOT NULL DEFAULT 0,
 `upstream_bandwidth` FLOAT(32) NOT NULL DEFAULT 0,
-`downstream_bandwidth` FLOAT(32) NOT NULL DEFAULT 0,
+`disk_space` FLOAT(32) NOT NULL DEFAULT 0,
 `status` TINYINT(4) NOT NULL DEFAULT 0,
 `created_at` DATETIME(3) NOT NULL DEFAULT 0,
 `updated_at` DATETIME(3) NOT NULL DEFAULT 0,

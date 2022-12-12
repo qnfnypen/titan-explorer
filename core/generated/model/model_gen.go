@@ -10,18 +10,18 @@ import (
 )
 
 type Application struct {
-	ID                  int64     `db:"id" json:"id"`
-	UserID              string    `db:"user_id" json:"user_id"`
-	Email               string    `db:"email" json:"email"`
-	IpCountry           string    `db:"ip_country" json:"ip_country"`
-	IpCity              string    `db:"ip_city" json:"ip_city"`
-	NodeType            int32     `db:"node_type" json:"node_type"`
-	Amount              int32     `db:"amount" json:"amount"`
-	UpstreamBandwidth   float64   `db:"upstream_bandwidth" json:"upstream_bandwidth"`
-	DownstreamBandwidth float64   `db:"downstream_bandwidth" json:"downstream_bandwidth"`
-	Status              int32     `db:"status" json:"status"`
-	CreatedAt           time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt           time.Time `db:"updated_at" json:"updated_at"`
+	ID                int64     `db:"id" json:"id"`
+	UserID            string    `db:"user_id" json:"user_id"`
+	Email             string    `db:"email" json:"email"`
+	IpCountry         string    `db:"ip_country" json:"ip_country"`
+	IpCity            string    `db:"ip_city" json:"ip_city"`
+	NodeType          int32     `db:"node_type" json:"node_type"`
+	Amount            int32     `db:"amount" json:"amount"`
+	UpstreamBandwidth float64   `db:"upstream_bandwidth" json:"upstream_bandwidth"`
+	DiskSpace         float64   `db:"disk_space" json:"disk_space"`
+	Status            int32     `db:"status" json:"status"`
+	CreatedAt         time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt         time.Time `db:"updated_at" json:"updated_at"`
 }
 
 type ApplicationResult struct {
