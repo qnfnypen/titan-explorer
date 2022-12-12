@@ -202,12 +202,12 @@ func (s *Server) handleApplication(ctx context.Context, application *model.Appli
 
 func (s *Server) sendEmail(sendTo string, results []api.NodeRegisterInfo) error {
 	var EData utils.EmailData
-	EData.Subject = "YOUR DEVICE INFO"
+	EData.Subject = "[Application]: Your Device Info"
 	EData.Tittle = "please check your device id and secret"
 	EData.SendTo = sendTo
-	EData.Content = ""
+	EData.Content = "<h1>Your Device ID and Secret：</h1>\n"
 	for _, registration := range results {
-		EData.Content += registration.DeviceID + ":" + registration.Secret + "\n"
+		EData.Content += registration.DeviceID + ":" + registration.Secret + "<br>"
 	}
 	err := utils.SendEmail(s.cfg.Email, EData)
 	if err != nil {

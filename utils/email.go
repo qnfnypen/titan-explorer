@@ -20,7 +20,7 @@ func SendEmail(cfg config.EmailConfig, data EmailData) error {
 		From:    cfg.Name + "<" + cfg.Address + ">",
 		Subject: data.Subject,
 		Text:    []byte(data.Tittle),
-		HTML:    []byte("<h1>" + data.Content + "</h1>\n"),
+		HTML:    []byte(data.Content),
 		Headers: textproto.MIMEHeader{},
 	}
 
