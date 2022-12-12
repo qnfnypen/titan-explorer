@@ -85,13 +85,20 @@ func getSchedulerClient() (api.Scheduler, func(), error) {
 }
 
 func (s *Server) asyncHandleApplication() {
+	ctx := context.Background()
 	handleApplicationInterval := time.Minute
 	ticker := time.NewTicker(handleApplicationInterval)
+
+	reSendEmailInterval := time.Minute
+	reSendEmailTicker := time.NewTicker(reSendEmailInterval)
+
 	for {
 		select {
 		case <-ticker.C:
-			ctx := context.Background()
-			applications, err := dao.GetApplicationList(ctx)
+			applications, err := dao.GetApplicationList(ctx, []int{
+				dao.ApplicationStatusCreated,
+				dao.ApplicationStatusFailed,
+			})
 			if err != nil {
 				log.Errorf("get applications: %v", err)
 				continue
@@ -102,6 +109,45 @@ func (s *Server) asyncHandleApplication() {
 			}
 
 			ticker.Reset(handleApplicationInterval)
+		case <-reSendEmailTicker.C:
+			applications, err := dao.GetApplicationList(ctx, []int{
+				dao.ApplicationStatusSendEmailFailed,
+			})
+			if err != nil {
+				log.Errorf("get applications: %v", err)
+				continue
+			}
+
+			for _, application := range applications {
+				results, err := dao.GetApplicationResults(ctx, application.ID)
+				if err != nil {
+					log.Errorf("get application results: %v", err)
+					continue
+				}
+
+				var infos []api.NodeRegisterInfo
+				for _, res := range results {
+					infos = append(infos, api.NodeRegisterInfo{
+						DeviceID: res.DeviceID,
+						Secret:   res.Secret,
+					})
+				}
+
+				status := dao.ApplicationStatusFinished
+				err = s.sendEmail(application.Email, infos)
+				if err != nil {
+					status = dao.ApplicationStatusSendEmailFailed
+					log.Errorf("send email appicationID:%d, %v", application.ID, err)
+				}
+
+				err = dao.UpdateApplicationStatus(ctx, application.ID, status)
+				if err != nil {
+					log.Errorf("update application status: %v", err)
+				}
+			}
+			reSendEmailTicker.Reset(reSendEmailInterval)
+		case <-ctx.Done():
+			return
 		}
 	}
 }
@@ -115,12 +161,13 @@ func (s *Server) handleApplication(ctx context.Context, application *model.Appli
 	var results []*model.ApplicationResult
 	for _, registration := range registrations {
 		results = append(results, &model.ApplicationResult{
-			UserID:    application.UserID,
-			DeviceID:  registration.DeviceID,
-			NodeType:  application.NodeType,
-			Secret:    registration.Secret,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			UserID:        application.UserID,
+			DeviceID:      registration.DeviceID,
+			NodeType:      application.NodeType,
+			Secret:        registration.Secret,
+			ApplicationID: application.ID,
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
 		})
 	}
 
@@ -128,27 +175,25 @@ func (s *Server) handleApplication(ctx context.Context, application *model.Appli
 		return nil
 	}
 
-	err = s.sendEmail(application.Email, registrations)
-	if err != nil {
-		log.Errorf("send email appicationID:%d, %v", application.ID, err)
-	}
+	status := dao.ApplicationStatusFinished
+	defer func() {
+		err = dao.UpdateApplicationStatus(ctx, application.ID, status)
+		if err != nil {
+			log.Errorf("update application status: %v", err)
+		}
+	}()
 
 	err = dao.AddApplicationResult(ctx, results)
 	if err != nil {
+		status = dao.ApplicationStatusFailed
 		log.Errorf("create application result: %v", err)
-
-		err = dao.UpdateApplicationStatus(ctx, application.ID, dao.ApplicationStatusFailed)
-		if err != nil {
-			log.Errorf("update application status: %v", err)
-			return err
-		}
-
 		return err
 	}
 
-	err = dao.UpdateApplicationStatus(ctx, application.ID, dao.ApplicationStatusSuccess)
+	err = s.sendEmail(application.Email, registrations)
 	if err != nil {
-		log.Errorf("update application status: %v", err)
+		status = dao.ApplicationStatusSendEmailFailed
+		log.Errorf("send email appicationID:%d, %v", application.ID, err)
 		return err
 	}
 

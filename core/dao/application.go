@@ -4,23 +4,25 @@ import (
 	"context"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/jmoiron/sqlx"
 )
 
 var (
-	tableNameApplication   = "application"
-	tableApplicationResult = "application_result"
+	tableNameApplication       = "application"
+	tableNameApplicationResult = "application_result"
 )
 
 const (
 	ApplicationStatusCreated = iota + 1
-	ApplicationStatusSuccess
 	ApplicationStatusFailed
+	ApplicationStatusSendEmailFailed
+	ApplicationStatusFinished
 )
 
 func AddApplication(ctx context.Context, application *model.Application) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s (user_id, email, ip_country, ip_city, amount, node_type, upstream_bandwidth, downstream_bandwidth, created_at, updated_at) 
-			VALUES (:user_id, :email, :ip_country, :ip_city, :amount, :node_type, :upstream_bandwidth, :downstream_bandwidth, :created_at, :updated_at);`, tableNameApplication),
+		`INSERT INTO %s (user_id, email, ip_country, ip_city, amount, node_type, upstream_bandwidth, downstream_bandwidth, status, created_at, updated_at) 
+			VALUES (:user_id, :email, :ip_country, :ip_city, :amount, :node_type, :upstream_bandwidth, :downstream_bandwidth, :status, :created_at, :updated_at);`, tableNameApplication),
 		application)
 	return err
 }
@@ -31,10 +33,25 @@ func UpdateApplicationStatus(ctx context.Context, id int64, status int) error {
 	return err
 }
 
-func GetApplicationList(ctx context.Context) ([]*model.Application, error) {
+func GetApplicationList(ctx context.Context, status []int) ([]*model.Application, error) {
 	var out []*model.Application
+	query, args, err := sqlx.In(fmt.Sprintf(
+		`SELECT * FROM %s WHERE status IN (?) LIMIT 50`, tableNameApplication), status)
+	if err != nil {
+		return nil, err
+	}
+	query = DB.Rebind(query)
+	err = DB.SelectContext(ctx, &out, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func GetApplicationResults(ctx context.Context, applicationID int64) ([]*model.ApplicationResult, error) {
+	var out []*model.ApplicationResult
 	err := DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT * FROM %s WHERE status <> 2 LIMIT 50`, tableNameApplication))
+		`SELECT * FROM %s WHERE application_id = ? `, tableNameApplicationResult), applicationID)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +101,7 @@ func GetApplicationsByPage(ctx context.Context, option QueryOption) ([]*model.Ap
 func AddApplicationResult(ctx context.Context, result []*model.ApplicationResult) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
 		`INSERT INTO %s (user_id, application_id, device_id, secret, node_type, created_at, updated_at) 
-			VALUES (:user_id, :application_id, :device_id, :secret, :node_type, :created_at, :updated_at);`, tableApplicationResult),
+			VALUES (:user_id, :application_id, :device_id, :secret, :node_type, :created_at, :updated_at);`, tableNameApplicationResult),
 		result)
 	return err
 }
