@@ -40,8 +40,8 @@ func GetIndexInfoHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(fullNodeInfo))
 }
 
-// GetUserDeviceInfoHandler devices overview
-func GetUserDeviceInfoHandler(c *gin.Context) {
+// GetUserDeviceProfileHandler devices overview
+func GetUserDeviceProfileHandler(c *gin.Context) {
 	info := &model.DeviceInfo{}
 	info.UserID = c.Query("user_id")
 	DeviceID := c.Query("device_id")
@@ -56,33 +56,22 @@ func GetUserDeviceInfoHandler(c *gin.Context) {
 		EndTime:   c.Query("to"),
 	}
 
-	list, _, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
+	userDeviceProfile, err := dao.CountUserDeviceInfo(c.Request.Context(), info.UserID)
 	if err != nil {
-		log.Errorf("get device info list: %v", err)
+		log.Errorf("get user device profile: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrNotFound))
 		return
-	}
-	var dataList []*model.DeviceInfo
-	var dataRes IndexUserDeviceRes
-	for _, data := range list {
-		dataRes.CumulativeProfit += data.CumulativeProfit
-		dataRes.TodayProfit += data.TodayProfit
-		dataRes.SevenDaysProfit += data.SevenDaysProfit
-		dataRes.YesterdayProfit += data.YesterdayProfit
-		dataRes.MonthProfit += data.MonthProfit
-		if err != nil {
-			log.Error("getProfitByDeviceID：", data.DeviceID)
-		}
-		dataList = append(dataList, data)
 	}
 
 	// Profit
 	p := &model.DeviceInfoDaily{}
 	p.UserID = info.UserID
 	m := dao.GetIncomeAllList(c.Request.Context(), p, option)
-	dataRes.DailyIncome = m
 
-	c.JSON(http.StatusOK, respJSON(dataRes))
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"profile":      userDeviceProfile,
+		"daily_income": m,
+	}))
 }
 
 func timeFormat(deviceID, startTime, endTime string) (m map[string]interface{}) {

@@ -173,3 +173,30 @@ func GetAllAreaFromDeviceInfo(ctx context.Context) ([]string, error) {
 	}
 	return out, nil
 }
+
+type UserDeviceProfile struct {
+	CumulativeProfit float64 `json:"cumulative_profit" db:"cumulative_profit"`
+	YesterdayProfit  float64 `json:"yesterday_profit" db:"yesterday_profit"`
+	TodayProfit      float64 `json:"today_profit" db:"today_profit"`
+	SevenDaysProfit  float64 `json:"seven_days_profit" db:"seven_days_profit"`
+	MonthProfit      float64 `json:"month_profit" db:"month_profit"`
+	TotalNum         int64   `json:"total_num" db:"total_num"`
+	OnlineNum        int64   `json:"online_num" db:"online_num"`
+	OfflineNum       int64   `json:"offline_num" db:"offline_num"`
+	AbnormalNum      int64   `json:"abnormal_num" db:"abnormal_num"`
+	TotalBandwidth   float64 `json:"total_bandwidth" db:"total_bandwidth"`
+}
+
+func CountUserDeviceInfo(ctx context.Context, userID string) (*UserDeviceProfile, error) {
+	queryStatement := fmt.Sprintf(`SELECT sum(cumulative_profit) as cumulative_profit, sum(yesterday_profit) as yesterday_profit, 
+sum(today_profit) as today_profit, sum(seven_days_profit) as seven_days_profit, sum(month_profit) as month_profit, count(*) as total_num, 
+count(IF(device_status = 'online', 1, NULL)) as online_num ,count(IF(device_status = 'offline', 1, NULL)) as offline_num, 
+count(IF(device_status = 'abnormal', 1, NULL)) as abnormal_num, sum(bandwidth_up) as total_bandwidth  from %s where user_id = ?;`, tableNameDeviceInfo)
+
+	var out UserDeviceProfile
+	if err := DB.QueryRowxContext(ctx, queryStatement, userID).StructScan(&out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
