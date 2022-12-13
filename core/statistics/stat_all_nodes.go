@@ -98,8 +98,7 @@ func (s *Statistic) CountFullNodeInfo() error {
 
 	fullNodeInfo.TotalCarfile = int64(resp.CarFileCount)
 	fullNodeInfo.RetrievalCount = int64(resp.DownloadCount)
-	fullNodeInfo.NextElectionTime = resp.NextElectionTime
-	//fullNodeInfo.TotalCarfileSize = float64(resp.TotalSize)
+	fullNodeInfo.NextElectionTime = time.Unix(resp.NextElectionTime, 0)
 
 	fullNodeInfo.Time = time.Now()
 	fullNodeInfo.CreatedAt = time.Now()
