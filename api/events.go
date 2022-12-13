@@ -58,3 +58,27 @@ func GetRetrieveListHandler(c *gin.Context) {
 		"total": total,
 	}))
 }
+
+func GetValidationListHandler(c *gin.Context) {
+	info := &model.ValidationEvent{
+		DeviceID: c.Query("device_id"),
+	}
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+	page, _ := strconv.Atoi(c.Query("page"))
+	option := dao.QueryOption{
+		Page:     page,
+		PageSize: pageSize,
+	}
+
+	list, total, err := dao.GetValidationEventsByPage(c.Request.Context(), info, option)
+	if err != nil {
+		log.Errorf("get validations by page: %v", err)
+		c.JSON(http.StatusBadRequest, respError(errors.ErrNotFound))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list":  list,
+		"total": total,
+	}))
+}

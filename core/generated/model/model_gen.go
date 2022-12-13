@@ -5,7 +5,6 @@
 package model
 
 import (
-	"database/sql"
 	"time"
 )
 
@@ -36,14 +35,14 @@ type ApplicationResult struct {
 }
 
 type BlockInfo struct {
-	ID          int64         `db:"id" json:"id"`
-	DeviceID    string        `db:"device_id" json:"device_id"`
-	CarfileHash string        `db:"carfile_hash" json:"carfile_hash"`
-	CarfileCid  string        `db:"carfile_cid" json:"carfile_cid"`
-	Status      sql.NullInt32 `db:"status" json:"status"`
-	Size        sql.NullInt32 `db:"size" json:"size"`
-	CreatedTime sql.NullTime  `db:"created_time" json:"created_time"`
-	EndTime     sql.NullTime  `db:"end_time" json:"end_time"`
+	ID          int64     `db:"id" json:"id"`
+	DeviceID    string    `db:"device_id" json:"device_id"`
+	CarfileHash string    `db:"carfile_hash" json:"carfile_hash"`
+	CarfileCid  string    `db:"carfile_cid" json:"carfile_cid"`
+	Status      int32     `db:"status" json:"status"`
+	Size        int32     `db:"size" json:"size"`
+	CreatedTime time.Time `db:"created_time" json:"created_time"`
+	EndTime     time.Time `db:"end_time" json:"end_time"`
 }
 
 type CacheEvent struct {
@@ -273,4 +272,17 @@ type User struct {
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 	DeletedAt time.Time `db:"deleted_at" json:"deleted_at"`
+}
+
+type ValidationEvent struct {
+	ID              int64     `db:"id" json:"id"`
+	DeviceID        string    `db:"device_id" json:"device_id"`
+	ValidatorID     string    `db:"validator_id" json:"validator_id"`
+	Blocks          int64     `db:"blocks" json:"blocks"`
+	Status          int32     `db:"status" json:"status"`
+	Time            time.Time `db:"time" json:"time"`
+	Duration        int64     `db:"duration" json:"duration"`
+	UpstreamTraffic float64   `db:"upstream_traffic" json:"upstream_traffic"`
+	CreatedAt       time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt       time.Time `db:"updated_at" json:"updated_at"`
 }

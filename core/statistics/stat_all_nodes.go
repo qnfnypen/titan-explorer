@@ -51,7 +51,6 @@ loop:
 	}
 
 	go s.SumDeviceInfoProfit()
-	go s.CountRetrieve()
 
 	return nil
 }

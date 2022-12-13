@@ -303,16 +303,32 @@ CREATE TABLE `retrieve_event` (
 PRIMARY KEY (`id`)
 ) ENGINE = INNODB CHARSET = utf8mb4;
 
+DROP TABLE IF EXISTS `validation_event`;
+
+CREATE TABLE `validation_event` (
+ `id` BIGINT(20) NOT NULL AUTO_INCREMENT,
+ `device_id` VARCHAR(128) NOT NULL DEFAULT '',
+ `validator_id` VARCHAR(128) NOT NULL DEFAULT '',
+ `blocks` BIGINT(20) NOT NULL DEFAULT 0,
+ `status` TINYINT(4) NOT NULL DEFAULT 0,
+ `time` DATETIME(3) NOT NULL DEFAULT 0,
+ `duration` BIGINT(20) NOT NULL DEFAULT 0,
+ `upstream_traffic` FLOAT(32) NOT NULL DEFAULT 0,
+ `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY (`id`)
+) ENGINE = INNODB CHARSET = utf8mb4;
+
 DROP TABLE IF EXISTS `block_info`;
 
 CREATE TABLE `block_info` (
 `id` BIGINT(20) NOT NULL AUTO_INCREMENT,
-`device_id` VARCHAR(128) NOT NULL ,
-`carfile_hash` VARCHAR(128) NOT NULL,
-`carfile_cid` VARCHAR(128) NOT NULL,
-`status` TINYINT(4)  DEFAULT '0' ,
-`size` int(20)  DEFAULT '0' ,
-`created_time` DATETIME(3) DEFAULT 0,
-`end_time` DATETIME(3) DEFAULT 0,
+`device_id` VARCHAR(128) NOT NULL DEFAULT '',
+`carfile_hash` VARCHAR(128) NOT NULL DEFAULT '',
+`carfile_cid` VARCHAR(128) NOT NULL DEFAULT '',
+`status` TINYINT(4)  NOT NULL DEFAULT 0,
+`size` int(20)  NOT NULL DEFAULT 0,
+`created_time` DATETIME(3) NOT NULL DEFAULT 0,
+`end_time` DATETIME(3) NOT NULL DEFAULT 0,
 PRIMARY KEY (`id`)
 ) ENGINE = INNODB CHARSET = utf8mb4;
