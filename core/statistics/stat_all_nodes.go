@@ -24,6 +24,7 @@ loop:
 	ctx := context.Background()
 	resp, err := s.api.ListNodes(ctx, offset, size)
 	if err != nil {
+		log.Errorf("api ListNodes: %v", err)
 		return err
 	}
 
@@ -85,7 +86,7 @@ func (s *Statistic) CountFullNodeInfo() error {
 	ctx := context.Background()
 	resp, err := s.api.GetSystemInfo(ctx)
 	if err != nil {
-		log.Errorf("stat caches: %v", err)
+		log.Errorf("api GetSystemInfo: %v", err)
 		return err
 	}
 
@@ -97,13 +98,14 @@ func (s *Statistic) CountFullNodeInfo() error {
 
 	fullNodeInfo.TotalCarfile = int64(resp.CarFileCount)
 	fullNodeInfo.RetrievalCount = int64(resp.DownloadCount)
+	fullNodeInfo.NextElectionTime = resp.NextElectionTime
 	//fullNodeInfo.TotalCarfileSize = float64(resp.TotalSize)
 
 	fullNodeInfo.Time = time.Now()
 	fullNodeInfo.CreatedAt = time.Now()
 	err = dao.CacheFullNodeInfo(ctx, fullNodeInfo)
 	if err != nil {
-		log.Errorf("add full node info hours: %v", err)
+		log.Errorf("cache full node info: %v", err)
 		return err
 	}
 

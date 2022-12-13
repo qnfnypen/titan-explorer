@@ -76,7 +76,7 @@ func (s *Statistic) CountCacheFiles() error {
 loop:
 	resp, err := s.api.GetCacheBlockInfos(ctx, req)
 	if err != nil {
-		log.Errorf("api get cache block infos: %v", err)
+		log.Errorf("api GetCacheBlockInfos: %v", err)
 		return err
 	}
 
@@ -151,7 +151,7 @@ func (s *Statistic) FetchValidationEvents() error {
 	var (
 		startTime, endTime time.Time
 		sum                int64
-		page, pageSize     int
+		page, pageSize     = 1, 100
 	)
 
 	ctx := context.Background()
@@ -172,7 +172,7 @@ func (s *Statistic) FetchValidationEvents() error {
 loop:
 	resp, err := s.api.GetSummaryValidateMessage(ctx, startTime, endTime, page, pageSize)
 	if err != nil {
-		log.Errorf("api get cache block infos: %v", err)
+		log.Errorf("api GetSummaryValidateMessage: %v", err)
 		return err
 	}
 

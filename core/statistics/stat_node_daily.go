@@ -121,7 +121,7 @@ func (s *Statistic) SumDeviceInfoDaily() error {
 
 	err = dao.BulkUpsertDeviceInfoDaily(context.Background(), dailyInfos)
 	if err != nil {
-		log.Errorf("upsert device info daily: %v", err)
+		log.Errorf("bulk upsert device info daily: %v", err)
 		return err
 	}
 
