@@ -124,32 +124,6 @@ CREATE TABLE `device_info` (
   INDEX `idx_device_info_deleted_at` USING BTREE(`deleted_at` ASC)
 ) ENGINE = INNODB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4;
 
-DROP TABLE IF EXISTS `task_info`;
-
-CREATE TABLE `task_info` (
-`id` BIGINT(20) NOT NULL AUTO_INCREMENT,
-`created_at` DATETIME(3) NOT NULL DEFAULT 0,
-`updated_at` DATETIME(3) NOT NULL DEFAULT 0,
-`deleted_at` DATETIME(3) NOT NULL DEFAULT 0,
-`user_id` VARCHAR(128) NOT NULL DEFAULT '',
-`miner_id` VARCHAR(128) NOT NULL DEFAULT '',
-`device_id` VARCHAR(128) NOT NULL DEFAULT '',
-`file_name` VARCHAR(128) NOT NULL DEFAULT '',
-`ip_address` VARCHAR(32) NOT NULL DEFAULT '',
-`cid` VARCHAR(128) NOT NULL DEFAULT '',
-`bandwidth_up` VARCHAR(32) NOT NULL DEFAULT '',
-`bandwidth_down` VARCHAR(32) NOT NULL DEFAULT '',
-`time_need` VARCHAR(32) NOT NULL DEFAULT '',
-`time` TIMESTAMP NOT NULL DEFAULT 0,
-`service_country` VARCHAR(56) NOT NULL DEFAULT '',
-`region` VARCHAR(56) NOT NULL DEFAULT '',
-`status` VARCHAR(56) NOT NULL DEFAULT '',
-`price` FLOAT(32) NOT NULL DEFAULT '0',
-`file_size` FLOAT(32) NOT NULL DEFAULT '0',
-`download_url` VARCHAR(256) NOT NULL DEFAULT '',
-PRIMARY KEY (`id`)
-) ENGINE = INNODB CHARSET = utf8;
-
 DROP TABLE IF EXISTS `device_info_daily`;
 
 CREATE TABLE `device_info_daily` (
@@ -198,27 +172,6 @@ CREATE TABLE `device_info_hour` (
  PRIMARY KEY USING BTREE (`id`),
  INDEX `idx_device_info_hour_deleted_at` USING BTREE(`deleted_at` ASC)
 ) ENGINE = INNODB CHARSET = utf8;
-
-DROP TABLE IF EXISTS `retrieval_info`;
-
-CREATE TABLE `retrieval_info` (
-`id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-`created_at` DATETIME(3) NOT NULL DEFAULT 0,
-`updated_at` DATETIME(3) NOT NULL DEFAULT 0,
-`deleted_at` DATETIME(3) NOT NULL DEFAULT 0,
-`service_country` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-`service_status` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-`task_status` CHAR(56) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-`file_name` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-`file_size` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-`create_time` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-`cid` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-`price` DOUBLE NOT NULL DEFAULT 0,
-`miner_id` CHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-`user_id` CHAR(56) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-PRIMARY KEY USING BTREE (`id`),
-INDEX `idx_retrieval_info_deleted_at` USING BTREE(`deleted_at` ASC)
-) ENGINE = INNODB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE utf8mb4_general_ci;
 
 DROP TABLE IF EXISTS `full_node_info`;
 

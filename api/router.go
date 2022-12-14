@@ -40,10 +40,6 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 
 	// console
 	apiV1.GET("/device_binding", DeviceBindingHandler)
-	apiV1.GET("/create_task", CreateTaskHandler)
-	apiV1.GET("/get_task", GetTaskInfoHandler)
-	apiV1.GET("/get_task_list", GetTaskListHandler)
-	apiV1.GET("/get_task_detail", GetTaskDetailHandler)
 	apiV1.GET("/get_user_device_profile", GetUserDeviceProfileHandler)
 
 	// admin

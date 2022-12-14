@@ -199,23 +199,6 @@ type OperationLog struct {
 	UpdatedAt        time.Time `db:"updated_at" json:"updated_at"`
 }
 
-type RetrievalInfo struct {
-	ID             int64     `db:"id" json:"id"`
-	CreatedAt      time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt      time.Time `db:"updated_at" json:"updated_at"`
-	DeletedAt      time.Time `db:"deleted_at" json:"deleted_at"`
-	ServiceCountry string    `db:"service_country" json:"service_country"`
-	ServiceStatus  string    `db:"service_status" json:"service_status"`
-	TaskStatus     string    `db:"task_status" json:"task_status"`
-	FileName       string    `db:"file_name" json:"file_name"`
-	FileSize       string    `db:"file_size" json:"file_size"`
-	CreateTime     string    `db:"create_time" json:"create_time"`
-	Cid            string    `db:"cid" json:"cid"`
-	Price          float64   `db:"price" json:"price"`
-	MinerID        string    `db:"miner_id" json:"miner_id"`
-	UserID         string    `db:"user_id" json:"user_id"`
-}
-
 type RetrieveEvent struct {
 	ID                int64     `db:"id" json:"id"`
 	DeviceID          string    `db:"device_id" json:"device_id"`
@@ -236,29 +219,6 @@ type Scheduler struct {
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 	DeletedAt time.Time `db:"deleted_at" json:"deleted_at"`
-}
-
-type TaskInfo struct {
-	ID             int64     `db:"id" json:"id"`
-	CreatedAt      time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt      time.Time `db:"updated_at" json:"updated_at"`
-	DeletedAt      time.Time `db:"deleted_at" json:"deleted_at"`
-	UserID         string    `db:"user_id" json:"user_id"`
-	MinerID        string    `db:"miner_id" json:"miner_id"`
-	DeviceID       string    `db:"device_id" json:"device_id"`
-	FileName       string    `db:"file_name" json:"file_name"`
-	IpAddress      string    `db:"ip_address" json:"ip_address"`
-	Cid            string    `db:"cid" json:"cid"`
-	BandwidthUp    string    `db:"bandwidth_up" json:"bandwidth_up"`
-	BandwidthDown  string    `db:"bandwidth_down" json:"bandwidth_down"`
-	TimeNeed       string    `db:"time_need" json:"time_need"`
-	Time           time.Time `db:"time" json:"time"`
-	ServiceCountry string    `db:"service_country" json:"service_country"`
-	Region         string    `db:"region" json:"region"`
-	Status         string    `db:"status" json:"status"`
-	Price          float64   `db:"price" json:"price"`
-	FileSize       float64   `db:"file_size" json:"file_size"`
-	DownloadUrl    string    `db:"download_url" json:"download_url"`
 }
 
 type User struct {
