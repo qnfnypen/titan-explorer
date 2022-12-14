@@ -10,12 +10,6 @@ import (
 	"github.com/golang-module/carbon/v2"
 	"net/http"
 	"strconv"
-	"time"
-)
-
-const (
-	TimeFormatMD = "01-02"
-	TimeFormatHM = "15:04"
 )
 
 func GetAllAreas(c *gin.Context) {
@@ -74,7 +68,7 @@ func GetUserDeviceProfileHandler(c *gin.Context) {
 	}))
 }
 
-func timeFormat(deviceID, startTime, endTime string) (m map[string]interface{}) {
+func queryDeviceStatisticsDaily(deviceID, startTime, endTime string) []*dao.DeviceStatistics {
 	option := dao.QueryOption{
 		StartTime: startTime,
 		EndTime:   endTime,
@@ -93,13 +87,13 @@ func timeFormat(deviceID, startTime, endTime string) (m map[string]interface{}) 
 	list, err := dao.GetDeviceInfoDailyList(context.Background(), condition, option)
 	if err != nil {
 		log.Errorf("get incoming daily: %v", err)
-		return
+		return nil
 	}
 
-	return getDaysData(list)
+	return list
 }
 
-func timeFormatHour(deviceID, start, end string) (m []map[string]string) {
+func queryDeviceStatisticHourly(deviceID, start, end string) []*dao.DeviceStatistics {
 	option := dao.QueryOption{
 		StartTime: start,
 		EndTime:   end,
@@ -118,83 +112,10 @@ func timeFormatHour(deviceID, start, end string) (m []map[string]string) {
 	list, err := dao.GetDeviceInfoDailyHourList(context.Background(), condition, option)
 	if err != nil {
 		log.Errorf("get incoming hour daily: %v", err)
-		return
+		return nil
 	}
 
 	return list
-}
-
-func getDaysDataHour(list []*model.DeviceInfoHour) (returnMapList map[string]interface{}) {
-	if len(list) == 0 {
-		return
-	}
-	returnMap := make(map[string]interface{})
-	onlineJsonDailyTo := map[string]float64{}
-	incomeTo := map[string]float64{}
-	pkgLossRatioTo := map[string]float64{}
-	latencyTo := map[string]float64{}
-	natTypeTo := map[string]float64{}
-	incomeHourBefore := list[0].HourIncome
-	onlineHourBefore := list[0].OnlineTime
-	for index, v := range list {
-		timeStr := v.Time.Add(-1 * time.Hour).Format(TimeFormatHM)
-		lastOne := index == len(list)-1
-		minute := v.Time.Minute()
-		if lastOne {
-			timeStr = v.Time.Add(time.Duration(0-minute) * time.Minute).Format(TimeFormatHM)
-		}
-		if minute == 0 || lastOne {
-			incomeTo[timeStr] = v.HourIncome - incomeHourBefore
-			incomeHourBefore = v.HourIncome
-			onlineJsonDailyTo[timeStr] = v.OnlineTime - onlineHourBefore
-			onlineHourBefore = v.OnlineTime
-		}
-		if minute == 0 || minute == 30 || lastOne {
-			pkgLossRatioTo[timeStr] = v.PkgLossRatio * 100
-			latencyTo[timeStr] = v.Latency
-			natTypeTo[timeStr] = v.NatRatio
-		}
-	}
-	returnMap["income"] = incomeTo
-	returnMap["online"] = onlineJsonDailyTo
-	returnMap["pkg_loss"] = pkgLossRatioTo
-	returnMap["latency"] = latencyTo
-	returnMap["nat_type"] = natTypeTo
-	// TODO:
-	returnMap["traffic"] = latencyTo
-	returnMap["retrieval"] = latencyTo
-	returnMapList = returnMap
-	return
-}
-
-func getDaysData(list []*model.DeviceInfoDaily) (returnMapList map[string]interface{}) {
-	returnMap := make(map[string]interface{})
-	queryMapTo := make(map[string]float64)
-	pkgLossRatioTo := make(map[string]float64)
-	latencyTo := make(map[string]float64)
-	onlineJsonDailyTo := make(map[string]float64)
-	natTypeTo := make(map[string]float64)
-	diskUsageTo := make(map[string]float64)
-	for _, v := range list {
-		timeStr := v.Time.Format(TimeFormatMD)
-		queryMapTo[timeStr] += v.Income
-		pkgLossRatioTo[timeStr] = v.PkgLossRatio
-		latencyTo[timeStr] = v.Latency
-		onlineJsonDailyTo[timeStr] = v.OnlineTime
-		natTypeTo[timeStr] = v.NatRatio
-		diskUsageTo[timeStr] = v.DiskUsage
-	}
-	returnMap["income"] = queryMapTo
-	returnMap["online"] = onlineJsonDailyTo
-	returnMap["pkg_loss"] = pkgLossRatioTo
-	returnMap["latency"] = latencyTo
-	returnMap["nat_type"] = natTypeTo
-	returnMap["disk_usage"] = diskUsageTo
-	// TODO:
-	returnMap["traffic"] = latencyTo
-	returnMap["retrieval"] = latencyTo
-	returnMapList = returnMap
-	return
 }
 
 func GetDeviceInfoHandler(c *gin.Context) {
@@ -228,7 +149,7 @@ func GetDeviceDiagnosisDailyHandler(c *gin.Context) {
 	from := c.Query("from")
 	to := c.Query("to")
 	deviceID := c.Query("device_id")
-	m := timeFormat(deviceID, from, to)
+	m := queryDeviceStatisticsDaily(deviceID, from, to)
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"series_data": m,
 	}))
@@ -239,7 +160,7 @@ func GetDeviceDiagnosisHourHandler(c *gin.Context) {
 	//date := c.Query("date")
 	start := c.Query("from")
 	end := c.Query("to")
-	m := timeFormatHour(deviceID, start, end)
+	m := queryDeviceStatisticHourly(deviceID, start, end)
 	deviceInfo, err := dao.GetDeviceInfoByID(c.Request.Context(), deviceID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))

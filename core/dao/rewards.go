@@ -59,27 +59,40 @@ func BulkUpsertDeviceInfoDaily(ctx context.Context, dailyInfos []*model.DeviceIn
 	return tx.Commit()
 }
 
-func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour, option QueryOption) ([]map[string]string, error) {
-	sqlClause := fmt.Sprintf(`select user_id,date_format(time, '%%Y-%%m-%%d %%H') as date, avg(nat_ratio) as nat_ratio, 
+type DeviceStatistics struct {
+	Date              string  `json:"date" db:"date"`
+	NatRatio          float64 `json:"nat_ratio" db:"nat_ratio"`
+	DiskUsage         float64 `json:"disk_usage" db:"disk_usage"`
+	Latency           float64 `json:"latency" db:"latency"`
+	PkgLossRatio      float64 `json:"pkg_loss_ratio" db:"pkg_loss_ratio"`
+	Income            float64 `json:"income" db:"income"`
+	OnlineTime        float64 `json:"online_time" db:"online_time"`
+	UpstreamTraffic   float64 `json:"upstream_traffic" db:"upstream_traffic"`
+	DownstreamTraffic float64 `json:"downstream_traffic" db:"downstream_traffic"`
+	RetrieveCount     float64 `json:"retrieve_count" db:"retrieve_count"`
+}
+
+func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour, option QueryOption) ([]*DeviceStatistics, error) {
+	sqlClause := fmt.Sprintf(`select date_format(time, '%%Y-%%m-%%d %%H') as date, avg(nat_ratio) as nat_ratio, 
 	avg(disk_usage) as disk_usage, avg(latency) as latency, avg(pkg_loss_ratio) as pkg_loss_ratio, 
-	max(hour_income) - min(hour_income) as hour_income,
+	max(hour_income) - min(hour_income) as income,
 	max(online_time) - min(online_time) as online_time,
 	max(upstream_traffic) - min(upstream_traffic) as upstream_traffic,
 	max(downstream_traffic) - min(downstream_traffic) as downstream_traffic,
 	max(retrieve_count) - min(retrieve_count) as retrieve_count
 	from device_info_hour where device_id='%s' and time>='%s' and time<='%s' group by date`, cond.DeviceID, option.StartTime, option.EndTime)
-	dataS, err := GetQueryDataList(sqlClause)
+	var out []*DeviceStatistics
+	err := DB.SelectContext(ctx, &out, sqlClause)
 	if err != nil {
-		log.Error(err.Error())
 		return nil, err
 	}
-	for _, data := range dataS {
-		data["date"] = strings.Split(data["date"], " ")[1] + ":00"
+	for i := 0; i < len(out); i++ {
+		out[i].Date = strings.Split(out[i].Date, " ")[1] + ":00"
 	}
-	return dataS, err
+	return out, err
 }
 
-func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*model.DeviceInfoDaily, error) {
+func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*DeviceStatistics, error) {
 	var args []interface{}
 	where := `WHERE 1=1`
 	if cond.DeviceID != "" {
@@ -95,9 +108,10 @@ func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, op
 		args = append(args, option.EndTime)
 	}
 
-	var out []*model.DeviceInfoDaily
+	var out []*DeviceStatistics
 	err := DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT * FROM %s %s`, tableNameDeviceInfoDaily, where), args...)
+		`SELECT DATE_FORMAT(time, '%%m-%%d') as date, nat_ratio, disk_usage, latency, pkg_loss_ratio, income, online_time, upstream_traffic, 
+    	downstream_traffic, retrieve_count FROM %s %s`, tableNameDeviceInfoDaily, where), args...)
 	if err != nil {
 		return nil, err
 	}
