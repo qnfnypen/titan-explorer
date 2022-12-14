@@ -16,14 +16,14 @@ func respJSON(v interface{}) gin.H {
 }
 
 func respError(e error) gin.H {
-	var apiError err.ApiError
-	if !errors.As(e, &apiError) {
-		apiError = err.ErrUnknown
+	var genericError err.GenericError
+	if !errors.As(e, &genericError) {
+		genericError = err.ErrUnknown
 	}
 
 	return gin.H{
 		"code": -1,
-		"err":  apiError.Code(),
-		"msg":  apiError.Error(),
+		"err":  genericError.Code,
+		"msg":  genericError.Error(),
 	}
 }

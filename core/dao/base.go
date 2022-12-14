@@ -3,8 +3,8 @@ package dao
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"github.com/gnasnik/titan-explorer/config"
-	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/go-redis/redis/v9"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
@@ -28,7 +28,7 @@ const (
 
 func Init(cfg *config.Config) error {
 	if cfg.DatabaseURL == "" {
-		return errors.New("database url not setup")
+		return fmt.Errorf("database url not setup")
 	}
 
 	db, err := sqlx.Connect("mysql", cfg.DatabaseURL)
