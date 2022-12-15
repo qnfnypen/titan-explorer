@@ -238,9 +238,11 @@ CREATE TABLE `cache_event` (
 `block_size` FLOAT(32) NOT NULL DEFAULT 0,
 `blocks` BIGINT(20) NOT NULL DEFAULT 0,
 `time` DATETIME(3) NOT NULL DEFAULT 0,
+`max_created_time` DATETIME(3) NOT NULL DEFAULT 0,
 `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-PRIMARY KEY (`id`)
+PRIMARY KEY (`id`),
+UNIQUE KEY `uniq_device_id_car_time` (`device_id`,`carfile_cid`,`time`) USING BTREE
 ) ENGINE = INNODB CHARSET = utf8mb4;
 
 DROP TABLE IF EXISTS `retrieve_event`;

@@ -22,7 +22,7 @@ func GetLastValidationEvent(ctx context.Context) (*model.ValidationEvent, error)
 func CreateValidationEvent(ctx context.Context, events []*model.ValidationEvent) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
 		`INSERT INTO %s (device_id, validator_id, blocks, status, time, duration, upstream_traffic)
-			VALUES (:device_id, :validator_id, :blocks, :status, :time, :duration, :upstream_traffic;`, tableNameValidationEvent,
+			VALUES (:device_id, :validator_id, :blocks, :status, :time, :duration, :upstream_traffic);`, tableNameValidationEvent,
 	), events)
 	return err
 }

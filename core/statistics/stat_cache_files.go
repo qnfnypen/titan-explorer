@@ -62,7 +62,7 @@ func (s *Statistic) CountCacheFiles() error {
 	if lastEvent == nil {
 		startTime = carbon.Now().StartOfDay().StartOfMinute().Carbon2Time()
 	} else {
-		startTime = lastEvent.Time
+		startTime = lastEvent.MaxCreatedTime.Add(time.Second)
 	}
 
 	endTime = carbon.Time2Carbon(start).SubMinutes(start.Minute() % 5).StartOfMinute().Carbon2Time()
@@ -70,7 +70,7 @@ func (s *Statistic) CountCacheFiles() error {
 		StartTime: startTime.Unix(),
 		EndTime:   endTime.Unix(),
 		Cursor:    0,
-		Count:     1000,
+		Count:     500,
 	}
 
 loop:
@@ -85,6 +85,8 @@ loop:
 		blockInfos = append(blockInfos, toBlockInfo(blockInfo))
 	}
 
+	log.Debugf("GetCacheBlockInfos: got %d blocks", len(blockInfos))
+
 	if len(blockInfos) > 0 {
 		err = dao.CreateBlockInfo(ctx, blockInfos)
 		if err != nil {
@@ -97,6 +99,10 @@ loop:
 	if sum < resp.Total {
 		<-time.After(100 * time.Millisecond)
 		goto loop
+	}
+
+	if sum <= 0 {
+		return nil
 	}
 
 	err = dao.TxStatisticDeviceBlocks(ctx, startTime, endTime)

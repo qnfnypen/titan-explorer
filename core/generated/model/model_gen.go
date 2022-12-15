@@ -46,14 +46,15 @@ type BlockInfo struct {
 }
 
 type CacheEvent struct {
-	ID         int64     `db:"id" json:"id"`
-	DeviceID   string    `db:"device_id" json:"device_id"`
-	CarfileCid string    `db:"carfile_cid" json:"carfile_cid"`
-	BlockSize  float64   `db:"block_size" json:"block_size"`
-	Blocks     int64     `db:"blocks" json:"blocks"`
-	Time       time.Time `db:"time" json:"time"`
-	CreatedAt  time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt  time.Time `db:"updated_at" json:"updated_at"`
+	ID             int64     `db:"id" json:"id"`
+	DeviceID       string    `db:"device_id" json:"device_id"`
+	CarfileCid     string    `db:"carfile_cid" json:"carfile_cid"`
+	BlockSize      float64   `db:"block_size" json:"block_size"`
+	Blocks         int64     `db:"blocks" json:"blocks"`
+	Time           time.Time `db:"time" json:"time"`
+	MaxCreatedTime time.Time `db:"max_created_time" json:"max_created_time"`
+	CreatedAt      time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt      time.Time `db:"updated_at" json:"updated_at"`
 }
 
 type DeviceInfo struct {
