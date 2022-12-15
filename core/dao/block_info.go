@@ -21,11 +21,12 @@ func CreateBlockInfo(ctx context.Context, blockInfos []*model.BlockInfo) error {
 func groupBlocksAndInsert(ctx context.Context, tx *sqlx.Tx, startTime, endTime time.Time) error {
 	queryStatement := fmt.Sprintf(`
 INSERT INTO %s(device_id, carfile_cid, block_size, blocks, time)
-SELECT device_id, carfile_cid, sum(size) AS block_size, count(*) AS blocks,  
+(SELECT device_id, carfile_cid, sum(size) AS block_size, count(*) AS blocks,  
 		DATE_FORMAT(
 			CONCAT( DATE( created_time ), ' ', HOUR ( created_time ), ':', floor( MINUTE ( created_time ) / 5 ) * 5 ),'%%Y-%%m-%%d %%H:%%i' )
 			 AS time FROM %s WHERE created_time >= ? AND created_time < ? 
- GROUP BY device_id, carfile_cid, DATE_FORMAT( time, '%%Y-%%m-%%d %%H:%%i' )`, tableNameCacheEvent, tableNameBlockInfo)
+ GROUP BY device_id, carfile_cid, DATE_FORMAT(
+			CONCAT( DATE( created_time ), ' ', HOUR ( created_time ), ':', floor( MINUTE ( created_time ) / 5 ) * 5 ),'%%Y-%%m-%%d %%H:%%i' ))`, tableNameCacheEvent, tableNameBlockInfo)
 
 	_, err := tx.ExecContext(ctx, queryStatement, startTime, endTime)
 	return err
