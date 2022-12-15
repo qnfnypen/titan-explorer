@@ -163,14 +163,14 @@ func (s *Statistic) FetchValidationEvents() error {
 	ctx := context.Background()
 	lastEvent, err := dao.GetLastValidationEvent(ctx)
 	if err != nil {
-		log.Errorf("get last cache event: %v", err)
+		log.Errorf("get last validation event: %v", err)
 		return err
 	}
 
 	if lastEvent == nil {
 		startTime = carbon.Now().StartOfDay().StartOfMinute().Carbon2Time()
 	} else {
-		startTime = lastEvent.Time
+		startTime = lastEvent.Time.Add(time.Second)
 	}
 
 	endTime = carbon.Time2Carbon(start).SubMinutes(start.Minute() % 5).StartOfMinute().Carbon2Time()
@@ -186,6 +186,8 @@ loop:
 	for _, blockInfo := range resp.ValidateResultInfos {
 		validationEvents = append(validationEvents, toValidationEvent(blockInfo))
 	}
+
+	log.Debugf("GetSummaryValidateMessage got %d message", len(validationEvents))
 
 	if len(validationEvents) > 0 {
 		err = dao.CreateValidationEvent(ctx, validationEvents)

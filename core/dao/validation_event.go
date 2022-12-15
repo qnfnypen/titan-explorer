@@ -13,7 +13,10 @@ func GetLastValidationEvent(ctx context.Context) (*model.ValidationEvent, error)
 	var out model.ValidationEvent
 	query := fmt.Sprintf(`SELECT * FROM %s ORDER BY time DESC LIMIT 1;`, tableNameValidationEvent)
 	err := DB.QueryRowxContext(ctx, query).StructScan(&out)
-	if err != nil && err != sql.ErrNoRows {
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
 		return nil, err
 	}
 	return &out, nil
