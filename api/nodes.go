@@ -126,11 +126,15 @@ func GetDeviceInfoHandler(c *gin.Context) {
 	info.IpLocation = c.Query("ip_location")
 	pageSize, _ := strconv.Atoi("page_size")
 	page, _ := strconv.Atoi("page")
+	order := c.Query("order")
+	orderField := c.Query("order_field")
 	nodeType, _ := strconv.ParseInt(c.Query("node_type"), 10, 64)
 	info.NodeType = int32(nodeType)
 	option := dao.QueryOption{
-		Page:     page,
-		PageSize: pageSize,
+		Page:       page,
+		PageSize:   pageSize,
+		Order:      order,
+		OrderField: orderField,
 	}
 	list, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
 	if err != nil {

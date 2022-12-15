@@ -15,11 +15,13 @@ func GetCacheListHandler(c *gin.Context) {
 	}
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
+	order := c.Query("order")
+	orderField := c.Query("order_field")
 	option := dao.QueryOption{
 		Page:       page,
 		PageSize:   pageSize,
-		OrderField: "time",
-		EndTime:    "DESC",
+		OrderField: orderField,
+		Order:      order,
 	}
 
 	list, total, err := dao.GetCacheEventsByPage(c.Request.Context(), info, option)
@@ -41,9 +43,13 @@ func GetRetrieveListHandler(c *gin.Context) {
 	}
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
+	order := c.Query("order")
+	orderField := c.Query("order_field")
 	option := dao.QueryOption{
-		Page:     page,
-		PageSize: pageSize,
+		Page:       page,
+		PageSize:   pageSize,
+		Order:      order,
+		OrderField: orderField,
 	}
 
 	list, total, err := dao.GetRetrieveEventsFromDeviceByPage(c.Request.Context(), info, option)
@@ -65,9 +71,14 @@ func GetValidationListHandler(c *gin.Context) {
 	}
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
+	order := c.Query("order")
+	orderField := c.Query("order_field")
+
 	option := dao.QueryOption{
-		Page:     page,
-		PageSize: pageSize,
+		Page:       page,
+		PageSize:   pageSize,
+		Order:      order,
+		OrderField: orderField,
 	}
 
 	list, total, err := dao.GetValidationEventsByPage(c.Request.Context(), info, option)

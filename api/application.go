@@ -48,10 +48,14 @@ func GetApplicationsHandler(c *gin.Context) {
 	userID := c.Query("user_id")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
+	order := c.Query("order")
+	orderField := c.Query("order_field")
 	option := dao.QueryOption{
-		Page:     page,
-		PageSize: pageSize,
-		UserID:   userID,
+		Page:       page,
+		PageSize:   pageSize,
+		UserID:     userID,
+		Order:      order,
+		OrderField: orderField,
 	}
 	applications, total, err := dao.GetApplicationsByPage(c.Request.Context(), option)
 	if err != nil {
