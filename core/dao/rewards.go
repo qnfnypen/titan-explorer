@@ -80,16 +80,54 @@ func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour,
 	max(upstream_traffic) - min(upstream_traffic) as upstream_traffic,
 	max(downstream_traffic) - min(downstream_traffic) as downstream_traffic,
 	max(retrieve_count) - min(retrieve_count) as retrieve_count
-	from device_info_hour where device_id='%s' and time>='%s' and time<='%s' group by date`, cond.DeviceID, option.StartTime, option.EndTime)
+	from device_info_hour where device_id='%s' and time>='%s' and time<='%s' group by date order by id desc`, cond.DeviceID, option.StartTime, option.EndTime)
 	var out []*DeviceStatistics
 	err := DB.SelectContext(ctx, &out, sqlClause)
 	if err != nil {
 		return nil, err
 	}
-	for i := 0; i < len(out); i++ {
-		out[i].Date = strings.Split(out[i].Date, " ")[1] + ":00"
+	var outNew []*DeviceStatistics
+	var lasts string
+	var num int
+	for i, data := range out {
+		nowTimeHour := strings.Split(data.Date, " ")[1]
+		nowHour := nowTimeHour
+	loop:
+		if nowHour != lasts && lasts != "" {
+			var dataL DeviceStatistics
+			dataL.Date = lasts + ":00"
+			outNew = append(outNew, &dataL)
+			num += 1
+			if lasts == "00" {
+				lasts = "23"
+			} else {
+				lasts = fmt.Sprintf("%02d", utils.Str2Int(lasts)-1)
+			}
+			goto loop
+		}
+		if nowTimeHour == lasts || lasts == "" {
+			data.Date = nowTimeHour + ":00"
+			outNew = append(outNew, data)
+			num += 1
+			if nowTimeHour == "00" {
+				lasts = "23"
+			} else {
+				lasts = fmt.Sprintf("%02d", utils.Str2Int(nowTimeHour)-1)
+			}
+		}
+		if len(out) == i+1 && num <= 23 {
+			if nowHour == "00" {
+				nowHour = "23"
+			} else {
+				nowHour = fmt.Sprintf("%02d", utils.Str2Int(nowHour)-1)
+			}
+			goto loop
+		}
+		if num == 24 {
+			break
+		}
 	}
-	return out, err
+	return outNew, err
 }
 
 func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*DeviceStatistics, error) {
