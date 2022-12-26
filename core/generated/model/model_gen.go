@@ -92,6 +92,7 @@ type DeviceInfo struct {
 	Memory           float64 `db:"memory" json:"memory"`
 	DiskUsage        float64 `db:"disk_usage" json:"disk_usage"`
 	DiskSpace        float64 `db:"disk_space" json:"disk_space"`
+	BindStatus       string  `db:"bind_status" json:"bind_status"`
 	WorkStatus       string  `db:"work_status" json:"work_status"`
 	DeviceStatus     string  `db:"device_status" json:"device_status"`
 	DiskType         string  `db:"disk_type" json:"disk_type"`

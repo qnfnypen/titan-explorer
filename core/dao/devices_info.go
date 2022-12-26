@@ -81,7 +81,7 @@ func GetDeviceInfoByID(ctx context.Context, deviceID string) (*model.DeviceInfo,
 
 func UpdateUserDeviceInfo(ctx context.Context, deviceInfo *model.DeviceInfo) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`UPDATE %s SET user_id = :user_id, updated_at = now() WHERE device_id = :device_id`, tableNameDeviceInfo),
+		`UPDATE %s SET user_id = :user_id, updated_at = now(),bind_status = :bind_status WHERE device_id = :device_id`, tableNameDeviceInfo),
 		deviceInfo)
 	return err
 }
