@@ -1,6 +1,6 @@
 module github.com/gnasnik/titan-explorer
 
-go 1.17
+go 1.18
 
 require (
 	github.com/appleboy/gin-jwt/v2 v2.9.0
