@@ -7,6 +7,11 @@ import (
 
 var log = logging.Logger("utils")
 
+const (
+	TimeFormatYMD    = "2006-01-02"
+	TimeFormatYMDHmS = "2006-01-02 15:04:05"
+)
+
 func Str2Float64(s string) float64 {
 	ret, err := strconv.ParseFloat(s, 64)
 	if err != nil {
@@ -15,6 +20,7 @@ func Str2Float64(s string) float64 {
 	}
 	return ret
 }
+
 func StrToFloat(str string) float64 {
 	v, err := strconv.ParseFloat(str, 64)
 	if err != nil {

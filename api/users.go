@@ -5,7 +5,9 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/utils"
 	"net/http"
+	"time"
 )
 
 func DeviceBindingHandler(c *gin.Context) {
@@ -25,7 +27,11 @@ func DeviceBindingHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, respError(errors.ErrDeviceExists))
 		return
 	}
-
+	var timeWeb = "0000-00-00 00:00:00"
+	timeString, _ := time.Parse(utils.TimeFormatYMDHmS, timeWeb)
+	if old != nil && old.BoundAt == timeString {
+		deviceInfo.BoundAt = time.Now()
+	}
 	err = dao.UpdateUserDeviceInfo(c.Request.Context(), deviceInfo)
 	if err != nil {
 		log.Errorf("update user device: %v", err)
@@ -55,6 +61,34 @@ func DeviceUnBindingHandler(c *gin.Context) {
 	}
 
 	err = dao.UpdateUserDeviceInfo(c.Request.Context(), deviceInfo)
+	if err != nil {
+		log.Errorf("update user device: %v", err)
+		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(nil))
+}
+
+func DeviceUpdateHandler(c *gin.Context) {
+	deviceInfo := &model.DeviceInfo{}
+	deviceInfo.DeviceID = c.Query("device_id")
+	deviceInfo.UserID = c.Query("user_id")
+	deviceInfo.DeviceName = c.Query("device_name")
+
+	old, err := dao.GetDeviceInfoByID(c.Request.Context(), deviceInfo.DeviceID)
+	if err != nil {
+		log.Errorf("get user device: %v", err)
+		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		return
+	}
+
+	if old != nil && old.UserID != "" {
+		c.JSON(http.StatusBadRequest, respError(errors.ErrDeviceExists))
+		return
+	}
+
+	err = dao.UpdateDeviceName(c.Request.Context(), deviceInfo)
 	if err != nil {
 		log.Errorf("update user device: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))

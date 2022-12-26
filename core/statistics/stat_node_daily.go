@@ -10,10 +10,6 @@ import (
 	"time"
 )
 
-const (
-	TimeFormatYMD = "2006-01-02"
-)
-
 var (
 	DeviceIDAndUserId map[string]string
 )
@@ -101,7 +97,7 @@ func (s *Statistic) SumDeviceInfoDaily() error {
 	var dailyInfos []*model.DeviceInfoDaily
 	for _, data := range datas {
 		var daily model.DeviceInfoDaily
-		daily.Time, _ = time.Parse(TimeFormatYMD, data["date"])
+		daily.Time, _ = time.Parse(utils.TimeFormatYMD, data["date"])
 		daily.DiskUsage = utils.Str2Float64(data["disk_usage"])
 		daily.NatRatio = utils.Str2Float64(data["nat_ratio"])
 		daily.Income = utils.Str2Float64(data["hour_income"])

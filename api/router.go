@@ -41,6 +41,7 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	// console
 	apiV1.GET("/device_binding", DeviceBindingHandler)
 	apiV1.GET("/device_unbinding", DeviceUnBindingHandler)
+	apiV1.GET("/device_update", DeviceUpdateHandler)
 	apiV1.GET("/get_user_device_profile", GetUserDeviceProfileHandler)
 
 	// admin

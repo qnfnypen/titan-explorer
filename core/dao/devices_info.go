@@ -85,7 +85,12 @@ func UpdateUserDeviceInfo(ctx context.Context, deviceInfo *model.DeviceInfo) err
 		deviceInfo)
 	return err
 }
-
+func UpdateDeviceName(ctx context.Context, deviceInfo *model.DeviceInfo) error {
+	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
+		`UPDATE %s SET updated_at = now(),device_name = :device_name WHERE device_id = :device_id`, tableNameDeviceInfo),
+		deviceInfo)
+	return err
+}
 func BulkUpsertDeviceInfo(ctx context.Context, deviceInfos []*model.DeviceInfo) error {
 	tx, err := DB.Beginx()
 	if err != nil {

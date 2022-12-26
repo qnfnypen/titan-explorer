@@ -62,6 +62,7 @@ type DeviceInfo struct {
 	CreatedAt     time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt     time.Time `db:"updated_at" json:"updated_at"`
 	DeletedAt     time.Time `db:"deleted_at" json:"deleted_at"`
+	BoundAt       time.Time `db:"bound_at" json:"bound_at"`
 	DeviceID      string    `db:"device_id" json:"device_id"`
 	SchedulerID   string    `db:"scheduler_id" json:"scheduler_id"`
 	NodeType      int32     `db:"node_type" json:"node_type"`

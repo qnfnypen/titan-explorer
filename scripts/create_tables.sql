@@ -73,6 +73,7 @@ CREATE TABLE `device_info` (
   `created_at` DATETIME(3) NOT NULL DEFAULT 0,
   `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
   `deleted_at` DATETIME(3) NOT NULL DEFAULT 0,
+  `bound_at` DATETIME(3) NOT NULL DEFAULT 0,
   `device_id` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `scheduler_id` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `node_type` INT(2) NOT NULL DEFAULT 0,
