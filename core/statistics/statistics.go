@@ -24,14 +24,14 @@ const (
 func (s *Statistic) initContabs() {
 	s.FetchAllNodes()
 
-	// @every 10m
-	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeyFetchAllNodes, s.FetchAllNodes))
 	// @every 5m
-	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeySumDeviceInfoDaily, s.SumDeviceInfoDaily))
-	// @every 10m
-	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeyCountFullNodes, s.CountFullNodeInfo))
+	s.cron.AddFunc("0 */5 * * * *", s.Once(DKeyFetchAllNodes, s.FetchAllNodes))
 	// @every 5m
-	s.cron.AddFunc("0 */1 * * * *", s.Once(DKeyFetchEvents, s.FetchEvents))
+	s.cron.AddFunc("0 */10 * * * *", s.Once(DKeySumDeviceInfoDaily, s.SumDeviceInfoDaily))
+	// @every 10m
+	s.cron.AddFunc("0 */10 * * * *", s.Once(DKeyCountFullNodes, s.CountFullNodeInfo))
+	// @every 5m
+	s.cron.AddFunc("0 */5 * * * *", s.Once(DKeyFetchEvents, s.FetchEvents))
 }
 
 type Statistic struct {
