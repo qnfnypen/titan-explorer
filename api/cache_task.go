@@ -5,12 +5,13 @@ import (
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 func AddCacheTaskHandler(c *gin.Context) {
 	carFileCID := c.Query("carfile_cid")
 	reliability, _ := strconv.ParseInt(c.Query("reliability"), 10, 64)
-	expiration := 365 * 24
+	expiration := time.Now().Add(365 * 24 * time.Hour)
 	err := schedulerClient.AddCacheTask(c.Request.Context(), carFileCID, int(reliability), expiration)
 	if err != nil {
 		log.Errorf("add cahce task: %v", err)
