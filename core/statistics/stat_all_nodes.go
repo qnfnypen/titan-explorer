@@ -33,6 +33,9 @@ loop:
 
 	var nodes []*model.DeviceInfo
 	for _, node := range resp.Data {
+		if node.DeviceId == "" {
+			continue
+		}
 		nodes = append(nodes, toDeviceInfo(node))
 	}
 
