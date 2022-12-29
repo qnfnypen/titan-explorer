@@ -159,6 +159,7 @@ func (s *Server) handleApplication(ctx context.Context, application *model.Appli
 		return err
 	}
 	var results []*model.ApplicationResult
+	var deviceInfos []*model.DeviceInfo
 	for _, registration := range registrations {
 		results = append(results, &model.ApplicationResult{
 			UserID:        application.UserID,
@@ -168,6 +169,10 @@ func (s *Server) handleApplication(ctx context.Context, application *model.Appli
 			ApplicationID: application.ID,
 			CreatedAt:     time.Now(),
 			UpdatedAt:     time.Now(),
+		})
+		deviceInfos = append(deviceInfos, &model.DeviceInfo{
+			UserID:   application.UserID,
+			DeviceID: registration.DeviceID,
 		})
 	}
 
@@ -188,6 +193,11 @@ func (s *Server) handleApplication(ctx context.Context, application *model.Appli
 		status = dao.ApplicationStatusFailed
 		log.Errorf("create application result: %v", err)
 		return err
+	}
+
+	err = dao.BulkUpsertDeviceInfo(ctx, deviceInfos)
+	if err != nil {
+		log.Errorf("add device info: %v", err)
 	}
 
 	err = s.sendEmail(application.Email, registrations)

@@ -84,6 +84,8 @@ func toDeviceInfo(v interface{}) *model.DeviceInfo {
 		deviceInfo.IpCountry = ipLocationList[0]
 		deviceInfo.IpCity = ipLocationList[len(ipLocationList)-1]
 	}
+
+	deviceInfo.ActiveStatus = 1
 	return &deviceInfo
 }
 

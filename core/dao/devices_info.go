@@ -11,7 +11,7 @@ var tableNameDeviceInfo = "device_info"
 
 func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option QueryOption) ([]*model.DeviceInfo, int64, error) {
 	var args []interface{}
-	where := `WHERE device_id <> ''`
+	where := `WHERE device_id <> '' AND active_status = 1`
 	if cond.DeviceID != "" {
 		where += ` AND device_id = ?`
 		args = append(args, cond.DeviceID)
@@ -133,20 +133,20 @@ func BulkUpdateDeviceInfo(ctx context.Context, deviceInfos []*model.DeviceInfo) 
 func upsertDeviceInfoStatement() string {
 	insertStatement := fmt.Sprintf(
 		`INSERT INTO %s (device_id, node_type, device_name, user_id, sn_code, operator,
-				network_type, system_version, product_type,
+				network_type, system_version, product_type, active_status,
 				network_info, external_ip, internal_ip, ip_location, ip_country, ip_city, mac_location, nat_type, upnp,
 				pkg_loss_ratio, nat_ratio, latency, cpu_usage, memory_usage, cpu_cores, memory, disk_usage, disk_space, work_status,
 				device_status, disk_type, io_system, online_time, today_online_time, today_profit, total_upload, total_download, download_count, block_count,
 				yesterday_profit, seven_days_profit, month_profit, cumulative_profit, bandwidth_up, bandwidth_down, created_at, updated_at)
 			VALUES (:device_id, :node_type, :device_name, :user_id, :sn_code, :operator,
-			    :network_type, :system_version, :product_type, 
+			    :network_type, :system_version, :product_type, :active_status,
 			    :network_info, :external_ip, :internal_ip, :ip_location, :ip_country, :ip_city, :mac_location, :nat_type, :upnp, 
 			    :pkg_loss_ratio, :nat_ratio, :latency, :cpu_usage, :memory_usage, :cpu_cores, :memory, :disk_usage, :disk_space, :work_status, 
 			    :device_status, :disk_type, :io_system, :online_time, :today_online_time, :today_profit, :total_upload, :total_download, :download_count, block_count,
 				:yesterday_profit, :seven_days_profit, :month_profit, :cumulative_profit, :bandwidth_up, :bandwidth_down, now(), now())`, tableNameDeviceInfo,
 	)
 	updateStatement := ` ON DUPLICATE KEY UPDATE node_type = :node_type,  device_name = :device_name,
-				sn_code = :sn_code,  operator = :operator, network_type = :network_type,
+				sn_code = :sn_code,  operator = :operator, network_type = :network_type, active_status = :active_status,
 				system_version = :system_version,  product_type = :product_type, network_info = :network_info, cumulative_profit = :cumulative_profit,
 				external_ip = :external_ip,  internal_ip = :internal_ip,  ip_location = :ip_location, ip_country = :ip_country, ip_city = :ip_city, 
 				mac_location = :mac_location,  nat_type = :nat_type,  upnp = :upnp, pkg_loss_ratio = :pkg_loss_ratio, online_time = :online_time,
@@ -160,7 +160,7 @@ func upsertDeviceInfoStatement() string {
 func CountFullNodeInfo(ctx context.Context) (*model.FullNodeInfo, error) {
 	queryStatement := fmt.Sprintf(`SELECT count( device_id ) AS total_node_count ,  SUM(IF(node_type = 1, 1, 0)) AS edge_count, 
        SUM(IF(node_type = 2, 1, 0)) AS candidate_count, SUM(IF(node_type = 3, 1, 0)) AS validator_count, SUM( disk_space) AS total_storage, 
-       SUM(bandwidth_up) AS total_upstream_bandwidth, SUM(bandwidth_down) AS total_downstream_bandwidth FROM %s;`, tableNameDeviceInfo)
+       SUM(bandwidth_up) AS total_upstream_bandwidth, SUM(bandwidth_down) AS total_downstream_bandwidth FROM %s where active_status = 1;`, tableNameDeviceInfo)
 
 	var out model.FullNodeInfo
 	if err := DB.QueryRowxContext(ctx, queryStatement).StructScan(&out); err != nil {
@@ -196,7 +196,7 @@ func CountUserDeviceInfo(ctx context.Context, userID string) (*UserDeviceProfile
 	queryStatement := fmt.Sprintf(`SELECT sum(cumulative_profit) as cumulative_profit, sum(yesterday_profit) as yesterday_profit, 
 sum(today_profit) as today_profit, sum(seven_days_profit) as seven_days_profit, sum(month_profit) as month_profit, count(*) as total_num, 
 count(IF(device_status = 'online', 1, NULL)) as online_num ,count(IF(device_status = 'offline', 1, NULL)) as offline_num, 
-count(IF(device_status = 'abnormal', 1, NULL)) as abnormal_num, sum(bandwidth_up) as total_bandwidth  from %s where user_id = ?;`, tableNameDeviceInfo)
+count(IF(device_status = 'abnormal', 1, NULL)) as abnormal_num, sum(bandwidth_up) as total_bandwidth  from %s where user_id = ? and active_status = 1;`, tableNameDeviceInfo)
 
 	var out UserDeviceProfile
 	if err := DB.QueryRowxContext(ctx, queryStatement, userID).StructScan(&out); err != nil {

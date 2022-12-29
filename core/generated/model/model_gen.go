@@ -96,6 +96,7 @@ type DeviceInfo struct {
 	BindStatus       string  `db:"bind_status" json:"bind_status"`
 	WorkStatus       string  `db:"work_status" json:"work_status"`
 	DeviceStatus     string  `db:"device_status" json:"device_status"`
+	ActiveStatus     int32   `db:"active_status" json:"active_status"`
 	DiskType         string  `db:"disk_type" json:"disk_type"`
 	IoSystem         string  `db:"io_system" json:"io_system"`
 	OnlineTime       float64 `db:"online_time" json:"online_time"`
