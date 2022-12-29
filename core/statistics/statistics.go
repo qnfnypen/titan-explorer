@@ -16,6 +16,11 @@ const LockerTTL = 30 * time.Second
 
 const DKeyFetchAllNodes = "titan::dk_fetch_all_nodes"
 
+const (
+	gibiByte = 10 << 30
+	tebiByte = 10 << 40
+)
+
 func (s *Statistic) initContabs() {
 	s.cron.AddFunc("@every 5m", s.Once(DKeyFetchAllNodes, s.FetchAllNodes))
 }

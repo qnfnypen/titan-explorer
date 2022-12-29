@@ -2,6 +2,7 @@ package utils
 
 import (
 	logging "github.com/ipfs/go-log/v2"
+	"math"
 	"strconv"
 )
 
@@ -45,4 +46,13 @@ func Str2Int64(s string) int64 {
 		return 0
 	}
 	return ret
+}
+
+func round(num float64) int {
+	return int(num + math.Copysign(0.5, num))
+}
+
+func ToFixed(num float64, precision int) float64 {
+	output := math.Pow(10, float64(precision))
+	return float64(round(num*output)) / output
 }

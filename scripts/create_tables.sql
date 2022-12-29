@@ -285,7 +285,7 @@ CREATE TABLE `block_info` (
 `carfile_hash` VARCHAR(128) NOT NULL DEFAULT '',
 `carfile_cid` VARCHAR(128) NOT NULL DEFAULT '',
 `status` TINYINT(4)  NOT NULL DEFAULT 0,
-`size` int(20)  NOT NULL DEFAULT 0,
+`size` FLOAT(32)  NOT NULL DEFAULT 0,
 `created_time` DATETIME(3) NOT NULL DEFAULT 0,
 `end_time` DATETIME(3) NOT NULL DEFAULT 0,
 PRIMARY KEY (`id`)

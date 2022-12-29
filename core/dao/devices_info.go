@@ -159,8 +159,8 @@ func upsertDeviceInfoStatement() string {
 
 func CountFullNodeInfo(ctx context.Context) (*model.FullNodeInfo, error) {
 	queryStatement := fmt.Sprintf(`SELECT count( device_id ) AS total_node_count ,  SUM(IF(node_type = 1, 1, 0)) AS edge_count, 
-       SUM(IF(node_type = 2, 1, 0)) AS candidate_count, SUM(IF(node_type = 3, 1, 0)) AS validator_count, SUM( disk_space) AS total_storage, 
-       SUM(bandwidth_up) AS total_upstream_bandwidth, SUM(bandwidth_down) AS total_downstream_bandwidth FROM %s where active_status = 1;`, tableNameDeviceInfo)
+       SUM(IF(node_type = 2, 1, 0)) AS candidate_count, SUM(IF(node_type = 3, 1, 0)) AS validator_count, ROUND(SUM( disk_space),4) AS total_storage, 
+       ROUND(SUM(bandwidth_up),2) AS total_upstream_bandwidth, ROUND(SUM(bandwidth_down),2) AS total_downstream_bandwidth FROM %s where active_status = 1;`, tableNameDeviceInfo)
 
 	var out model.FullNodeInfo
 	if err := DB.QueryRowxContext(ctx, queryStatement).StructScan(&out); err != nil {

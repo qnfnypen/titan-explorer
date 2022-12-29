@@ -40,7 +40,7 @@ type BlockInfo struct {
 	CarfileHash string    `db:"carfile_hash" json:"carfile_hash"`
 	CarfileCid  string    `db:"carfile_cid" json:"carfile_cid"`
 	Status      int32     `db:"status" json:"status"`
-	Size        int32     `db:"size" json:"size"`
+	Size        float64   `db:"size" json:"size"`
 	CreatedTime time.Time `db:"created_time" json:"created_time"`
 	EndTime     time.Time `db:"end_time" json:"end_time"`
 }

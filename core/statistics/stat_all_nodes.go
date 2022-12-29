@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/utils"
 	"strings"
 	"time"
 )
@@ -85,6 +86,11 @@ func toDeviceInfo(v interface{}) *model.DeviceInfo {
 		deviceInfo.IpCity = ipLocationList[len(ipLocationList)-1]
 	}
 
+	deviceInfo.BandwidthUp = utils.ToFixed(deviceInfo.BandwidthUp/gibiByte, 2)
+	deviceInfo.BandwidthDown = utils.ToFixed(deviceInfo.BandwidthDown/gibiByte, 2)
+	deviceInfo.TotalUpload = utils.ToFixed(deviceInfo.TotalUpload/gibiByte, 2)
+	deviceInfo.TotalDownload = utils.ToFixed(deviceInfo.TotalDownload/gibiByte, 2)
+	deviceInfo.DiskSpace = utils.ToFixed(deviceInfo.DiskSpace/tebiByte, 4)
 	deviceInfo.ActiveStatus = 1
 	return &deviceInfo
 }

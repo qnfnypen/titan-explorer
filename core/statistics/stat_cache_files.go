@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/utils"
 	"github.com/golang-module/carbon/v2"
 	"github.com/ipfs/go-cid"
 	"github.com/linguohua/titan/api"
@@ -108,7 +109,7 @@ func toBlockInfo(in api.BlockInfo) *model.BlockInfo {
 		CarfileHash: in.CarfileHash,
 		CarfileCid:  hashToCID(in.CarfileHash),
 		Status:      int32(in.Status),
-		Size:        int32(in.Size),
+		Size:        utils.ToFixed(float64(in.Size)/gibiByte, 2),
 		CreatedTime: in.CreateTime,
 		EndTime:     in.EndTime,
 	}
@@ -122,7 +123,7 @@ func toValidationEvent(in api.ValidateResultInfo) *model.ValidationEvent {
 		Blocks:          in.BlockNumber,
 		Time:            in.ValidateTime,
 		Duration:        in.Duration,
-		UpstreamTraffic: in.UploadTraffic,
+		UpstreamTraffic: utils.ToFixed(in.UploadTraffic/gibiByte, 2),
 	}
 }
 
