@@ -3,8 +3,4 @@ INSERT INTO users(uuid, username, pass_hash, role) values ("90f33b18-5a3f-4243-b
 
 INSERT INTO schedulers(
 `name`, `group`, `address`, `status`, `created_at`, `updated_at`, `deleted_at`
-) values ('default', 'default', 'http://221.4.187.172:3456/rpc/v0', 1, 0, 0, 0);
-
-INSERT INTO `schedulers`(
-`name`, `group`, `address`, `status`, `created_at`, `updated_at`, `deleted_at`
-) values ('local', 'local', 'http://127.0.0.1:3456/rpc/v0', 1, 0, 0, 0);
+) values ('default', 'default', 'http://127.0.0.1:3456/rpc/v0', 1, 0, 0, 0);

@@ -90,7 +90,6 @@ func (s *Statistic) SumDeviceInfoDaily() error {
 			where time>='%s' and time<='%s' group by date, device_id`, startOfTodayTime, endOfTodayTime)
 	datas, err := dao.GetQueryDataList(sqlClause)
 	if err != nil {
-		log.Error(err.Error())
 		return err
 	}
 
@@ -117,14 +116,13 @@ func (s *Statistic) SumDeviceInfoDaily() error {
 
 	err = dao.BulkUpsertDeviceInfoDaily(context.Background(), dailyInfos)
 	if err != nil {
-		log.Errorf("bulk upsert device info daily: %v", err)
 		return err
 	}
 
 	return nil
 }
 
-func (s *Statistic) SumDeviceInfoProfit() {
+func (s *Statistic) SumDeviceInfoProfit() error {
 	log.Info("start sum device info profit")
 	start := time.Now()
 	defer func() {
@@ -192,8 +190,13 @@ func (s *Statistic) SumDeviceInfoProfit() {
 	}
 
 	if err := dao.BulkUpdateDeviceInfo(context.Background(), deviceInfos); err != nil {
-		log.Errorf("bulk update device: %v", err)
+		log.Errorf("bulk update devices: %v", err)
 	}
 
-	return
+	if err := s.SumDeviceInfoDaily(); err != nil {
+		log.Errorf("sum device info daily: %v", err)
+		return err
+	}
+
+	return nil
 }

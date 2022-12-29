@@ -36,7 +36,7 @@ loop:
 		nodes = append(nodes, toDeviceInfo(node))
 	}
 
-	log.Infof("fetch %d nodes", len(nodes))
+	log.Infof("handling %d/%d nodes", total, resp.Total)
 
 	err = dao.BulkUpsertDeviceInfo(ctx, nodes)
 	if err != nil {
@@ -51,7 +51,14 @@ loop:
 		goto loop
 	}
 
-	go s.SumDeviceInfoProfit()
+	s.asyncExecute(
+		[]func() error{
+			s.SumDeviceInfoProfit,
+			s.CountFullNodeInfo,
+			s.CountCacheFiles,
+			s.FetchValidationEvents,
+		},
+	)
 
 	return nil
 }
@@ -68,6 +75,7 @@ func toDeviceInfo(v interface{}) *model.DeviceInfo {
 	if err != nil {
 		return nil
 	}
+
 	ipLocationList := strings.Split(deviceInfo.IpLocation, "-")
 	if len(ipLocationList) >= 2 {
 		deviceInfo.IpCountry = ipLocationList[0]

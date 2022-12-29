@@ -12,32 +12,21 @@ import (
 	"time"
 )
 
-func (s *Statistic) FetchEvents() error {
+func (s *Statistic) asyncExecute(jobs []func() error) {
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(len(jobs))
 
-	go func() {
-		defer wg.Done()
-
-		err := s.CountCacheFiles()
-		if err != nil {
-			log.Errorf("count cache files: %v", err)
-			return
-		}
-	}()
-
-	go func() {
-		defer wg.Done()
-
-		err := s.FetchValidationEvents()
-		if err != nil {
-			log.Errorf("fetch validations: %v", err)
-			return
-		}
-	}()
+	for _, job := range jobs {
+		go func(job func() error) {
+			defer wg.Done()
+			if err := job(); err != nil {
+				log.Errorf("handling job: %v", err)
+			}
+		}(job)
+	}
 
 	wg.Wait()
-	return nil
+	return
 }
 
 func (s *Statistic) CountCacheFiles() error {
@@ -85,24 +74,23 @@ loop:
 		blockInfos = append(blockInfos, toBlockInfo(blockInfo))
 	}
 
-	log.Debugf("GetCacheBlockInfos: got %d blocks", len(blockInfos))
-
-	if len(blockInfos) > 0 {
-		err = dao.CreateBlockInfo(ctx, blockInfos)
-		if err != nil {
-			log.Errorf("create block info: %v", err)
-		}
+	if resp.Total <= 0 {
+		return nil
 	}
 
 	sum += int64(len(resp.Data))
 	req.Cursor += len(resp.Data)
+
+	log.Debugf("GetCacheBlockInfos got %d/%d blocks", sum, resp.Total)
+
+	err = dao.CreateBlockInfo(ctx, blockInfos)
+	if err != nil {
+		log.Errorf("create block info: %v", err)
+	}
+
 	if sum < resp.Total {
 		<-time.After(100 * time.Millisecond)
 		goto loop
-	}
-
-	if sum <= 0 {
-		return nil
 	}
 
 	err = dao.TxStatisticDeviceBlocks(ctx, startTime, endTime)
@@ -182,22 +170,25 @@ loop:
 		return err
 	}
 
+	if resp.Total <= 0 {
+		return nil
+	}
+
+	sum += int64(len(resp.ValidateResultInfos))
+	page++
+
 	var validationEvents []*model.ValidationEvent
 	for _, blockInfo := range resp.ValidateResultInfos {
 		validationEvents = append(validationEvents, toValidationEvent(blockInfo))
 	}
 
-	log.Debugf("GetSummaryValidateMessage got %d message", len(validationEvents))
+	log.Debugf("GetSummaryValidateMessage got %d/%d messages", sum, resp.Total)
 
-	if len(validationEvents) > 0 {
-		err = dao.CreateValidationEvent(ctx, validationEvents)
-		if err != nil {
-			log.Errorf("create validation events: %v", err)
-		}
+	err = dao.CreateValidationEvent(ctx, validationEvents)
+	if err != nil {
+		log.Errorf("create validation events: %v", err)
 	}
 
-	sum += int64(len(resp.ValidateResultInfos))
-	page++
 	if sum < int64(resp.Total) {
 		<-time.After(100 * time.Millisecond)
 		goto loop

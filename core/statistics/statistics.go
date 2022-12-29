@@ -14,24 +14,10 @@ var log = logging.Logger("statistics")
 
 const LockerTTL = 30 * time.Second
 
-const (
-	DKeyFetchAllNodes      = "titan::dk_fetch_all_nodes"
-	DKeySumDeviceInfoDaily = "titan::dk_sum_device_info_daily"
-	DKeyCountFullNodes     = "titan::dk_count_full_nodes"
-	DKeyFetchEvents        = "titan::dk_fetch_events"
-)
+const DKeyFetchAllNodes = "titan::dk_fetch_all_nodes"
 
 func (s *Statistic) initContabs() {
-	s.FetchAllNodes()
-
-	// @every 5m
-	s.cron.AddFunc("0 */5 * * * *", s.Once(DKeyFetchAllNodes, s.FetchAllNodes))
-	// @every 5m
-	s.cron.AddFunc("0 */10 * * * *", s.Once(DKeySumDeviceInfoDaily, s.SumDeviceInfoDaily))
-	// @every 10m
-	s.cron.AddFunc("0 */10 * * * *", s.Once(DKeyCountFullNodes, s.CountFullNodeInfo))
-	// @every 5m
-	s.cron.AddFunc("0 */5 * * * *", s.Once(DKeyFetchEvents, s.FetchEvents))
+	s.cron.AddFunc("@every 1m", s.Once(DKeyFetchAllNodes, s.FetchAllNodes))
 }
 
 type Statistic struct {
