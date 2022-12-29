@@ -118,7 +118,7 @@ func BulkUpdateDeviceInfo(ctx context.Context, deviceInfos []*model.DeviceInfo) 
 
 	for _, deviceInfo := range deviceInfos {
 		_, err = tx.NamedExecContext(ctx, fmt.Sprintf(
-			`UPDATE %s SET today_online_time = :today_online_tnime,  today_profit = :today_profit,
+			`UPDATE %s SET today_online_time = :today_online_time, today_profit = :today_profit,
 				yesterday_profit = :yesterday_profit, seven_days_profit = :seven_days_profit, month_profit = :month_profit, 
 				updated_at = now() WHERE device_id = :device_id`, tableNameDeviceInfo),
 			deviceInfo)
