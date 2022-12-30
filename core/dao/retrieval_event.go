@@ -7,12 +7,12 @@ import (
 	"time"
 )
 
-const tableNameRetrieveEvent = "retrieve_event"
+const tableNameRetrievalEvent = "retrieval_event"
 
-func CreateRetrieveEvent(ctx context.Context, events []*model.LoginLog) error {
+func CreateRetrievalEvent(ctx context.Context, events []*model.RetrievalEvent) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
 		`INSERT INTO %s (device_id, blocks, time, upstream_bandwidth)
-			VALUES (:device_id, :blocks, :time, :upstream_bandwidth);`, tableNameRetrieveEvent,
+			VALUES (:device_id, :blocks, :time, :upstream_bandwidth);`, tableNameRetrievalEvent,
 	), events)
 	return err
 }
@@ -20,22 +20,22 @@ func CreateRetrieveEvent(ctx context.Context, events []*model.LoginLog) error {
 func groupDevicesAndInsert(ctx context.Context, startTime, endTime time.Time) error {
 	queryStatement := fmt.Sprintf(`
 INSERT INTO %s(device_id, carfile_cid, block_size, blocks, time)
-select device_id, created_at, (c.retrieve_count - c.pre_retrieve_count) as retrieve_count, (c.upstream_traffic - c.pre_upstream_traffic) as upstream_traffic  
+select device_id, created_at, (c.retrieval_count - c.pre_retrieval_count) as retrieval_count, (c.upstream_traffic - c.pre_upstream_traffic) as upstream_traffic  
 from (
-	select device_id, retrieve_count , upstream_traffic , created_at, 
-	@a.retrieve_count AS pre_retrieve_count,
+	select device_id, retrieval_count, upstream_traffic , created_at, 
+	@a.retrieval_count AS pre_retrieval_count,
 	@a.upstream_traffic AS pre_upstream_traffic,
-	@a.retrieve_count := a.retrieve_count, 
+	@a.retrieval_count := a.retrieval_count, 
 	@a.upstream_traffic := a.upstream_traffic  
 	from %s a ,
-	(SELECT @a.retrieve_count := 0, @a.upstream_traffic := 0 ) b %s 
-) c where (c.retrieve_count - c.pre_retrieve_count) > 0 `, tableNameRetrieveEvent, tableNameDeviceInfoHour)
+	(SELECT @a.retrieval_count := 0, @a.upstream_traffic := 0 ) b 
+) c where (c.retrieval_count - c.pre_retrieval_count) > 0 `, tableNameRetrievalEvent, tableNameDeviceInfoHour)
 
 	_, err := DB.ExecContext(ctx, queryStatement, startTime, endTime)
 	return err
 }
 
-func GetRetrieveEventsByPage(ctx context.Context, cond *model.CacheEvent, option QueryOption) ([]*model.RetrieveEvent, int64, error) {
+func GetRetrievalEventsByPage(ctx context.Context, cond *model.RetrievalEvent, option QueryOption) ([]*model.RetrievalEvent, int64, error) {
 	var args []interface{}
 	where := `WHERE 1=1`
 	if cond.DeviceID != "" {
@@ -57,17 +57,17 @@ func GetRetrieveEventsByPage(ctx context.Context, cond *model.CacheEvent, option
 	}
 
 	var total int64
-	var out []*model.RetrieveEvent
+	var out []*model.RetrievalEvent
 
 	err := DB.GetContext(ctx, &total, fmt.Sprintf(
-		`SELECT count(*) FROM %s %s`, tableNameRetrieveEvent, where,
+		`SELECT count(*) FROM %s %s`, tableNameRetrievalEvent, where,
 	), args...)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT * FROM %s %s LIMIT %d OFFSET %d`, tableNameRetrieveEvent, where, limit, offset,
+		`SELECT * FROM %s %s LIMIT %d OFFSET %d`, tableNameRetrievalEvent, where, limit, offset,
 	), args...)
 	if err != nil {
 		return nil, 0, err

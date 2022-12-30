@@ -130,7 +130,7 @@ type DeviceInfoDaily struct {
 	DiskUsage         float64   `db:"disk_usage" json:"disk_usage"`
 	UpstreamTraffic   float64   `db:"upstream_traffic" json:"upstream_traffic"`
 	DownstreamTraffic float64   `db:"downstream_traffic" json:"downstream_traffic"`
-	RetrieveCount     int64     `db:"retrieve_count" json:"retrieve_count"`
+	RetrievalCount    int64     `db:"retrieval_count" json:"retrieval_count"`
 	BlockCount        int64     `db:"block_count" json:"block_count"`
 }
 
@@ -150,7 +150,7 @@ type DeviceInfoHour struct {
 	DiskUsage         float64   `db:"disk_usage" json:"disk_usage"`
 	UpstreamTraffic   float64   `db:"upstream_traffic" json:"upstream_traffic"`
 	DownstreamTraffic float64   `db:"downstream_traffic" json:"downstream_traffic"`
-	RetrieveCount     int64     `db:"retrieve_count" json:"retrieve_count"`
+	RetrievalCount    int64     `db:"retrieval_count" json:"retrieval_count"`
 	BlockCount        int64     `db:"block_count" json:"block_count"`
 }
 
@@ -203,7 +203,7 @@ type OperationLog struct {
 	UpdatedAt        time.Time `db:"updated_at" json:"updated_at"`
 }
 
-type RetrieveEvent struct {
+type RetrievalEvent struct {
 	ID                int64     `db:"id" json:"id"`
 	DeviceID          string    `db:"device_id" json:"device_id"`
 	Blocks            int64     `db:"blocks" json:"blocks"`

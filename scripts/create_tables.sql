@@ -145,7 +145,7 @@ CREATE TABLE `device_info_daily` (
    `disk_usage` FLOAT(32) NOT NULL DEFAULT '0',
    `upstream_traffic` FLOAT(32) NOT NULL DEFAULT '0',
    `downstream_traffic` FLOAT(32) NOT NULL DEFAULT '0',
-   `retrieve_count` BIGINT(20) NOT NULL DEFAULT '0',
+   `retrieval_count` BIGINT(20) NOT NULL DEFAULT '0',
    `block_count` BIGINT(20) NOT NULL DEFAULT '0',
    PRIMARY KEY USING BTREE (`id`),
    UNIQUE KEY `idx_device_id_time` (`device_id`,`time`) USING BTREE,
@@ -170,7 +170,7 @@ CREATE TABLE `device_info_hour` (
  `disk_usage` FLOAT(32) NOT NULL DEFAULT '0',
  `upstream_traffic` FLOAT(32) NOT NULL DEFAULT '0',
  `downstream_traffic` FLOAT(32) NOT NULL DEFAULT '0',
- `retrieve_count` BIGINT(20) NOT NULL DEFAULT '0',
+ `retrieval_count` BIGINT(20) NOT NULL DEFAULT '0',
  `block_count` BIGINT(20) NOT NULL DEFAULT '0',
  PRIMARY KEY USING BTREE (`id`),
  INDEX `idx_device_info_hour_deleted_at` USING BTREE(`deleted_at` ASC)
@@ -248,9 +248,9 @@ PRIMARY KEY (`id`),
 UNIQUE KEY `uniq_device_id_car_time` (`device_id`,`carfile_cid`,`time`) USING BTREE
 ) ENGINE = INNODB CHARSET = utf8mb4;
 
-DROP TABLE IF EXISTS `retrieve_event`;
+DROP TABLE IF EXISTS `retrieval_event`;
 
-CREATE TABLE `retrieve_event` (
+CREATE TABLE `retrieval_event` (
 `id` BIGINT(20) NOT NULL AUTO_INCREMENT,
 `device_id` VARCHAR(128) NOT NULL DEFAULT '',
 `blocks` BIGINT(20) NOT NULL DEFAULT 0,

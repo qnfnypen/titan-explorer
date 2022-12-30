@@ -17,12 +17,12 @@ var (
 
 func BulkUpsertDeviceInfoHours(ctx context.Context, hourInfos []*model.DeviceInfoHour) error {
 	upsertStatement := fmt.Sprintf(`INSERT INTO %s (created_at, updated_at, hour_income, user_id, device_id,
-				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage, upstream_traffic, downstream_traffic, retrieve_count, block_count, time)
+				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage, upstream_traffic, downstream_traffic, retrieval_count, block_count, time)
 			VALUES (:created_at, :updated_at, :hour_income, :user_id, :device_id, :online_time, :pkg_loss_ratio, :latency, 
-			    :nat_ratio, :disk_usage, :upstream_traffic, :downstream_traffic, :retrieve_count, :block_count, :time) 
+			    :nat_ratio, :disk_usage, :upstream_traffic, :downstream_traffic, :retrieval_count, :block_count, :time) 
 			 ON DUPLICATE KEY UPDATE updated_at = now(), hour_income = :hour_income,
 			online_time = :online_time, pkg_loss_ratio = :pkg_loss_ratio, latency = :latency,
-			upstream_traffic = :upstream_traffic, downstream_traffic = :downstream_traffic, retrieve_count = :retrieve_count, block_count = :block_count,
+			upstream_traffic = :upstream_traffic, downstream_traffic = :downstream_traffic, retrieval_count = :retrieval_count, block_count = :block_count,
 			nat_ratio = :nat_ratio, disk_usage = :disk_usage`, tableNameDeviceInfoHour)
 	tx := DB.MustBegin()
 	defer tx.Rollback()
@@ -39,12 +39,12 @@ func BulkUpsertDeviceInfoHours(ctx context.Context, hourInfos []*model.DeviceInf
 
 func BulkUpsertDeviceInfoDaily(ctx context.Context, dailyInfos []*model.DeviceInfoDaily) error {
 	upsertStatement := fmt.Sprintf(`INSERT INTO %s (created_at, updated_at, income, user_id, device_id,
-				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage, upstream_traffic, downstream_traffic, retrieve_count, block_count, time)
+				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage, upstream_traffic, downstream_traffic, retrieval_count, block_count, time)
 			VALUES (:created_at, :updated_at, :income, :user_id, :device_id,
-				:online_time, :pkg_loss_ratio, :latency, :nat_ratio, :disk_usage, :upstream_traffic, :downstream_traffic, :retrieve_count, :block_count, :time) 
+				:online_time, :pkg_loss_ratio, :latency, :nat_ratio, :disk_usage, :upstream_traffic, :downstream_traffic, :retrieval_count, :block_count, :time) 
 			 ON DUPLICATE KEY UPDATE updated_at = now(), income = :income,
 			online_time = :online_time, pkg_loss_ratio = :pkg_loss_ratio, latency = :latency,
-			upstream_traffic = :upstream_traffic, downstream_traffic = :downstream_traffic, retrieve_count = :retrieve_count, block_count = :block_count,
+			upstream_traffic = :upstream_traffic, downstream_traffic = :downstream_traffic, retrieval_count = :retrieval_count, block_count = :block_count,
 			nat_ratio = :nat_ratio, disk_usage = :disk_usage`, tableNameDeviceInfoDaily)
 	tx := DB.MustBegin()
 	defer tx.Rollback()
@@ -69,7 +69,7 @@ type DeviceStatistics struct {
 	OnlineTime        float64 `json:"online_time" db:"online_time"`
 	UpstreamTraffic   float64 `json:"upstream_traffic" db:"upstream_traffic"`
 	DownstreamTraffic float64 `json:"downstream_traffic" db:"downstream_traffic"`
-	RetrieveCount     float64 `json:"retrieve_count" db:"retrieve_count"`
+	RetrievalCount    float64 `json:"retrieval_count" db:"retrieval_count"`
 }
 
 func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour, option QueryOption) ([]*DeviceStatistics, error) {
@@ -79,7 +79,7 @@ func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour,
 	max(online_time) - min(online_time) as online_time,
 	max(upstream_traffic) - min(upstream_traffic) as upstream_traffic,
 	max(downstream_traffic) - min(downstream_traffic) as downstream_traffic,
-	max(retrieve_count) - min(retrieve_count) as retrieve_count
+	max(retrieval_count) - min(retrieval_count) as retrieval_count
 	from device_info_hour where device_id='%s' and time>='%s' and time<='%s' group by date order by id desc`, cond.DeviceID, option.StartTime, option.EndTime)
 	var out []*DeviceStatistics
 	err := DB.SelectContext(ctx, &out, sqlClause)
@@ -149,7 +149,7 @@ func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, op
 	var out []*DeviceStatistics
 	err := DB.SelectContext(ctx, &out, fmt.Sprintf(
 		`SELECT DATE_FORMAT(time, '%%m-%%d') as date, nat_ratio, disk_usage, latency, pkg_loss_ratio, income, online_time, upstream_traffic, 
-    	downstream_traffic, retrieve_count FROM %s %s`, tableNameDeviceInfoDaily, where), args...)
+    	downstream_traffic, retrieval_count FROM %s %s`, tableNameDeviceInfoDaily, where), args...)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +218,7 @@ func GetDeviceInfoDailyByPage(ctx context.Context, cond *model.DeviceInfoDaily, 
 	return out, total, err
 }
 
-func GetRetrieveEventsFromDeviceByPage(ctx context.Context, cond *model.DeviceInfoHour, option QueryOption) ([]*model.DeviceInfoHour, int64, error) {
+func GetRetrievalEventsFromDeviceByPage(ctx context.Context, cond *model.DeviceInfoHour, option QueryOption) ([]*model.DeviceInfoHour, int64, error) {
 	var args []interface{}
 	where := `WHERE 1=1`
 	if cond.DeviceID != "" {
@@ -240,30 +240,30 @@ func GetRetrieveEventsFromDeviceByPage(ctx context.Context, cond *model.DeviceIn
 
 	err := DB.GetContext(ctx, &total, fmt.Sprintf(
 		`select count(*)  from (
-	select device_id, retrieve_count , upstream_traffic , created_at, 
-	@a.retrieve_count AS pre_retrieve_count,
+	select device_id, retrieval_count , upstream_traffic , created_at, 
+	@a.retrieval_count AS pre_retrieval_count,
 	@a.upstream_traffic AS pre_upstream_traffic,
-	@a.retrieve_count := a.retrieve_count, 
+	@a.retrieval_count := a.retrieval_count, 
 	@a.upstream_traffic := a.upstream_traffic  
 	from %s a ,
-	(SELECT @a.retrieve_count := 0, @a.upstream_traffic := 0 ) b %s
-) c where (c.retrieve_count - c.pre_retrieve_count) > 0`, tableNameDeviceInfoHour, where,
+	(SELECT @a.retrieval_count := 0, @a.upstream_traffic := 0 ) b %s
+) c where (c.retrieval_count - c.pre_retrieval_count) > 0`, tableNameDeviceInfoHour, where,
 	), args...)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	query := fmt.Sprintf(`
-select device_id, created_at, (c.retrieve_count - c.pre_retrieve_count) as retrieve_count, (c.upstream_traffic - c.pre_upstream_traffic) as upstream_traffic  
+select device_id, created_at, (c.retrieval_count - c.pre_retrieval_count) as retrieval_count, (c.upstream_traffic - c.pre_upstream_traffic) as upstream_traffic  
 from (
-	select device_id, retrieve_count , upstream_traffic , created_at, 
-	@a.retrieve_count AS pre_retrieve_count,
+	select device_id, retrieval_count , upstream_traffic , created_at, 
+	@a.retrieval_count AS pre_retrieval_count,
 	@a.upstream_traffic AS pre_upstream_traffic,
-	@a.retrieve_count := a.retrieve_count, 
+	@a.retrieval_count := a.retrieval_count, 
 	@a.upstream_traffic := a.upstream_traffic  
 	from %s a ,
-	(SELECT @a.retrieve_count := 0, @a.upstream_traffic := 0 ) b %s
-) c where (c.retrieve_count - c.pre_retrieve_count) > 0 ORDER BY created_at DESC limit %d offset %d`, tableNameDeviceInfoHour, where, limit, offset)
+	(SELECT @a.retrieval_count := 0, @a.upstream_traffic := 0 ) b %s
+) c where (c.retrieval_count - c.pre_retrieval_count) > 0 ORDER BY created_at DESC limit %d offset %d`, tableNameDeviceInfoHour, where, limit, offset)
 	err = DB.SelectContext(ctx, &out, query, args...)
 	if err != nil {
 		return nil, 0, err

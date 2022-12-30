@@ -34,7 +34,7 @@ func addDeviceInfoHours(ctx context.Context, deviceInfo []*model.DeviceInfo) err
 		deviceInfoHour.DiskUsage = device.DiskUsage
 		deviceInfoHour.UpstreamTraffic = device.TotalUpload
 		deviceInfoHour.DownstreamTraffic = device.TotalDownload
-		deviceInfoHour.RetrieveCount = device.DownloadCount
+		deviceInfoHour.RetrievalCount = device.DownloadCount
 		deviceInfoHour.BlockCount = device.BlockCount
 		deviceInfoHour.CreatedAt = time.Now()
 		deviceInfoHour.UpdatedAt = time.Now()
@@ -85,7 +85,7 @@ func (s *Statistic) SumDeviceInfoDaily() error {
 			max(online_time) - min(online_time) as online_time,
 			max(upstream_traffic) - min(upstream_traffic) as upstream_traffic,
 			max(downstream_traffic) - min(downstream_traffic) as downstream_traffic,
-			max(retrieve_count) - min(retrieve_count) as retrieve_count,
+			max(retrieval_count) - min(retrieval_count) as retrieval_count,
 			max(block_count) - min(block_count) as block_count  from device_info_hour                                                                                      
 			where time>='%s' and time<='%s' group by date, device_id`, startOfTodayTime, endOfTodayTime)
 	datas, err := dao.GetQueryDataList(sqlClause)
@@ -103,7 +103,7 @@ func (s *Statistic) SumDeviceInfoDaily() error {
 		daily.OnlineTime = utils.Str2Float64(data["online_time"])
 		daily.UpstreamTraffic = utils.Str2Float64(data["upstream_traffic"])
 		daily.DownstreamTraffic = utils.Str2Float64(data["downstream_traffic"])
-		daily.RetrieveCount = utils.Str2Int64(data["retrieve_count"])
+		daily.RetrievalCount = utils.Str2Int64(data["retrieval_count"])
 		daily.BlockCount = utils.Str2Int64(data["block_count"])
 		daily.PkgLossRatio = utils.Str2Float64(data["pkg_loss_ratio"])
 		daily.Latency = utils.Str2Float64(data["latency"])
