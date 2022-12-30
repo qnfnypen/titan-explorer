@@ -17,8 +17,9 @@ const LockerTTL = 30 * time.Second
 const DKeyFetchAllNodes = "titan::dk_fetch_all_nodes"
 
 const (
-	gibiByte = 10 << 30
-	tebiByte = 10 << 40
+	megaBytes = 1 << 20
+	gigaBytes = 1 << 30
+	teraBytes = 1 << 40
 )
 
 func (s *Statistic) initContabs() {

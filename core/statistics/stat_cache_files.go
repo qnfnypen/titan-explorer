@@ -31,7 +31,7 @@ func (s *Statistic) asyncExecute(jobs []func() error) {
 }
 
 func (s *Statistic) CountCacheFiles() error {
-	log.Info("start count cache files")
+	log.Info("start to count cache files")
 	start := time.Now()
 	defer func() {
 		log.Infof("count cache files, cost: %v", time.Since(start))
@@ -109,7 +109,7 @@ func toBlockInfo(in api.BlockInfo) *model.BlockInfo {
 		CarfileHash: in.CarfileHash,
 		CarfileCid:  hashToCID(in.CarfileHash),
 		Status:      int32(in.Status),
-		Size:        utils.ToFixed(float64(in.Size)/gibiByte, 2),
+		Size:        utils.ToFixed(float64(in.Size)/megaBytes, 2),
 		CreatedTime: in.CreateTime,
 		EndTime:     in.EndTime,
 	}
@@ -123,7 +123,7 @@ func toValidationEvent(in api.ValidateResultInfo) *model.ValidationEvent {
 		Blocks:          in.BlockNumber,
 		Time:            in.ValidateTime,
 		Duration:        in.Duration,
-		UpstreamTraffic: utils.ToFixed(in.UploadTraffic/gibiByte, 2),
+		UpstreamTraffic: utils.ToFixed(in.UploadTraffic/megaBytes, 2),
 	}
 }
 
@@ -137,7 +137,7 @@ func hashToCID(hashString string) string {
 }
 
 func (s *Statistic) FetchValidationEvents() error {
-	log.Info("start fetch validation events")
+	log.Info("start to fetch validation events")
 	start := time.Now()
 	defer func() {
 		log.Infof("fetch validation events done, cost: %v", time.Since(start))
@@ -193,6 +193,41 @@ loop:
 	if sum < int64(resp.Total) {
 		<-time.After(100 * time.Millisecond)
 		goto loop
+	}
+
+	return nil
+}
+
+func (s *Statistic) CountRetrievals() error {
+	log.Info("start to count retrievals")
+	start := time.Now()
+	defer func() {
+		log.Infof("count retrievals, cost: %v", time.Since(start))
+	}()
+
+	var startTime time.Time
+	ctx := context.Background()
+	lastEvent, err := dao.GetLastRetrievalEvent(ctx)
+	if err != nil {
+		log.Errorf("get last retrieval event: %v", err)
+		return err
+	}
+
+	if lastEvent == nil {
+		startTime = carbon.Now().StartOfDay().StartOfMinute().Carbon2Time()
+	} else {
+		startTime = lastEvent.Time.Add(time.Second)
+	}
+
+	now := time.Now()
+	for st := startTime; st.Before(now); {
+		et := st.Add(24 * time.Hour)
+		log.Infof("start to count retrivals from %v to %v", st, et)
+		err = dao.GroupDevicesAndCreateRetrievalEvents(ctx, st, et)
+		if err != nil {
+			log.Errorf("group devices and create retrievals: %v", err)
+		}
+		st = st.Add(24 * time.Hour)
 	}
 
 	return nil

@@ -11,7 +11,7 @@ import (
 )
 
 func (s *Statistic) FetchAllNodes() error {
-	log.Info("start fetch all nodes")
+	log.Info("start to fetch all nodes")
 	start := time.Now()
 	defer func() {
 		log.Infof("fetch all nodes done, cost: %v", time.Since(start))
@@ -60,6 +60,7 @@ loop:
 			s.SumDeviceInfoProfit,
 			s.CountFullNodeInfo,
 			s.CountCacheFiles,
+			s.CountRetrievals,
 			s.FetchValidationEvents,
 		},
 	)
@@ -86,17 +87,17 @@ func toDeviceInfo(v interface{}) *model.DeviceInfo {
 		deviceInfo.IpCity = ipLocationList[len(ipLocationList)-1]
 	}
 
-	deviceInfo.BandwidthUp = utils.ToFixed(deviceInfo.BandwidthUp/gibiByte, 2)
-	deviceInfo.BandwidthDown = utils.ToFixed(deviceInfo.BandwidthDown/gibiByte, 2)
-	deviceInfo.TotalUpload = utils.ToFixed(deviceInfo.TotalUpload/gibiByte, 2)
-	deviceInfo.TotalDownload = utils.ToFixed(deviceInfo.TotalDownload/gibiByte, 2)
-	deviceInfo.DiskSpace = utils.ToFixed(deviceInfo.DiskSpace/tebiByte, 4)
+	deviceInfo.BandwidthUp = utils.ToFixed(deviceInfo.BandwidthUp/gigaBytes, 2)
+	deviceInfo.BandwidthDown = utils.ToFixed(deviceInfo.BandwidthDown/gigaBytes, 2)
+	deviceInfo.TotalUpload = utils.ToFixed(deviceInfo.TotalUpload/gigaBytes, 2)
+	deviceInfo.TotalDownload = utils.ToFixed(deviceInfo.TotalDownload/gigaBytes, 2)
+	deviceInfo.DiskSpace = utils.ToFixed(deviceInfo.DiskSpace/teraBytes, 4)
 	deviceInfo.ActiveStatus = 1
 	return &deviceInfo
 }
 
 func (s *Statistic) CountFullNodeInfo() error {
-	log.Info("start count full node info")
+	log.Info("start to count full node info")
 	start := time.Now()
 	defer func() {
 		log.Infof("count full node done, cost: %v", time.Since(start))

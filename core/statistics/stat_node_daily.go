@@ -15,7 +15,7 @@ var (
 )
 
 func addDeviceInfoHours(ctx context.Context, deviceInfo []*model.DeviceInfo) error {
-	log.Info("start fetch device info hours")
+	log.Info("start to fetch device info hours")
 	start := time.Now()
 	defer func() {
 		log.Infof("fetch device info hours done, cost: %v", time.Since(start))
@@ -71,7 +71,7 @@ func QueryDataByDate(DateFrom, DateTo string) []map[string]string {
 }
 
 func (s *Statistic) SumDeviceInfoDaily() error {
-	log.Info("start sum device info daily")
+	log.Info("start to sum device info daily")
 	start := time.Now()
 	defer func() {
 		log.Infof("sum device info daily done, cost: %v", time.Since(start))
@@ -123,7 +123,7 @@ func (s *Statistic) SumDeviceInfoDaily() error {
 }
 
 func (s *Statistic) SumDeviceInfoProfit() error {
-	log.Info("start sum device info profit")
+	log.Info("start to sum device info profit")
 	start := time.Now()
 	defer func() {
 		log.Infof("sum device info profit done, cost: %v", time.Since(start))
