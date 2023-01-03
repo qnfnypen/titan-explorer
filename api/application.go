@@ -32,6 +32,11 @@ func CreateApplicationHandler(c *gin.Context) {
 		params.Amount = 1
 	}
 
+	if params.Amount > 500 {
+		c.JSON(http.StatusBadRequest, respError(errors.ErrAmountLimitExceeded))
+		return
+	}
+
 	params.CreatedAt = time.Now()
 	params.UpdatedAt = time.Now()
 	params.Status = dao.ApplicationStatusCreated
