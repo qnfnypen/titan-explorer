@@ -24,7 +24,7 @@ func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option Query
 		where += ` AND device_status = ?`
 		args = append(args, cond.DeviceStatus)
 	}
-	if cond.IpLocation != "" {
+	if cond.IpLocation != "" && cond.IpLocation != "0" {
 		where += ` AND ip_location = ?`
 		args = append(args, cond.IpLocation)
 	}
