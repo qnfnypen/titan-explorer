@@ -6,6 +6,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"net/http"
+	"net/mail"
 	"strconv"
 	"time"
 )
@@ -18,12 +19,8 @@ func CreateApplicationHandler(c *gin.Context) {
 		return
 	}
 
-	if params.UserID == "" {
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInvalidParams))
-		return
-	}
-
-	if params.NodeType == 0 {
+	_, err := mail.ParseAddress(params.Email)
+	if err != nil || params.UserID == "" || params.NodeType == 0 {
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInvalidParams))
 		return
 	}
