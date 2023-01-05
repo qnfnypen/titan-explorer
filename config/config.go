@@ -7,6 +7,7 @@ type Config struct {
 	SecretKey     string
 	RedisAddr     string
 	RedisPassword string
+	Locator       LocatorConfig
 	Email         EmailConfig
 }
 
@@ -16,4 +17,11 @@ type EmailConfig struct {
 	Name    string
 	Address string
 	Secret  string
+}
+
+type LocatorConfig struct {
+	Address   string
+	Token     string
+	Enable    bool
+	WhiteList []string
 }

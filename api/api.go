@@ -11,14 +11,23 @@ import (
 	"github.com/gnasnik/titan-explorer/utils"
 	"github.com/linguohua/titan/api"
 	"github.com/linguohua/titan/api/client"
+	"math/rand"
+	"net/http"
+	"sync"
 	"time"
 )
 
 var schedulerClient api.Scheduler
 
 type Server struct {
-	cfg             config.Config
-	router          *gin.Engine
+	cfg           config.Config
+	router        *gin.Engine
+	locatorClient api.Locator
+	closer        func()
+	schedulers    []*scheduler
+}
+
+type scheduler struct {
 	schedulerClient api.Scheduler
 	statistic       *statistics.Statistic
 	closer          func()
@@ -30,26 +39,49 @@ func NewServer(cfg config.Config) (*Server, error) {
 	router.Use(cors.Default())
 	ConfigRouter(router, cfg)
 
-	client, closer, err := getSchedulerClient()
+	s := &Server{
+		cfg:        cfg,
+		router:     router,
+		schedulers: make([]*scheduler, 0),
+	}
+
+	client, closer, err := getLocatorClient(cfg.Locator.Address, cfg.Locator.Token)
 	if err != nil {
 		return nil, err
 	}
-
-	s := &Server{
-		cfg:             cfg,
-		router:          router,
-		statistic:       statistics.New(client),
-		schedulerClient: client,
-		closer:          func() { closer() },
+	version, err := client.Version(context.Background())
+	if err != nil {
+		log.Errorf("get version from locator: %v", err)
+		return nil, err
 	}
 
+	log.Infof("Locator connected, url: %s, version: %s", cfg.Locator.Address, version)
+	s.locatorClient = client
+	s.closer = closer
+
+	if !cfg.Locator.Enable {
+		schedulers, err := fetchSchedulersFromDatabase()
+		if err != nil {
+			return nil, err
+		}
+		s.schedulers = schedulers
+		return s, nil
+	}
+
+	schedulers, err := fetchSchedulersFromLocator(client)
+	if err != nil {
+		return nil, err
+	}
+	s.schedulers = schedulers
 	return s, nil
 }
 
 func (s *Server) Run() {
-	s.statistic.Run()
+	for _, item := range s.schedulers {
+		item.statistic.Run()
+	}
 
-	go s.asyncHandleApplication()
+	s.asyncHandleApplication()
 
 	err := s.router.Run(s.cfg.ApiListen)
 	if err != nil {
@@ -57,31 +89,93 @@ func (s *Server) Run() {
 	}
 }
 
+func (s *Server) selectBestScheduler() (*api.Scheduler, error) {
+	return nil, nil
+}
+
 func (s *Server) Close() {
-	select {
-	case <-s.statistic.Stop().Done():
+	var wg sync.WaitGroup
+	wg.Add(len(s.schedulers))
+	for _, item := range s.schedulers {
+		go func(item *scheduler) {
+			defer wg.Done()
+			select {
+			case <-item.statistic.Stop().Done():
+			}
+			item.closer()
+		}(item)
 	}
+	wg.Wait()
 	s.closer()
 }
 
-func getSchedulerClient() (api.Scheduler, func(), error) {
+func fetchSchedulersFromDatabase() ([]*scheduler, error) {
 	schedulers, err := dao.GetSchedulers(context.Background())
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if len(schedulers) == 0 {
 		log.Fatalf("scheulers not found")
 	}
 
-	addr := schedulers[0].Address
-	client, closeScheduler, err := client.NewScheduler(context.Background(), addr, nil)
-	if err != nil {
-		log.Errorf("create scheduler rpc client: %v", err)
+	var out []*scheduler
+	for _, item := range schedulers {
+		headers := http.Header{}
+		headers.Add("Authorization", "Bearer "+string(item.Token))
+		client, closeScheduler, err := client.NewScheduler(context.Background(), item.Address, headers)
+		if err != nil {
+			log.Errorf("create scheduler rpc client: %v", err)
+		}
+		out = append(out, &scheduler{
+			schedulerClient: client,
+			closer:          closeScheduler,
+			statistic:       statistics.New(client),
+		})
 	}
 
-	schedulerClient = client
-	return client, closeScheduler, nil
+	log.Infof("fetch %d schedulers from database", len(out))
+
+	return out, nil
+}
+
+func fetchSchedulersFromLocator(locatorApi api.Locator) ([]*scheduler, error) {
+	accessPoints, err := locatorApi.LoadAccessPointsForWeb(context.Background())
+	if err != nil {
+		log.Errorf("api LoadAccessPointsForWeb: %v", err)
+		return nil, err
+	}
+
+	var out []*scheduler
+	for _, accessPoint := range accessPoints {
+		for _, item := range accessPoint.SchedulerInfos {
+			client, closeScheduler, err := client.NewScheduler(context.Background(), item.URL, nil)
+			if err != nil {
+				log.Errorf("create scheduler rpc client: %v", err)
+			}
+			out = append(out, &scheduler{
+				schedulerClient: client,
+				closer:          closeScheduler,
+				statistic:       statistics.New(client),
+			})
+		}
+	}
+
+	log.Infof("fetch %d schedulers from locator", len(out))
+
+	return out, nil
+}
+
+func getLocatorClient(address, token string) (api.Locator, func(), error) {
+	headers := http.Header{}
+	headers.Add("Authorization", "Bearer "+string(token))
+	client, closer, err := client.NewLocator(context.Background(), address, headers)
+	if err != nil {
+		log.Errorf("create locator rpc client: %v", err)
+		return nil, nil, err
+	}
+
+	return client, closer, nil
 }
 
 func (s *Server) asyncHandleApplication() {
@@ -92,68 +186,84 @@ func (s *Server) asyncHandleApplication() {
 	reSendEmailInterval := time.Minute
 	reSendEmailTicker := time.NewTicker(reSendEmailInterval)
 
-	for {
-		select {
-		case <-ticker.C:
-			applications, err := dao.GetApplicationList(ctx, []int{
-				dao.ApplicationStatusCreated,
-				dao.ApplicationStatusFailed,
-			})
-			if err != nil {
-				log.Errorf("get applications: %v", err)
-				continue
-			}
+	i := rand.Int()
 
-			for _, application := range applications {
-				s.handleApplication(ctx, application)
-			}
-
-			ticker.Reset(handleApplicationInterval)
-		case <-reSendEmailTicker.C:
-			applications, err := dao.GetApplicationList(ctx, []int{
-				dao.ApplicationStatusSendEmailFailed,
-			})
-			if err != nil {
-				log.Errorf("get applications: %v", err)
-				continue
-			}
-
-			for _, application := range applications {
-				results, err := dao.GetApplicationResults(ctx, application.ID)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				applications, err := dao.GetApplicationList(ctx, []int{
+					dao.ApplicationStatusCreated,
+					dao.ApplicationStatusFailed,
+				})
 				if err != nil {
-					log.Errorf("get application results: %v", err)
+					log.Errorf("get applications: %v", err)
 					continue
 				}
 
-				var infos []api.NodeRegisterInfo
-				for _, res := range results {
-					infos = append(infos, api.NodeRegisterInfo{
-						DeviceID: res.DeviceID,
-						Secret:   res.Secret,
-					})
+				for _, application := range applications {
+					accessPoints, err := s.locatorClient.LoadUserAccessPoint(ctx, application.Ip)
+					if err != nil {
+						log.Errorf("get access points: %v", err)
+						continue
+					}
+
+					selectedScheduler := accessPoints.SchedulerInfos[i%len(accessPoints.SchedulerInfos)]
+					i++
+
+					err = s.handleApplication(ctx, accessPoints.AreaID, selectedScheduler.URL, application)
+					if err != nil {
+						continue
+					}
 				}
 
-				status := dao.ApplicationStatusFinished
-				err = s.sendEmail(application.Email, infos)
+				ticker.Reset(handleApplicationInterval)
+			case <-reSendEmailTicker.C:
+				applications, err := dao.GetApplicationList(ctx, []int{
+					dao.ApplicationStatusSendEmailFailed,
+				})
 				if err != nil {
-					status = dao.ApplicationStatusSendEmailFailed
-					log.Errorf("send email appicationID:%d, %v", application.ID, err)
+					log.Errorf("get applications: %v", err)
+					continue
 				}
 
-				err = dao.UpdateApplicationStatus(ctx, application.ID, status)
-				if err != nil {
-					log.Errorf("update application status: %v", err)
+				for _, application := range applications {
+					results, err := dao.GetApplicationResults(ctx, application.ID)
+					if err != nil {
+						log.Errorf("get application results: %v", err)
+						continue
+					}
+
+					var infos []api.NodeRegisterInfo
+					for _, res := range results {
+						infos = append(infos, api.NodeRegisterInfo{
+							DeviceID: res.DeviceID,
+							Secret:   res.Secret,
+						})
+					}
+
+					status := dao.ApplicationStatusFinished
+					err = s.sendEmail(application.Email, infos)
+					if err != nil {
+						status = dao.ApplicationStatusSendEmailFailed
+						log.Errorf("send email appicationID:%d, %v", application.ID, err)
+					}
+
+					err = dao.UpdateApplicationStatus(ctx, application.ID, status)
+					if err != nil {
+						log.Errorf("update application status: %v", err)
+					}
 				}
+				reSendEmailTicker.Reset(reSendEmailInterval)
+			case <-ctx.Done():
+				return
 			}
-			reSendEmailTicker.Reset(reSendEmailInterval)
-		case <-ctx.Done():
-			return
 		}
-	}
+	}()
 }
 
-func (s *Server) handleApplication(ctx context.Context, application *model.Application) error {
-	registrations, err := s.schedulerClient.RegisterNode(ctx, api.NodeType(application.NodeType), int(application.Amount))
+func (s *Server) handleApplication(ctx context.Context, areaID, schedulerURL string, application *model.Application) error {
+	registrations, err := s.locatorClient.RegisterNode(ctx, areaID, schedulerURL, api.NodeType(application.NodeType), int(application.Amount))
 	if err != nil {
 		log.Errorf("register node: %v", err)
 		return err

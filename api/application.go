@@ -5,6 +5,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/utils"
 	"net/http"
 	"net/mail"
 	"strconv"
@@ -37,6 +38,7 @@ func CreateApplicationHandler(c *gin.Context) {
 	params.CreatedAt = time.Now()
 	params.UpdatedAt = time.Now()
 	params.Status = dao.ApplicationStatusCreated
+	params.Ip = utils.GetClientIP(c.Request)
 	if err := dao.AddApplication(c.Request.Context(), &params); err != nil {
 		log.Errorf("add application: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))

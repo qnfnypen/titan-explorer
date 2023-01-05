@@ -5,6 +5,11 @@ SecretKey = "test"
 RedisAddr = "127.0.0.1:6379"
 RedisPassword = ""
 
+[Locator]
+    Enable = true
+    Address = ""
+    Token = ""
+
 [Email]
     SMTP = "smtp.qq.com:587"
     Host = "smtp.qq.com"

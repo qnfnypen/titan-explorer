@@ -18,6 +18,7 @@ type Application struct {
 	Amount            int32     `db:"amount" json:"amount"`
 	UpstreamBandwidth float64   `db:"upstream_bandwidth" json:"upstream_bandwidth"`
 	DiskSpace         float64   `db:"disk_space" json:"disk_space"`
+	Ip                string    `db:"ip" json:"ip"`
 	Status            int32     `db:"status" json:"status"`
 	CreatedAt         time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt         time.Time `db:"updated_at" json:"updated_at"`

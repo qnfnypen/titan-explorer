@@ -213,6 +213,7 @@ CREATE TABLE `application` (
 `amount` INT(20) NOT NULL DEFAULT 0,
 `upstream_bandwidth` FLOAT(32) NOT NULL DEFAULT 0,
 `disk_space` FLOAT(32) NOT NULL DEFAULT 0,
+ `ip` VARCHAR(128) NOT NULL DEFAULT '',
 `status` TINYINT(4) NOT NULL DEFAULT 0,
 `created_at` DATETIME(3) NOT NULL DEFAULT 0,
 `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
