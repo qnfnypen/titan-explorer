@@ -127,7 +127,14 @@ func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour,
 			break
 		}
 	}
-	return outNew, err
+	return reverseList(outNew), err
+}
+
+func reverseList(s []*DeviceStatistics) []*DeviceStatistics {
+	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+		s[i], s[j] = s[j], s[i]
+	}
+	return s
 }
 
 func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*DeviceStatistics, error) {
