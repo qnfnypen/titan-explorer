@@ -84,9 +84,9 @@ func toDeviceInfo(v interface{}) *model.DeviceInfo {
 	ipLocationList := strings.Split(deviceInfo.IpLocation, "-")
 	if len(ipLocationList) >= 2 {
 		deviceInfo.IpCountry = ipLocationList[0]
+		deviceInfo.IpProvince = ipLocationList[1]
 		deviceInfo.IpCity = ipLocationList[len(ipLocationList)-1]
 	}
-
 	deviceInfo.BandwidthUp = utils.ToFixed(deviceInfo.BandwidthUp/gigaBytes, 2)
 	deviceInfo.BandwidthDown = utils.ToFixed(deviceInfo.BandwidthDown/gigaBytes, 2)
 	deviceInfo.TotalUpload = utils.ToFixed(deviceInfo.TotalUpload/gigaBytes, 2)

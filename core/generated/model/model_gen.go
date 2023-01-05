@@ -78,7 +78,10 @@ type DeviceInfo struct {
 	ExternalIp    string    `db:"external_ip" json:"external_ip"`
 	InternalIp    string    `db:"internal_ip" json:"internal_ip"`
 	IpLocation    string    `db:"ip_location" json:"ip_location"`
+	IpProvince    string    `db:"ip_province" json:"ip_province"`
 	IpCountry     string    `db:"ip_country" json:"ip_country"`
+	Latitude      string    `db:"latitude" json:"latitude"`
+	Longitude     string    `db:"longitude" json:"longitude"`
 	IpCity        string    `db:"ip_city" json:"ip_city"`
 	MacLocation   string    `db:"mac_location" json:"mac_location"`
 	NatType       string    `db:"nat_type" json:"nat_type"`
