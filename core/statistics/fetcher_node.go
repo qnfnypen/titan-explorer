@@ -7,10 +7,21 @@ import (
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/utils"
 	"strings"
+
 	"time"
 )
 
-func (s *Statistic) FetchAllNodes() error {
+type NodeFetcher struct {
+	jobQueue chan Job
+}
+
+func newNodeFetcher() *NodeFetcher {
+	return &NodeFetcher{
+		jobQueue: make(chan Job, 1),
+	}
+}
+
+func (n *NodeFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
 	log.Info("start to fetch all nodes")
 	start := time.Now()
 	defer func() {
@@ -22,11 +33,9 @@ func (s *Statistic) FetchAllNodes() error {
 
 loop:
 	offset := (page - 1) * size
-	ctx := context.Background()
-	resp, err := s.api.ListNodes(ctx, offset, size)
+	resp, err := scheduler.Api.ListNodes(ctx, offset, size)
 	if err != nil {
 		log.Errorf("api ListNodes: %v", err)
-		return err
 	}
 
 	total += int64(len(resp.Data))
@@ -42,30 +51,34 @@ loop:
 
 	log.Infof("handling %d/%d nodes", total, resp.Total)
 
-	err = dao.BulkUpsertDeviceInfo(ctx, nodes)
-	if err != nil {
-		log.Errorf("bulk upsert device info: %v", err)
-	}
+	n.Push(ctx, func() error {
+		err = dao.BulkUpsertDeviceInfo(ctx, nodes)
+		if err != nil {
+			log.Errorf("bulk upsert device info: %v", err)
+		}
 
-	if err = addDeviceInfoHours(ctx, nodes); err != nil {
-		log.Errorf("add device info hours: %v", err)
-	}
+		if err = addDeviceInfoHours(ctx, nodes); err != nil {
+			log.Errorf("add device info hours: %v", err)
+		}
+		return nil
+	})
 
 	if total < resp.Total {
 		goto loop
 	}
 
-	s.asyncExecute(
-		[]func() error{
-			s.SumDeviceInfoProfit,
-			s.CountFullNodeInfo,
-			s.CountCacheFiles,
-			s.CountRetrievals,
-			s.FetchValidationEvents,
-		},
-	)
-
 	return nil
+}
+
+func (n *NodeFetcher) Push(ctx context.Context, job Job) {
+	select {
+	case n.jobQueue <- job:
+	case <-ctx.Done():
+	}
+}
+
+func (n *NodeFetcher) GetJobQueue() chan Job {
+	return n.jobQueue
 }
 
 func toDeviceInfo(v interface{}) *model.DeviceInfo {
@@ -96,37 +109,4 @@ func toDeviceInfo(v interface{}) *model.DeviceInfo {
 	return &deviceInfo
 }
 
-func (s *Statistic) CountFullNodeInfo() error {
-	log.Info("start to count full node info")
-	start := time.Now()
-	defer func() {
-		log.Infof("count full node done, cost: %v", time.Since(start))
-	}()
-
-	ctx := context.Background()
-	resp, err := s.api.GetSystemInfo(ctx)
-	if err != nil {
-		log.Errorf("api GetSystemInfo: %v", err)
-		return err
-	}
-
-	fullNodeInfo, err := dao.CountFullNodeInfo(ctx)
-	if err != nil {
-		log.Errorf("count full node: %v", err)
-		return err
-	}
-
-	fullNodeInfo.TotalCarfile = int64(resp.CarFileCount)
-	fullNodeInfo.RetrievalCount = int64(resp.DownloadCount)
-	fullNodeInfo.NextElectionTime = time.Unix(resp.NextElectionTime, 0)
-
-	fullNodeInfo.Time = time.Now()
-	fullNodeInfo.CreatedAt = time.Now()
-	err = dao.CacheFullNodeInfo(ctx, fullNodeInfo)
-	if err != nil {
-		log.Errorf("cache full node info: %v", err)
-		return err
-	}
-
-	return nil
-}
+var _ Fetcher = &NodeFetcher{}

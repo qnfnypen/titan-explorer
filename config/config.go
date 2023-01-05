@@ -20,8 +20,8 @@ type EmailConfig struct {
 }
 
 type LocatorConfig struct {
-	Address   string
-	Token     string
-	Enable    bool
-	WhiteList []string
+	Address       string
+	Token         string
+	Enable        bool
+	AreaWhiteList []string
 }

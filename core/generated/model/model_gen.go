@@ -79,11 +79,11 @@ type DeviceInfo struct {
 	ExternalIp    string    `db:"external_ip" json:"external_ip"`
 	InternalIp    string    `db:"internal_ip" json:"internal_ip"`
 	IpLocation    string    `db:"ip_location" json:"ip_location"`
-	IpProvince    string    `db:"ip_province" json:"ip_province"`
 	IpCountry     string    `db:"ip_country" json:"ip_country"`
+	IpProvince    string    `db:"ip_province" json:"ip_province"`
+	IpCity        string    `db:"ip_city" json:"ip_city"`
 	Latitude      string    `db:"latitude" json:"latitude"`
 	Longitude     string    `db:"longitude" json:"longitude"`
-	IpCity        string    `db:"ip_city" json:"ip_city"`
 	MacLocation   string    `db:"mac_location" json:"mac_location"`
 	NatType       string    `db:"nat_type" json:"nat_type"`
 	Upnp          string    `db:"upnp" json:"upnp"`
@@ -219,14 +219,24 @@ type RetrievalEvent struct {
 
 type Scheduler struct {
 	ID        int64     `db:"id" json:"id"`
-	Name      string    `db:"name" json:"name"`
-	Group     string    `db:"group" json:"group"`
+	Uuid      string    `db:"uuid" json:"uuid"`
+	Area      string    `db:"area" json:"area"`
 	Address   string    `db:"address" json:"address"`
 	Status    int32     `db:"status" json:"status"`
 	Token     string    `db:"token" json:"token"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 	DeletedAt time.Time `db:"deleted_at" json:"deleted_at"`
+}
+
+type SystemInfo struct {
+	ID               int64     `db:"id" json:"id"`
+	SchedulerUuid    string    `db:"scheduler_uuid" json:"scheduler_uuid"`
+	CarFileCount     int64     `db:"car_file_count" json:"car_file_count"`
+	DownloadCount    int64     `db:"download_count" json:"download_count"`
+	NextElectionTime int64     `db:"next_election_time" json:"next_election_time"`
+	CreatedAt        time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt        time.Time `db:"updated_at" json:"updated_at"`
 }
 
 type User struct {

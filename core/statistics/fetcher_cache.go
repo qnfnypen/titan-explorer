@@ -9,32 +9,24 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/linguohua/titan/api"
 	mh "github.com/multiformats/go-multihash"
-	"sync"
 	"time"
 )
 
-func (s *Statistic) asyncExecute(jobs []func() error) {
-	var wg sync.WaitGroup
-	wg.Add(len(jobs))
-
-	for _, job := range jobs {
-		go func(job func() error) {
-			defer wg.Done()
-			if err := job(); err != nil {
-				log.Errorf("handling job: %v", err)
-			}
-		}(job)
-	}
-
-	wg.Wait()
-	return
+type CacheFetcher struct {
+	jobQueue chan Job
 }
 
-func (s *Statistic) CountCacheFiles() error {
-	log.Info("start to count cache files")
+func newCacheFetcher() *CacheFetcher {
+	return &CacheFetcher{
+		jobQueue: make(chan Job, 1),
+	}
+}
+
+func (c *CacheFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
+	log.Info("start to fetch cache files")
 	start := time.Now()
 	defer func() {
-		log.Infof("count cache files, cost: %v", time.Since(start))
+		log.Infof("fetch cache files, cost: %v", time.Since(start))
 	}()
 
 	var (
@@ -42,7 +34,6 @@ func (s *Statistic) CountCacheFiles() error {
 		sum                int64
 	)
 
-	ctx := context.Background()
 	lastEvent, err := dao.GetLastCacheEvent(ctx)
 	if err != nil {
 		log.Errorf("get last cache event: %v", err)
@@ -64,9 +55,9 @@ func (s *Statistic) CountCacheFiles() error {
 	}
 
 loop:
-	resp, err := s.api.GetCacheBlockInfos(ctx, req)
+	resp, err := scheduler.Api.GetCacheBlockInfos(ctx, req)
 	if err != nil {
-		log.Errorf("api GetCacheBlockInfos: %v", err)
+		log.Errorf("client GetCacheBlockInfos: %v", err)
 		return err
 	}
 
@@ -84,24 +75,42 @@ loop:
 
 	log.Debugf("GetCacheBlockInfos got %d/%d blocks", sum, resp.Total)
 
-	err = dao.CreateBlockInfo(ctx, blockInfos)
-	if err != nil {
-		log.Errorf("create block info: %v", err)
-	}
+	c.Push(ctx, func() error {
+		err = dao.CreateBlockInfo(ctx, blockInfos)
+		if err != nil {
+			log.Errorf("create block info: %v", err)
+		}
+		return nil
+	})
 
 	if sum < resp.Total {
-		<-time.After(100 * time.Millisecond)
 		goto loop
 	}
 
-	err = dao.TxStatisticDeviceBlocks(ctx, startTime, endTime)
-	if err != nil {
-		log.Errorf("statistics device blocks: %v", err)
-		return err
-	}
+	c.Push(ctx, func() error {
+		err = dao.TxStatisticDeviceBlocks(ctx, startTime, endTime)
+		if err != nil {
+			log.Errorf("statistics device blocks: %v", err)
+			return err
+		}
+		return nil
+	})
 
 	return nil
 }
+
+func (c *CacheFetcher) Push(ctx context.Context, job Job) {
+	select {
+	case c.jobQueue <- job:
+	case <-ctx.Done():
+	}
+}
+
+func (c *CacheFetcher) GetJobQueue() chan Job {
+	return c.jobQueue
+}
+
+var _ Fetcher = &CacheFetcher{}
 
 func toBlockInfo(in api.BlockInfo) *model.BlockInfo {
 	return &model.BlockInfo{
@@ -136,68 +145,6 @@ func hashToCID(hashString string) string {
 	return cid.String()
 }
 
-func (s *Statistic) FetchValidationEvents() error {
-	log.Info("start to fetch validation events")
-	start := time.Now()
-	defer func() {
-		log.Infof("fetch validation events done, cost: %v", time.Since(start))
-	}()
-
-	var (
-		startTime, endTime time.Time
-		sum                int64
-		page, pageSize     = 1, 100
-	)
-
-	ctx := context.Background()
-	lastEvent, err := dao.GetLastValidationEvent(ctx)
-	if err != nil {
-		log.Errorf("get last validation event: %v", err)
-		return err
-	}
-
-	if lastEvent == nil {
-		startTime = carbon.Now().StartOfDay().StartOfMinute().Carbon2Time()
-	} else {
-		startTime = lastEvent.Time.Add(time.Second)
-	}
-
-	endTime = carbon.Time2Carbon(start).SubMinutes(start.Minute() % 5).StartOfMinute().Carbon2Time()
-
-loop:
-	resp, err := s.api.GetSummaryValidateMessage(ctx, startTime, endTime, page, pageSize)
-	if err != nil {
-		log.Errorf("api GetSummaryValidateMessage: %v", err)
-		return err
-	}
-
-	if resp.Total <= 0 {
-		return nil
-	}
-
-	sum += int64(len(resp.ValidateResultInfos))
-	page++
-
-	var validationEvents []*model.ValidationEvent
-	for _, blockInfo := range resp.ValidateResultInfos {
-		validationEvents = append(validationEvents, toValidationEvent(blockInfo))
-	}
-
-	log.Debugf("GetSummaryValidateMessage got %d/%d messages", sum, resp.Total)
-
-	err = dao.CreateValidationEvent(ctx, validationEvents)
-	if err != nil {
-		log.Errorf("create validation events: %v", err)
-	}
-
-	if sum < int64(resp.Total) {
-		<-time.After(100 * time.Millisecond)
-		goto loop
-	}
-
-	return nil
-}
-
 func (s *Statistic) CountRetrievals() error {
 	log.Info("start to count retrievals")
 	start := time.Now()
@@ -230,5 +177,32 @@ func (s *Statistic) CountRetrievals() error {
 		st = st.Add(24 * time.Hour)
 	}
 
+	return nil
+}
+
+func (s *Statistic) SumFullNodeInfo() error {
+	fullNodeInfo, err := dao.SumFullNodeInfoFromDeviceInfo(s.ctx)
+	if err != nil {
+		log.Errorf("count full node: %v", err)
+		return err
+	}
+
+	systemInfo, err := dao.SumSystemInfo(s.ctx)
+	if err != nil {
+		log.Errorf("sum system info: %v", err)
+		return err
+	}
+
+	fullNodeInfo.TotalCarfile = systemInfo.CarFileCount
+	fullNodeInfo.RetrievalCount = systemInfo.DownloadCount
+	fullNodeInfo.NextElectionTime = time.Unix(systemInfo.NextElectionTime, 0)
+
+	fullNodeInfo.Time = time.Now()
+	fullNodeInfo.CreatedAt = time.Now()
+	err = dao.CacheFullNodeInfo(s.ctx, fullNodeInfo)
+	if err != nil {
+		log.Errorf("cache full node info: %v", err)
+		return err
+	}
 	return nil
 }

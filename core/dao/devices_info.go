@@ -157,7 +157,17 @@ func upsertDeviceInfoStatement() string {
 	return insertStatement + updateStatement
 }
 
-func CountFullNodeInfo(ctx context.Context) (*model.FullNodeInfo, error) {
+func GetAllAreaFromDeviceInfo(ctx context.Context) ([]string, error) {
+	queryStatement := fmt.Sprintf(`SELECT ip_location FROM %s GROUP BY ip_location;`, tableNameDeviceInfo)
+	var out []string
+	err := DB.SelectContext(ctx, &out, queryStatement)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func SumFullNodeInfoFromDeviceInfo(ctx context.Context) (*model.FullNodeInfo, error) {
 	queryStatement := fmt.Sprintf(`SELECT count( device_id ) AS total_node_count ,  SUM(IF(node_type = 1, 1, 0)) AS edge_count, 
        SUM(IF(node_type = 2, 1, 0)) AS candidate_count, SUM(IF(node_type = 3, 1, 0)) AS validator_count, ROUND(SUM( disk_space),4) AS total_storage, 
        ROUND(SUM(bandwidth_up),2) AS total_upstream_bandwidth, ROUND(SUM(bandwidth_down),2) AS total_downstream_bandwidth FROM %s where active_status = 1;`, tableNameDeviceInfo)
@@ -167,16 +177,6 @@ func CountFullNodeInfo(ctx context.Context) (*model.FullNodeInfo, error) {
 		return nil, err
 	}
 	return &out, nil
-}
-
-func GetAllAreaFromDeviceInfo(ctx context.Context) ([]string, error) {
-	queryStatement := fmt.Sprintf(`SELECT ip_location FROM %s GROUP BY ip_location;`, tableNameDeviceInfo)
-	var out []string
-	err := DB.SelectContext(ctx, &out, queryStatement)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 type UserDeviceProfile struct {

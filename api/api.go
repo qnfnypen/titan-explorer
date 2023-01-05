@@ -13,24 +13,18 @@ import (
 	"github.com/linguohua/titan/api/client"
 	"math/rand"
 	"net/http"
-	"sync"
 	"time"
 )
 
 var schedulerClient api.Scheduler
 
 type Server struct {
-	cfg           config.Config
-	router        *gin.Engine
-	locatorClient api.Locator
-	closer        func()
-	schedulers    []*scheduler
-}
-
-type scheduler struct {
-	schedulerClient api.Scheduler
+	cfg             config.Config
+	router          *gin.Engine
+	locatorClient   api.Locator
 	statistic       *statistics.Statistic
-	closer          func()
+	locatorCloser   func()
+	statisticCloser func()
 }
 
 func NewServer(cfg config.Config) (*Server, error) {
@@ -38,12 +32,6 @@ func NewServer(cfg config.Config) (*Server, error) {
 	router := gin.Default()
 	router.Use(cors.Default())
 	ConfigRouter(router, cfg)
-
-	s := &Server{
-		cfg:        cfg,
-		router:     router,
-		schedulers: make([]*scheduler, 0),
-	}
 
 	client, closer, err := getLocatorClient(cfg.Locator.Address, cfg.Locator.Token)
 	if err != nil {
@@ -56,31 +44,33 @@ func NewServer(cfg config.Config) (*Server, error) {
 	}
 
 	log.Infof("Locator connected, url: %s, version: %s", cfg.Locator.Address, version)
-	s.locatorClient = client
-	s.closer = closer
 
+	var schedulers []*statistics.Scheduler
 	if !cfg.Locator.Enable {
-		schedulers, err := fetchSchedulersFromDatabase()
+		schedulers, err = fetchSchedulersFromDatabase()
 		if err != nil {
 			return nil, err
 		}
-		s.schedulers = schedulers
-		return s, nil
+	} else {
+		schedulers, err = fetchSchedulersFromLocator(client)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	schedulers, err := fetchSchedulersFromLocator(client)
-	if err != nil {
-		return nil, err
+	s := &Server{
+		cfg:           cfg,
+		router:        router,
+		statistic:     statistics.New(schedulers),
+		locatorClient: client,
+		locatorCloser: closer,
 	}
-	s.schedulers = schedulers
+
 	return s, nil
 }
 
 func (s *Server) Run() {
-	for _, item := range s.schedulers {
-		item.statistic.Run()
-	}
-
+	s.statistic.Run()
 	s.asyncHandleApplication()
 
 	err := s.router.Run(s.cfg.ApiListen)
@@ -89,27 +79,12 @@ func (s *Server) Run() {
 	}
 }
 
-func (s *Server) selectBestScheduler() (*api.Scheduler, error) {
-	return nil, nil
-}
-
 func (s *Server) Close() {
-	var wg sync.WaitGroup
-	wg.Add(len(s.schedulers))
-	for _, item := range s.schedulers {
-		go func(item *scheduler) {
-			defer wg.Done()
-			select {
-			case <-item.statistic.Stop().Done():
-			}
-			item.closer()
-		}(item)
-	}
-	wg.Wait()
-	s.closer()
+	s.locatorCloser()
+	s.statistic.Stop()
 }
 
-func fetchSchedulersFromDatabase() ([]*scheduler, error) {
+func fetchSchedulersFromDatabase() ([]*statistics.Scheduler, error) {
 	schedulers, err := dao.GetSchedulers(context.Background())
 	if err != nil {
 		return nil, err
@@ -119,18 +94,18 @@ func fetchSchedulersFromDatabase() ([]*scheduler, error) {
 		log.Fatalf("scheulers not found")
 	}
 
-	var out []*scheduler
+	var out []*statistics.Scheduler
 	for _, item := range schedulers {
-		headers := http.Header{}
-		headers.Add("Authorization", "Bearer "+string(item.Token))
-		client, closeScheduler, err := client.NewScheduler(context.Background(), item.Address, headers)
+		//headers := http.Header{}
+		//headers.Add("Authorization", "Bearer "+string(item.Token))
+		client, closeScheduler, err := client.NewScheduler(context.Background(), item.Address, nil)
 		if err != nil {
 			log.Errorf("create scheduler rpc client: %v", err)
 		}
-		out = append(out, &scheduler{
-			schedulerClient: client,
-			closer:          closeScheduler,
-			statistic:       statistics.New(client),
+		out = append(out, &statistics.Scheduler{
+			Uuid:   item.Uuid,
+			Api:    client,
+			Closer: closeScheduler,
 		})
 	}
 
@@ -139,24 +114,24 @@ func fetchSchedulersFromDatabase() ([]*scheduler, error) {
 	return out, nil
 }
 
-func fetchSchedulersFromLocator(locatorApi api.Locator) ([]*scheduler, error) {
+func fetchSchedulersFromLocator(locatorApi api.Locator) ([]*statistics.Scheduler, error) {
 	accessPoints, err := locatorApi.LoadAccessPointsForWeb(context.Background())
 	if err != nil {
 		log.Errorf("api LoadAccessPointsForWeb: %v", err)
 		return nil, err
 	}
 
-	var out []*scheduler
+	var out []*statistics.Scheduler
 	for _, accessPoint := range accessPoints {
 		for _, item := range accessPoint.SchedulerInfos {
 			client, closeScheduler, err := client.NewScheduler(context.Background(), item.URL, nil)
 			if err != nil {
 				log.Errorf("create scheduler rpc client: %v", err)
 			}
-			out = append(out, &scheduler{
-				schedulerClient: client,
-				closer:          closeScheduler,
-				statistic:       statistics.New(client),
+			out = append(out, &statistics.Scheduler{
+				Uuid:   item.URL,
+				Api:    client,
+				Closer: closeScheduler,
 			})
 		}
 	}
