@@ -62,7 +62,7 @@ func GetValidationEventsByPage(ctx context.Context, cond *model.ValidationEvent,
 	}
 
 	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT * FROM %s %s LIMIT %d OFFSET %d`, tableNameValidationEvent, where, limit, offset,
+		`SELECT * FROM %s %s LIMIT %d OFFSET %d ORDER BY time DESC`, tableNameValidationEvent, where, limit, offset,
 	), args...)
 	if err != nil {
 		return nil, 0, err
