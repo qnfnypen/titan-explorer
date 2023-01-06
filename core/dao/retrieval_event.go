@@ -73,7 +73,7 @@ func GetRetrievalEventsByPage(ctx context.Context, cond *model.RetrievalEvent, o
 	}
 
 	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT * FROM %s %s LIMIT %d OFFSET %d ORDER BY time DESC`, tableNameRetrievalEvent, where, limit, offset,
+		`SELECT * FROM %s %s ORDER BY time DESC LIMIT %d OFFSET %d`, tableNameRetrievalEvent, where, limit, offset,
 	), args...)
 	if err != nil {
 		return nil, 0, err
