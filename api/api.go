@@ -61,7 +61,7 @@ func NewServer(cfg config.Config) (*Server, error) {
 	s := &Server{
 		cfg:           cfg,
 		router:        router,
-		statistic:     statistics.New(schedulers),
+		statistic:     statistics.New(cfg.Statistic, schedulers),
 		locatorClient: client,
 		locatorCloser: closer,
 	}
@@ -72,7 +72,6 @@ func NewServer(cfg config.Config) (*Server, error) {
 func (s *Server) Run() {
 	s.statistic.Run()
 	s.asyncHandleApplication()
-
 	err := s.router.Run(s.cfg.ApiListen)
 	if err != nil {
 		log.Fatal(err)

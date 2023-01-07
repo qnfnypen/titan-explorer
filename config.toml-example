@@ -10,6 +10,10 @@ RedisPassword = ""
     Address = ""
     Token = ""
 
+[Statistic]
+    Disable = false
+    Crontab = "0 */5 * * * *"
+
 [Email]
     SMTP = "smtp.qq.com:587"
     Host = "smtp.qq.com"

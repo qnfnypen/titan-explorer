@@ -3,6 +3,7 @@ package statistics
 import (
 	"fmt"
 	"github.com/bsm/redislock"
+	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/robfig/cron/v3"
@@ -24,13 +25,14 @@ const DKeyRunFetchers = "titan::dk_run_fetchers"
 
 type Statistic struct {
 	ctx        context.Context
+	cfg        config.StatisticsConfig
 	cron       *cron.Cron
 	locker     *redislock.Client
 	fetchers   []Fetcher
 	schedulers []*Scheduler
 }
 
-func New(scheduler []*Scheduler) *Statistic {
+func New(cfg config.StatisticsConfig, scheduler []*Scheduler) *Statistic {
 	c := cron.New(
 		cron.WithSeconds(),
 		cron.WithLocation(time.Local),
@@ -39,6 +41,7 @@ func New(scheduler []*Scheduler) *Statistic {
 	s := &Statistic{
 		ctx:        context.Background(),
 		cron:       c,
+		cfg:        cfg,
 		schedulers: scheduler,
 		locker:     redislock.New(dao.Cache),
 		fetchers: []Fetcher{
@@ -53,7 +56,10 @@ func New(scheduler []*Scheduler) *Statistic {
 }
 
 func (s *Statistic) Run() {
-	s.cron.AddFunc("@every 5m", s.runFetchers)
+	if s.cfg.Disable {
+		return
+	}
+	s.cron.AddFunc(s.cfg.Crontab, s.runFetchers)
 	s.cron.Start()
 	s.handleJobs()
 }

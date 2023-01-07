@@ -8,6 +8,7 @@ type Config struct {
 	RedisAddr     string
 	RedisPassword string
 	Locator       LocatorConfig
+	Statistic     StatisticsConfig
 	Email         EmailConfig
 }
 
@@ -24,4 +25,9 @@ type LocatorConfig struct {
 	Token         string
 	Enable        bool
 	AreaWhiteList []string
+}
+
+type StatisticsConfig struct {
+	Disable bool
+	Crontab string
 }
