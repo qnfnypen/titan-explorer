@@ -12,13 +12,11 @@ import (
 )
 
 type NodeFetcher struct {
-	jobQueue chan Job
+	BaseFetcher
 }
 
 func newNodeFetcher() *NodeFetcher {
-	return &NodeFetcher{
-		jobQueue: make(chan Job, 1),
-	}
+	return &NodeFetcher{BaseFetcher: newBaseFetcher()}
 }
 
 func (n *NodeFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
@@ -68,17 +66,6 @@ loop:
 	}
 
 	return nil
-}
-
-func (n *NodeFetcher) Push(ctx context.Context, job Job) {
-	select {
-	case n.jobQueue <- job:
-	case <-ctx.Done():
-	}
-}
-
-func (n *NodeFetcher) GetJobQueue() chan Job {
-	return n.jobQueue
 }
 
 func toDeviceInfo(v interface{}) *model.DeviceInfo {

@@ -8,13 +8,11 @@ import (
 )
 
 type SystemInfoFetcher struct {
-	jobQueue chan Job
+	BaseFetcher
 }
 
 func newSystemInfoFetcher() *SystemInfoFetcher {
-	return &SystemInfoFetcher{
-		jobQueue: make(chan Job, 1),
-	}
+	return &SystemInfoFetcher{BaseFetcher: newBaseFetcher()}
 }
 
 func (s *SystemInfoFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
@@ -43,17 +41,6 @@ func (s *SystemInfoFetcher) Fetch(ctx context.Context, scheduler *Scheduler) err
 	})
 
 	return nil
-}
-
-func (s *SystemInfoFetcher) Push(ctx context.Context, job Job) {
-	select {
-	case s.jobQueue <- job:
-	case <-ctx.Done():
-	}
-}
-
-func (s *SystemInfoFetcher) GetJobQueue() chan Job {
-	return s.jobQueue
 }
 
 var _ Fetcher = &SystemInfoFetcher{}

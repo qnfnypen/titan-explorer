@@ -9,13 +9,11 @@ import (
 )
 
 type ValidationFetcher struct {
-	jobQueue chan Job
+	BaseFetcher
 }
 
 func newValidationFetcher() *ValidationFetcher {
-	return &ValidationFetcher{
-		jobQueue: make(chan Job, 1),
-	}
+	return &ValidationFetcher{BaseFetcher: newBaseFetcher()}
 }
 
 func (v *ValidationFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
@@ -80,17 +78,6 @@ loop:
 	}
 
 	return nil
-}
-
-func (v *ValidationFetcher) Push(ctx context.Context, job Job) {
-	select {
-	case v.jobQueue <- job:
-	case <-ctx.Done():
-	}
-}
-
-func (v *ValidationFetcher) GetJobQueue() chan Job {
-	return v.jobQueue
 }
 
 var _ Fetcher = &ValidationFetcher{}

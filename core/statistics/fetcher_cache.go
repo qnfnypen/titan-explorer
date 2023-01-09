@@ -13,13 +13,11 @@ import (
 )
 
 type CacheFetcher struct {
-	jobQueue chan Job
+	BaseFetcher
 }
 
 func newCacheFetcher() *CacheFetcher {
-	return &CacheFetcher{
-		jobQueue: make(chan Job, 1),
-	}
+	return &CacheFetcher{BaseFetcher: newBaseFetcher()}
 }
 
 func (c *CacheFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
@@ -99,17 +97,6 @@ loop:
 	return nil
 }
 
-func (c *CacheFetcher) Push(ctx context.Context, job Job) {
-	select {
-	case c.jobQueue <- job:
-	case <-ctx.Done():
-	}
-}
-
-func (c *CacheFetcher) GetJobQueue() chan Job {
-	return c.jobQueue
-}
-
 var _ Fetcher = &CacheFetcher{}
 
 func toBlockInfo(in api.BlockInfo) *model.BlockInfo {
@@ -177,32 +164,5 @@ func (s *Statistic) CountRetrievals() error {
 		st = st.Add(24 * time.Hour)
 	}
 
-	return nil
-}
-
-func (s *Statistic) SumFullNodeInfo() error {
-	fullNodeInfo, err := dao.SumFullNodeInfoFromDeviceInfo(s.ctx)
-	if err != nil {
-		log.Errorf("count full node: %v", err)
-		return err
-	}
-
-	systemInfo, err := dao.SumSystemInfo(s.ctx)
-	if err != nil {
-		log.Errorf("sum system info: %v", err)
-		return err
-	}
-
-	fullNodeInfo.TotalCarfile = systemInfo.CarFileCount
-	fullNodeInfo.RetrievalCount = systemInfo.DownloadCount
-	fullNodeInfo.NextElectionTime = time.Unix(systemInfo.NextElectionTime, 0)
-
-	fullNodeInfo.Time = time.Now()
-	fullNodeInfo.CreatedAt = time.Now()
-	err = dao.CacheFullNodeInfo(s.ctx, fullNodeInfo)
-	if err != nil {
-		log.Errorf("cache full node info: %v", err)
-		return err
-	}
 	return nil
 }

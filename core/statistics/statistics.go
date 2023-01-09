@@ -152,3 +152,30 @@ func (s *Statistic) asyncExecute(jobs []func() error) {
 	}
 	wg.Wait()
 }
+
+func (s *Statistic) SumFullNodeInfo() error {
+	fullNodeInfo, err := dao.SumFullNodeInfoFromDeviceInfo(s.ctx)
+	if err != nil {
+		log.Errorf("count full node: %v", err)
+		return err
+	}
+
+	systemInfo, err := dao.SumSystemInfo(s.ctx)
+	if err != nil {
+		log.Errorf("sum system info: %v", err)
+		return err
+	}
+
+	fullNodeInfo.TotalCarfile = systemInfo.CarFileCount
+	fullNodeInfo.RetrievalCount = systemInfo.DownloadCount
+	fullNodeInfo.NextElectionTime = time.Unix(systemInfo.NextElectionTime, 0)
+
+	fullNodeInfo.Time = time.Now()
+	fullNodeInfo.CreatedAt = time.Now()
+	err = dao.CacheFullNodeInfo(s.ctx, fullNodeInfo)
+	if err != nil {
+		log.Errorf("cache full node info: %v", err)
+		return err
+	}
+	return nil
+}

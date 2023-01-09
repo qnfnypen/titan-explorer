@@ -18,3 +18,22 @@ type Scheduler struct {
 }
 
 type Job func() error
+
+type BaseFetcher struct {
+	jobQueue chan Job
+}
+
+func newBaseFetcher() BaseFetcher {
+	return BaseFetcher{jobQueue: make(chan Job, 1)}
+}
+
+func (b BaseFetcher) Push(ctx context.Context, job Job) {
+	select {
+	case b.jobQueue <- job:
+	case <-ctx.Done():
+	}
+}
+
+func (b BaseFetcher) GetJobQueue() chan Job {
+	return b.jobQueue
+}
