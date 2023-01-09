@@ -156,7 +156,6 @@ func (s *Statistic) CountRetrievals() error {
 	now := time.Now()
 	for st := startTime; st.Before(now); {
 		et := st.Add(24 * time.Hour)
-		log.Infof("start to count retrivals from %v to %v", st, et)
 		err = dao.GroupDevicesAndCreateRetrievalEvents(ctx, st, et)
 		if err != nil {
 			log.Errorf("group devices and create retrievals: %v", err)

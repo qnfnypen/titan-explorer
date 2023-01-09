@@ -21,7 +21,7 @@ const (
 )
 
 const LockerTTL = 30 * time.Second
-const DKeyRunFetchers = "titan::dk_run_fetchers"
+const statisticLockerKeyPrefix = "TITAN::STATISTIC"
 
 type Statistic struct {
 	ctx        context.Context
@@ -59,7 +59,7 @@ func (s *Statistic) Run() {
 	if s.cfg.Disable {
 		return
 	}
-	s.cron.AddFunc(s.cfg.Crontab, s.runFetchers)
+	s.cron.AddFunc(s.cfg.Crontab, s.Once("FETCHER", s.runFetchers))
 	s.cron.Start()
 	s.handleJobs()
 }
@@ -81,32 +81,29 @@ func (s *Statistic) handleJobs() {
 	}
 }
 
-func (s *Statistic) runFetchers() {
+func (s *Statistic) runFetchers() error {
 	var wg sync.WaitGroup
 	wg.Add(len(s.schedulers))
 	for _, scheduler := range s.schedulers {
 		go func(scheduler *Scheduler) {
 			defer wg.Done()
-			s.Once(fmt.Sprintf("%s::%s", DKeyRunFetchers, scheduler.Uuid), func() error {
-				for _, fetcher := range s.fetchers {
-					err := fetcher.Fetch(s.ctx, scheduler)
-					if err != nil {
-						log.Errorf("run fetcher: %v", err)
-					}
+			for _, fetcher := range s.fetchers {
+				err := fetcher.Fetch(s.ctx, scheduler)
+				if err != nil {
+					log.Errorf("run fetcher: %v", err)
 				}
-				return nil
-			})()
+			}
 		}(scheduler)
 	}
 	wg.Wait()
 
-	s.asyncExecute(
-		[]func() error{
-			s.SumDeviceInfoProfit,
-			s.CountRetrievals,
-			s.SumFullNodeInfo,
-		},
-	)
+	s.asyncExecute([]func() error{
+		s.SumDeviceInfoProfit,
+		s.CountRetrievals,
+		s.CountRetrievals,
+	})
+
+	return nil
 }
 
 func (s *Statistic) Stop() {
@@ -121,14 +118,15 @@ func (s *Statistic) Stop() {
 
 func (s *Statistic) Once(key string, fn func() error) func() {
 	return func() {
-		lock, err := s.locker.Obtain(s.ctx, key, LockerTTL, nil)
+		dKey := fmt.Sprintf("%s::%s", statisticLockerKeyPrefix, key)
+		lock, err := s.locker.Obtain(s.ctx, dKey, LockerTTL, nil)
 		if err == redislock.ErrNotObtained {
-			log.Debug(redislock.ErrNotObtained)
+			log.Debugf("%s: %v", dKey, redislock.ErrNotObtained)
 			return
 		}
 
 		if err != nil {
-			log.Fatalf("obtain redis lock: %v", err)
+			log.Errorf("obtain redis lock: %v", err)
 			return
 		}
 
