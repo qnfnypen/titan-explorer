@@ -205,3 +205,15 @@ count(IF(device_status = 'abnormal', 1, NULL)) as abnormal_num, sum(bandwidth_up
 
 	return &out, nil
 }
+
+func RankDeviceInfo(ctx context.Context) error {
+	tx := DB.MustBegin()
+	defer tx.Rollback()
+	tx.MustExec("SET @r=0;")
+	queryStatement := fmt.Sprintf(`UPDATE %s SET device_rank= @r:= (@r+1) ORDER BY cumulative_profit DESC;`, tableNameDeviceInfo)
+	_, err := tx.ExecContext(ctx, queryStatement)
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
+}
