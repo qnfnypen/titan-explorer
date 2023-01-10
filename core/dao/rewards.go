@@ -165,8 +165,10 @@ func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, op
 }
 
 func GetUserIncome(ctx context.Context, cond *model.DeviceInfo, option QueryOption) (map[string]map[string]interface{}, error) {
-	sqlClause := fmt.Sprintf("select date_format(time, '%%Y-%%m-%%d') as date, sum(income) as income from device_info_daily "+
-		"where user_id='%s' and time>='%s' and time<='%s' group by date", cond.UserID, option.StartTime, option.EndTime)
+	sqlClause := fmt.Sprintf(`
+		select date_format(b.time, '%%Y-%%m-%%d') as date, sum(b.income) as income  from %s a LEFT JOIN %s b on a.device_id = b.device_id 
+    	and a.user_id = '%s' and date_format(b.time, '%%Y-%%m-%%d') >='%s' and date_format(b.time, '%%Y-%%m-%%d') <='%s' group by date`,
+		tableNameDeviceInfo, tableNameDeviceInfoDaily, cond.UserID, option.StartTime, option.EndTime)
 	dataS, err := GetQueryDataList(sqlClause)
 	if err != nil {
 		return nil, err

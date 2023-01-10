@@ -78,7 +78,7 @@ func toDeviceStatistic(start, end string, data map[string]map[string]interface{}
 
 	var oneDay = 24 * time.Hour
 	var out []*dao.DeviceStatistics
-	for startTime.Before(endTime) {
+	for startTime.Before(endTime) || startTime.Equal(endTime) {
 		key := startTime.Format(utils.TimeFormatYMD)
 		startTime = startTime.Add(oneDay)
 		val, ok := data[key]
