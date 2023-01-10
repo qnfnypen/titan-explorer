@@ -164,25 +164,22 @@ func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, op
 	return out, err
 }
 
-func GetIncomeAllList(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) []map[string]interface{} {
-	sqlClause := fmt.Sprintf("select date_format(time, '%%Y-%%m-%%d') as date, , sum(income) as income from device_info_daily "+
-		"where device_id='%s' and time>='%s' and time<='%s' group by date", cond.DeviceID, option.StartTime, option.EndTime)
-	if cond.UserID != "" {
-		sqlClause = fmt.Sprintf("select date_format(time, '%%Y-%%m-%%d') as date, sum(income) as income from device_info_daily "+
-			"where user_id='%s' and time>='%s' and time<='%s' group by date", cond.UserID, option.StartTime, option.EndTime)
-	}
+func GetUserIncome(ctx context.Context, cond *model.DeviceInfo, option QueryOption) (map[string]map[string]interface{}, error) {
+	sqlClause := fmt.Sprintf("select date_format(time, '%%Y-%%m-%%d') as date, sum(income) as income from device_info_daily "+
+		"where user_id='%s' and time>='%s' and time<='%s' group by date", cond.UserID, option.StartTime, option.EndTime)
 	dataS, err := GetQueryDataList(sqlClause)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	var mapIncomeList []map[string]interface{}
+	out := make(map[string]map[string]interface{})
 	for _, data := range dataS {
-		mapIncome := make(map[string]interface{})
-		mapIncome["date"] = data["date"]
-		mapIncome["income"] = utils.StrToFloat(data["income"])
-		mapIncomeList = append(mapIncomeList, mapIncome)
+		_, ok := out[data["date"]]
+		if !ok {
+			out[data["date"]] = make(map[string]interface{})
+		}
+		out[data["date"]]["income"] = utils.StrToFloat(data["income"])
 	}
-	return mapIncomeList
+	return out, nil
 }
 
 func GetDeviceInfoDailyByPage(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*model.DeviceInfoDaily, int64, error) {

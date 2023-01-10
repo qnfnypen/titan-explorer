@@ -7,9 +7,11 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/utils"
 	"github.com/golang-module/carbon/v2"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 func GetAllAreas(c *gin.Context) {
@@ -38,8 +40,7 @@ func GetIndexInfoHandler(c *gin.Context) {
 func GetUserDeviceProfileHandler(c *gin.Context) {
 	info := &model.DeviceInfo{}
 	info.UserID = c.Query("user_id")
-	DeviceID := c.Query("device_id")
-	info.DeviceID = DeviceID
+	info.DeviceID = c.Query("device_id")
 	info.DeviceStatus = c.Query("device_status")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
@@ -57,15 +58,43 @@ func GetUserDeviceProfileHandler(c *gin.Context) {
 		return
 	}
 
-	// Profit
-	p := &model.DeviceInfoDaily{}
-	p.UserID = info.UserID
-	m := dao.GetIncomeAllList(c.Request.Context(), p, option)
+	m, err := dao.GetUserIncome(c.Request.Context(), info, option)
+	if err != nil {
+		log.Errorf("get income: %v", err)
+		c.JSON(http.StatusBadRequest, respError(errors.ErrNotFound))
+		return
+	}
 
+	data := toDeviceStatistic(option.StartTime, option.EndTime, m)
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"profile":      userDeviceProfile,
-		"daily_income": m,
+		"profile":     userDeviceProfile,
+		"series_data": data,
 	}))
+}
+
+func toDeviceStatistic(start, end string, data map[string]map[string]interface{}) []*dao.DeviceStatistics {
+	startTime, _ := time.Parse(utils.TimeFormatYMD, start)
+	endTime, _ := time.Parse(utils.TimeFormatYMD, end)
+
+	var oneDay = 24 * time.Hour
+	var out []*dao.DeviceStatistics
+	for startTime.Before(endTime) {
+		key := startTime.Format(utils.TimeFormatYMD)
+		startTime = startTime.Add(oneDay)
+		val, ok := data[key]
+		if !ok {
+			out = append(out, &dao.DeviceStatistics{
+				Date: key,
+			})
+			continue
+		}
+		out = append(out, &dao.DeviceStatistics{
+			Date:   key,
+			Income: val["income"].(float64),
+		})
+	}
+
+	return out
 }
 
 func queryDeviceStatisticsDaily(deviceID, startTime, endTime string) []*dao.DeviceStatistics {
