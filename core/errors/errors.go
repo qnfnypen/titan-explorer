@@ -12,6 +12,7 @@ const (
 	InternalServer
 	DeviceExists
 	AmountLimitExceeded
+	UnbindingNotAllowed
 
 	Unknown = -1
 )
@@ -24,7 +25,9 @@ var (
 	ErrInvalidPassword     = newError(InvalidPassword, "invalid password")
 	ErrInternalServer      = newError(InternalServer, "internal server error")
 	ErrDeviceExists        = newError(DeviceExists, "device already exists")
+	ErrDeviceNotExists     = newError(DeviceExists, "device not exists")
 	ErrAmountLimitExceeded = newError(AmountLimitExceeded, "request amount limit exceeded")
+	ErrUnbindingNotAllowed = newError(UnbindingNotAllowed, "unbinding not allowed")
 )
 
 type GenericError struct {

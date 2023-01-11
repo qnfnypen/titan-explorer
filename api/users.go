@@ -55,8 +55,13 @@ func DeviceUnBindingHandler(c *gin.Context) {
 		return
 	}
 
-	if old != nil && old.UserID != "" {
-		c.JSON(http.StatusBadRequest, respError(errors.ErrDeviceExists))
+	if old == nil {
+		c.JSON(http.StatusBadRequest, respError(errors.ErrDeviceNotExists))
+		return
+	}
+
+	if old.UserID != deviceInfo.UserID {
+		c.JSON(http.StatusBadRequest, respError(errors.ErrUnbindingNotAllowed))
 		return
 	}
 
