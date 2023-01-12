@@ -193,10 +193,10 @@ type UserDeviceProfile struct {
 }
 
 func CountUserDeviceInfo(ctx context.Context, userID string) (*UserDeviceProfile, error) {
-	queryStatement := fmt.Sprintf(`SELECT sum(cumulative_profit) as cumulative_profit, sum(yesterday_profit) as yesterday_profit, 
-sum(today_profit) as today_profit, sum(seven_days_profit) as seven_days_profit, sum(month_profit) as month_profit, count(*) as total_num, 
+	queryStatement := fmt.Sprintf(`SELECT COALESCE(sum(cumulative_profit),0) as cumulative_profit, COALESCE(sum(yesterday_profit),0) as yesterday_profit, 
+COALESCE(sum(today_profit),0) as today_profit, COALESCE(sum(seven_days_profit),0) as seven_days_profit, COALESCE(sum(month_profit),0) as month_profit, count(*) as total_num, 
 count(IF(device_status = 'online', 1, NULL)) as online_num ,count(IF(device_status = 'offline', 1, NULL)) as offline_num, 
-count(IF(device_status = 'abnormal', 1, NULL)) as abnormal_num, sum(bandwidth_up) as total_bandwidth  from %s where user_id = ? and active_status = 1;`, tableNameDeviceInfo)
+count(IF(device_status = 'abnormal', 1, NULL)) as abnormal_num, COALESCE(sum(bandwidth_up),0) as total_bandwidth from %s where user_id = ? and active_status = 1;`, tableNameDeviceInfo)
 
 	var out UserDeviceProfile
 	if err := DB.QueryRowxContext(ctx, queryStatement, userID).StructScan(&out); err != nil {
