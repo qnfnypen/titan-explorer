@@ -262,7 +262,8 @@ CREATE TABLE `retrieval_event` (
 `upstream_bandwidth` FLOAT(32) NOT NULL DEFAULT 0,
 `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-PRIMARY KEY (`id`)
+PRIMARY KEY (`id`),
+UNIQUE KEY `uniq_device_id_time` (`device_id`,`time`) USING BTREE
 ) ENGINE = INNODB CHARSET = utf8mb4;
 
 DROP TABLE IF EXISTS `validation_event`;

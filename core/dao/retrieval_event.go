@@ -23,21 +23,24 @@ func GetLastRetrievalEvent(ctx context.Context) (*model.RetrievalEvent, error) {
 	return &out, nil
 }
 
-func GroupDevicesAndCreateRetrievalEvents(ctx context.Context, startTime, endTime time.Time) error {
-	queryStatement := fmt.Sprintf(`
-INSERT INTO %s(device_id, blocks, time, upstream_bandwidth)
-select device_id, (c.retrieval_count - c.pre_retrieval_count) as blocks, time, (c.upstream_traffic - c.pre_upstream_traffic) as upstream_bandwidth  
-from (
-	select device_id, retrieval_count, upstream_traffic , time, 
-	@a.retrieval_count AS pre_retrieval_count,
-	@a.upstream_traffic AS pre_upstream_traffic,
-	@a.retrieval_count := a.retrieval_count, 
-	@a.upstream_traffic := a.upstream_traffic  lo
-	from %s a ,
-	(SELECT @a.retrieval_count := 0, @a.upstream_traffic := 0 ) b where time > ? and time < ?  and retrieval_count <> @a.retrieval_count
-) c where (c.retrieval_count - c.pre_retrieval_count) > 0 `, tableNameRetrievalEvent, tableNameDeviceInfoHour)
+func GenerateRetrievalEvents(ctx context.Context, startTime, endTime time.Time) ([]*model.RetrievalEvent, error) {
+	queryStatement := fmt.Sprintf(`select * from (
+	select device_id, max(retrieval_count) - min(retrieval_count) as blocks,
+			FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(time)/300)*300) as time, 
+			max(upstream_traffic) - min(upstream_traffic) as upstream_bandwidth
+	from %s where time >= ? and time < ? GROUP BY device_id ,
+			FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(time)/300)*300)
+) a where blocks > 0 `, tableNameDeviceInfoHour)
 
-	_, err := DB.ExecContext(ctx, queryStatement, startTime, endTime)
+	var out []*model.RetrievalEvent
+	err := DB.SelectContext(ctx, &out, queryStatement, startTime, endTime)
+	return out, err
+}
+
+func CreateRetrievalEvents(ctx context.Context, events []*model.RetrievalEvent) error {
+	statement := fmt.Sprintf(`INSERT INTO %s(device_id, blocks, time, upstream_bandwidth) VALUES (:device_id, :blocks, :time, :upstream_bandwidth) 
+	ON DUPLICATE KEY UPDATE blocks = VALUES(blocks), upstream_bandwidth = VALUES(upstream_bandwidth)`, tableNameRetrievalEvent)
+	_, err := DB.NamedExecContext(ctx, statement, events)
 	return err
 }
 

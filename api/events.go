@@ -38,7 +38,7 @@ func GetCacheListHandler(c *gin.Context) {
 }
 
 func GetRetrievalListHandler(c *gin.Context) {
-	info := &model.DeviceInfoHour{
+	info := &model.RetrievalEvent{
 		DeviceID: c.Query("device_id"),
 	}
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
@@ -52,7 +52,7 @@ func GetRetrievalListHandler(c *gin.Context) {
 		OrderField: orderField,
 	}
 
-	list, total, err := dao.GetRetrievalEventsFromDeviceByPage(c.Request.Context(), info, option)
+	list, total, err := dao.GetRetrievalEventsByPage(c.Request.Context(), info, option)
 	if err != nil {
 		log.Errorf("get retrives by page: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrNotFound))

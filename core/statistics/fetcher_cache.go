@@ -9,6 +9,7 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/linguohua/titan/api"
 	mh "github.com/multiformats/go-multihash"
+	"math"
 	"time"
 )
 
@@ -150,18 +151,38 @@ func (s *Statistic) CountRetrievals() error {
 	if lastEvent == nil {
 		startTime = carbon.Now().StartOfDay().StartOfMinute().Carbon2Time()
 	} else {
-		startTime = lastEvent.Time.Add(time.Second)
+		startTime = floorFiveMinute(lastEvent.Time)
 	}
 
 	now := time.Now()
+	oneDay := 24 * time.Hour
 	for st := startTime; st.Before(now); {
-		et := st.Add(24 * time.Hour)
-		err = dao.GroupDevicesAndCreateRetrievalEvents(ctx, st, et)
+		startT := st
+		st = st.Add(oneDay)
+		endT := st
+		events, err := dao.GenerateRetrievalEvents(ctx, startT, endT)
 		if err != nil {
-			log.Errorf("group devices and create retrievals: %v", err)
+			log.Errorf("generate retrieval events: %v", err)
+			continue
 		}
-		st = st.Add(24 * time.Hour)
+
+		if len(events) == 0 {
+			continue
+		}
+
+		err = dao.CreateRetrievalEvents(ctx, events)
+		if err != nil {
+			log.Errorf("create retrieve events %v", err)
+			continue
+		}
 	}
 
 	return nil
+}
+
+func floorFiveMinute(t time.Time) time.Time {
+	year, month, day := t.Date()
+	hour := t.Hour()
+	minute := int(5 * (math.Floor(float64(t.Minute() / 5))))
+	return time.Date(year, month, day, hour, minute, 0, 0, time.Local)
 }
