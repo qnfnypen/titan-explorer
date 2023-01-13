@@ -26,7 +26,7 @@ func (v *ValidationFetcher) Fetch(ctx context.Context, scheduler *Scheduler) err
 	var (
 		startTime, endTime time.Time
 		sum                int64
-		page, pageSize     = 1, 100
+		page, pageSize     = 1, maxPageSize
 	)
 
 	lastEvent, err := dao.GetLastValidationEvent(ctx)

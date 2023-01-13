@@ -50,7 +50,7 @@ func (c *CacheFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
 		StartTime: startTime.Unix(),
 		EndTime:   endTime.Unix(),
 		Cursor:    0,
-		Count:     500,
+		Count:     maxPageSize,
 	}
 
 loop:

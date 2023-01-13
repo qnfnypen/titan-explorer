@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const maxPageSize = 500
+
 type NodeFetcher struct {
 	BaseFetcher
 }
@@ -27,7 +29,7 @@ func (n *NodeFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
 	}()
 
 	var total int64
-	page, size := 1, 50
+	page, size := 1, maxPageSize
 
 loop:
 	offset := (page - 1) * size
