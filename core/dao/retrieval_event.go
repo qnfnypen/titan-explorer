@@ -12,7 +12,7 @@ const tableNameRetrievalEvent = "retrieval_event"
 
 func GetLastRetrievalEvent(ctx context.Context) (*model.RetrievalEvent, error) {
 	var out model.RetrievalEvent
-	query := fmt.Sprintf(`SELECT * FROM %s ORDER BY time DESC LIMIT 1;`, tableNameRetrievalEvent)
+	query := fmt.Sprintf(`SELECT * FROM %s ORDER BY time DESC LIMIT 1 OFFSET 1;`, tableNameRetrievalEvent)
 	err := DB.QueryRowxContext(ctx, query).StructScan(&out)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -24,16 +24,42 @@ func GetLastRetrievalEvent(ctx context.Context) (*model.RetrievalEvent, error) {
 }
 
 func GenerateRetrievalEvents(ctx context.Context, startTime, endTime time.Time) ([]*model.RetrievalEvent, error) {
-	queryStatement := fmt.Sprintf(`select * from (
-	select device_id, max(retrieval_count) - min(retrieval_count) as blocks,
-			FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(time)/300)*300) as time, 
-			max(upstream_traffic) - min(upstream_traffic) as upstream_bandwidth
+	queryStatement := fmt.Sprintf(`
+	select device_id, max(retrieval_count) as blocks,
+			FROM_UNIXTIME(CEIL(UNIX_TIMESTAMP(time)/300)*300) as time, 
+			max(upstream_traffic) as upstream_bandwidth
 	from %s where time >= ? and time < ? GROUP BY device_id ,
-			FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(time)/300)*300)
-) a where blocks > 0 `, tableNameDeviceInfoHour)
+			FROM_UNIXTIME(CEIL(UNIX_TIMESTAMP(time)/300)*300) ORDER BY time`, tableNameDeviceInfoHour)
+
+	var events []*model.RetrievalEvent
+	err := DB.SelectContext(ctx, &events, queryStatement, startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
 
 	var out []*model.RetrievalEvent
-	err := DB.SelectContext(ctx, &out, queryStatement, startTime, endTime)
+	eventInDate := make(map[string]*model.RetrievalEvent)
+	for _, event := range events {
+		last, ok := eventInDate[event.DeviceID]
+		if !ok {
+			eventInDate[event.DeviceID] = event
+			continue
+		}
+
+		if event.Blocks-last.Blocks <= 0 {
+			eventInDate[event.DeviceID] = event
+			continue
+		}
+
+		out = append(out, &model.RetrievalEvent{
+			DeviceID:          event.DeviceID,
+			Time:              event.Time,
+			Blocks:            event.Blocks - last.Blocks,
+			UpstreamBandwidth: event.UpstreamBandwidth - last.UpstreamBandwidth,
+		})
+		eventInDate[event.DeviceID] = event
+	}
+
 	return out, err
 }
 
