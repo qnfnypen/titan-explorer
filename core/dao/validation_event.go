@@ -11,7 +11,7 @@ const tableNameValidationEvent = "validation_event"
 
 func GetLastValidationEvent(ctx context.Context) (*model.ValidationEvent, error) {
 	var out model.ValidationEvent
-	query := fmt.Sprintf(`SELECT * FROM %s ORDER BY time DESC LIMIT 1;`, tableNameValidationEvent)
+	query := fmt.Sprintf(`SELECT * FROM %s ORDER BY time DESC LIMIT 1 OFFSET 1;`, tableNameValidationEvent)
 	err := DB.QueryRowxContext(ctx, query).StructScan(&out)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -25,7 +25,8 @@ func GetLastValidationEvent(ctx context.Context) (*model.ValidationEvent, error)
 func CreateValidationEvent(ctx context.Context, events []*model.ValidationEvent) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
 		`INSERT INTO %s (device_id, validator_id, blocks, status, time, duration, upstream_traffic)
-			VALUES (:device_id, :validator_id, :blocks, :status, :time, :duration, :upstream_traffic);`, tableNameValidationEvent,
+			VALUES (:device_id, :validator_id, :blocks, :status, :time, :duration, :upstream_traffic) ON DUPLICATE KEY UPDATE 
+			blocks=VALUES(blocks), status=VALUES(status), duration=VALUES(duration), upstream_traffic=VALUES(upstream_traffic);`, tableNameValidationEvent,
 	), events)
 	return err
 }

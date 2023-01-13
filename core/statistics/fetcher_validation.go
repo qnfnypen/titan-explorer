@@ -36,12 +36,12 @@ func (v *ValidationFetcher) Fetch(ctx context.Context, scheduler *Scheduler) err
 	}
 
 	if lastEvent == nil {
-		startTime = carbon.Now().StartOfDay().StartOfMinute().Carbon2Time()
+		startTime = carbon.Now().SubDays(60).Carbon2Time()
 	} else {
-		startTime = lastEvent.Time.Add(time.Second)
+		startTime = floorFiveMinute(lastEvent.Time)
 	}
 
-	endTime = carbon.Time2Carbon(start).SubMinutes(start.Minute() % 5).StartOfMinute().Carbon2Time()
+	endTime = floorFiveMinute(time.Now())
 
 loop:
 	resp, err := scheduler.Api.GetSummaryValidateMessage(ctx, startTime, endTime, page, pageSize)
@@ -73,7 +73,6 @@ loop:
 	})
 
 	if sum < int64(resp.Total) {
-		<-time.After(100 * time.Millisecond)
 		goto loop
 	}
 
