@@ -149,7 +149,7 @@ func (s *Statistic) CountRetrievals() error {
 	}
 
 	if lastEvent == nil {
-		startTime = carbon.Now().StartOfDay().StartOfMinute().Carbon2Time()
+		startTime = carbon.Now().SubDays(60).Carbon2Time()
 	} else {
 		startTime = floorFiveMinute(lastEvent.Time)
 	}
