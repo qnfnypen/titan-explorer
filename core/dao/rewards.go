@@ -7,6 +7,7 @@ import (
 	"github.com/gnasnik/titan-explorer/utils"
 	logging "github.com/ipfs/go-log/v2"
 	"strings"
+	"time"
 )
 
 var (
@@ -125,7 +126,7 @@ func reverseList(s []*DeviceStatistics) []*DeviceStatistics {
 	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
 		s[i], s[j] = s[j], s[i]
 	}
-	return s
+	return s[1:]
 }
 
 func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*DeviceStatistics, error) {
@@ -146,13 +147,40 @@ func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, op
 
 	var out []*DeviceStatistics
 	err := DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT DATE_FORMAT(time, '%%m-%%d') as date, nat_ratio, disk_usage, latency, pkg_loss_ratio, income, online_time, upstream_traffic, 
+		`SELECT DATE_FORMAT(time, '%%Y-%%m-%%d') as date, nat_ratio, disk_usage, latency, pkg_loss_ratio, income, online_time, upstream_traffic, 
     	downstream_traffic, retrieval_count FROM %s %s`, tableNameDeviceInfoDaily, where), args...)
 	if err != nil {
 		return nil, err
 	}
 
-	return out, err
+	return handleDailyList(option.StartTime, option.EndTime, out), err
+}
+
+func handleDailyList(start, end string, in []*DeviceStatistics) []*DeviceStatistics {
+	startTime, _ := time.Parse(utils.TimeFormatYMD, start)
+	endTime, _ := time.Parse(utils.TimeFormatYMD, end)
+	var oneDay = 24 * time.Hour
+	dataKye := make(map[string]*DeviceStatistics)
+	var out []*DeviceStatistics
+	for _, data := range in {
+		dataKye[data.Date] = data
+	}
+	for startTime.Before(endTime) || startTime.Equal(endTime) {
+		key := startTime.Format(utils.TimeFormatYMD)
+		startTime = startTime.Add(oneDay)
+		val, ok := dataKye[key]
+		var dataL DeviceStatistics
+		if !ok {
+			dataL.Date = startTime.Format(utils.TimeFormatMD)
+			out = append(out, &dataL)
+			continue
+		}
+		val.Date = startTime.Format(utils.TimeFormatMD)
+		out = append(out, val)
+	}
+
+	return out
+
 }
 
 func GetUserIncome(ctx context.Context, cond *model.DeviceInfo, option QueryOption) (map[string]map[string]interface{}, error) {

@@ -10,6 +10,7 @@ var log = logging.Logger("utils")
 
 const (
 	TimeFormatYMD    = "2006-01-02"
+	TimeFormatMD     = "01-02"
 	TimeFormatYMDHmS = "2006-01-02 15:04:05"
 )
 
