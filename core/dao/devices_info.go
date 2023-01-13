@@ -92,40 +92,24 @@ func UpdateDeviceName(ctx context.Context, deviceInfo *model.DeviceInfo) error {
 	return err
 }
 func BulkUpsertDeviceInfo(ctx context.Context, deviceInfos []*model.DeviceInfo) error {
-	tx, err := DB.Beginx()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
 	statement := upsertDeviceInfoStatement()
-	_, err = tx.NamedExecContext(ctx, statement, deviceInfos)
+	_, err := DB.NamedExecContext(ctx, statement, deviceInfos)
 	if err != nil {
 		return err
 	}
-
-	return tx.Commit()
 }
 
 func BulkUpdateDeviceInfo(ctx context.Context, deviceInfos []*model.DeviceInfo) error {
-	tx, err := DB.Beginx()
+	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
+		`UPDATE %s SET today_online_time = VALUES(today_online_time), today_profit = VALUES(today_profit),
+				yesterday_profit = VALUES(yesterday_profit), seven_days_profit = VALUES(seven_days_profit), month_profit = VALUES(month_profit), 
+				updated_at = now() WHERE device_id = VALUES(device_id)`, tableNameDeviceInfo),
+		deviceInfos)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
 
-	for _, deviceInfo := range deviceInfos {
-		_, err = tx.NamedExecContext(ctx, fmt.Sprintf(
-			`UPDATE %s SET today_online_time = :today_online_time, today_profit = :today_profit,
-				yesterday_profit = :yesterday_profit, seven_days_profit = :seven_days_profit, month_profit = :month_profit, 
-				updated_at = now() WHERE device_id = :device_id`, tableNameDeviceInfo),
-			deviceInfo)
-		if err != nil {
-			return err
-		}
-	}
-
-	return tx.Commit()
+	return nil
 }
 
 func upsertDeviceInfoStatement() string {

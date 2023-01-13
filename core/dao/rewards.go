@@ -24,15 +24,8 @@ func BulkUpsertDeviceInfoHours(ctx context.Context, hourInfos []*model.DeviceInf
 			online_time = VALUES(online_time), pkg_loss_ratio = VALUES(pkg_loss_ratio), latency = VALUES(latency),
 			upstream_traffic = VALUES(upstream_traffic), downstream_traffic = VALUES(downstream_traffic), retrieval_count = VALUES(retrieval_count), block_count = VALUES(block_count),
 			nat_ratio = VALUES(nat_ratio), disk_usage = VALUES(disk_usage)`, tableNameDeviceInfoHour)
-	tx := DB.MustBegin()
-	defer tx.Rollback()
-
-	_, err := tx.NamedExecContext(ctx, upsertStatement, hourInfos)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
+	_, err := DB.NamedExecContext(ctx, upsertStatement, hourInfos)
+	return err
 }
 
 func BulkUpsertDeviceInfoDaily(ctx context.Context, dailyInfos []*model.DeviceInfoDaily) error {
