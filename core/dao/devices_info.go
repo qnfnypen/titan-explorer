@@ -94,9 +94,7 @@ func UpdateDeviceName(ctx context.Context, deviceInfo *model.DeviceInfo) error {
 func BulkUpsertDeviceInfo(ctx context.Context, deviceInfos []*model.DeviceInfo) error {
 	statement := upsertDeviceInfoStatement()
 	_, err := DB.NamedExecContext(ctx, statement, deviceInfos)
-	if err != nil {
-		return err
-	}
+	return err
 }
 
 func BulkUpdateDeviceInfo(ctx context.Context, deviceInfos []*model.DeviceInfo) error {

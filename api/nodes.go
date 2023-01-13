@@ -51,6 +51,13 @@ func GetUserDeviceProfileHandler(c *gin.Context) {
 		EndTime:   c.Query("to"),
 	}
 
+	if option.StartTime == "" {
+		option.StartTime = time.Now().AddDate(0, 0, -6).Format(utils.TimeFormatYMD)
+	}
+	if option.EndTime == "" {
+		option.EndTime = time.Now().Format(utils.TimeFormatYMD)
+	}
+
 	userDeviceProfile, err := dao.CountUserDeviceInfo(c.Request.Context(), info.UserID)
 	if err != nil {
 		log.Errorf("get user device profile: %v", err)
@@ -60,7 +67,7 @@ func GetUserDeviceProfileHandler(c *gin.Context) {
 
 	m, err := dao.GetUserIncome(c.Request.Context(), info, option)
 	if err != nil {
-		log.Errorf("get income: %v", err)
+		log.Errorf("get user income: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrNotFound))
 		return
 	}
