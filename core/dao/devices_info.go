@@ -99,11 +99,9 @@ func BulkUpsertDeviceInfo(ctx context.Context, deviceInfos []*model.DeviceInfo) 
 	defer tx.Rollback()
 
 	statement := upsertDeviceInfoStatement()
-	for _, deviceInfo := range deviceInfos {
-		_, err = tx.NamedExecContext(ctx, statement, deviceInfo)
-		if err != nil {
-			return err
-		}
+	_, err = tx.NamedExecContext(ctx, statement, deviceInfos)
+	if err != nil {
+		return err
 	}
 
 	return tx.Commit()
@@ -145,15 +143,16 @@ func upsertDeviceInfoStatement() string {
 			    :device_status, :disk_type, :io_system, :online_time, :today_online_time, :today_profit, :total_upload, :total_download, :download_count, block_count,
 				:yesterday_profit, :seven_days_profit, :month_profit, :cumulative_profit, :bandwidth_up, :bandwidth_down, now(), now())`, tableNameDeviceInfo,
 	)
-	updateStatement := ` ON DUPLICATE KEY UPDATE node_type = :node_type,  device_name = :device_name,
-				sn_code = :sn_code,  operator = :operator, network_type = :network_type, active_status = :active_status,
-				system_version = :system_version,  product_type = :product_type, network_info = :network_info, cumulative_profit = :cumulative_profit,
-				external_ip = :external_ip,  internal_ip = :internal_ip,  ip_location = :ip_location, ip_country = :ip_country, ip_province = :ip_province, ip_city = :ip_city, 
-				latitude = :latitude, longitude :=longitude, mac_location = :mac_location,  nat_type = :nat_type,  upnp = :upnp, pkg_loss_ratio = :pkg_loss_ratio, online_time = :online_time,
-				nat_ratio = :nat_ratio,  latency = :latency,  cpu_usage = :cpu_usage, cpu_cores = :cpu_cores,  memory_usage = :memory_usage, memory = :memory,
-				disk_usage = :disk_usage, disk_space = :disk_space,  work_status = :work_status, device_status = :device_status,  disk_type = :disk_type,
- 				total_upload = :total_upload, total_download = :total_download, download_count = :download_count, block_count = :block_count,
-				io_system = :io_system, bandwidth_up = :bandwidth_up, bandwidth_down = :bandwidth_down, updated_at = now()`
+	updateStatement := ` ON DUPLICATE KEY UPDATE node_type = VALUES(node_type),  device_name = VALUES(device_name),
+				sn_code = VALUES(sn_code),  operator = VALUES(operator), network_type = VALUES(network_type), active_status = VALUES(active_status),
+				system_version = VALUES(system_version),  product_type = VALUES(product_type), network_info = VALUES(network_info), cumulative_profit = VALUES(cumulative_profit),
+				external_ip = VALUES(external_ip), internal_ip = VALUES(internal_ip), ip_location = VALUES(ip_location), ip_country = VALUES(ip_country), ip_province = VALUES(ip_province), ip_city = VALUES(ip_city), 
+				latitude = VALUES(latitude), longitude = VALUES(longitude), mac_location = VALUES(mac_location),  nat_type = VALUES(nat_type),  upnp = VALUES(upnp), 
+				pkg_loss_ratio = VALUES(pkg_loss_ratio), online_time = VALUES(online_time),
+				nat_ratio = VALUES(nat_ratio), latency = VALUES(latency),  cpu_usage = VALUES(cpu_usage), cpu_cores = VALUES(cpu_cores),  memory_usage = VALUES(memory_usage), memory = VALUES(memory),
+				disk_usage = VALUES(disk_usage), disk_space = VALUES(disk_space), work_status = VALUES(work_status), device_status = VALUES(device_status),  disk_type = VALUES(disk_type),
+ 				total_upload = VALUES(total_upload), total_download = VALUES(total_download), download_count = VALUES(download_count), block_count = VALUES(block_count),
+				io_system = VALUES(io_system), bandwidth_up = VALUES(bandwidth_up), bandwidth_down = VALUES(bandwidth_down), updated_at = now()`
 	return insertStatement + updateStatement
 }
 

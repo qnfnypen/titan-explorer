@@ -20,18 +20,16 @@ func BulkUpsertDeviceInfoHours(ctx context.Context, hourInfos []*model.DeviceInf
 				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage, upstream_traffic, downstream_traffic, retrieval_count, block_count, time)
 			VALUES (:created_at, :updated_at, :hour_income, :user_id, :device_id, :online_time, :pkg_loss_ratio, :latency, 
 			    :nat_ratio, :disk_usage, :upstream_traffic, :downstream_traffic, :retrieval_count, :block_count, :time) 
-			 ON DUPLICATE KEY UPDATE updated_at = now(), hour_income = :hour_income,
-			online_time = :online_time, pkg_loss_ratio = :pkg_loss_ratio, latency = :latency,
-			upstream_traffic = :upstream_traffic, downstream_traffic = :downstream_traffic, retrieval_count = :retrieval_count, block_count = :block_count,
-			nat_ratio = :nat_ratio, disk_usage = :disk_usage`, tableNameDeviceInfoHour)
+			 ON DUPLICATE KEY UPDATE updated_at = now(), hour_income = VALUES(hour_income),
+			online_time = VALUES(online_time), pkg_loss_ratio = VALUES(pkg_loss_ratio), latency = VALUES(latency),
+			upstream_traffic = VALUES(upstream_traffic), downstream_traffic = VALUES(downstream_traffic), retrieval_count = VALUES(retrieval_count), block_count = VALUES(block_count),
+			nat_ratio = VALUES(nat_ratio), disk_usage = VALUES(disk_usage)`, tableNameDeviceInfoHour)
 	tx := DB.MustBegin()
 	defer tx.Rollback()
 
-	for _, hourInfo := range hourInfos {
-		_, err := tx.NamedExecContext(ctx, upsertStatement, hourInfo)
-		if err != nil {
-			return err
-		}
+	_, err := tx.NamedExecContext(ctx, upsertStatement, hourInfos)
+	if err != nil {
+		return err
 	}
 
 	return tx.Commit()
