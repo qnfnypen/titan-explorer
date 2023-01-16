@@ -6,7 +6,6 @@ import (
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/utils"
 	logging "github.com/ipfs/go-log/v2"
-	"strings"
 	"time"
 )
 
@@ -78,58 +77,7 @@ func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour,
 	if err != nil {
 		return nil, err
 	}
-	var outNew []*DeviceStatistics
-	var lasts string
-	var num int
-	for i, data := range out {
-		nowTimeHour := strings.Split(data.Date, " ")[1]
-		nowHour := nowTimeHour
-	loop:
-		if nowHour != lasts && lasts != "" {
-			var dataL DeviceStatistics
-			dataL.Date = lasts + ":00"
-			outNew = append(outNew, &dataL)
-			num += 1
-			if lasts == "00" {
-				lasts = "23"
-			} else {
-				lasts = fmt.Sprintf("%02d", utils.Str2Int(lasts)-1)
-			}
-			goto loop
-		}
-		if nowTimeHour == lasts || lasts == "" {
-			data.Date = nowTimeHour + ":00"
-			outNew = append(outNew, data)
-			num += 1
-			if nowTimeHour == "00" {
-				lasts = "23"
-			} else {
-				lasts = fmt.Sprintf("%02d", utils.Str2Int(nowTimeHour)-1)
-			}
-		}
-		if len(out) == i+1 && num <= 23 {
-			if nowHour == "00" {
-				nowHour = "23"
-			} else {
-				nowHour = fmt.Sprintf("%02d", utils.Str2Int(nowHour)-1)
-			}
-			goto loop
-		}
-		if num == 24 {
-			break
-		}
-	}
-	return reverseList(outNew), err
-}
-
-func reverseList(s []*DeviceStatistics) []*DeviceStatistics {
-	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
-		s[i], s[j] = s[j], s[i]
-	}
-	if len(s) > 0 {
-		return s[1:]
-	}
-	return s
+	return handleHourList(out), err
 }
 
 func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*DeviceStatistics, error) {
@@ -179,6 +127,33 @@ func handleDailyList(start, end string, in []*DeviceStatistics) []*DeviceStatist
 			continue
 		}
 		val.Date = startTime.Format(utils.TimeFormatMD)
+		out = append(out, val)
+	}
+
+	return out
+
+}
+
+func handleHourList(in []*DeviceStatistics) []*DeviceStatistics {
+	var oneHour = time.Hour
+	startTime := time.Now().Add(-23 * oneHour)
+	endTime := time.Now()
+	dataKye := make(map[string]*DeviceStatistics)
+	var out []*DeviceStatistics
+	for _, data := range in {
+		dataKye[data.Date] = data
+	}
+	for startTime.Before(endTime) || startTime.Equal(endTime) {
+		key := startTime.Format(utils.TimeFormatYMDH)
+		startTime = startTime.Add(oneHour)
+		val, ok := dataKye[key]
+		var dataL DeviceStatistics
+		if !ok {
+			dataL.Date = startTime.Format(utils.TimeFormatH) + ":00"
+			out = append(out, &dataL)
+			continue
+		}
+		val.Date = startTime.Format(utils.TimeFormatH) + ":00"
 		out = append(out, val)
 	}
 
