@@ -33,21 +33,13 @@ func BulkUpsertDeviceInfoDaily(ctx context.Context, dailyInfos []*model.DeviceIn
 				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage, upstream_traffic, downstream_traffic, retrieval_count, block_count, time)
 			VALUES (:created_at, :updated_at, :income, :user_id, :device_id,
 				:online_time, :pkg_loss_ratio, :latency, :nat_ratio, :disk_usage, :upstream_traffic, :downstream_traffic, :retrieval_count, :block_count, :time) 
-			 ON DUPLICATE KEY UPDATE updated_at = now(), income = :income,
-			online_time = :online_time, pkg_loss_ratio = :pkg_loss_ratio, latency = :latency,
-			upstream_traffic = :upstream_traffic, downstream_traffic = :downstream_traffic, retrieval_count = :retrieval_count, block_count = :block_count,
-			nat_ratio = :nat_ratio, disk_usage = :disk_usage`, tableNameDeviceInfoDaily)
-	tx := DB.MustBegin()
-	defer tx.Rollback()
+			 ON DUPLICATE KEY UPDATE updated_at = now(), income = VALUES(income),
+			online_time = VALUES(online_time), pkg_loss_ratio = VALUES(pkg_loss_ratio), latency = VALUES(latency),
+			upstream_traffic = VALUES(upstream_traffic), downstream_traffic = VALUES(downstream_traffic), retrieval_count = VALUES(retrieval_count), block_count = VALUES(block_count),
+			nat_ratio = VALUES(nat_ratio), disk_usage = VALUES(disk_usage)`, tableNameDeviceInfoDaily)
 
-	for _, dailyInfo := range dailyInfos {
-		_, err := tx.NamedExecContext(ctx, upsertStatement, dailyInfo)
-		if err != nil {
-			return err
-		}
-	}
-
-	return tx.Commit()
+	_, err := DB.NamedExecContext(ctx, upsertStatement, dailyInfos)
+	return err
 }
 
 type DeviceStatistics struct {
