@@ -120,8 +120,12 @@ func (s *Statistic) SumDeviceInfoProfit() error {
 		log.Infof("sum device info profit done, cost: %v", time.Since(start))
 	}()
 
-	updatedDevices := make(map[string]*model.DeviceInfo)
+	if err := s.SumDeviceInfoDaily(); err != nil {
+		log.Errorf("sum device info daily: %v", err)
+		return err
+	}
 
+	updatedDevices := make(map[string]*model.DeviceInfo)
 	startOfTodayTime := carbon.Now().StartOfDay().String()
 	endOfTodayTime := carbon.Now().EndOfDay().String()
 	startOfYesterday := carbon.Yesterday().StartOfDay().String()
@@ -182,11 +186,6 @@ func (s *Statistic) SumDeviceInfoProfit() error {
 
 	if err := dao.BulkUpdateDeviceInfo(context.Background(), deviceInfos); err != nil {
 		log.Errorf("bulk update devices: %v", err)
-	}
-
-	if err := s.SumDeviceInfoDaily(); err != nil {
-		log.Errorf("sum device info daily: %v", err)
-		return err
 	}
 
 	return nil
