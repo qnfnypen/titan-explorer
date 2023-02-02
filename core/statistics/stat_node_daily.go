@@ -10,10 +10,6 @@ import (
 	"time"
 )
 
-var (
-	DeviceIDAndUserId map[string]string
-)
-
 func addDeviceInfoHours(ctx context.Context, deviceInfo []*model.DeviceInfo) error {
 	log.Info("start to fetch device info hours")
 	start := time.Now()
@@ -38,15 +34,10 @@ func addDeviceInfoHours(ctx context.Context, deviceInfo []*model.DeviceInfo) err
 		deviceInfoHour.BlockCount = device.BlockCount
 		deviceInfoHour.CreatedAt = time.Now()
 		deviceInfoHour.UpdatedAt = time.Now()
-		_, ok := DeviceIDAndUserId[deviceInfoHour.DeviceID]
-		if ok {
-			deviceInfoHour.UserID = DeviceIDAndUserId[deviceInfoHour.DeviceID]
-		}
-
 		upsertDevice = append(upsertDevice, &deviceInfoHour)
 	}
 
-	err := dao.BulkUpsertDeviceInfoHours(context.Background(), upsertDevice)
+	err := dao.BulkUpsertDeviceInfoHours(ctx, upsertDevice)
 	if err != nil {
 		log.Errorf("bulk upsert device info: %v", err)
 	}
