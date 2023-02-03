@@ -58,18 +58,37 @@ type DeviceStatistics struct {
 func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour, option QueryOption) ([]*DeviceStatistics, error) {
 	sqlClause := fmt.Sprintf(`select date_format(time, '%%Y-%%m-%%d %%H') as date, avg(nat_ratio) as nat_ratio, 
 	avg(disk_usage) as disk_usage, avg(latency) as latency, avg(pkg_loss_ratio) as pkg_loss_ratio, 
-	max(hour_income) - min(hour_income) as income,
-	max(online_time) - min(online_time) as online_time,
-	max(upstream_traffic) - min(upstream_traffic) as upstream_traffic,
-	max(downstream_traffic) - min(downstream_traffic) as downstream_traffic,
-	max(retrieval_count) - min(retrieval_count) as retrieval_count
-	from device_info_hour where device_id='%s' and time>='%s' and time<='%s' group by date order by id desc`, cond.DeviceID, option.StartTime, option.EndTime)
+	min(online_time) as online_time,
+	max(hour_income) as income,
+	max(upstream_traffic) as upstream_traffic,
+	max(downstream_traffic) as downstream_traffic,
+	max(retrieval_count) as retrieval_count
+	from device_info_hour where device_id='%s' and time>='%s' and time<='%s' group by date order by date`, cond.DeviceID, option.StartTime, option.EndTime)
 	var out []*DeviceStatistics
 	err := DB.SelectContext(ctx, &out, sqlClause)
 	if err != nil {
 		return nil, err
 	}
-	return handleHourList(out), err
+
+	if len(out) == 0 {
+		return out, nil
+	}
+
+	lastOnlineTime := out[0].OnlineTime
+	lastIncome := out[0].Income
+	lastUpstreamTraffic := out[0].UpstreamTraffic
+	lastDownstreamTraffic := out[0].DownstreamTraffic
+	lastRetrievalCount := out[0].RetrievalCount
+
+	for i := 1; i < len(out); i++ {
+		out[i].OnlineTime, lastOnlineTime = out[i].OnlineTime-lastOnlineTime, out[i].OnlineTime
+		out[i].Income, lastIncome = out[i].Income-lastIncome, out[i].Income
+		out[i].UpstreamTraffic, lastUpstreamTraffic = out[i].UpstreamTraffic-lastUpstreamTraffic, out[i].UpstreamTraffic
+		out[i].DownstreamTraffic, lastDownstreamTraffic = out[i].DownstreamTraffic-lastDownstreamTraffic, out[i].DownstreamTraffic
+		out[i].RetrievalCount, lastRetrievalCount = out[i].RetrievalCount-lastRetrievalCount, out[i].RetrievalCount
+	}
+
+	return handleHourList(out[1:]), err
 }
 
 func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*DeviceStatistics, error) {
