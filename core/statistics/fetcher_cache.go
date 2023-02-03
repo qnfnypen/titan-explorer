@@ -40,13 +40,13 @@ func (c *CacheFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
 	}
 
 	if lastEvent == nil {
-		startTime = carbon.Now().StartOfDay().StartOfMinute().Carbon2Time()
+		startTime = carbon.Now().StartOfMonth().StartOfMinute().Carbon2Time()
 	} else {
-		startTime = lastEvent.MaxCreatedTime.Add(time.Second)
+		startTime = lastEvent.CreatedAt.Add(time.Second)
 	}
 
 	endTime = carbon.Time2Carbon(start).SubMinutes(start.Minute() % 5).StartOfMinute().Carbon2Time()
-	req := api.ListCacheBlocksReq{
+	req := api.ListCacheInfosReq{
 		StartTime: startTime.Unix(),
 		EndTime:   endTime.Unix(),
 		Cursor:    0,
@@ -54,30 +54,30 @@ func (c *CacheFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
 	}
 
 loop:
-	resp, err := scheduler.Api.GetCacheBlockInfos(ctx, req)
+	resp, err := scheduler.Api.GetCacheTaskInfos(ctx, req)
 	if err != nil {
-		log.Errorf("client GetCacheBlockInfos: %v", err)
+		log.Errorf("client api GetCacheTaskInfos: %v", err)
 		return err
-	}
-
-	var blockInfos []*model.BlockInfo
-	for _, blockInfo := range resp.Data {
-		blockInfos = append(blockInfos, toBlockInfo(blockInfo))
 	}
 
 	if resp.Total <= 0 {
 		return nil
 	}
 
-	sum += int64(len(resp.Data))
-	req.Cursor += len(resp.Data)
+	var events []*model.CacheEvent
+	for _, data := range resp.Datas {
+		events = append(events, toCacheEvent(data))
+	}
 
-	log.Debugf("GetCacheBlockInfos got %d/%d blocks", sum, resp.Total)
+	sum += int64(len(resp.Datas))
+	req.Cursor += len(resp.Datas)
+
+	log.Debugf("GetCacheTaskInfos got %d/%d blocks", sum, resp.Total)
 
 	c.Push(ctx, func() error {
-		err = dao.CreateBlockInfo(ctx, blockInfos)
+		err = dao.CreateCacheEvents(ctx, events)
 		if err != nil {
-			log.Errorf("create block info: %v", err)
+			log.Errorf("create cacheEvents: %v", err)
 		}
 		return nil
 	})
@@ -86,31 +86,10 @@ loop:
 		goto loop
 	}
 
-	c.Push(ctx, func() error {
-		err = dao.TxStatisticDeviceBlocks(ctx, startTime, endTime)
-		if err != nil {
-			log.Errorf("statistics device blocks: %v", err)
-			return err
-		}
-		return nil
-	})
-
 	return nil
 }
 
 var _ Fetcher = &CacheFetcher{}
-
-func toBlockInfo(in api.BlockInfo) *model.BlockInfo {
-	return &model.BlockInfo{
-		DeviceID:    in.DeviceID,
-		CarfileHash: in.CarfileHash,
-		CarfileCid:  hashToCID(in.CarfileHash),
-		Status:      int32(in.Status),
-		Size:        utils.ToFixed(float64(in.Size)/megaBytes, 2),
-		CreatedTime: in.CreateTime,
-		EndTime:     in.EndTime,
-	}
-}
 
 func toValidationEvent(in api.ValidateResultInfo) *model.ValidationEvent {
 	return &model.ValidationEvent{
@@ -185,4 +164,14 @@ func floorFiveMinute(t time.Time) time.Time {
 	hour := t.Hour()
 	minute := int(5 * (math.Floor(float64(t.Minute() / 5))))
 	return time.Date(year, month, day, hour, minute, 0, 0, time.Local)
+}
+
+func toCacheEvent(data *api.CacheTaskInfo) *model.CacheEvent {
+	return &model.CacheEvent{
+		DeviceID:   data.DeviceID,
+		CarfileCid: hashToCID(data.CarfileHash),
+		Blocks:     int64(data.DoneBlocks),
+		BlockSize:  float64(data.DoneSize),
+		Time:       data.CreateTime,
+	}
 }

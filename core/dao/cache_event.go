@@ -9,9 +9,17 @@ import (
 
 const tableNameCacheEvent = "cache_event"
 
+func CreateCacheEvents(ctx context.Context, events []*model.CacheEvent) error {
+	query := fmt.Sprintf(`INSERT INTO %s(device_id, carfile_cid, block_size, blocks, time) 
+			VALUES(:device_id, :carfile_cid, :block_size, :blocks, :time)`, tableNameCacheEvent)
+
+	_, err := DB.NamedExecContext(ctx, query, events)
+	return err
+}
+
 func GetLastCacheEvent(ctx context.Context) (*model.CacheEvent, error) {
 	var out model.CacheEvent
-	query := fmt.Sprintf(`SELECT * FROM %s ORDER BY max_created_time DESC LIMIT 1;`, tableNameCacheEvent)
+	query := fmt.Sprintf(`SELECT * FROM %s ORDER BY created_at DESC LIMIT 1;`, tableNameCacheEvent)
 	err := DB.QueryRowxContext(ctx, query).StructScan(&out)
 	if err == sql.ErrNoRows {
 		return nil, nil
