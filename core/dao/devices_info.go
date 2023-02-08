@@ -66,6 +66,20 @@ func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option Query
 	return out, total, err
 }
 
+func HandleMapInfo(in []*model.DeviceInfo) []map[string]interface{} {
+	type MapObject map[string]interface{}
+	var mapInfoOut []map[string]interface{}
+	for _, m := range in {
+		mapInfoOut = append(mapInfoOut, MapObject{
+			"name":  m.IpCity,
+			"value": []float64{m.Latitude, m.Longitude},
+		})
+
+	}
+	return mapInfoOut
+
+}
+
 func GetDeviceInfoByID(ctx context.Context, deviceID string) (*model.DeviceInfo, error) {
 	var out model.DeviceInfo
 	if err := DB.QueryRowxContext(ctx, fmt.Sprintf(

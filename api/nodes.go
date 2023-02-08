@@ -185,6 +185,36 @@ func GetDeviceInfoHandler(c *gin.Context) {
 	}))
 }
 
+func GetMapInfoHandler(c *gin.Context) {
+	info := &model.DeviceInfo{}
+	info.UserID = c.Query("user_id")
+	info.DeviceID = c.Query("device_id")
+	info.DeviceStatus = c.Query("device_status")
+	pageSize, _ := strconv.Atoi("page_size")
+	page, _ := strconv.Atoi("page")
+	order := c.Query("order")
+	orderField := c.Query("order_field")
+	nodeType, _ := strconv.ParseInt(c.Query("node_type"), 10, 64)
+	info.NodeType = int32(nodeType)
+	option := dao.QueryOption{
+		Page:       page,
+		PageSize:   pageSize,
+		Order:      order,
+		OrderField: orderField,
+	}
+	list, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
+	if err != nil {
+		log.Errorf("get device info list: %v", err)
+		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list":  dao.HandleMapInfo(list),
+		"total": total,
+	}))
+}
+
 func GetDeviceDiagnosisDailyHandler(c *gin.Context) {
 	from := c.Query("from")
 	to := c.Query("to")
@@ -217,6 +247,7 @@ func GetDeviceDiagnosisHourHandler(c *gin.Context) {
 		"disk_space":   fmt.Sprintf("%.2f", deviceInfo.DiskSpace/float64(10<<30)),
 		"disk_type":    deviceInfo.DiskType,
 		"file_system":  deviceInfo.IoSystem,
+		"w":            []float64{},
 	}))
 }
 
