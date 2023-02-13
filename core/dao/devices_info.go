@@ -71,8 +71,10 @@ func HandleMapInfo(in []*model.DeviceInfo) []map[string]interface{} {
 	var mapInfoOut []map[string]interface{}
 	for _, m := range in {
 		mapInfoOut = append(mapInfoOut, MapObject{
-			"name":  m.IpCity,
-			"value": []float64{m.Latitude, m.Longitude},
+			"name":     m.IpCity,
+			"nodeType": m.NodeType,
+			"ip":       m.InternalIp,
+			"value":    []float64{m.Latitude, m.Longitude},
 		})
 
 	}
