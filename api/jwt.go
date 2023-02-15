@@ -11,6 +11,7 @@ import (
 	"github.com/gnasnik/titan-explorer/utils"
 	"github.com/mssola/user_agent"
 	"golang.org/x/crypto/bcrypt"
+	"net/http"
 	"time"
 )
 
@@ -22,6 +23,11 @@ const (
 type login struct {
 	Username string `form:"username" json:"username" binding:"required"`
 	Password string `form:"password" json:"password" binding:"required"`
+}
+
+type loginResponse struct {
+	Token  string `json:"token"`
+	Expire string `json:"expire"`
 }
 
 var identityKey = "id"
@@ -36,7 +42,7 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 		PayloadFunc: func(data interface{}) jwt.MapClaims {
 			if v, ok := data.(*model2.User); ok {
 				return jwt.MapClaims{
-					identityKey: v.Username,
+					identityKey: v.Uuid,
 				}
 			}
 			return jwt.MapClaims{}
@@ -44,8 +50,22 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 		IdentityHandler: func(c *gin.Context) interface{} {
 			claims := jwt.ExtractClaims(c)
 			return &model2.User{
-				Username: claims[identityKey].(string),
+				Uuid: claims[identityKey].(string),
 			}
+		},
+		LoginResponse: func(c *gin.Context, code int, token string, expire time.Time) {
+			c.JSON(http.StatusOK, gin.H{
+				"code": 0,
+				"data": loginResponse{
+					Token:  token,
+					Expire: expire.Format(time.RFC3339),
+				},
+			})
+		},
+		LogoutResponse: func(c *gin.Context, code int) {
+			c.JSON(http.StatusOK, gin.H{
+				"code": 0,
+			})
 		},
 		Authenticator: func(c *gin.Context) (interface{}, error) {
 			var loginParams login
@@ -87,11 +107,12 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			return user, nil
 		},
 		Authorizator: func(data interface{}, c *gin.Context) bool {
-			if v, ok := data.(*model2.User); ok && v.Username == "admin" {
-				return true
-			}
-
-			return false
+			//if v, ok := data.(*model2.User); ok && v.Username == "admin" {
+			//	return true
+			//}
+			//
+			//return false
+			return true
 		},
 		Unauthorized: func(c *gin.Context, code int, message string) {
 			c.JSON(code, gin.H{

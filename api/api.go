@@ -30,7 +30,13 @@ type Server struct {
 func NewServer(cfg config.Config) (*Server, error) {
 	gin.SetMode(cfg.Mode)
 	router := gin.Default()
-	router.Use(cors.Default())
+	router.Use(cors.New(cors.Config{
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
+		AllowHeaders:     []string{"Authorization", "Origin", "Content-Length", "Content-Type"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+		AllowAllOrigins:  true,
+	}))
 	ConfigRouter(router, cfg)
 
 	client, closer, err := getLocatorClient(cfg.Locator.Address, cfg.Locator.Token)

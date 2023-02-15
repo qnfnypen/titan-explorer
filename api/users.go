@@ -1,6 +1,7 @@
 package api
 
 import (
+	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
@@ -9,6 +10,18 @@ import (
 	"net/http"
 	"time"
 )
+
+func GetUserInfoHandler(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	log.Info("==========", claims)
+	uuid := claims[identityKey].(string)
+	user, err := dao.GetUserByUserUUID(c.Request.Context(), uuid)
+	if err != nil {
+		c.JSON(http.StatusOK, respError(errors.ErrUserNotFound))
+		return
+	}
+	c.JSON(http.StatusOK, respJSON(user))
+}
 
 func DeviceBindingHandler(c *gin.Context) {
 	deviceInfo := &model.DeviceInfo{}

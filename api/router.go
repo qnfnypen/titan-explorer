@@ -20,10 +20,6 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 		log.Fatalf("authMiddleware.MiddlewareInit: %v", err)
 	}
 
-	apiV1.POST("/login", authMiddleware.LoginHandler)
-	apiV1.POST("/logout", authMiddleware.LogoutHandler)
-	apiV1.GET("/refresh_token", authMiddleware.RefreshHandler)
-
 	// dashboard
 	apiV1.GET("/all_areas", GetAllAreas)
 	apiV1.GET("/schedulers", GetSchedulersHandler)
@@ -44,6 +40,13 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	apiV1.GET("/device_unbinding", DeviceUnBindingHandler)
 	apiV1.GET("/device_update", DeviceUpdateHandler)
 	apiV1.GET("/get_user_device_profile", GetUserDeviceProfileHandler)
+
+	user := apiV1.Group("/user")
+	user.POST("/login", authMiddleware.LoginHandler)
+	user.POST("/logout", authMiddleware.LogoutHandler)
+	user.Use(authMiddleware.MiddlewareFunc())
+	user.GET("/refresh_token", authMiddleware.RefreshHandler)
+	user.POST("/info", GetUserInfoHandler)
 
 	// admin
 	admin := apiV1.Group("/admin")

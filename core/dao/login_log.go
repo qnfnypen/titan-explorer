@@ -10,8 +10,8 @@ var tableNameloginLog = "login_log"
 
 func AddLoginLog(ctx context.Context, log *model.LoginLog) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s ("login_username", "ipaddr", "login_location", "browser", "os", "status", "msg", "created_at")
-			VALUES (:login_username, :ipaddr, :login_location, :browser, :os, :status, :msg, :created_at);`, tableNameloginLog,
+		`INSERT INTO %s (login_username, ip_address, login_location, browser, os, status, msg, created_at) VALUES 
+		(:login_username, :ip_address, :login_location, :browser, :os, :status, :msg, :created_at);`, tableNameloginLog,
 	), log)
 	return err
 }

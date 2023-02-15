@@ -25,3 +25,13 @@ func GetUserByUsername(ctx context.Context, username string) (*model.User, error
 	}
 	return &out, nil
 }
+
+func GetUserByUserUUID(ctx context.Context, UUID string) (*model.User, error) {
+	var out model.User
+	if err := DB.QueryRowxContext(ctx, fmt.Sprintf(
+		`SELECT * FROM %s WHERE uuid = ?`, tableNameUser), UUID,
+	).StructScan(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
