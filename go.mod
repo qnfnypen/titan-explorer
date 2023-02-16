@@ -20,7 +20,8 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/robfig/cron/v3 v3.0.0
 	github.com/spf13/viper v1.14.0
-	golang.org/x/crypto v0.2.0
+	golang.org/x/crypto v0.4.0
+	golang.org/x/net v0.4.0
 )
 
 require (
@@ -59,10 +60,8 @@ require (
 	github.com/ugorji/go/codec v1.2.7 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
-	go.uber.org/goleak v1.1.12 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
-	golang.org/x/net v0.3.0 // indirect
 	golang.org/x/sys v0.3.0 // indirect
 	golang.org/x/text v0.5.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
@@ -74,7 +73,7 @@ require (
 )
 
 require (
-	github.com/filecoin-project/go-jsonrpc v0.1.9 // indirect
+	github.com/filecoin-project/go-jsonrpc v0.2.1 // indirect
 	github.com/go-playground/validator/v10 v10.11.1 // indirect
 	github.com/goccy/go-json v0.9.11 // indirect
 	github.com/linguohua/titan v0.0.0-20221108155603-9b69d5ad4147

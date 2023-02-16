@@ -51,12 +51,12 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	// admin
 	admin := apiV1.Group("/admin")
 	admin.Use(authMiddleware.MiddlewareFunc())
-	admin.GET("/cache_task_list", GetCacheTaskListHandler)
-	admin.GET("/cache_task_info", GetCacheTaskInfoHandler)
-	admin.POST("/add_cache_task", AddCacheTaskHandler)
-	admin.POST("/cancel_cache_task", CancelCacheTaskHandler)
+	admin.GET("/cache_list", GetCacheTaskListHandler)
+	admin.GET("/cache_info", GetCacheTaskInfoHandler)
+	admin.POST("/add_cache", AddCacheTaskHandler)
+	admin.POST("/delete_cache", DeleteCacheTaskHandler)
+	admin.POST("/delete_device_cache", DeleteCacheTaskByDeviceHandler)
 	admin.GET("/get_cache_info", GetCarFileInfoHandler)
-	admin.POST("/remove_cache", RemoveCacheHandler)
 	admin.GET("/get_login_log", GetLoginLogHandler)
 	admin.GET("/get_operation_log", GetOperationLogHandler)
 }

@@ -166,12 +166,13 @@ func floorFiveMinute(t time.Time) time.Time {
 	return time.Date(year, month, day, hour, minute, 0, 0, time.Local)
 }
 
-func toCacheEvent(data *api.CacheTaskInfo) *model.CacheEvent {
+func toCacheEvent(data *api.CarfileReplicaInfo) *model.CacheEvent {
 	return &model.CacheEvent{
 		DeviceID:   data.DeviceID,
 		CarfileCid: hashToCID(data.CarfileHash),
 		Blocks:     int64(data.DoneBlocks),
 		BlockSize:  float64(data.DoneSize),
 		Time:       data.CreateTime,
+		Status:     int32(data.Status),
 	}
 }

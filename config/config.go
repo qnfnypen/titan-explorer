@@ -10,6 +10,7 @@ type Config struct {
 	Locator       LocatorConfig
 	Statistic     StatisticsConfig
 	Email         EmailConfig
+	Admin         AdminConfig
 }
 
 type EmailConfig struct {
@@ -30,4 +31,9 @@ type LocatorConfig struct {
 type StatisticsConfig struct {
 	Disable bool
 	Crontab string
+}
+
+type AdminConfig struct {
+	SchedulerURL string
+	Token        string
 }

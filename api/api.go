@@ -13,10 +13,11 @@ import (
 	"github.com/linguohua/titan/api/client"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 )
 
-var schedulerClient api.Scheduler
+var schedulerAdmin api.Scheduler
 
 type Server struct {
 	cfg             config.Config
@@ -63,6 +64,8 @@ func NewServer(cfg config.Config) (*Server, error) {
 			return nil, err
 		}
 	}
+
+	applyAdminScheduler(cfg.Admin.SchedulerURL, cfg.Admin.Token)
 
 	s := &Server{
 		cfg:           cfg,
@@ -129,6 +132,7 @@ func fetchSchedulersFromLocator(locatorApi api.Locator) ([]*statistics.Scheduler
 	var out []*statistics.Scheduler
 	for _, accessPoint := range accessPoints {
 		for _, item := range accessPoint.SchedulerInfos {
+			item.URL = strings.Replace(item.URL, "https", "http", 1)
 			client, closeScheduler, err := client.NewScheduler(context.Background(), item.URL, nil)
 			if err != nil {
 				log.Errorf("create scheduler rpc client: %v", err)
@@ -144,6 +148,16 @@ func fetchSchedulersFromLocator(locatorApi api.Locator) ([]*statistics.Scheduler
 	log.Infof("fetch %d schedulers from locator", len(out))
 
 	return out, nil
+}
+
+func applyAdminScheduler(url string, token string) {
+	headers := http.Header{}
+	headers.Add("Authorization", "Bearer "+token)
+	client, _, err := client.NewScheduler(context.Background(), url, headers)
+	if err != nil {
+		log.Errorf("create scheduler rpc client: %v", err)
+	}
+	schedulerAdmin = client
 }
 
 func getLocatorClient(address, token string) (api.Locator, func(), error) {

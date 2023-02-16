@@ -13,7 +13,6 @@ import (
 
 func GetUserInfoHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
-	log.Info("==========", claims)
 	uuid := claims[identityKey].(string)
 	user, err := dao.GetUserByUserUUID(c.Request.Context(), uuid)
 	if err != nil {

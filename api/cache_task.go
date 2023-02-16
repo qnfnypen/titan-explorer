@@ -3,18 +3,35 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/errors"
+	"github.com/linguohua/titan/api"
 	"net/http"
 	"strconv"
 	"time"
 )
 
+type CreateCacheParams struct {
+	CarfileCid  string `json:"carfile_cid"`
+	Reliability int    `json:"reliability"`
+	ExpiredTime string `json:"expired_time"`
+}
+
 func AddCacheTaskHandler(c *gin.Context) {
-	carFileCID := c.Query("carfile_cid")
-	reliability, _ := strconv.ParseInt(c.Query("reliability"), 10, 64)
-	expiration := time.Now().Add(365 * 24 * time.Hour)
-	err := schedulerClient.AddCacheTask(c.Request.Context(), carFileCID, int(reliability), expiration)
+	params := &CreateCacheParams{}
+	err := c.BindJSON(params)
 	if err != nil {
-		log.Errorf("add cahce task: %v", err)
+		log.Errorf("bind json: %v", err)
+		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
+		return
+	}
+	expiredTime, _ := time.Parse(time.DateOnly, params.ExpiredTime)
+	info := &api.CacheCarfileInfo{
+		NeedReliability: params.Reliability,
+		CarfileCid:      params.CarfileCid,
+		ExpiredTime:     expiredTime,
+	}
+	err = schedulerAdmin.CacheCarfile(c.Request.Context(), info)
+	if err != nil {
+		log.Errorf("api AddCacheTask: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
 		return
 	}
@@ -23,22 +40,38 @@ func AddCacheTaskHandler(c *gin.Context) {
 
 func GetCacheTaskInfoHandler(c *gin.Context) {
 	carFileCID := c.Query("carfile_cid")
-	cacheInfo, err := schedulerClient.GetCacheTaskInfo(c.Request.Context(), carFileCID)
+	cacheInfo, err := schedulerAdmin.GetCarfileRecordInfo(c.Request.Context(), carFileCID)
 	if err != nil {
-		log.Errorf("get cahce task info: %v", err)
+		log.Errorf("api GetCarfileRecordInfo: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
 		return
 	}
-	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"cache_task_info": cacheInfo,
-	}))
+	c.JSON(http.StatusOK, respJSON(cacheInfo))
 }
 
-func CancelCacheTaskHandler(c *gin.Context) {
-	carFileCID := c.Query("carfile_cid")
-	err := schedulerClient.CancelCacheTask(c.Request.Context(), carFileCID)
+func DeleteCacheTaskHandler(c *gin.Context) {
+	params := &CreateCacheParams{}
+	err := c.BindJSON(params)
 	if err != nil {
-		log.Errorf("cancel cahce task: %v", err)
+		log.Errorf("bind json: %v", err)
+		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
+		return
+	}
+	err = schedulerAdmin.RemoveCarfile(c.Request.Context(), params.CarfileCid)
+	if err != nil {
+		log.Errorf("api RemoveCarfile: %v", err)
+		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		return
+	}
+	c.JSON(http.StatusOK, respJSON(nil))
+}
+
+func DeleteCacheTaskByDeviceHandler(c *gin.Context) {
+	carFileCID := c.Query("carfile_cid")
+	deviceID := c.Query("device_id")
+	err := schedulerAdmin.RemoveCache(c.Request.Context(), carFileCID, deviceID)
+	if err != nil {
+		log.Errorf("api RemoveCache: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
 		return
 	}
@@ -46,28 +79,24 @@ func CancelCacheTaskHandler(c *gin.Context) {
 }
 
 func GetCacheTaskListHandler(c *gin.Context) {
-	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)
-	size, _ := strconv.ParseInt(c.Query("size"), 10, 64)
-	var limit, offset int
-	if size <= 0 {
-		limit = 50
-	}
-	if page > 0 {
-		offset = int(size * (page - 1))
-	}
-	resp, err := schedulerClient.ListCacheTasks(c.Request.Context(), offset, limit)
+	page, _ := strconv.ParseInt(c.Query("current"), 10, 64)
+	//size, _ := strconv.ParseInt(c.Query("size"), 10, 64)
+	resp, err := schedulerAdmin.ListCarfileRecords(c.Request.Context(), int(page))
 	if err != nil {
-		log.Errorf("list cache tasks: %v", err)
+		log.Errorf("api ListCarfileRecords: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
 		return
 	}
 
-	c.JSON(http.StatusOK, respJSON(resp))
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list":  resp.CarfileRecords,
+		"total": resp.Cids,
+	}))
 }
 
 func GetCarFileInfoHandler(c *gin.Context) {
 	carFileCID := c.Query("carfile_cid")
-	fileInfo, err := schedulerClient.GetCarfileByCID(c.Request.Context(), carFileCID)
+	fileInfo, err := schedulerAdmin.GetCarfileRecordInfo(c.Request.Context(), carFileCID)
 	if err != nil {
 		log.Errorf("get carfile info: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
@@ -80,7 +109,7 @@ func GetCarFileInfoHandler(c *gin.Context) {
 
 func RemoveCacheHandler(c *gin.Context) {
 	carFileCID := c.Query("carfile_cid")
-	err := schedulerClient.RemoveCarfile(c.Request.Context(), carFileCID)
+	err := schedulerAdmin.RemoveCarfile(c.Request.Context(), carFileCID)
 	if err != nil {
 		log.Errorf("remove cahce task: %v", err)
 		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
