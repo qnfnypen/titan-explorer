@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/errors"
+	"github.com/gnasnik/titan-explorer/utils"
 	"github.com/linguohua/titan/api"
 	"net/http"
 	"strconv"
@@ -23,7 +24,7 @@ func AddCacheTaskHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
 		return
 	}
-	expiredTime, _ := time.Parse(time.DateOnly, params.ExpiredTime)
+	expiredTime, _ := time.Parse(utils.TimeFormatYMD, params.ExpiredTime)
 	info := &api.CacheCarfileInfo{
 		NeedReliability: params.Reliability,
 		CarfileCid:      params.CarfileCid,
