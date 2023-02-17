@@ -198,8 +198,10 @@ CREATE TABLE `full_node_info` (
 `time` TIMESTAMP NOT NULL DEFAULT 0,
 `created_at` DATETIME(3) NOT NULL DEFAULT 0,
 `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
-PRIMARY KEY (`id`)
+PRIMARY KEY (`id`),
+UNIQUE KEY `uniq_time` (`time`) USING BTREE
 ) ENGINE = INNODB CHARSET = utf8mb4;
+
 
 
 DROP TABLE IF EXISTS `application`;

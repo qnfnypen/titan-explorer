@@ -11,7 +11,8 @@ const tableNameCacheEvent = "cache_event"
 
 func CreateCacheEvents(ctx context.Context, events []*model.CacheEvent) error {
 	query := fmt.Sprintf(`INSERT INTO %s(device_id, carfile_cid, block_size, blocks, time) 
-			VALUES(:device_id, :carfile_cid, :block_size, :blocks, :time)`, tableNameCacheEvent)
+			VALUES(:device_id, :carfile_cid, :block_size, :blocks, :time) ON DUPLICATE KEY UPDATE blocks = VALUES(blocks),
+	block_size = VALUES(block_size)`, tableNameCacheEvent)
 
 	_, err := DB.NamedExecContext(ctx, query, events)
 	return err

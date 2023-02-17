@@ -221,6 +221,14 @@ func (s *Statistic) SumAllNodes() error {
 		log.Errorf("cache full node info: %v", err)
 		return err
 	}
+
+	fTime := fullNodeInfo.Time
+	fullNodeInfo.Time = time.Date(fTime.Year(), fTime.Month(), fTime.Day(), 0, 0, 0, 0, time.Local)
+	if err = dao.UpsertFullNodeInfo(s.ctx, fullNodeInfo); err != nil {
+		log.Errorf("upsert full node: %v", err)
+		return err
+	}
+
 	return nil
 }
 

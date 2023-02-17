@@ -59,4 +59,5 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	admin.GET("/get_cache_info", GetCarFileInfoHandler)
 	admin.GET("/get_login_log", GetLoginLogHandler)
 	admin.GET("/get_operation_log", GetOperationLogHandler)
+	admin.GET("/get_node_daily_trend", GetNodeDailyTrendHandler)
 }
