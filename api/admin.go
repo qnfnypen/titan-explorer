@@ -35,6 +35,8 @@ func GetNodeDailyTrendHandler(c *gin.Context) {
 		return
 	}
 
+	reverse(list)
+
 	var out []NodeDailyTrend
 	for _, item := range list {
 		out = append(out, NodeDailyTrend{
@@ -44,4 +46,10 @@ func GetNodeDailyTrendHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, respJSON(out))
+}
+
+func reverse(s []*model.FullNodeInfo) {
+	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+		s[i], s[j] = s[j], s[i]
+	}
 }

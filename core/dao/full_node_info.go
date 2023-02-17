@@ -57,6 +57,8 @@ func GetFullNodeInfoList(ctx context.Context, cond *model.FullNodeInfo, option Q
 	where := `WHERE 1 = 1`
 	if option.Order != "" && option.OrderField != "" {
 		where += fmt.Sprintf(` ORDER BY %s %s`, option.OrderField, option.Order)
+	} else {
+		where += fmt.Sprintf(" ORDER BY time DESC")
 	}
 
 	limit := option.PageSize
@@ -79,7 +81,7 @@ func GetFullNodeInfoList(ctx context.Context, cond *model.FullNodeInfo, option Q
 	}
 
 	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT * FROM %s %s ORDER BY time LIMIT %d OFFSET %d`, tableNameFullNodeInfo, where, limit, offset,
+		`SELECT * FROM %s %s LIMIT %d OFFSET %d`, tableNameFullNodeInfo, where, limit, offset,
 	), args...)
 	if err != nil {
 		return nil, 0, err
