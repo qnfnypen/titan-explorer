@@ -16,13 +16,13 @@ func CreateApplicationHandler(c *gin.Context) {
 	params := model.Application{}
 	if err := c.BindJSON(&params); err != nil {
 		log.Errorf("create application: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInvalidParams))
+		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
 		return
 	}
 
 	_, err := mail.ParseAddress(params.Email)
 	if err != nil || params.UserID == "" || params.NodeType == 0 {
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInvalidParams))
+		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
 		return
 	}
 
@@ -31,7 +31,7 @@ func CreateApplicationHandler(c *gin.Context) {
 	}
 
 	if params.Amount > 500 {
-		c.JSON(http.StatusBadRequest, respError(errors.ErrAmountLimitExceeded))
+		c.JSON(http.StatusOK, respError(errors.ErrAmountLimitExceeded))
 		return
 	}
 
@@ -41,7 +41,7 @@ func CreateApplicationHandler(c *gin.Context) {
 	params.Ip = utils.GetClientIP(c.Request)
 	if err := dao.AddApplication(c.Request.Context(), &params); err != nil {
 		log.Errorf("add application: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 
@@ -64,7 +64,7 @@ func GetApplicationsHandler(c *gin.Context) {
 	applications, total, err := dao.GetApplicationsByPage(c.Request.Context(), option)
 	if err != nil {
 		log.Errorf("get applications: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{

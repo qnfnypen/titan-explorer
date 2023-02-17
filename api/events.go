@@ -27,7 +27,7 @@ func GetCacheListHandler(c *gin.Context) {
 	list, total, err := dao.GetCacheEventsByPage(c.Request.Context(), info, option)
 	if err != nil {
 		log.Errorf("get cache events by page: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrNotFound))
+		c.JSON(http.StatusOK, respError(errors.ErrNotFound))
 		return
 	}
 
@@ -55,7 +55,7 @@ func GetRetrievalListHandler(c *gin.Context) {
 	list, total, err := dao.GetRetrievalEventsByPage(c.Request.Context(), info, option)
 	if err != nil {
 		log.Errorf("get retrives by page: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrNotFound))
+		c.JSON(http.StatusOK, respError(errors.ErrNotFound))
 		return
 	}
 
@@ -84,7 +84,7 @@ func GetValidationListHandler(c *gin.Context) {
 	list, total, err := dao.GetValidationEventsByPage(c.Request.Context(), info, option)
 	if err != nil {
 		log.Errorf("get validations by page: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrNotFound))
+		c.JSON(http.StatusOK, respError(errors.ErrNotFound))
 		return
 	}
 

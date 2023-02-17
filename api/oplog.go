@@ -17,7 +17,7 @@ func GetLoginLogHandler(c *gin.Context) {
 	}
 	list, total, err := dao.ListLoginLog(c.Request.Context(), opt)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -35,7 +35,7 @@ func GetOperationLogHandler(c *gin.Context) {
 	}
 	list, total, err := dao.ListOperationLog(c.Request.Context(), opt)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{

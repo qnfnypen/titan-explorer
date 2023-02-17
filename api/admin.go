@@ -31,7 +31,7 @@ func GetNodeDailyTrendHandler(c *gin.Context) {
 	list, _, err := dao.GetFullNodeInfoList(c.Request.Context(), info, option)
 	if err != nil {
 		log.Errorf("get full node info list: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrNotFound))
+		c.JSON(http.StatusOK, respError(errors.ErrNotFound))
 		return
 	}
 

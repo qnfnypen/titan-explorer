@@ -31,12 +31,12 @@ func DeviceBindingHandler(c *gin.Context) {
 	old, err := dao.GetDeviceInfoByID(c.Request.Context(), deviceInfo.DeviceID)
 	if err != nil {
 		log.Errorf("get user device: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 
 	if old != nil && old.UserID != "" {
-		c.JSON(http.StatusBadRequest, respError(errors.ErrDeviceExists))
+		c.JSON(http.StatusOK, respError(errors.ErrDeviceExists))
 		return
 	}
 	var timeWeb = "0000-00-00 00:00:00"
@@ -47,7 +47,7 @@ func DeviceBindingHandler(c *gin.Context) {
 	err = dao.UpdateUserDeviceInfo(c.Request.Context(), deviceInfo)
 	if err != nil {
 		log.Errorf("update user device: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 
@@ -63,24 +63,24 @@ func DeviceUnBindingHandler(c *gin.Context) {
 	old, err := dao.GetDeviceInfoByID(c.Request.Context(), deviceInfo.DeviceID)
 	if err != nil {
 		log.Errorf("get user device: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 
 	if old == nil {
-		c.JSON(http.StatusBadRequest, respError(errors.ErrDeviceNotExists))
+		c.JSON(http.StatusOK, respError(errors.ErrDeviceNotExists))
 		return
 	}
 
 	if old.UserID != deviceInfo.UserID {
-		c.JSON(http.StatusBadRequest, respError(errors.ErrUnbindingNotAllowed))
+		c.JSON(http.StatusOK, respError(errors.ErrUnbindingNotAllowed))
 		return
 	}
 
 	err = dao.UpdateUserDeviceInfo(c.Request.Context(), deviceInfo)
 	if err != nil {
 		log.Errorf("update user device: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 
@@ -96,19 +96,19 @@ func DeviceUpdateHandler(c *gin.Context) {
 	old, err := dao.GetDeviceInfoByID(c.Request.Context(), deviceInfo.DeviceID)
 	if err != nil {
 		log.Errorf("get user device: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 
 	if old != nil && old.UserID != "" {
-		c.JSON(http.StatusBadRequest, respError(errors.ErrDeviceExists))
+		c.JSON(http.StatusOK, respError(errors.ErrDeviceExists))
 		return
 	}
 
 	err = dao.UpdateDeviceName(c.Request.Context(), deviceInfo)
 	if err != nil {
 		log.Errorf("update user device: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 

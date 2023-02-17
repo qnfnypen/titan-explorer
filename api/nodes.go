@@ -17,7 +17,7 @@ import (
 func GetAllAreas(c *gin.Context) {
 	areas, err := dao.GetAllAreaFromDeviceInfo(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 
@@ -30,7 +30,7 @@ func GetIndexInfoHandler(c *gin.Context) {
 	fullNodeInfo, err := dao.GetCacheFullNodeInfo(c.Request.Context())
 	if err != nil {
 		log.Errorf("get full node info: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(fullNodeInfo))
@@ -61,14 +61,14 @@ func GetUserDeviceProfileHandler(c *gin.Context) {
 	userDeviceProfile, err := dao.CountUserDeviceInfo(c.Request.Context(), info.UserID)
 	if err != nil {
 		log.Errorf("get user device profile: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrNotFound))
+		c.JSON(http.StatusOK, respError(errors.ErrNotFound))
 		return
 	}
 
 	m, err := dao.GetUserIncome(c.Request.Context(), info, option)
 	if err != nil {
 		log.Errorf("get user income: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrNotFound))
+		c.JSON(http.StatusOK, respError(errors.ErrNotFound))
 		return
 	}
 
@@ -175,7 +175,7 @@ func GetDeviceInfoHandler(c *gin.Context) {
 	list, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
 	if err != nil {
 		log.Errorf("get device info list: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 
@@ -205,7 +205,7 @@ func GetMapInfoHandler(c *gin.Context) {
 	list, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
 	if err != nil {
 		log.Errorf("get device info list: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 
@@ -233,7 +233,7 @@ func GetDeviceDiagnosisHourHandler(c *gin.Context) {
 	m := queryDeviceStatisticHourly(deviceID, start, end)
 	deviceInfo, err := dao.GetDeviceInfoByID(c.Request.Context(), deviceID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 
@@ -266,7 +266,7 @@ func GetDeviceInfoDailyHandler(c *gin.Context) {
 	list, total, err := dao.GetDeviceInfoDailyByPage(context.Background(), cond, option)
 	if err != nil {
 		log.Errorf("get device info daily: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 

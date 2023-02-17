@@ -33,7 +33,7 @@ func AddCacheTaskHandler(c *gin.Context) {
 	err = schedulerAdmin.CacheCarfile(c.Request.Context(), info)
 	if err != nil {
 		log.Errorf("api AddCacheTask: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.NewError(err.Error())))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(nil))
@@ -44,7 +44,7 @@ func GetCacheTaskInfoHandler(c *gin.Context) {
 	cacheInfo, err := schedulerAdmin.GetCarfileRecordInfo(c.Request.Context(), carFileCID)
 	if err != nil {
 		log.Errorf("api GetCarfileRecordInfo: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(cacheInfo))
@@ -61,7 +61,7 @@ func DeleteCacheTaskHandler(c *gin.Context) {
 	err = schedulerAdmin.RemoveCarfile(c.Request.Context(), params.CarfileCid)
 	if err != nil {
 		log.Errorf("api RemoveCarfile: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(nil))
@@ -73,7 +73,7 @@ func DeleteCacheTaskByDeviceHandler(c *gin.Context) {
 	err := schedulerAdmin.RemoveCache(c.Request.Context(), carFileCID, deviceID)
 	if err != nil {
 		log.Errorf("api RemoveCache: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(nil))
@@ -85,7 +85,7 @@ func GetCacheTaskListHandler(c *gin.Context) {
 	resp, err := schedulerAdmin.ListCarfileRecords(c.Request.Context(), int(page))
 	if err != nil {
 		log.Errorf("api ListCarfileRecords: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 
@@ -100,7 +100,7 @@ func GetCarFileInfoHandler(c *gin.Context) {
 	fileInfo, err := schedulerAdmin.GetCarfileRecordInfo(c.Request.Context(), carFileCID)
 	if err != nil {
 		log.Errorf("get carfile info: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -113,7 +113,7 @@ func RemoveCacheHandler(c *gin.Context) {
 	err := schedulerAdmin.RemoveCarfile(c.Request.Context(), carFileCID)
 	if err != nil {
 		log.Errorf("remove cahce task: %v", err)
-		c.JSON(http.StatusBadRequest, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(nil))

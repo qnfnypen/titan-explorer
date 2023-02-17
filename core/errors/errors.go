@@ -14,7 +14,8 @@ const (
 	AmountLimitExceeded
 	UnbindingNotAllowed
 
-	Unknown = -1
+	Unknown     = -1
+	GenericCode = 1
 )
 
 var (
@@ -41,4 +42,8 @@ func (e GenericError) Error() string {
 
 func newError(code int, message string) GenericError {
 	return GenericError{Code: code, Err: errors.New(message)}
+}
+
+func NewError(msg string) GenericError {
+	return newError(GenericCode, msg)
 }
