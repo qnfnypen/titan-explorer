@@ -7,6 +7,7 @@ import (
 	"github.com/linguohua/titan/api"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -27,7 +28,7 @@ func AddCacheTaskHandler(c *gin.Context) {
 	expiredTime, _ := time.Parse(utils.TimeFormatYMD, params.ExpiredTime)
 	info := &api.CacheCarfileInfo{
 		NeedReliability: params.Reliability,
-		CarfileCid:      params.CarfileCid,
+		CarfileCid:      strings.TrimSpace(params.CarfileCid),
 		ExpiredTime:     expiredTime,
 	}
 	err = schedulerAdmin.CacheCarfile(c.Request.Context(), info)
