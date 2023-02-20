@@ -169,7 +169,7 @@ func getLocatorClient(address, token string) (api.Locator, func(), error) {
 		return nil, nil, err
 	}
 
-	return client, closer, nil / c
+	return client, closer, nil
 }
 
 func (s *Server) asyncHandleApplication() {
