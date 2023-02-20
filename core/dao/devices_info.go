@@ -21,7 +21,6 @@ func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option Query
 		args = append(args, cond.UserID)
 	} else {
 		where += ` AND user_id <> ''`
-		args = append(args, cond.UserID)
 	}
 	if cond.DeviceStatus != "" && cond.DeviceStatus != "allDevices" {
 		where += ` AND device_status = ?`
