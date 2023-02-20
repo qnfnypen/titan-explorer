@@ -21,8 +21,8 @@ const (
 
 func AddApplication(ctx context.Context, application *model.Application) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s (user_id, email, ip_country, ip_city, amount, node_type, upstream_bandwidth, disk_space, status, created_at, updated_at) 
-			VALUES (:user_id, :email, :ip_country, :ip_city, :amount, :node_type, :upstream_bandwidth, :disk_space, :status, :created_at, :updated_at);`, tableNameApplication),
+		`INSERT INTO %s (user_id, email, ip, ip_country, ip_city, amount, node_type, upstream_bandwidth, disk_space, status, created_at, updated_at) 
+			VALUES (:user_id, :email, :ip, :ip_country, :ip_city, :amount, :node_type, :upstream_bandwidth, :disk_space, :status, :created_at, :updated_at);`, tableNameApplication),
 		application)
 	return err
 }
