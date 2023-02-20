@@ -204,7 +204,7 @@ func (s *Server) asyncHandleApplication() {
 
 					if len(accessPoints.SchedulerInfos) == 0 {
 						log.Error("no accessPoints schedulerInfos return")
-						return
+						continue
 					}
 
 					selectedScheduler := accessPoints.SchedulerInfos[i%len(accessPoints.SchedulerInfos)]
