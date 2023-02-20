@@ -169,7 +169,7 @@ func getLocatorClient(address, token string) (api.Locator, func(), error) {
 		return nil, nil, err
 	}
 
-	return client, closer, nil
+	return client, closer, nil / c
 }
 
 func (s *Server) asyncHandleApplication() {
@@ -200,6 +200,11 @@ func (s *Server) asyncHandleApplication() {
 					if err != nil {
 						log.Errorf("get access points: %v", err)
 						continue
+					}
+
+					if len(accessPoints.SchedulerInfos) == 0 {
+						log.Error("no accessPoints schedulerInfos return")
+						return
 					}
 
 					selectedScheduler := accessPoints.SchedulerInfos[i%len(accessPoints.SchedulerInfos)]
