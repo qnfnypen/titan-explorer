@@ -99,7 +99,7 @@ func toValidationEvent(in api.ValidateResultInfo) *model.ValidationEvent {
 		Blocks:          in.BlockNumber,
 		Time:            in.ValidateTime,
 		Duration:        in.Duration,
-		UpstreamTraffic: utils.ToFixed(in.UploadTraffic/megaBytes, 2),
+		UpstreamTraffic: utils.ToFixed(in.UploadTraffic, 2),
 	}
 }
 

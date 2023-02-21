@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/utils"
 	"time"
 )
 
@@ -55,7 +56,7 @@ func GenerateRetrievalEvents(ctx context.Context, startTime, endTime time.Time) 
 			DeviceID:          event.DeviceID,
 			Time:              event.Time,
 			Blocks:            event.Blocks - last.Blocks,
-			UpstreamBandwidth: event.UpstreamBandwidth - last.UpstreamBandwidth,
+			UpstreamBandwidth: utils.ToFixed(event.UpstreamBandwidth-last.UpstreamBandwidth, 2),
 		})
 		eventInDate[event.DeviceID] = event
 	}

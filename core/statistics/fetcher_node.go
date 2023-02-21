@@ -89,11 +89,14 @@ func toDeviceInfo(v interface{}) *model.DeviceInfo {
 		deviceInfo.IpProvince = ipLocationList[1]
 		deviceInfo.IpCity = ipLocationList[len(ipLocationList)-1]
 	}
+	deviceInfo.CpuUsage = utils.ToFixed(deviceInfo.CpuUsage, 2)
+	deviceInfo.MemoryUsage = utils.ToFixed(deviceInfo.MemoryUsage, 2)
 	deviceInfo.BandwidthUp = utils.ToFixed(deviceInfo.BandwidthUp/gigaBytes, 2)
 	deviceInfo.BandwidthDown = utils.ToFixed(deviceInfo.BandwidthDown/gigaBytes, 2)
 	deviceInfo.TotalUpload = utils.ToFixed(deviceInfo.TotalUpload/gigaBytes, 2)
 	deviceInfo.TotalDownload = utils.ToFixed(deviceInfo.TotalDownload/gigaBytes, 2)
 	deviceInfo.DiskSpace = utils.ToFixed(deviceInfo.DiskSpace/teraBytes, 4)
+	deviceInfo.DiskUsage = utils.ToFixed(deviceInfo.DiskUsage, 2)
 	deviceInfo.ActiveStatus = 1
 	return &deviceInfo
 }
