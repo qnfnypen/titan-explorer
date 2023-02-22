@@ -91,13 +91,13 @@ loop:
 
 var _ Fetcher = &CacheFetcher{}
 
-func toValidationEvent(in api.ValidateResultInfo) *model.ValidationEvent {
+func toValidationEvent(in api.ValidateResult) *model.ValidationEvent {
 	return &model.ValidationEvent{
 		DeviceID:        in.DeviceID,
 		ValidatorID:     in.ValidatorID,
 		Status:          int32(in.Status),
 		Blocks:          in.BlockNumber,
-		Time:            in.ValidateTime,
+		Time:            in.StartTime,
 		Duration:        in.Duration,
 		UpstreamTraffic: utils.ToFixed(in.UploadTraffic, 2),
 	}
