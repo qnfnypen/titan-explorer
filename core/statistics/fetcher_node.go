@@ -70,7 +70,7 @@ loop:
 	// add inactive node records for statistics
 	err = dao.GenerateInactiveNodeRecords(context.Background(), start)
 	if err != nil {
-		log.Errorf("generate non-active node records: %v", err)
+		log.Errorf("generate inactive node records: %v", err)
 	}
 
 	return nil
