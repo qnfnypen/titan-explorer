@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"time"
 )
 
 var tableNameDeviceInfo = "device_info"
@@ -216,4 +217,28 @@ func RankDeviceInfo(ctx context.Context) error {
 		return err
 	}
 	return tx.Commit()
+}
+
+func GenerateInactiveNodeRecords(ctx context.Context, t time.Time) error {
+	var nonActiveNodeIds []string
+	query := fmt.Sprintf("SELECT device_id FROM %s where updated_at < %v", tableNameDeviceInfo, t)
+	err := DB.SelectContext(ctx, &nonActiveNodeIds, query)
+	if err != nil {
+		return err
+	}
+
+	var inactiveNodes []*model.DeviceInfoHour
+	insertRecordStatement := fmt.Sprintf("SELECT * FROM %s WHERE  device_id = ? ORDER BY time DESC limit 1", tableNameDeviceInfoHour)
+	for _, id := range nonActiveNodeIds {
+		newDIH := model.DeviceInfoHour{}
+		err = DB.Get(&newDIH, insertRecordStatement, id)
+		if err != nil {
+			log.Errorf("get inactive node last record,%s: %v", id, err)
+			continue
+		}
+		newDIH.Time = t
+		inactiveNodes = append(inactiveNodes, &newDIH)
+	}
+
+	return BulkUpsertDeviceInfoHours(ctx, inactiveNodes)
 }

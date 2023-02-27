@@ -67,6 +67,12 @@ loop:
 		goto loop
 	}
 
+	// add inactive node records for statistics
+	err = dao.GenerateInactiveNodeRecords(context.Background(), start)
+	if err != nil {
+		log.Errorf("generate non-active node records: %v", err)
+	}
+
 	return nil
 }
 
@@ -99,10 +105,6 @@ func toDeviceInfo(v interface{}) *model.DeviceInfo {
 	deviceInfo.DiskUsage = utils.ToFixed(deviceInfo.DiskUsage, 2)
 	deviceInfo.ActiveStatus = 1
 	return &deviceInfo
-}
-
-func AddOfflineNodeHourlyRecord() error {
-	return nil
 }
 
 var _ Fetcher = &NodeFetcher{}
