@@ -40,7 +40,7 @@ func GetNodeDailyTrendHandler(c *gin.Context) {
 	var out []NodeDailyTrend
 	for _, item := range list {
 		out = append(out, NodeDailyTrend{
-			X: item.Time.Format(utils.TimeFormatYMD),
+			X: item.Time.Format(utils.TimeFormatDateOnly),
 			Y: item,
 		})
 	}

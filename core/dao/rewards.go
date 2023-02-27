@@ -101,23 +101,19 @@ func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, op
 }
 
 func handleDailyList(start, end string, in []*DeviceStatistics) []*DeviceStatistics {
-	startTime, _ := time.Parse(utils.TimeFormatYMD, start)
-	endTime, _ := time.Parse(utils.TimeFormatYMD, end)
-	var oneDay = 24 * time.Hour
-	dataKye := make(map[string]*DeviceStatistics)
+	startTime, _ := time.Parse(utils.TimeFormatDateOnly, start)
+	endTime, _ := time.Parse(utils.TimeFormatDateOnly, end)
+	oneDay := 24 * time.Hour
+	deviceInDate := make(map[string]*DeviceStatistics)
 	var out []*DeviceStatistics
 	for _, data := range in {
-		dataKye[data.Date] = data
+		deviceInDate[data.Date] = data
 	}
 	for startTime.Before(endTime) || startTime.Equal(endTime) {
-		key := startTime.Format(utils.TimeFormatYMD)
-		val, ok := dataKye[key]
-		var dataL DeviceStatistics
+		key := startTime.Format(utils.TimeFormatDateOnly)
+		val, ok := deviceInDate[key]
 		if !ok {
-			dataL.Date = startTime.Format(utils.TimeFormatMD)
-			out = append(out, &dataL)
-			startTime = startTime.Add(oneDay)
-			continue
+			val = &DeviceStatistics{}
 		}
 		val.Date = startTime.Format(utils.TimeFormatMD)
 		out = append(out, val)
@@ -129,26 +125,22 @@ func handleDailyList(start, end string, in []*DeviceStatistics) []*DeviceStatist
 }
 
 func handleHourList(in []*DeviceStatistics) []*DeviceStatistics {
-	var oneHour = time.Hour
 	now := time.Now()
+	oneHour := time.Hour
 	startTime := now.Add(-23 * oneHour)
 	endTime := now
-	dataKye := make(map[string]*DeviceStatistics)
+	deviceInDate := make(map[string]*DeviceStatistics)
 	var out []*DeviceStatistics
 	for _, data := range in {
-		dataKye[data.Date] = data
+		deviceInDate[data.Date] = data
 	}
 	for startTime.Before(endTime) || startTime.Equal(endTime) {
 		key := startTime.Format(utils.TimeFormatYMDH)
-		val, ok := dataKye[key]
-		var dataL DeviceStatistics
+		val, ok := deviceInDate[key]
 		if !ok {
-			dataL.Date = startTime.Format(utils.TimeFormatH) + ":00"
-			out = append(out, &dataL)
-			startTime = startTime.Add(oneHour)
-			continue
+			val = &DeviceStatistics{}
 		}
-		val.Date = startTime.Format(utils.TimeFormatH) + ":00"
+		val.Date = fmt.Sprintf("%d:00", startTime.Hour())
 		out = append(out, val)
 		startTime = startTime.Add(oneHour)
 	}

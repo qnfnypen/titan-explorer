@@ -25,7 +25,7 @@ func AddCacheTaskHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
 		return
 	}
-	expiredTime, _ := time.Parse(utils.TimeFormatYMD, params.ExpiredTime)
+	expiredTime, _ := time.Parse(utils.TimeFormatDateOnly, params.ExpiredTime)
 	info := &api.CacheCarfileInfo{
 		NeedReliability: params.Reliability,
 		CarfileCid:      strings.TrimSpace(params.CarfileCid),

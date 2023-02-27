@@ -52,10 +52,10 @@ func GetUserDeviceProfileHandler(c *gin.Context) {
 	}
 
 	if option.StartTime == "" {
-		option.StartTime = time.Now().AddDate(0, 0, -6).Format(utils.TimeFormatYMD)
+		option.StartTime = time.Now().AddDate(0, 0, -6).Format(utils.TimeFormatDateOnly)
 	}
 	if option.EndTime == "" {
-		option.EndTime = time.Now().Format(utils.TimeFormatYMD)
+		option.EndTime = time.Now().Format(utils.TimeFormatDateOnly)
 	}
 
 	userDeviceProfile, err := dao.CountUserDeviceInfo(c.Request.Context(), info.UserID)
@@ -80,13 +80,13 @@ func GetUserDeviceProfileHandler(c *gin.Context) {
 }
 
 func toDeviceStatistic(start, end string, data map[string]map[string]interface{}) []*dao.DeviceStatistics {
-	startTime, _ := time.Parse(utils.TimeFormatYMD, start)
-	endTime, _ := time.Parse(utils.TimeFormatYMD, end)
+	startTime, _ := time.Parse(utils.TimeFormatDateOnly, start)
+	endTime, _ := time.Parse(utils.TimeFormatDateOnly, end)
 
 	var oneDay = 24 * time.Hour
 	var out []*dao.DeviceStatistics
 	for startTime.Before(endTime) || startTime.Equal(endTime) {
-		key := startTime.Format(utils.TimeFormatYMD)
+		key := startTime.Format(utils.TimeFormatDateOnly)
 		startTime = startTime.Add(oneDay)
 		val, ok := data[key]
 		if !ok {

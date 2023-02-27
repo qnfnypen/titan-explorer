@@ -40,7 +40,7 @@ func DeviceBindingHandler(c *gin.Context) {
 		return
 	}
 	var timeWeb = "0000-00-00 00:00:00"
-	timeString, _ := time.Parse(utils.TimeFormatYMDHmS, timeWeb)
+	timeString, _ := time.Parse(utils.TimeFormatDatetime, timeWeb)
 	if old != nil && old.BoundAt == timeString {
 		deviceInfo.BoundAt = time.Now()
 	}
