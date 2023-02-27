@@ -101,4 +101,8 @@ func toDeviceInfo(v interface{}) *model.DeviceInfo {
 	return &deviceInfo
 }
 
+func AddOfflineNodeHourlyRecord() error {
+	return nil
+}
+
 var _ Fetcher = &NodeFetcher{}

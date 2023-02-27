@@ -70,7 +70,6 @@ CREATE TABLE `schedulers` (
 DROP TABLE IF EXISTS `device_info`;
 
 CREATE TABLE `device_info` (
-  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `created_at` DATETIME(3) NOT NULL DEFAULT 0,
   `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
   `deleted_at` DATETIME(3) NOT NULL DEFAULT 0,
@@ -126,8 +125,7 @@ CREATE TABLE `device_info` (
   `total_upload` FLOAT(32) NOT NULL DEFAULT '0',
   `block_count` BIGINT(20) NOT NULL DEFAULT '0',
   `download_count` BIGINT(20) NOT NULL DEFAULT '0',
-  PRIMARY KEY USING BTREE (`id`),
-  UNIQUE KEY `idx_device_id` (`device_id`) USING BTREE,
+  PRIMARY KEY (`device_id`),
   INDEX `idx_device_info_deleted_at` USING BTREE(`deleted_at` ASC)
 ) ENGINE = INNODB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4;
 
