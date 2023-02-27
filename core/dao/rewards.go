@@ -58,50 +58,16 @@ type DeviceStatistics struct {
 func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour, option QueryOption) ([]*DeviceStatistics, error) {
 	sqlClause := fmt.Sprintf(`select date_format(time, '%%Y-%%m-%%d %%H') as date, avg(nat_ratio) as nat_ratio, 
 	avg(disk_usage) as disk_usage, avg(latency) as latency, avg(pkg_loss_ratio) as pkg_loss_ratio, 
-	min(online_time) as online_time,
-	min(hour_income) as income,
-	min(upstream_traffic) as upstream_traffic, 
-	min(downstream_traffic) as downstream_traffic,
-	min(retrieval_count) as retrieval_count
+	max(online_time) - min(online_time) as online_time,
+	max(hour_income) - min(hour_income) as income,
+	max(upstream_traffic) - min(upstream_traffic) as upstream_traffic, 
+	max(downstream_traffic) - min(downstream_traffic) as downstream_traffic,
+	max(retrieval_count) - min(retrieval_count) as retrieval_count
 	from %s where device_id='%s' and time>='%s' and time<='%s' group by date order by date`, tableNameDeviceInfoHour, cond.DeviceID, option.StartTime, option.EndTime)
 	var out []*DeviceStatistics
 	err := DB.SelectContext(ctx, &out, sqlClause)
 	if err != nil {
 		return nil, err
-	}
-
-	var maxOne DeviceStatistics
-	query := fmt.Sprintf(`SELECT 
-		max(online_time) as online_time,
-		max(hour_income) as income,
-		max(upstream_traffic) as upstream_traffic, 
-		max(downstream_traffic) as downstream_traffic,
-		max(retrieval_count) as retrieval_count 
-		FROM %s WHERE device_id='%s' AND time>='%s' AND time<='%s'`,
-		tableNameDeviceInfoHour, cond.DeviceID, option.StartTime, option.EndTime)
-	err = DB.GetContext(ctx, &maxOne, query)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(out) == 0 {
-		return out, nil
-	}
-
-	end := len(out) - 1
-	out[end].OnlineTime = maxOne.OnlineTime - out[end].OnlineTime
-	out[end].Income = maxOne.Income - out[end].Income
-	out[end].UpstreamTraffic = maxOne.UpstreamTraffic - out[end].UpstreamTraffic
-	out[end].DownstreamTraffic = maxOne.DownstreamTraffic - out[end].DownstreamTraffic
-	out[end].RetrievalCount = maxOne.RetrievalCount - out[end].RetrievalCount
-
-	prevOne := *out[0]
-	for i := 1; i < end; i++ {
-		out[i].OnlineTime, prevOne.OnlineTime = out[i].OnlineTime-prevOne.OnlineTime, out[i].OnlineTime
-		out[i].Income, prevOne.Income = out[i].Income-prevOne.Income, out[i].Income
-		out[i].UpstreamTraffic, prevOne.UpstreamTraffic = out[i].UpstreamTraffic-prevOne.UpstreamTraffic, out[i].UpstreamTraffic
-		out[i].DownstreamTraffic, prevOne.DownstreamTraffic = out[i].DownstreamTraffic-prevOne.DownstreamTraffic, out[i].DownstreamTraffic
-		out[i].RetrievalCount, prevOne.RetrievalCount = out[i].RetrievalCount-prevOne.RetrievalCount, out[i].RetrievalCount
 	}
 
 	return handleHourList(out[1:]), err
