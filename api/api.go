@@ -53,7 +53,7 @@ func NewServer(cfg config.Config) (*Server, error) {
 	log.Infof("Locator connected, url: %s, version: %s", cfg.Locator.Address, version)
 
 	var schedulers []*statistics.Scheduler
-	if !cfg.Locator.Enable {
+	if cfg.SchedulerFromDB {
 		schedulers, err = fetchSchedulersFromDatabase()
 		if err != nil {
 			return nil, err
@@ -65,7 +65,9 @@ func NewServer(cfg config.Config) (*Server, error) {
 		}
 	}
 
-	applyAdminScheduler(cfg.Admin.SchedulerURL, cfg.Admin.Token)
+	if cfg.AdminScheduler.Enable {
+		applyAdminScheduler(cfg.AdminScheduler.Address, cfg.AdminScheduler.Token)
+	}
 
 	s := &Server{
 		cfg:           cfg,
@@ -104,8 +106,7 @@ func fetchSchedulersFromDatabase() ([]*statistics.Scheduler, error) {
 
 	var out []*statistics.Scheduler
 	for _, item := range schedulers {
-		//headers := http.Header{}
-		//headers.Add("Authorization", "Bearer "+string(item.Token))
+		// read permission only
 		client, closeScheduler, err := client.NewScheduler(context.Background(), item.Address, nil)
 		if err != nil {
 			log.Errorf("create scheduler rpc client: %v", err)
@@ -132,6 +133,7 @@ func fetchSchedulersFromLocator(locatorApi api.Locator) ([]*statistics.Scheduler
 	var out []*statistics.Scheduler
 	for _, accessPoint := range accessPoints {
 		for _, item := range accessPoint.SchedulerInfos {
+			// https protocol still in test, we use http for now.
 			item.URL = strings.Replace(item.URL, "https", "http", 1)
 			client, closeScheduler, err := client.NewScheduler(context.Background(), item.URL, nil)
 			if err != nil {

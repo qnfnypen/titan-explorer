@@ -1,30 +1,30 @@
 package config
 
 type Config struct {
-	Mode          string
-	ApiListen     string
-	DatabaseURL   string
-	SecretKey     string
-	RedisAddr     string
-	RedisPassword string
-	Locator       LocatorConfig
-	Statistic     StatisticsConfig
-	Email         EmailConfig
-	Admin         AdminConfig
+	Mode            string
+	ApiListen       string
+	DatabaseURL     string
+	SecretKey       string
+	RedisAddr       string
+	RedisPassword   string
+	SchedulerFromDB bool
+	Locator         LocatorConfig
+	Statistic       StatisticsConfig
+	Email           EmailConfig
+	AdminScheduler  AdminSchedulerConfig
 }
 
 type EmailConfig struct {
-	SMTP    string
-	Host    string
-	Name    string
-	Address string
-	Secret  string
+	Name     string
+	SMTPHost string
+	SMTPPort string
+	Username string
+	Password string
 }
 
 type LocatorConfig struct {
 	Address       string
 	Token         string
-	Enable        bool
 	AreaWhiteList []string
 }
 
@@ -33,7 +33,8 @@ type StatisticsConfig struct {
 	Crontab string
 }
 
-type AdminConfig struct {
-	SchedulerURL string
-	Token        string
+type AdminSchedulerConfig struct {
+	Enable  bool
+	Address string
+	Token   string
 }

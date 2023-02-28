@@ -32,8 +32,6 @@ func main() {
 
 	if cfg.Mode == "debug" {
 		logging.SetDebugLogging()
-		// email send test
-		//utils.Demo()
 	}
 
 	if err := dao.Init(&cfg); err != nil {

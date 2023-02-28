@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/jordan-wright/email"
 	"net/smtp"
@@ -15,21 +16,18 @@ type EmailData struct {
 }
 
 func SendEmail(cfg config.EmailConfig, data EmailData) error {
-	e := &email.Email{
+	message := &email.Email{
 		To:      []string{data.SendTo},
-		From:    cfg.Name + "<" + cfg.Address + ">",
+		From:    fmt.Sprintf("%s <%s>", cfg.Name, cfg.Username),
 		Subject: data.Subject,
 		Text:    []byte(data.Tittle),
 		HTML:    []byte(data.Content),
 		Headers: textproto.MIMEHeader{},
 	}
 
-	// send function：
 	// smtp.PlainAuth：the first param can be empty，the second param should be the email account，the third param is the secret of the email
-	err := e.Send(cfg.SMTP, smtp.PlainAuth("", cfg.Address, cfg.Secret, cfg.Host))
-	if err != nil {
-		return err
-	}
-	return nil
+	addr := fmt.Sprintf("%s:%s", cfg.SMTPHost, cfg.SMTPPort)
+	auth := smtp.PlainAuth("", cfg.Username, cfg.Password, cfg.SMTPHost)
 
+	return message.Send(addr, auth)
 }

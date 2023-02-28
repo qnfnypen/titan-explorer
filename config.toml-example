@@ -4,9 +4,14 @@ DatabaseURL = "root:example@tcp(localhost:3306)/example?charset=utf8mb4&parseTim
 SecretKey = "test"
 RedisAddr = "127.0.0.1:6379"
 RedisPassword = ""
+SchedulerFromDB = false
+
+[AdminScheduler]
+    Enable = true
+    Address = ""
+    Token = ""
 
 [Locator]
-    Enable = true
     Address = ""
     Token = ""
 
@@ -15,8 +20,10 @@ RedisPassword = ""
     Crontab = "0 */5 * * * *"
 
 [Email]
-    SMTP = "smtp.qq.com:587"
-    Host = "smtp.qq.com"
     Name = "titan"
-    Address = "titan@gmail.com"
-    Secret = "test"
+    SMTPHost = "smtp.qq.com"
+    SMTPPort = "587"
+    Username = "titan@gmail.com"
+    Password = "test"
+
+
