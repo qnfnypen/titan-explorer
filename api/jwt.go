@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
-	model2 "github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/core/oplog"
 	"github.com/gnasnik/titan-explorer/utils"
 	"github.com/mssola/user_agent"
@@ -40,7 +40,7 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 		MaxRefresh:  time.Hour,
 		IdentityKey: identityKey,
 		PayloadFunc: func(data interface{}) jwt.MapClaims {
-			if v, ok := data.(*model2.User); ok {
+			if v, ok := data.(*model.User); ok {
 				return jwt.MapClaims{
 					identityKey: v.Uuid,
 				}
@@ -49,7 +49,7 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 		},
 		IdentityHandler: func(c *gin.Context) interface{} {
 			claims := jwt.ExtractClaims(c)
-			return &model2.User{
+			return &model.User{
 				Uuid: claims[identityKey].(string),
 			}
 		},
@@ -84,7 +84,7 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 
 			user, err := loginByPassword(c.Request.Context(), userID, password)
 			if err != nil {
-				oplog.AddLoginLog(&model2.LoginLog{
+				oplog.AddLoginLog(&model.LoginLog{
 					IpAddress:     clientIP,
 					Browser:       explorer,
 					Os:            os,
@@ -95,7 +95,7 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 				return nil, err
 			}
 
-			oplog.AddLoginLog(&model2.LoginLog{
+			oplog.AddLoginLog(&model.LoginLog{
 				LoginUsername: userID,
 				LoginLocation: location,
 				IpAddress:     clientIP,
@@ -107,12 +107,11 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			return user, nil
 		},
 		Authorizator: func(data interface{}, c *gin.Context) bool {
-			//if v, ok := data.(*model2.User); ok && v.Username == "admin" {
-			//	return true
-			//}
-			//
-			//return false
-			return true
+			if v, ok := data.(model.User); ok && v.Username == "admin" {
+				return true
+			}
+
+			return false
 		},
 		Unauthorized: func(c *gin.Context, code int, message string) {
 			c.JSON(code, gin.H{
@@ -153,5 +152,5 @@ func loginByPassword(ctx context.Context, username, password string) (interface{
 		return nil, errors.ErrInvalidPassword
 	}
 
-	return &model2.User{Uuid: user.Uuid, Username: user.Username, Role: user.Role}, nil
+	return &model.User{Uuid: user.Uuid, Username: user.Username, Role: user.Role}, nil
 }
