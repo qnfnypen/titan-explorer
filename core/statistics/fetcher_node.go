@@ -33,7 +33,7 @@ func (n *NodeFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
 
 loop:
 	offset := (page - 1) * size
-	resp, err := scheduler.Api.ListNodes(ctx, offset, size)
+	resp, err := scheduler.Api.GetNodeList(ctx, offset, size)
 	if err != nil {
 		log.Errorf("api ListNodes: %v", err)
 	}
@@ -43,7 +43,7 @@ loop:
 
 	var nodes []*model.DeviceInfo
 	for _, node := range resp.Data {
-		if node.DeviceId == "" {
+		if node.NodeID == "" {
 			continue
 		}
 		nodes = append(nodes, toDeviceInfo(node))

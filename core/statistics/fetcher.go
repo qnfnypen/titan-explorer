@@ -2,7 +2,7 @@ package statistics
 
 import (
 	"context"
-	"github.com/linguohua/titan/api"
+	"github.com/Filecoin-Titan/titan/api"
 )
 
 type Fetcher interface {

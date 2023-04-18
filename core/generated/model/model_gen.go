@@ -15,6 +15,7 @@ type Application struct {
 	AreaID            string    `db:"area_id" json:"area_id"`
 	IpCountry         string    `db:"ip_country" json:"ip_country"`
 	IpCity            string    `db:"ip_city" json:"ip_city"`
+	PublicKey         string    `db:"public_key" json:"public_key"`
 	NodeType          int32     `db:"node_type" json:"node_type"`
 	Amount            int32     `db:"amount" json:"amount"`
 	UpstreamBandwidth float64   `db:"upstream_bandwidth" json:"upstream_bandwidth"`
@@ -223,7 +224,7 @@ type SystemInfo struct {
 	SchedulerUuid    string    `db:"scheduler_uuid" json:"scheduler_uuid"`
 	CarFileCount     int64     `db:"car_file_count" json:"car_file_count"`
 	DownloadCount    int64     `db:"download_count" json:"download_count"`
-	NextElectionTime int64     `db:"next_election_time" json:"next_election_time"`
+	NextElectionTime time.Time `db:"next_election_time" json:"next_election_time"`
 	CreatedAt        time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt        time.Time `db:"updated_at" json:"updated_at"`
 }

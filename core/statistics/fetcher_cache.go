@@ -2,12 +2,12 @@ package statistics
 
 import (
 	"context"
+	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/utils"
 	"github.com/golang-module/carbon/v2"
 	"github.com/ipfs/go-cid"
-	"github.com/linguohua/titan/api"
 	mh "github.com/multiformats/go-multihash"
 	"math"
 	"time"
@@ -46,7 +46,7 @@ func (c *CacheFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
 	}
 
 	endTime = carbon.Time2Carbon(start).SubMinutes(start.Minute() % 5).StartOfMinute().Carbon2Time()
-	req := api.ListCacheInfosReq{
+	req := types.ListReplicaInfosReq{
 		StartTime: startTime.Unix(),
 		EndTime:   endTime.Unix(),
 		Cursor:    0,
@@ -54,7 +54,7 @@ func (c *CacheFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
 	}
 
 loop:
-	resp, err := scheduler.Api.GetCacheTaskInfos(ctx, req)
+	resp, err := scheduler.Api.GetAssetReplicaInfos(ctx, req)
 	if err != nil {
 		log.Errorf("client api GetCacheTaskInfos: %v", err)
 		return err
@@ -65,12 +65,12 @@ loop:
 	}
 
 	var events []*model.CacheEvent
-	for _, data := range resp.Datas {
+	for _, data := range resp.Replicas {
 		events = append(events, toCacheEvent(data))
 	}
 
-	sum += int64(len(resp.Datas))
-	req.Cursor += len(resp.Datas)
+	sum += int64(len(resp.Replicas))
+	req.Cursor += len(resp.Replicas)
 
 	log.Debugf("GetCacheTaskInfos got %d/%d blocks", sum, resp.Total)
 
@@ -91,9 +91,9 @@ loop:
 
 var _ Fetcher = &CacheFetcher{}
 
-func toValidationEvent(in api.ValidateResult) *model.ValidationEvent {
+func toValidationEvent(in types.ValidationResultInfo) *model.ValidationEvent {
 	return &model.ValidationEvent{
-		DeviceID:        in.DeviceID,
+		DeviceID:        in.RoundID,
 		ValidatorID:     in.ValidatorID,
 		Status:          int32(in.Status),
 		Blocks:          in.BlockNumber,
@@ -166,13 +166,15 @@ func floorFiveMinute(t time.Time) time.Time {
 	return time.Date(year, month, day, hour, minute, 0, 0, time.Local)
 }
 
-func toCacheEvent(data *api.CarfileReplicaInfo) *model.CacheEvent {
+func toCacheEvent(data *types.ReplicaInfo) *model.CacheEvent {
 	return &model.CacheEvent{
-		DeviceID:   data.DeviceID,
-		CarfileCid: hashToCID(data.CarfileHash),
-		Blocks:     int64(data.DoneBlocks),
-		BlockSize:  float64(data.DoneSize),
-		Time:       data.CreateTime,
-		Status:     int32(data.Status),
+		DeviceID:   data.NodeID,
+		CarfileCid: hashToCID(data.Hash),
+		// todo
+		// Blocks:     int64(data.DoneBlocks),
+		Blocks:    0,
+		BlockSize: float64(data.DoneSize),
+		Time:      data.EndTime,
+		Status:    int32(data.Status),
 	}
 }

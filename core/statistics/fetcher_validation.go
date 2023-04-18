@@ -44,7 +44,7 @@ func (v *ValidationFetcher) Fetch(ctx context.Context, scheduler *Scheduler) err
 	endTime = floorFiveMinute(time.Now())
 
 loop:
-	resp, err := scheduler.Api.GetSummaryValidateMessage(ctx, startTime, endTime, page, pageSize)
+	resp, err := scheduler.Api.GetValidationResults(ctx, startTime, endTime, page, pageSize)
 	if err != nil {
 		log.Errorf("api GetSummaryValidateMessage: %v", err)
 		return err
@@ -54,11 +54,11 @@ loop:
 		return nil
 	}
 
-	sum += int64(len(resp.ValidateResultInfos))
+	sum += int64(len(resp.ValidationResultInfos))
 	page++
 
 	var validationEvents []*model.ValidationEvent
-	for _, blockInfo := range resp.ValidateResultInfos {
+	for _, blockInfo := range resp.ValidationResultInfos {
 		validationEvents = append(validationEvents, toValidationEvent(blockInfo))
 	}
 

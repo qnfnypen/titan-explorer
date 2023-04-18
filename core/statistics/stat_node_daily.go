@@ -227,7 +227,7 @@ func (s *Statistic) SumAllNodes() error {
 
 	fullNodeInfo.TotalCarfile = systemInfo.CarFileCount
 	fullNodeInfo.RetrievalCount = systemInfo.DownloadCount
-	fullNodeInfo.NextElectionTime = time.Unix(systemInfo.NextElectionTime, 0)
+	fullNodeInfo.NextElectionTime = systemInfo.NextElectionTime
 
 	fullNodeInfo.Time = time.Now()
 	fullNodeInfo.CreatedAt = time.Now()

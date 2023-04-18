@@ -211,6 +211,7 @@ CREATE TABLE `application` (
 `area_id` varchar(64) NOT NULL DEFAULT '',
 `ip_country` VARCHAR(128) NOT NULL DEFAULT '',
 `ip_city` VARCHAR(128) NOT NULL DEFAULT '',
+`public_key` VARCHAR(128) NOT NULL DEFAULT '',
 `node_type` TINYINT(4) NOT NULL DEFAULT 0,
 `amount` INT(20) NOT NULL DEFAULT 0,
 `upstream_bandwidth` FLOAT(32) NOT NULL DEFAULT 0,

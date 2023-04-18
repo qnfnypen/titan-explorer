@@ -2,6 +2,9 @@ package api
 
 import (
 	"context"
+	"github.com/Filecoin-Titan/titan/api"
+	"github.com/Filecoin-Titan/titan/api/client"
+	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/config"
@@ -9,8 +12,6 @@ import (
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/core/statistics"
 	"github.com/gnasnik/titan-explorer/utils"
-	"github.com/linguohua/titan/api"
-	"github.com/linguohua/titan/api/client"
 	"math/rand"
 	"net/http"
 	"strings"
@@ -23,6 +24,7 @@ type Server struct {
 	cfg             config.Config
 	router          *gin.Engine
 	locatorClient   api.Locator
+	schedulerClient api.Scheduler
 	statistic       *statistics.Statistic
 	locatorCloser   func()
 	statisticCloser func()
@@ -124,27 +126,27 @@ func fetchSchedulersFromDatabase() ([]*statistics.Scheduler, error) {
 }
 
 func fetchSchedulersFromLocator(locatorApi api.Locator) ([]*statistics.Scheduler, error) {
-	accessPoints, err := locatorApi.LoadAccessPointsForWeb(context.Background())
+	accessPoints, err := locatorApi.GetAccessPoints(context.Background(), "", "")
 	if err != nil {
 		log.Errorf("api LoadAccessPointsForWeb: %v", err)
 		return nil, err
 	}
 
 	var out []*statistics.Scheduler
-	for _, accessPoint := range accessPoints {
-		for _, item := range accessPoint.SchedulerInfos {
-			// https protocol still in test, we use http for now.
-			item.URL = strings.Replace(item.URL, "https", "http", 1)
-			client, closeScheduler, err := client.NewScheduler(context.Background(), item.URL, nil)
-			if err != nil {
-				log.Errorf("create scheduler rpc client: %v", err)
-			}
-			out = append(out, &statistics.Scheduler{
-				Uuid:   item.URL,
-				Api:    client,
-				Closer: closeScheduler,
-			})
+	// todo etcd
+	for _, SchedulerURL := range accessPoints {
+		// https protocol still in test, we use http for now.
+		SchedulerURL = strings.Replace(SchedulerURL, "https", "http", 1)
+		client, closeScheduler, err := client.NewScheduler(context.Background(), SchedulerURL, nil)
+		if err != nil {
+			log.Errorf("create scheduler rpc client: %v", err)
 		}
+		out = append(out, &statistics.Scheduler{
+			Uuid:   SchedulerURL,
+			Api:    client,
+			Closer: closeScheduler,
+		})
+
 	}
 
 	log.Infof("fetch %d schedulers from locator", len(out))
@@ -198,21 +200,26 @@ func (s *Server) asyncHandleApplication() {
 				}
 
 				for _, application := range applications {
-					accessPoints, err := s.locatorClient.LoadUserAccessPoint(ctx, application.Ip)
+					accessPoints, err := s.locatorClient.GetUserAccessPoint(ctx, application.Ip)
 					if err != nil {
 						log.Errorf("get access points: %v", err)
 						continue
 					}
 
-					if len(accessPoints.SchedulerInfos) == 0 {
+					if len(accessPoints.SchedulerURLs) == 0 {
 						log.Error("no accessPoints schedulerInfos return")
 						continue
 					}
 
-					selectedScheduler := accessPoints.SchedulerInfos[i%len(accessPoints.SchedulerInfos)]
+					selectedScheduler := accessPoints.SchedulerURLs[i%len(accessPoints.SchedulerURLs)]
 					i++
-
-					err = s.handleApplication(ctx, accessPoints.AreaID, selectedScheduler.URL, application)
+					schedulerClient, _, err := client.NewScheduler(context.Background(), selectedScheduler, nil)
+					if err != nil {
+						log.Errorf("create scheduler rpc client: %v", err)
+						continue
+					}
+					s.schedulerClient = schedulerClient
+					err = s.handleApplication(ctx, "", application)
 					if err != nil {
 						continue
 					}
@@ -235,12 +242,9 @@ func (s *Server) asyncHandleApplication() {
 						continue
 					}
 
-					var infos []api.NodeRegisterInfo
+					var infos []string
 					for _, res := range results {
-						infos = append(infos, api.NodeRegisterInfo{
-							DeviceID: res.DeviceID,
-							Secret:   res.Secret,
-						})
+						infos = append(infos, res.DeviceID)
 					}
 
 					status := dao.ApplicationStatusFinished
@@ -263,29 +267,26 @@ func (s *Server) asyncHandleApplication() {
 	}()
 }
 
-func (s *Server) handleApplication(ctx context.Context, areaID, schedulerURL string, application *model.Application) error {
-	registrations, err := s.locatorClient.RegisterNode(ctx, areaID, schedulerURL, api.NodeType(application.NodeType), int(application.Amount))
+func (s *Server) handleApplication(ctx context.Context, publicKey string, application *model.Application) error {
+	registration, err := s.schedulerClient.RegisterNode(ctx, publicKey, types.NodeType(application.NodeType))
 	if err != nil {
 		log.Errorf("register node: %v", err)
 		return err
 	}
 	var results []*model.ApplicationResult
 	var deviceInfos []*model.DeviceInfo
-	for _, registration := range registrations {
-		results = append(results, &model.ApplicationResult{
-			UserID:        application.UserID,
-			DeviceID:      registration.DeviceID,
-			NodeType:      application.NodeType,
-			Secret:        registration.Secret,
-			ApplicationID: application.ID,
-			CreatedAt:     time.Now(),
-			UpdatedAt:     time.Now(),
-		})
-		deviceInfos = append(deviceInfos, &model.DeviceInfo{
-			UserID:   application.UserID,
-			DeviceID: registration.DeviceID,
-		})
-	}
+	results = append(results, &model.ApplicationResult{
+		UserID:        application.UserID,
+		DeviceID:      registration,
+		NodeType:      application.NodeType,
+		ApplicationID: application.ID,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+	})
+	deviceInfos = append(deviceInfos, &model.DeviceInfo{
+		UserID:   application.UserID,
+		DeviceID: registration,
+	})
 
 	if len(results) == 0 {
 		return nil
@@ -310,8 +311,8 @@ func (s *Server) handleApplication(ctx context.Context, areaID, schedulerURL str
 	if err != nil {
 		log.Errorf("add device info: %v", err)
 	}
-
-	err = s.sendEmail(application.Email, registrations)
+	var registrations []string
+	err = s.sendEmail(application.Email, append(registrations, registration))
 	if err != nil {
 		status = dao.ApplicationStatusSendEmailFailed
 		log.Errorf("send email appicationID:%d, %v", application.ID, err)
@@ -321,15 +322,16 @@ func (s *Server) handleApplication(ctx context.Context, areaID, schedulerURL str
 	return nil
 }
 
-func (s *Server) sendEmail(sendTo string, results []api.NodeRegisterInfo) error {
+func (s *Server) sendEmail(sendTo string, registrations []string) error {
 	var EData utils.EmailData
 	EData.Subject = "[Application]: Your Device Info"
-	EData.Tittle = "please check your device id and secret"
+	EData.Tittle = "please check your device id "
 	EData.SendTo = sendTo
-	EData.Content = "<h1>Your Device ID and Secret：</h1>\n"
-	for _, registration := range results {
-		EData.Content += registration.DeviceID + ":" + registration.Secret + "<br>"
+	EData.Content = "<h1>Your Device ID ：</h1>\n"
+	for _, registration := range registrations {
+		EData.Content += registration + "<br>"
 	}
+
 	err := utils.SendEmail(s.cfg.Email, EData)
 	if err != nil {
 		return err
