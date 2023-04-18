@@ -126,7 +126,7 @@ func fetchSchedulersFromDatabase() ([]*statistics.Scheduler, error) {
 }
 
 func fetchSchedulersFromLocator(locatorApi api.Locator) ([]*statistics.Scheduler, error) {
-	accessPoints, err := locatorApi.GetAccessPoints(context.Background(), "", "")
+	accessPoints, err := locatorApi.GetUserAccessPoint(context.Background(), "")
 	if err != nil {
 		log.Errorf("api LoadAccessPointsForWeb: %v", err)
 		return nil, err
@@ -134,7 +134,7 @@ func fetchSchedulersFromLocator(locatorApi api.Locator) ([]*statistics.Scheduler
 
 	var out []*statistics.Scheduler
 	// todo etcd
-	for _, SchedulerURL := range accessPoints {
+	for _, SchedulerURL := range accessPoints.SchedulerURLs {
 		// https protocol still in test, we use http for now.
 		SchedulerURL = strings.Replace(SchedulerURL, "https", "http", 1)
 		client, closeScheduler, err := client.NewScheduler(context.Background(), SchedulerURL, nil)
@@ -165,9 +165,9 @@ func applyAdminScheduler(url string, token string) {
 }
 
 func getLocatorClient(address, token string) (api.Locator, func(), error) {
-	headers := http.Header{}
-	headers.Add("Authorization", "Bearer "+string(token))
-	client, closer, err := client.NewLocator(context.Background(), address, headers)
+	//headers := http.Header{}
+	//headers.Add("Authorization", "Bearer "+string(token))
+	client, closer, err := client.NewLocator(context.Background(), address, nil)
 	if err != nil {
 		log.Errorf("create locator rpc client: %v", err)
 		return nil, nil, err
