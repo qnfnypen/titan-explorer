@@ -84,7 +84,7 @@ func DeleteCacheTaskByDeviceHandler(c *gin.Context) {
 func GetCacheTaskListHandler(c *gin.Context) {
 	page, _ := strconv.ParseInt(c.Query("current"), 10, 64)
 	size, _ := strconv.ParseInt(c.Query("size"), 10, 64)
-	resp, err := schedulerAdmin.GetAssetRecords(c.Request.Context(), int(size), int((page-1)*size), assets.PullingStates)
+	resp, err := schedulerAdmin.GetAssetRecords(c.Request.Context(), int(size), int((page-1)*size), assets.PullingStates, "")
 	if err != nil {
 		log.Errorf("api ListCarfileRecords: %v", err)
 		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))

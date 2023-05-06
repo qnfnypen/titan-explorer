@@ -69,8 +69,10 @@ func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour,
 	if err != nil {
 		return nil, err
 	}
-
-	return handleHourList(out[1:]), err
+	if len(out) > 1 {
+		return handleHourList(out[1:]), err
+	}
+	return out, err
 }
 
 func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*DeviceStatistics, error) {
@@ -198,9 +200,8 @@ func GetDeviceInfoDailyByPage(ctx context.Context, cond *model.DeviceInfoDaily, 
 	if err != nil {
 		return nil, 0, err
 	}
-
 	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT * FROM %s %s LIMIT %d OFFSET %s`, tableNameDeviceInfoDaily, where, limit, offset), args...)
+		`SELECT * FROM %s %s LIMIT %d OFFSET %d`, tableNameDeviceInfoDaily, where, limit, offset), args...)
 	if err != nil {
 		return nil, 0, err
 	}

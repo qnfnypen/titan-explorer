@@ -154,6 +154,59 @@ func queryDeviceStatisticHourly(deviceID, start, end string) []*dao.DeviceStatis
 	return list
 }
 
+func GetQueryInfoHandler(c *gin.Context) {
+	info := &model.DeviceInfo{}
+	keyValue := c.Query("key")
+	info.UserID = keyValue
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+	page, _ := strconv.Atoi(c.Query("page"))
+	order := c.Query("order")
+	orderField := c.Query("order_field")
+	option := dao.QueryOption{
+		Page:       page,
+		PageSize:   pageSize,
+		Order:      order,
+		OrderField: orderField,
+	}
+	list, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
+	if err != nil {
+		log.Errorf("get device by user id info list: %v", err)
+	}
+	if total < 1 {
+		cond := &model.DeviceInfoDaily{}
+		cond.DeviceID = keyValue
+		options := dao.QueryOption{
+			Page:       page,
+			PageSize:   pageSize,
+			OrderField: "created_at",
+			Order:      "DESC",
+		}
+		listDetail, total, err := dao.GetDeviceInfoDailyByPage(context.Background(), cond, options)
+		if err != nil {
+			log.Errorf("get device info daily: %v", err)
+			c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+			return
+		}
+		if len(listDetail) < 1 {
+			c.JSON(http.StatusOK, respJSON(JsonObject{
+				"type": "wrong key",
+			}))
+			return
+		}
+		c.JSON(http.StatusOK, respJSON(JsonObject{
+			"list":  listDetail,
+			"total": total,
+			"type":  "node_id",
+		}))
+	} else {
+		c.JSON(http.StatusOK, respJSON(JsonObject{
+			"list":  list,
+			"total": total,
+			"type":  "user_id",
+		}))
+	}
+}
+
 func GetDeviceInfoHandler(c *gin.Context) {
 	info := &model.DeviceInfo{}
 	info.UserID = c.Query("user_id")

@@ -13,6 +13,7 @@ type Fetcher interface {
 
 type Scheduler struct {
 	Uuid   string
+	AreaId string
 	Api    api.Scheduler
 	Closer func()
 }

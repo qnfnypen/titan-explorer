@@ -5,6 +5,7 @@ import (
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/client"
 	"github.com/Filecoin-Titan/titan/api/types"
+	"github.com/Filecoin-Titan/titan/lib/etcdcli"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/config"
@@ -20,14 +21,70 @@ import (
 
 var schedulerAdmin api.Scheduler
 
+type EtcdClient struct {
+	cli *etcdcli.Client
+	// key is areaID, value is array of types.SchedulerCfg pointer
+	schedulerConfigs map[string][]*types.SchedulerCfg
+	// key is etcd key, value is types.SchedulerCfg pointer
+	configMap map[string]*types.SchedulerCfg
+}
+
 type Server struct {
 	cfg             config.Config
 	router          *gin.Engine
 	locatorClient   api.Locator
 	schedulerClient api.Scheduler
+	etcdClient      *EtcdClient
 	statistic       *statistics.Statistic
 	locatorCloser   func()
 	statisticCloser func()
+}
+
+func NewEtcdClient(addresses []string) (*EtcdClient, error) {
+	etcd, err := etcdcli.New(addresses)
+	if err != nil {
+		return nil, err
+	}
+
+	ec := &EtcdClient{
+		cli:              etcd,
+		schedulerConfigs: make(map[string][]*types.SchedulerCfg),
+		configMap:        make(map[string]*types.SchedulerCfg),
+	}
+
+	if err := ec.loadSchedulerConfigs(); err != nil {
+		return nil, err
+	}
+
+	return ec, nil
+}
+
+func (ec *EtcdClient) loadSchedulerConfigs() error {
+	resp, err := ec.cli.GetServers(types.NodeScheduler)
+	if err != nil {
+		return err
+	}
+
+	schedulerConfigs := make(map[string][]*types.SchedulerCfg)
+
+	for _, kv := range resp.Kvs {
+		config, err := etcdcli.SCUnmarshal(kv.Value)
+		if err != nil {
+			return err
+		}
+
+		configs, ok := schedulerConfigs[config.AreaID]
+		if !ok {
+			configs = make([]*types.SchedulerCfg, 0)
+		}
+		configs = append(configs, config)
+
+		schedulerConfigs[config.AreaID] = configs
+		ec.configMap[string(kv.Key)] = config
+	}
+
+	ec.schedulerConfigs = schedulerConfigs
+	return nil
 }
 
 func NewServer(cfg config.Config) (*Server, error) {
@@ -67,15 +124,24 @@ func NewServer(cfg config.Config) (*Server, error) {
 		}
 	}
 
+	var address []string
+	// todo
+	address = append(address, "39.108.143.56:2379")
+	eClient, err := NewEtcdClient(address)
+	if err != nil {
+		log.Errorf("New etcdClient Failed: %v", err)
+		return nil, err
+	}
+	schedulers, err = fetchSchedulersFromEtcd(eClient)
 	if cfg.AdminScheduler.Enable {
 		applyAdminScheduler(cfg.AdminScheduler.Address, cfg.AdminScheduler.Token)
 	}
-
 	s := &Server{
 		cfg:           cfg,
 		router:        router,
 		statistic:     statistics.New(cfg.Statistic, schedulers),
 		locatorClient: client,
+		etcdClient:    eClient,
 		locatorCloser: closer,
 	}
 
@@ -154,6 +220,34 @@ func fetchSchedulersFromLocator(locatorApi api.Locator) ([]*statistics.Scheduler
 	return out, nil
 }
 
+func fetchSchedulersFromEtcd(locatorApi *EtcdClient) ([]*statistics.Scheduler, error) {
+	var out []*statistics.Scheduler
+	for key, SchedulerURLs := range locatorApi.schedulerConfigs {
+		for _, SchedulerCfg := range SchedulerURLs {
+			// https protocol still in test, we use http for now.
+			SchedulerURL := strings.Replace(SchedulerCfg.SchedulerURL, "https", "http", 1)
+			headers := http.Header{}
+			headers.Add("Authorization", "Bearer "+SchedulerCfg.AccessToken)
+			client, closeScheduler, err := client.NewScheduler(context.Background(), SchedulerURL, headers)
+			if err != nil {
+				log.Errorf("create scheduler rpc client: %v", err)
+			}
+			out = append(out, &statistics.Scheduler{
+				Uuid:   SchedulerURL,
+				Api:    client,
+				AreaId: key,
+				Closer: closeScheduler,
+			})
+
+		}
+
+	}
+
+	log.Infof("fetch %d schedulers from locator", len(out))
+
+	return out, nil
+}
+
 func applyAdminScheduler(url string, token string) {
 	headers := http.Header{}
 	headers.Add("Authorization", "Bearer "+token)
@@ -200,20 +294,27 @@ func (s *Server) asyncHandleApplication() {
 				}
 
 				for _, application := range applications {
-					accessPoints, err := s.locatorClient.GetUserAccessPoint(ctx, application.Ip)
-					if err != nil {
-						log.Errorf("get access points: %v", err)
+					//accessPoints, err := s.locatorClient.GetUserAccessPoint(ctx, application.Ip)
+					//if err != nil {
+					//	log.Errorf("get access points: %v", err)
+					//	continue
+					//}
+					//
+					//if len(accessPoints.SchedulerURLs) == 0 {
+					//	log.Error("no accessPoints schedulerInfos return")
+					//	continue
+					//}
+
+					selectedScheduler := s.etcdClient.schedulerConfigs[application.AreaID]
+					if len(selectedScheduler) < 1 {
+						log.Errorf("get no scheduler by this area id: %v", application.AreaID)
 						continue
 					}
-
-					if len(accessPoints.SchedulerURLs) == 0 {
-						log.Error("no accessPoints schedulerInfos return")
-						continue
-					}
-
-					selectedScheduler := accessPoints.SchedulerURLs[i%len(accessPoints.SchedulerURLs)]
 					i++
-					schedulerClient, _, err := client.NewScheduler(context.Background(), selectedScheduler, nil)
+					SchedulerURL := strings.Replace(selectedScheduler[i%len(selectedScheduler)].SchedulerURL, "https", "http", 1)
+					headers := http.Header{}
+					headers.Add("Authorization", "Bearer "+selectedScheduler[i%len(selectedScheduler)].AccessToken)
+					schedulerClient, _, err := client.NewScheduler(context.Background(), SchedulerURL, headers)
 					if err != nil {
 						log.Errorf("create scheduler rpc client: %v", err)
 						continue
@@ -284,8 +385,9 @@ func (s *Server) handleApplication(ctx context.Context, publicKey string, applic
 		UpdatedAt:     time.Now(),
 	})
 	deviceInfos = append(deviceInfos, &model.DeviceInfo{
-		UserID:   application.UserID,
-		DeviceID: registration,
+		UserID:     application.UserID,
+		IpLocation: application.AreaID,
+		DeviceID:   registration,
 	})
 
 	if len(results) == 0 {

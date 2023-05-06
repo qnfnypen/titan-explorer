@@ -20,12 +20,11 @@ func addDeviceInfoHours(ctx context.Context, deviceInfo []*model.DeviceInfo) err
 	var upsertDevice []*model.DeviceInfoHour
 	for _, device := range deviceInfo {
 		var deviceInfoHour model.DeviceInfoHour
+		deviceInfoHour.DeviceID = device.DeviceID
 		deviceInfoHour.Time = start
 		deviceInfoHour.DiskUsage = device.DiskUsage
-		deviceInfoHour.DeviceID = device.DeviceID
 		deviceInfoHour.PkgLossRatio = device.PkgLossRatio
 		deviceInfoHour.HourIncome = device.CumulativeProfit
-		deviceInfoHour.OnlineTime = device.OnlineTime
 		deviceInfoHour.Latency = device.Latency
 		deviceInfoHour.DiskUsage = device.DiskUsage
 		deviceInfoHour.UpstreamTraffic = device.TotalUpload
@@ -36,7 +35,6 @@ func addDeviceInfoHours(ctx context.Context, deviceInfo []*model.DeviceInfo) err
 		deviceInfoHour.UpdatedAt = time.Now()
 		upsertDevice = append(upsertDevice, &deviceInfoHour)
 	}
-
 	err := dao.BulkUpsertDeviceInfoHours(ctx, upsertDevice)
 	if err != nil {
 		log.Errorf("bulk upsert device info: %v", err)

@@ -46,9 +46,19 @@ loop:
 		if node.NodeID == "" {
 			continue
 		}
-		nodes = append(nodes, toDeviceInfo(node))
+		nodeInfo := toDeviceInfo(node)
+		if node.IsOnline {
+			nodeInfo.DeviceStatus = "online"
+		} else {
+			nodeInfo.DeviceStatus = "offline"
+		}
+		nodeInfo.IpLocation = scheduler.AreaId
+		nodeInfo.DeviceID = node.NodeID
+		nodeInfo.DeviceName = node.NodeName
+		nodeInfo.OnlineTime = float64(node.OnlineDuration)
+		nodeInfo.NodeType = int32(node.Type)
+		nodes = append(nodes, nodeInfo)
 	}
-
 	log.Infof("handling %d/%d nodes", total, resp.Total)
 
 	n.Push(ctx, func() error {
@@ -56,7 +66,6 @@ loop:
 		if err != nil {
 			log.Errorf("bulk upsert device info: %v", err)
 		}
-
 		if err = addDeviceInfoHours(ctx, nodes); err != nil {
 			log.Errorf("add device info hours: %v", err)
 		}
