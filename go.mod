@@ -78,10 +78,29 @@ require (
 )
 
 require (
+	github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e // indirect
+	github.com/coreos/pkg v0.0.0-20160727233714-3ac0863d7acf // indirect
+	github.com/filecoin-project/go-cbor-util v0.0.1 // indirect
 	github.com/filecoin-project/go-jsonrpc v0.2.1 // indirect
+	github.com/filecoin-project/go-statemachine v1.0.3 // indirect
+	github.com/filecoin-project/go-statestore v0.2.0 // indirect
 	github.com/go-playground/validator/v10 v10.11.1 // indirect
 	github.com/goccy/go-json v0.9.11 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/ipfs/go-block-format v0.1.1 // indirect
+	github.com/ipfs/go-ipfs-util v0.0.2 // indirect
+	github.com/ipfs/go-ipld-cbor v0.0.6 // indirect
+	github.com/ipfs/go-ipld-format v0.4.0 // indirect
+	github.com/ipfs/go-libipfs v0.4.1 // indirect
+	github.com/ipfs/go-log v1.0.5 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
+	github.com/opentracing/opentracing-go v1.2.0 // indirect
+	github.com/polydawn/refmt v0.89.0 // indirect
+	github.com/whyrusleeping/cbor-gen v0.0.0-20230126041949-52956bd4c9aa // indirect
+	go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738 // indirect
+	google.golang.org/genproto v0.0.0-20221024183307-1bc688fe9f3e // indirect
+	google.golang.org/grpc v1.50.1 // indirect
 )
 
-replace github.com/Filecoin-Titan/titan/ => ../biaodi-titan
+replace github.com/Filecoin-Titan/titan/ v0.0.0-20230414233209-f4fad7df425f => ../biaodi-titan

@@ -32,11 +32,9 @@ type EtcdClient struct {
 type Server struct {
 	cfg             config.Config
 	router          *gin.Engine
-	locatorClient   api.Locator
 	schedulerClient api.Scheduler
 	etcdClient      *EtcdClient
 	statistic       *statistics.Statistic
-	locatorCloser   func()
 	statisticCloser func()
 }
 
@@ -99,51 +97,24 @@ func NewServer(cfg config.Config) (*Server, error) {
 		AllowAllOrigins:  true,
 	}))
 	ConfigRouter(router, cfg)
-
-	client, closer, err := getLocatorClient(cfg.Locator.Address, cfg.Locator.Token)
-	if err != nil {
-		return nil, err
-	}
-	version, err := client.Version(context.Background())
-	if err != nil {
-		log.Errorf("get version from locator: %v", err)
-		return nil, err
-	}
-
-	log.Infof("Locator connected, url: %s, version: %s", cfg.Locator.Address, version)
-
-	var schedulers []*statistics.Scheduler
-	if cfg.SchedulerFromDB {
-		schedulers, err = fetchSchedulersFromDatabase()
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		schedulers, err = fetchSchedulersFromLocator(client)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	var address []string
 	// todo
 	address = append(address, "39.108.143.56:2379")
+	//address = append(address, "192.168.0.132:2379")
 	eClient, err := NewEtcdClient(address)
 	if err != nil {
 		log.Errorf("New etcdClient Failed: %v", err)
 		return nil, err
 	}
-	schedulers, err = fetchSchedulersFromEtcd(eClient)
+	schedulers, err := fetchSchedulersFromEtcd(eClient)
 	if cfg.AdminScheduler.Enable {
 		applyAdminScheduler(cfg.AdminScheduler.Address, cfg.AdminScheduler.Token)
 	}
 	s := &Server{
-		cfg:           cfg,
-		router:        router,
-		statistic:     statistics.New(cfg.Statistic, schedulers),
-		locatorClient: client,
-		etcdClient:    eClient,
-		locatorCloser: closer,
+		cfg:        cfg,
+		router:     router,
+		statistic:  statistics.New(cfg.Statistic, schedulers),
+		etcdClient: eClient,
 	}
 
 	return s, nil
@@ -159,7 +130,6 @@ func (s *Server) Run() {
 }
 
 func (s *Server) Close() {
-	s.locatorCloser()
 	s.statistic.Stop()
 }
 
