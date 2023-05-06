@@ -60,7 +60,7 @@ func NewEtcdClient(addresses []string) (*EtcdClient, error) {
 }
 
 func (ec *EtcdClient) loadSchedulerConfigs() error {
-	resp, err := ec.cli.GetServers(types.NodeScheduler)
+	resp, err := ec.cli.GetServers(types.NodeScheduler.String())
 	if err != nil {
 		return err
 	}
@@ -68,19 +68,20 @@ func (ec *EtcdClient) loadSchedulerConfigs() error {
 	schedulerConfigs := make(map[string][]*types.SchedulerCfg)
 
 	for _, kv := range resp.Kvs {
-		config, err := etcdcli.SCUnmarshal(kv.Value)
+		var configScheduler *types.SchedulerCfg
+		err := etcdcli.SCUnmarshal(kv.Value, &configScheduler)
 		if err != nil {
 			return err
 		}
 
-		configs, ok := schedulerConfigs[config.AreaID]
+		configs, ok := schedulerConfigs[configScheduler.AreaID]
 		if !ok {
 			configs = make([]*types.SchedulerCfg, 0)
 		}
-		configs = append(configs, config)
+		configs = append(configs, configScheduler)
 
-		schedulerConfigs[config.AreaID] = configs
-		ec.configMap[string(kv.Key)] = config
+		schedulerConfigs[configScheduler.AreaID] = configs
+		ec.configMap[string(kv.Key)] = configScheduler
 	}
 
 	ec.schedulerConfigs = schedulerConfigs
