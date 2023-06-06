@@ -1,6 +1,9 @@
 package config
 
+var Cfg Config
+
 type Config struct {
+	EtcdAddress     string
 	Mode            string
 	ApiListen       string
 	DatabaseURL     string
@@ -8,6 +11,8 @@ type Config struct {
 	RedisAddr       string
 	RedisPassword   string
 	SchedulerFromDB bool
+	IpKey           string
+	IpUrl           string
 	Locator         LocatorConfig
 	Statistic       StatisticsConfig
 	Email           EmailConfig

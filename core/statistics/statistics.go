@@ -47,6 +47,7 @@ func New(cfg config.StatisticsConfig, scheduler []*Scheduler) *Statistic {
 		fetchers: []Fetcher{
 			newNodeFetcher(),
 			newCacheFetcher(),
+			newRetrievalFetcher(),
 			newValidationFetcher(),
 			newSystemInfoFetcher(),
 		},
@@ -99,7 +100,7 @@ func (s *Statistic) runFetchers() error {
 
 	s.asyncExecute([]func() error{
 		s.SumDeviceInfoProfit,
-		s.CountRetrievals,
+		//s.CountRetrievals,
 		s.SumAllNodes,
 		s.UpdateDeviceRank,
 	})

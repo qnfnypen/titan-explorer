@@ -25,10 +25,15 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	apiV1.GET("/schedulers", GetSchedulersHandler)
 	apiV1.GET("/get_index_info", GetIndexInfoHandler)
 	apiV1.GET("/get_query_info", GetQueryInfoHandler)
+	// index info all nodes info from device info
+	apiV1.GET("/get_nodes_info", GetNodesInfoHandler)
 	apiV1.GET("/get_device_info", GetDeviceInfoHandler)
+	apiV1.GET("/get_device_status", GetDeviceStatusHandler)
 	apiV1.GET("/get_map_info", GetMapInfoHandler)
 	apiV1.GET("/get_device_info_daily", GetDeviceInfoDailyHandler)
-	apiV1.GET("/get_diagnosis_days", GetDeviceDiagnosisDailyHandler)
+	apiV1.GET("/get_diagnosis_days", GetDeviceDiagnosisDailyByDeviceIdHandler)
+	// by-user_id or all node count
+	apiV1.GET("/get_diagnosis_days_user", GetDeviceDiagnosisDailyByUserIdHandler)
 	apiV1.GET("/get_diagnosis_hours", GetDeviceDiagnosisHourHandler)
 	apiV1.GET("/get_cache_list", GetCacheListHandler)
 	apiV1.GET("/get_retrieval_list", GetRetrievalListHandler)
@@ -41,6 +46,7 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	apiV1.GET("/device_unbinding", DeviceUnBindingHandler)
 	apiV1.GET("/device_update", DeviceUpdateHandler)
 	apiV1.GET("/get_user_device_profile", GetUserDeviceProfileHandler)
+	apiV1.GET("/get_user_device_count", GetUserDevicesCountHandler)
 
 	user := apiV1.Group("/user")
 	user.POST("/login", authMiddleware.LoginHandler)
@@ -61,4 +67,7 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	admin.GET("/get_login_log", GetLoginLogHandler)
 	admin.GET("/get_operation_log", GetOperationLogHandler)
 	admin.GET("/get_node_daily_trend", GetNodeDailyTrendHandler)
+	// storage
+	//storage := apiV1.Group("/storage")
+	//
 }

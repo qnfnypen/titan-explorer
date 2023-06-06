@@ -73,3 +73,20 @@ func GetValidationEventsByPage(ctx context.Context, cond *model.ValidationEvent,
 
 	return out, total, err
 }
+
+func CountValidateEvent(ctx context.Context, nodeId string) error {
+	var out model.DeviceInfo
+	query := fmt.Sprintf(`SELECT device_id,sum(upstream_traffic) as total_upload  FROM %s where status = 1 and device_id = '%s' GROUP BY device_id;`, tableNameValidationEvent, nodeId)
+	err := DB.QueryRowxContext(ctx, query).StructScan(&out)
+	if err == sql.ErrNoRows {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	err = UpdateValidateCount(ctx, &out)
+	if err != nil {
+		return err
+	}
+	return nil
+}

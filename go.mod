@@ -103,4 +103,4 @@ require (
 	google.golang.org/grpc v1.50.1 // indirect
 )
 
-replace github.com/Filecoin-Titan/titan/ v0.0.0-20230414233209-f4fad7df425f => ../biaodi-titan
+replace github.com/Filecoin-Titan/titan v0.0.0-20230414233209-f4fad7df425f => ../biaodi-titan

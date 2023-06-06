@@ -98,9 +98,7 @@ func NewServer(cfg config.Config) (*Server, error) {
 	}))
 	ConfigRouter(router, cfg)
 	var address []string
-	// todo
-	address = append(address, "39.108.143.56:2379")
-	//address = append(address, "192.168.0.132:2379")
+	address = append(address, cfg.EtcdAddress)
 	eClient, err := NewEtcdClient(address)
 	if err != nil {
 		log.Errorf("New etcdClient Failed: %v", err)
@@ -291,7 +289,7 @@ func (s *Server) asyncHandleApplication() {
 						continue
 					}
 					s.schedulerClient = schedulerClient
-					err = s.handleApplication(ctx, "", application)
+					err = s.handleApplication(ctx, application.PublicKey, application)
 					if err != nil {
 						continue
 					}
@@ -320,11 +318,11 @@ func (s *Server) asyncHandleApplication() {
 					}
 
 					status := dao.ApplicationStatusFinished
-					err = s.sendEmail(application.Email, infos)
-					if err != nil {
-						status = dao.ApplicationStatusSendEmailFailed
-						log.Errorf("send email appicationID:%d, %v", application.ID, err)
-					}
+					//err = s.sendEmail(application.Email, infos)
+					//if err != nil {
+					//	status = dao.ApplicationStatusSendEmailFailed
+					//	log.Errorf("send email appicationID:%d, %v", application.ID, err)
+					//}
 
 					err = dao.UpdateApplicationStatus(ctx, application.ID, status)
 					if err != nil {
@@ -340,7 +338,7 @@ func (s *Server) asyncHandleApplication() {
 }
 
 func (s *Server) handleApplication(ctx context.Context, publicKey string, application *model.Application) error {
-	registration, err := s.schedulerClient.RegisterNode(ctx, publicKey, types.NodeType(application.NodeType))
+	registration, err := s.schedulerClient.RegisterNode(ctx, publicKey, types.NodeType(1))
 	if err != nil {
 		log.Errorf("register node: %v", err)
 		return err
@@ -350,7 +348,7 @@ func (s *Server) handleApplication(ctx context.Context, publicKey string, applic
 	results = append(results, &model.ApplicationResult{
 		UserID:        application.UserID,
 		DeviceID:      registration,
-		NodeType:      application.NodeType,
+		NodeType:      1,
 		ApplicationID: application.ID,
 		CreatedAt:     time.Now(),
 		UpdatedAt:     time.Now(),

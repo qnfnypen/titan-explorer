@@ -17,13 +17,13 @@ const (
 
 func UpsertFullNodeInfo(ctx context.Context, fullNodeInfo *model.FullNodeInfo) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s (validator_count, candidate_count, edge_count, total_storage, total_upstream_bandwidth, 
+		`INSERT INTO %s (t_node_online_ratio, t_average_replica, t_upstream_file_count, validator_count, candidate_count, edge_count, total_storage,storage_used, total_upstream_bandwidth, 
                 total_downstream_bandwidth, total_carfile, total_carfile_size, retrieval_count, total_node_count, next_election_time, 
                 time, created_at) 
-		VALUES (:validator_count, :candidate_count, :edge_count, :total_storage, :total_upstream_bandwidth, :total_downstream_bandwidth,
+		VALUES (:t_node_online_ratio, :t_average_replica, :t_upstream_file_count, :validator_count, :candidate_count, :edge_count, :total_storage, :storage_used, :total_upstream_bandwidth, :total_downstream_bandwidth,
 		 :total_carfile, :total_carfile_size, :retrieval_count, :total_node_count, :next_election_time, :time, :created_at) 
-		 ON DUPLICATE KEY UPDATE validator_count = VALUES(validator_count), candidate_count = VALUES(candidate_count),
-		edge_count = VALUES(edge_count), total_storage = VALUES(total_storage), total_upstream_bandwidth = VALUES(total_upstream_bandwidth),
+		 ON DUPLICATE KEY UPDATE t_node_online_ratio = VALUES(t_node_online_ratio), t_average_replica = VALUES(t_average_replica), t_upstream_file_count = VALUES(t_upstream_file_count), validator_count = VALUES(validator_count), candidate_count = VALUES(candidate_count),
+		edge_count = VALUES(edge_count), total_storage = VALUES(total_storage), storage_used = VALUES(storage_used), total_upstream_bandwidth = VALUES(total_upstream_bandwidth),
 		total_downstream_bandwidth = VALUES(total_downstream_bandwidth), total_carfile = VALUES(total_carfile), 
 		total_carfile_size = VALUES(total_carfile_size), retrieval_count = VALUES(retrieval_count), total_node_count = VALUES(total_node_count)`, tableNameFullNodeInfo),
 		fullNodeInfo)

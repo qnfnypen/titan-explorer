@@ -5,12 +5,91 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"strings"
 	"time"
 )
 
 var tableNameDeviceInfo = "device_info"
 
 func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option QueryOption) ([]*model.DeviceInfo, int64, error) {
+	var args []interface{}
+	where := `WHERE device_id <> ''`
+	if cond.DeviceID != "" {
+		where += ` AND device_id = ?`
+		args = append(args, cond.DeviceID)
+	}
+	if cond.BindStatus != "" {
+		where += ` AND bind_status = ?`
+		args = append(args, cond.BindStatus)
+	}
+	where += ` AND active_status = ?`
+	args = append(args, cond.ActiveStatus)
+	if cond.UserID != "" {
+		where += ` AND user_id = ?`
+		args = append(args, cond.UserID)
+	} else {
+		where += ` AND user_id <> ''`
+	}
+	if cond.DeviceStatus != "" && cond.DeviceStatus != "allDevices" {
+		where += ` AND device_status = ?`
+		args = append(args, cond.DeviceStatus)
+	}
+	if cond.IpLocation != "" && cond.IpLocation != "0" {
+		where += ` AND ip_location = ?`
+		args = append(args, cond.IpLocation)
+	}
+	if cond.NodeType > 0 {
+		where += ` AND node_type = ?`
+		args = append(args, cond.NodeType)
+	}
+
+	if option.Order != "" && option.OrderField != "" {
+		where += fmt.Sprintf(` ORDER BY %s %s`, option.OrderField, option.Order)
+	}
+
+	limit := option.PageSize
+	offset := option.Page
+	if option.PageSize <= 0 {
+		limit = 500
+	}
+	if option.Page > 0 {
+		offset = limit * (option.Page - 1)
+	}
+
+	var total int64
+	var out []*model.DeviceInfo
+
+	err := DB.GetContext(ctx, &total, fmt.Sprintf(
+		`SELECT count(*) FROM %s %s`, tableNameDeviceInfo, where,
+	), args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
+		`SELECT * FROM %s %s ORDER BY device_rank LIMIT %d OFFSET %d`, tableNameDeviceInfo, where, limit, offset,
+	), args...)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return handleIpInfo(out), total, err
+}
+
+func handleIpInfo(in []*model.DeviceInfo) []*model.DeviceInfo {
+	for _, deviceInfo := range in {
+		eIp := strings.Split(deviceInfo.ExternalIp, ".")
+		if len(eIp) > 3 {
+			deviceInfo.ExternalIp = eIp[0] + "." + "xxx" + "." + "xxx" + "." + eIp[3]
+		}
+		iIp := strings.Split(deviceInfo.InternalIp, ".")
+		if len(eIp) > 3 {
+			deviceInfo.InternalIp = iIp[0] + "." + "xxx" + "." + "xxx" + "." + iIp[3]
+		}
+	}
+	return in
+}
+
+func GetDeviceInfoListByKey(ctx context.Context, cond *model.DeviceInfo, option QueryOption) ([]*model.DeviceInfo, int64, error) {
 	var args []interface{}
 	where := `WHERE device_id <> '' AND active_status = 1`
 	if cond.DeviceID != "" {
@@ -58,7 +137,6 @@ func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option Query
 	if err != nil {
 		return nil, 0, err
 	}
-
 	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
 		`SELECT * FROM %s %s ORDER BY device_rank LIMIT %d OFFSET %d`, tableNameDeviceInfo, where, limit, offset,
 	), args...)
@@ -76,7 +154,7 @@ func HandleMapInfo(in []*model.DeviceInfo) []map[string]interface{} {
 		mapInfoOut = append(mapInfoOut, MapObject{
 			"name":     m.IpCity,
 			"nodeType": m.NodeType,
-			"ip":       m.InternalIp,
+			"ip":       m.ExternalIp,
 			"value":    []float64{m.Latitude, m.Longitude},
 		})
 
@@ -104,12 +182,42 @@ func UpdateUserDeviceInfo(ctx context.Context, deviceInfo *model.DeviceInfo) err
 		deviceInfo)
 	return err
 }
+
+func UpdateCarFileCount(ctx context.Context, deviceInfo *model.DeviceInfo) error {
+	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
+		`UPDATE %s SET block_count = :block_count, updated_at = now() WHERE device_id = :device_id`, tableNameDeviceInfo),
+		deviceInfo)
+	return err
+}
+
+func UpdateDownloadCount(ctx context.Context, deviceInfo *model.DeviceInfo) error {
+	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
+		`UPDATE %s SET download_count = :download_count, total_upload = :total_upload,updated_at = now() WHERE device_id = :device_id`, tableNameDeviceInfo),
+		deviceInfo)
+	return err
+}
+
+func UpdateValidateCount(ctx context.Context, deviceInfo *model.DeviceInfo) error {
+	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
+		`UPDATE %s SET total_upload = :total_upload,updated_at = now() WHERE device_id = :device_id`, tableNameDeviceInfo),
+		deviceInfo)
+	return err
+}
+
+func UpdateTotalDownload(ctx context.Context, deviceInfo *model.DeviceInfo) error {
+	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
+		`UPDATE %s SET total_download = :total_download, updated_at = now() WHERE device_id = :device_id`, tableNameDeviceInfo),
+		deviceInfo)
+	return err
+}
+
 func UpdateDeviceName(ctx context.Context, deviceInfo *model.DeviceInfo) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
 		`UPDATE %s SET updated_at = now(),device_name = :device_name WHERE device_id = :device_id`, tableNameDeviceInfo),
 		deviceInfo)
 	return err
 }
+
 func BulkUpsertDeviceInfo(ctx context.Context, deviceInfos []*model.DeviceInfo) error {
 	statement := upsertDeviceInfoStatement()
 	_, err := DB.NamedExecContext(ctx, statement, deviceInfos)
@@ -136,13 +244,13 @@ func upsertDeviceInfoStatement() string {
 				network_type, system_version, product_type, active_status,
 				network_info, external_ip, internal_ip, ip_location, ip_country, ip_province, ip_city, latitude, longitude, mac_location, nat_type, upnp,
 				pkg_loss_ratio, nat_ratio, latency, cpu_usage, memory_usage, cpu_cores, memory, disk_usage, disk_space, work_status,
-				device_status, disk_type, io_system, online_time, today_online_time, today_profit, total_upload, total_download, download_count, block_count,
+				device_status, disk_type, io_system, online_time, today_online_time, today_profit, 
 				yesterday_profit, seven_days_profit, month_profit, cumulative_profit, bandwidth_up, bandwidth_down, created_at, updated_at)
 			VALUES (:device_id, :node_type, :device_name, :user_id, :sn_code, :operator,
 			    :network_type, :system_version, :product_type, :active_status,
 			    :network_info, :external_ip, :internal_ip, :ip_location, :ip_country, :ip_province, :ip_city, :latitude, :longitude, :mac_location, :nat_type, :upnp, 
 			    :pkg_loss_ratio, :nat_ratio, :latency, :cpu_usage, :memory_usage, :cpu_cores, :memory, :disk_usage, :disk_space, :work_status, 
-			    :device_status, :disk_type, :io_system, :online_time, :today_online_time, :today_profit, :total_upload, :total_download, :download_count, block_count,
+			    :device_status, :disk_type, :io_system, :online_time, :today_online_time, :today_profit,
 				:yesterday_profit, :seven_days_profit, :month_profit, :cumulative_profit, :bandwidth_up, :bandwidth_down, now(), now())`, tableNameDeviceInfo,
 	)
 	updateStatement := ` ON DUPLICATE KEY UPDATE node_type = VALUES(node_type),  device_name = VALUES(device_name),
@@ -153,7 +261,6 @@ func upsertDeviceInfoStatement() string {
 				pkg_loss_ratio = VALUES(pkg_loss_ratio), online_time = VALUES(online_time),
 				nat_ratio = VALUES(nat_ratio), latency = VALUES(latency),  cpu_usage = VALUES(cpu_usage), cpu_cores = VALUES(cpu_cores),  memory_usage = VALUES(memory_usage), memory = VALUES(memory),
 				disk_usage = VALUES(disk_usage), disk_space = VALUES(disk_space), work_status = VALUES(work_status), device_status = VALUES(device_status),  disk_type = VALUES(disk_type),
- 				total_upload = VALUES(total_upload), total_download = VALUES(total_download), download_count = VALUES(download_count), block_count = VALUES(block_count),
 				io_system = VALUES(io_system), bandwidth_up = VALUES(bandwidth_up), bandwidth_down = VALUES(bandwidth_down), updated_at = now()`
 	return insertStatement + updateStatement
 }
@@ -170,7 +277,9 @@ func GetAllAreaFromDeviceInfo(ctx context.Context) ([]string, error) {
 
 func SumFullNodeInfoFromDeviceInfo(ctx context.Context) (*model.FullNodeInfo, error) {
 	queryStatement := fmt.Sprintf(`SELECT count( device_id ) AS total_node_count ,  SUM(IF(node_type = 1, 1, 0)) AS edge_count, 
-       SUM(IF(node_type = 2, 1, 0)) AS candidate_count, SUM(IF(node_type = 3, 1, 0)) AS validator_count, ROUND(SUM( disk_space),4) AS total_storage, 
+       SUM(IF(node_type = 2, 1, 0)) AS candidate_count,
+       SUM(IF(node_type = 3, 1, 0)) AS validator_count, ROUND(count(device_status = 'online' or null)/count( device_id )*100,2) AS t_node_online_ratio,
+       ROUND(SUM( disk_space),4) AS total_storage, ROUND(SUM( disk_usage*disk_space/100),4) AS storage_used, 
        ROUND(SUM(bandwidth_up),2) AS total_upstream_bandwidth, ROUND(SUM(bandwidth_down),2) AS total_downstream_bandwidth FROM %s where active_status = 1;`, tableNameDeviceInfo)
 
 	var out model.FullNodeInfo
@@ -220,8 +329,8 @@ func RankDeviceInfo(ctx context.Context) error {
 }
 
 func GenerateInactiveNodeRecords(ctx context.Context, t time.Time) error {
-	var inactiveNodeIds []string
-	query := fmt.Sprintf("SELECT device_id FROM %s where updated_at < ?", tableNameDeviceInfo)
+	var inactiveNodeIds []model.DeviceInfo
+	query := fmt.Sprintf("SELECT device_id,block_count,download_count,total_upload,total_download FROM %s where updated_at < ?", tableNameDeviceInfo)
 	err := DB.SelectContext(ctx, &inactiveNodeIds, query, t)
 	if err != nil {
 		return err
@@ -229,16 +338,87 @@ func GenerateInactiveNodeRecords(ctx context.Context, t time.Time) error {
 
 	var inactiveNodes []*model.DeviceInfoHour
 	insertRecordStatement := fmt.Sprintf("SELECT * FROM %s WHERE  device_id = ? ORDER BY time DESC limit 1", tableNameDeviceInfoHour)
-	for _, id := range inactiveNodeIds {
+	for _, deviceInfo := range inactiveNodeIds {
 		newDIH := model.DeviceInfoHour{}
-		err = DB.Get(&newDIH, insertRecordStatement, id)
+		err = DB.Get(&newDIH, insertRecordStatement, deviceInfo.DeviceID)
 		if err != nil {
-			log.Errorf("get inactive node last record,%s: %v", id, err)
+			log.Errorf("get inactive node last record,%s: %v", deviceInfo.DeviceID, err)
 			continue
 		}
 		newDIH.Time = t
+		newDIH.BlockCount = deviceInfo.BlockCount
+		newDIH.RetrievalCount = deviceInfo.DownloadCount
+		newDIH.UserID = deviceInfo.UserID
+		newDIH.UpstreamTraffic = deviceInfo.TotalUpload
+		newDIH.DownstreamTraffic = deviceInfo.TotalDownload
 		inactiveNodes = append(inactiveNodes, &newDIH)
 	}
 
 	return BulkUpsertDeviceInfoHours(ctx, inactiveNodes)
+}
+
+func GetDeviceInfo(ctx context.Context, deviceId string) model.DeviceInfo {
+	var deviceInfo model.DeviceInfo
+	query := fmt.Sprintf("SELECT device_id,block_count,download_count,user_id,total_upload,total_download FROM %s where device_id = '%s'", tableNameDeviceInfo, deviceId)
+	err := DB.QueryRowxContext(ctx, query).StructScan(&deviceInfo)
+	if err != nil {
+		log.Errorf("getDeviceInfo %v", err)
+	}
+	return deviceInfo
+}
+
+func GetDeviceInfoById(ctx context.Context, deviceId string) model.DeviceInfo {
+	var deviceInfo model.DeviceInfo
+	query := fmt.Sprintf("SELECT * FROM %s where device_id = '%s'", tableNameDeviceInfo, deviceId)
+	err := DB.QueryRowxContext(ctx, query).StructScan(&deviceInfo)
+	if err != nil {
+		log.Errorf("getDeviceInfo %v", err)
+	}
+	return deviceInfo
+}
+
+func GetNodesInfo(ctx context.Context, option QueryOption) (int64, []model.NodesInfo, error) {
+	where := `WHERE device_id <> '' AND active_status = 1`
+	if option.Order != "" && option.OrderField != "" {
+		where += fmt.Sprintf(` ORDER BY %s %s`, option.OrderField, option.Order)
+	}
+
+	limit := option.PageSize
+	offset := option.Page
+	if option.PageSize <= 0 {
+		limit = 50
+	}
+	if option.Page > 0 {
+		offset = limit * (option.Page - 1)
+	}
+	var total int64
+	err := DB.GetContext(ctx, &total, fmt.Sprintf(
+		`SELECT count(distinct(user_id)) FROM %s %s`, tableNameDeviceInfo, where,
+	))
+	if err != nil {
+		return 0, nil, err
+	}
+	var nodeInfo []model.NodesInfo
+	query := fmt.Sprintf("SELECT node_type,user_id,COUNT(device_id) AS node_count,ROUND(sum(disk_space) ,2) as disk_space,ROUND(SUM(bandwidth_up),2) as bandwidth_up FROM %s %s GROUP BY user_id ORDER BY node_count DESC LIMIT %d OFFSET %d",
+		tableNameDeviceInfo, where, limit, offset)
+	err = DB.SelectContext(ctx, &nodeInfo, query)
+	if err != nil {
+		log.Errorf("GetNodesInfo %v", err)
+		return 0, nil, err
+	}
+	return total, nodeInfo, nil
+}
+
+func GetIdIfExit(ctx context.Context, nodeId string) bool {
+	var out model.DeviceInfo
+	query := fmt.Sprintf(`SELECT * FROM %s where device_id = '%s';`, tableNameDeviceInfo, nodeId)
+	err := DB.QueryRowxContext(ctx, query).StructScan(&out)
+	if err == sql.ErrNoRows {
+		return false
+	}
+	if err != nil {
+		log.Errorf("GetIdIfExit err:%v", err)
+		return false
+	}
+	return true
 }

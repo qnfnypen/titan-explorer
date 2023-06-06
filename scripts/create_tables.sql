@@ -145,6 +145,7 @@ CREATE TABLE `device_info_daily` (
    `latency` FLOAT(32) NOT NULL DEFAULT '0',
    `nat_ratio` FLOAT(32) NOT NULL DEFAULT '0',
    `disk_usage` FLOAT(32) NOT NULL DEFAULT '0',
+   `disk_space` FLOAT(32) NOT NULL DEFAULT '0',
    `upstream_traffic` FLOAT(32) NOT NULL DEFAULT '0',
    `downstream_traffic` FLOAT(32) NOT NULL DEFAULT '0',
    `retrieval_count` BIGINT(20) NOT NULL DEFAULT '0',
@@ -170,12 +171,13 @@ CREATE TABLE `device_info_hour` (
  `latency` FLOAT(32) NOT NULL DEFAULT '0',
  `nat_ratio` FLOAT(32) NOT NULL DEFAULT '0',
  `disk_usage` FLOAT(32) NOT NULL DEFAULT '0',
+ `disk_space` FLOAT(32) NOT NULL DEFAULT '0',
  `upstream_traffic` FLOAT(32) NOT NULL DEFAULT '0',
  `downstream_traffic` FLOAT(32) NOT NULL DEFAULT '0',
  `retrieval_count` BIGINT(20) NOT NULL DEFAULT '0',
  `block_count` BIGINT(20) NOT NULL DEFAULT '0',
  PRIMARY KEY USING BTREE (`id`),
- INDEX `idx_device_info_hour_deleted_at` USING BTREE(`deleted_at` ASC)
+ UNIQUE KEY `uniq_device_id_time` (`device_id`,`time`) USING BTREE
 ) ENGINE = INNODB CHARSET = utf8;
 
 DROP TABLE IF EXISTS `full_node_info`;
@@ -183,24 +185,31 @@ DROP TABLE IF EXISTS `full_node_info`;
 CREATE TABLE `full_node_info` (
 `id` BIGINT(20) NOT NULL AUTO_INCREMENT,
 `total_node_count` INT(20) NOT NULL DEFAULT 0,
+`t_upstream_file_count` INT(20) NOT NULL DEFAULT 0,
+`t_average_replica` FLOAT(32) NOT NULL DEFAULT 0,
+`t_node_online_ratio` FLOAT(32) NOT NULL DEFAULT 0,
+`f_backups_from_titan` FLOAT(32) NOT NULL DEFAULT 0,
 `validator_count` INT(20) NOT NULL DEFAULT 0,
 `candidate_count` INT(20) NOT NULL DEFAULT 0,
 `edge_count` INT(20) NOT NULL DEFAULT 0,
 `total_storage` FLOAT(32) NOT NULL DEFAULT 0,
+`storage_used` FLOAT(32) NOT NULL DEFAULT 0,
 `total_upstream_bandwidth` FLOAT(32) NOT NULL DEFAULT 0,
 `total_downstream_bandwidth` FLOAT(32) NOT NULL DEFAULT 0,
 `total_carfile` BIGINT(20) NOT NULL DEFAULT 0,
 `total_carfile_size` FLOAT(32) NOT NULL DEFAULT 0,
 `retrieval_count` BIGINT(20) NOT NULL DEFAULT 0,
 `next_election_time` TIMESTAMP NOT NULL DEFAULT 0,
+`fvm_order_count` INT(20) NOT NULL DEFAULT 0,
+`f_node_count` INT(20) NOT NULL DEFAULT 0,
+`f_high` INT(20) NOT NULL DEFAULT 0,
+`t_next_election_high` INT(20) NOT NULL DEFAULT 0,
 `time` TIMESTAMP NOT NULL DEFAULT 0,
 `created_at` DATETIME(3) NOT NULL DEFAULT 0,
 `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
 PRIMARY KEY (`id`),
 UNIQUE KEY `uniq_time` (`time`) USING BTREE
 ) ENGINE = INNODB CHARSET = utf8mb4;
-
-
 
 DROP TABLE IF EXISTS `application`;
 
@@ -213,6 +222,7 @@ CREATE TABLE `application` (
 `ip_city` VARCHAR(128) NOT NULL DEFAULT '',
 `public_key` VARCHAR(2048) NOT NULL DEFAULT '',
 `node_type` TINYINT(4) NOT NULL DEFAULT 0,
+`num` TINYINT(4) NOT NULL DEFAULT 0,
 `amount` INT(20) NOT NULL DEFAULT 0,
 `upstream_bandwidth` FLOAT(32) NOT NULL DEFAULT 0,
 `disk_space` FLOAT(32) NOT NULL DEFAULT 0,
@@ -222,7 +232,6 @@ CREATE TABLE `application` (
 `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
 PRIMARY KEY (`id`)
 ) ENGINE = INNODB CHARSET = utf8mb4;
-
 
 DROP TABLE IF EXISTS `application_result`;
 
@@ -238,7 +247,6 @@ CREATE TABLE `application_result` (
 PRIMARY KEY (`id`)
 ) ENGINE = INNODB CHARSET = utf8mb4;
 
-
 DROP TABLE IF EXISTS `cache_event`;
 
 CREATE TABLE `cache_event` (
@@ -247,12 +255,13 @@ CREATE TABLE `cache_event` (
 `carfile_cid` VARCHAR(128) NOT NULL DEFAULT '',
 `block_size` FLOAT(32) NOT NULL DEFAULT 0,
 `blocks` BIGINT(20) NOT NULL DEFAULT 0,
+`replicaInfos` INT(20) NOT NULL DEFAULT 0,
 `time` DATETIME(3) NOT NULL DEFAULT 0,
 `status` TINYINT(4) NOT NULL DEFAULT 0,
 `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 PRIMARY KEY (`id`),
-UNIQUE KEY `uniq_device_id_car_time` (`device_id`,`carfile_cid`,`time`) USING BTREE
+UNIQUE KEY `uniq_device_id_car_time` (`device_id`,`carfile_cid`) USING BTREE
 ) ENGINE = INNODB CHARSET = utf8mb4;
 
 DROP TABLE IF EXISTS `retrieval_event`;
@@ -260,13 +269,20 @@ DROP TABLE IF EXISTS `retrieval_event`;
 CREATE TABLE `retrieval_event` (
 `id` BIGINT(20) NOT NULL AUTO_INCREMENT,
 `device_id` VARCHAR(128) NOT NULL DEFAULT '',
+`token_id` VARCHAR(128) NOT NULL DEFAULT '',
+`client_id` VARCHAR(128) NOT NULL DEFAULT '',
 `blocks` BIGINT(20) NOT NULL DEFAULT 0,
 `time` DATETIME(3) NOT NULL DEFAULT 0,
+`carfile_cid` VARCHAR(128) NOT NULL DEFAULT '',
+`block_size` FLOAT(32) NOT NULL DEFAULT 0,
+`status` TINYINT(4) NOT NULL DEFAULT 0,
 `upstream_bandwidth` FLOAT(32) NOT NULL DEFAULT 0,
+`start_time` INT(20) NOT NULL DEFAULT 0,
+`end_time` INT(20) NOT NULL DEFAULT 0,
 `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 PRIMARY KEY (`id`),
-UNIQUE KEY `uniq_device_id_time` (`device_id`,`time`) USING BTREE
+UNIQUE KEY `uniq_device_id_time` (`token_id`) USING BTREE
 ) ENGINE = INNODB CHARSET = utf8mb4;
 
 DROP TABLE IF EXISTS `validation_event`;
@@ -293,9 +309,30 @@ CREATE TABLE `system_info` (
  `scheduler_uuid` VARCHAR(128) NOT NULL DEFAULT '',
  `car_file_count` BIGINT(20) NOT NULL DEFAULT 0,
  `download_count` BIGINT(20) NOT NULL DEFAULT 0,
- `next_election_time` BIGINT(20) NOT NULL DEFAULT 0,
+ `next_election_time` TIMESTAMP NOT NULL DEFAULT 0,
  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
  PRIMARY KEY (`id`),
  UNIQUE KEY `uniq_uuid` (`scheduler_uuid`) USING BTREE
+) ENGINE = INNODB CHARSET = utf8mb4;
+
+DROP TABLE IF EXISTS `location`;
+
+CREATE TABLE `location` (
+   `id` BIGINT(20) NOT NULL AUTO_INCREMENT,
+   `ip` VARCHAR(28) NOT NULL DEFAULT '',
+   `continent` VARCHAR(28) NOT NULL DEFAULT '',
+   `country` VARCHAR(128) NOT NULL DEFAULT '',
+   `province` VARCHAR(128) NOT NULL DEFAULT '',
+   `city` VARCHAR(128) NOT NULL DEFAULT '',
+   `longitude`VARCHAR(28) NOT NULL DEFAULT '',
+   `area_code` VARCHAR(28) NOT NULL DEFAULT '',
+   `latitude` VARCHAR(28) NOT NULL DEFAULT '',
+   `isp` VARCHAR(28) NOT NULL DEFAULT '',
+   `zip_code` VARCHAR(28) NOT NULL DEFAULT '',
+   `elevation` VARCHAR(28) NOT NULL DEFAULT '',
+   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+   PRIMARY KEY (`id`),
+   UNIQUE KEY `uniq_uuid` (`ip`) USING BTREE
 ) ENGINE = INNODB CHARSET = utf8mb4;

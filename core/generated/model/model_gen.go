@@ -12,11 +12,12 @@ type Application struct {
 	ID                int64     `db:"id" json:"id"`
 	UserID            string    `db:"user_id" json:"user_id"`
 	Email             string    `db:"email" json:"email"`
+	Num               int32     `db:"num" json:"num"`
 	AreaID            string    `db:"area_id" json:"area_id"`
 	IpCountry         string    `db:"ip_country" json:"ip_country"`
 	IpCity            string    `db:"ip_city" json:"ip_city"`
 	PublicKey         string    `db:"public_key" json:"public_key"`
-	NodeType          int32     `db:"node_type" json:"node_type"`
+	NodeType          string    `db:"node_type" json:"node_type"`
 	Amount            int32     `db:"amount" json:"amount"`
 	UpstreamBandwidth float64   `db:"upstream_bandwidth" json:"upstream_bandwidth"`
 	DiskSpace         float64   `db:"disk_space" json:"disk_space"`
@@ -38,15 +39,16 @@ type ApplicationResult struct {
 }
 
 type CacheEvent struct {
-	ID         int64     `db:"id" json:"id"`
-	DeviceID   string    `db:"device_id" json:"device_id"`
-	CarfileCid string    `db:"carfile_cid" json:"carfile_cid"`
-	BlockSize  float64   `db:"block_size" json:"block_size"`
-	Blocks     int64     `db:"blocks" json:"blocks"`
-	Time       time.Time `db:"time" json:"time"`
-	Status     int32     `db:"status" json:"status"`
-	CreatedAt  time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt  time.Time `db:"updated_at" json:"updated_at"`
+	ID           int64     `db:"id" json:"id"`
+	DeviceID     string    `db:"device_id" json:"device_id"`
+	CarfileCid   string    `db:"carfile_cid" json:"carfile_cid"`
+	BlockSize    float64   `db:"block_size" json:"block_size"`
+	Blocks       int64     `db:"blocks" json:"blocks"`
+	Time         time.Time `db:"time" json:"time"`
+	Status       int32     `db:"status" json:"status"`
+	ReplicaInfos int32     `db:"replicaInfos" json:"replicaInfos"`
+	CreatedAt    time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt    time.Time `db:"updated_at" json:"updated_at"`
 }
 
 type DeviceInfo struct {
@@ -79,14 +81,15 @@ type DeviceInfo struct {
 	Upnp          string    `db:"upnp" json:"upnp"`
 	PkgLossRatio  float64   `db:"pkg_loss_ratio" json:"pkg_loss_ratio"`
 	// Nat
-	NatRatio         float64 `db:"nat_ratio" json:"nat_ratio"`
-	Latency          float64 `db:"latency" json:"latency"`
-	CpuUsage         float64 `db:"cpu_usage" json:"cpu_usage"`
-	CpuCores         int32   `db:"cpu_cores" json:"cpu_cores"`
-	MemoryUsage      float64 `db:"memory_usage" json:"memory_usage"`
-	Memory           float64 `db:"memory" json:"memory"`
-	DiskUsage        float64 `db:"disk_usage" json:"disk_usage"`
-	DiskSpace        float64 `db:"disk_space" json:"disk_space"`
+	NatRatio    float64 `db:"nat_ratio" json:"nat_ratio"`
+	Latency     float64 `db:"latency" json:"latency"`
+	CpuUsage    float64 `db:"cpu_usage" json:"cpu_usage"`
+	CpuCores    int32   `db:"cpu_cores" json:"cpu_cores"`
+	MemoryUsage float64 `db:"memory_usage" json:"memory_usage"`
+	Memory      float64 `db:"memory" json:"memory"`
+	DiskUsage   float64 `db:"disk_usage" json:"disk_usage"`
+	DiskSpace   float64 `db:"disk_space" json:"disk_space"`
+	// binding unbinding unbound
 	BindStatus       string  `db:"bind_status" json:"bind_status"`
 	WorkStatus       string  `db:"work_status" json:"work_status"`
 	DeviceStatus     string  `db:"device_status" json:"device_status"`
@@ -108,6 +111,15 @@ type DeviceInfo struct {
 	DownloadCount    int64   `db:"download_count" json:"download_count"`
 }
 
+type NodesInfo struct {
+	Rank        string  `db:"rank" json:"rank"`
+	NodeType    string  `db:"node_type" json:"node_type"`
+	UserId      string  `db:"user_id" json:"user_id"`
+	NodeCount   int64   `db:"node_count" json:"node_count"`
+	DiskSpace   float64 `db:"disk_space" json:"disk_space"`
+	BandwidthUp float64 `db:"bandwidth_up" json:"bandwidth_up"`
+}
+
 type DeviceInfoDaily struct {
 	ID                int64     `db:"id" json:"id"`
 	CreatedAt         time.Time `db:"created_at" json:"created_at"`
@@ -122,6 +134,7 @@ type DeviceInfoDaily struct {
 	Latency           float64   `db:"latency" json:"latency"`
 	NatRatio          float64   `db:"nat_ratio" json:"nat_ratio"`
 	DiskUsage         float64   `db:"disk_usage" json:"disk_usage"`
+	DiskSpace         float64   `db:"disk_space" json:"disk_space"`
 	UpstreamTraffic   float64   `db:"upstream_traffic" json:"upstream_traffic"`
 	DownstreamTraffic float64   `db:"downstream_traffic" json:"downstream_traffic"`
 	RetrievalCount    int64     `db:"retrieval_count" json:"retrieval_count"`
@@ -142,6 +155,7 @@ type DeviceInfoHour struct {
 	Latency           float64   `db:"latency" json:"latency"`
 	NatRatio          float64   `db:"nat_ratio" json:"nat_ratio"`
 	DiskUsage         float64   `db:"disk_usage" json:"disk_usage"`
+	DiskSpace         float64   `db:"disk_space" json:"disk_space"`
 	UpstreamTraffic   float64   `db:"upstream_traffic" json:"upstream_traffic"`
 	DownstreamTraffic float64   `db:"downstream_traffic" json:"downstream_traffic"`
 	RetrievalCount    int64     `db:"retrieval_count" json:"retrieval_count"`
@@ -149,21 +163,52 @@ type DeviceInfoHour struct {
 }
 
 type FullNodeInfo struct {
-	ID                       int64     `db:"id" json:"id"`
-	TotalNodeCount           int32     `db:"total_node_count" json:"total_node_count"`
-	ValidatorCount           int32     `db:"validator_count" json:"validator_count"`
-	CandidateCount           int32     `db:"candidate_count" json:"candidate_count"`
-	EdgeCount                int32     `db:"edge_count" json:"edge_count"`
-	TotalStorage             float64   `db:"total_storage" json:"total_storage"`
-	TotalUpstreamBandwidth   float64   `db:"total_upstream_bandwidth" json:"total_upstream_bandwidth"`
-	TotalDownstreamBandwidth float64   `db:"total_downstream_bandwidth" json:"total_downstream_bandwidth"`
-	TotalCarfile             int64     `db:"total_carfile" json:"total_carfile"`
-	TotalCarfileSize         float64   `db:"total_carfile_size" json:"total_carfile_size"`
-	RetrievalCount           int64     `db:"retrieval_count" json:"retrieval_count"`
-	NextElectionTime         time.Time `db:"next_election_time" json:"next_election_time"`
-	Time                     time.Time `db:"time" json:"time"`
-	CreatedAt                time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt                time.Time `db:"updated_at" json:"updated_at"`
+	ID int64 `db:"id" json:"id"`
+	// 全球分布节点数/RP总节点数
+	TotalNodeCount int32 `db:"total_node_count" json:"total_node_count"`
+	// RP节点在线率
+	TNodeOnlineRatio float64 `db:"t_node_online_ratio" json:"t_node_online_ratio"`
+	// titan已上传的文件数
+	TUpstreamFileCount int64 `db:"t_upstream_file_count" json:"t_upstream_file_count"`
+	// titan平均文件副本数
+	TAverageReplica float64 `db:"t_average_replica" json:"t_average_replica"`
+	// 已备份到filecoin的数据
+	FBackupsFromTitan float64 `db:"f_backups_from_titan" json:"f_backups_from_titan"`
+	// L1 验证节点
+	ValidatorCount int32 `db:"validator_count" json:"validator_count"`
+	// L1 候选节点
+	CandidateCount int32 `db:"candidate_count" json:"candidate_count"`
+	// L2 边缘节点
+	EdgeCount int32 `db:"edge_count" json:"edge_count"`
+	// 存储总空间
+	TotalStorage float64 `db:"total_storage" json:"total_storage"`
+	// 已用存储量
+	StorageUsed float64 `db:"storage_used" json:"storage_used"`
+	// 可用存储量
+	StorageLeft float64 `db:"storage_left" json:"storage_left"`
+	// 下载带宽
+	TotalUpstreamBandwidth float64 `db:"total_upstream_bandwidth" json:"total_upstream_bandwidth"`
+	// 上行带宽
+	TotalDownstreamBandwidth float64 `db:"total_downstream_bandwidth" json:"total_downstream_bandwidth"`
+	// 总carfile个数
+	TotalCarfile int64 `db:"total_carfile" json:"total_carfile"`
+	// 总carfile大小
+	TotalCarfileSize float64 `db:"total_carfile_size" json:"total_carfile_size"`
+	// 检索次数
+	RetrievalCount int64 `db:"retrieval_count" json:"retrieval_count"`
+	// 下次选举时间
+	NextElectionTime time.Time `db:"next_election_time" json:"next_election_time"`
+	// FVM 订单数量
+	FVMOrderCount int64 `db:"fvm_order_count" json:"fvm_order_count"`
+	// SP总节点数量（Filecoin Node）
+	FNodeCount int64 `db:"f_node_count" json:"f_node_count"`
+	// Filecoin当前高度
+	FHigh int64 `db:"f_high" json:"f_high"`
+	// Titan下一轮选举高度
+	TNextElectionHigh int64     `db:"t_next_election_high" json:"t_next_election_high"`
+	Time              time.Time `db:"time" json:"time"`
+	CreatedAt         time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt         time.Time `db:"updated_at" json:"updated_at"`
 }
 
 type LoginLog struct {
@@ -200,8 +245,15 @@ type OperationLog struct {
 type RetrievalEvent struct {
 	ID                int64     `db:"id" json:"id"`
 	DeviceID          string    `db:"device_id" json:"device_id"`
+	TokenID           string    `db:"token_id" json:"token_id"`
+	ClientID          string    `db:"client_id" json:"client_id"`
+	CarfileCid        string    `db:"carfile_cid" json:"carfile_cid"`
 	Blocks            int64     `db:"blocks" json:"blocks"`
+	BlockSize         float64   `db:"block_size" json:"block_size"`
 	Time              time.Time `db:"time" json:"time"`
+	StartTime         int64     `db:"start_time" json:"start_time"`
+	EndTime           int64     `db:"end_time" json:"end_time"`
+	Status            int32     `db:"status" json:"status"`
 	UpstreamBandwidth float64   `db:"upstream_bandwidth" json:"upstream_bandwidth"`
 	CreatedAt         time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt         time.Time `db:"updated_at" json:"updated_at"`
@@ -254,4 +306,21 @@ type ValidationEvent struct {
 	UpstreamTraffic float64   `db:"upstream_traffic" json:"upstream_traffic"`
 	CreatedAt       time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt       time.Time `db:"updated_at" json:"updated_at"`
+}
+
+type Location struct {
+	ID        int64     `db:"id" json:"id"`
+	Ip        string    `db:"ip" json:"ip"`
+	Continent string    `db:"continent" json:"continent"`
+	Province  string    `db:"province" json:"province"`
+	City      string    `db:"city" json:"city"`
+	Country   string    `db:"country" json:"country"`
+	Latitude  string    `db:"latitude" json:"latitude"`
+	Longitude string    `db:"longitude" json:"longitude"`
+	AreaCode  string    `db:"area_code" json:"area_code"`
+	Isp       string    `db:"isp" json:"isp"`
+	ZipCode   string    `db:"zip_code" json:"zip_code"`
+	Elevation string    `db:"elevation" json:"elevation"`
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 }

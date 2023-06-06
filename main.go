@@ -29,7 +29,7 @@ func main() {
 	if err := viper.Unmarshal(&cfg); err != nil {
 		log.Fatalf("unmarshaling config file: %v\n", err)
 	}
-
+	config.Cfg = cfg
 	if cfg.Mode == "debug" {
 		logging.SetDebugLogging()
 	}

@@ -27,16 +27,19 @@ func (s *SystemInfoFetcher) Fetch(ctx context.Context, scheduler *Scheduler) err
 		log.Errorf("api GetSystemInfo: %v", err)
 		return err
 	}
-	respFromAssetStatistics, err := scheduler.Api.GetAssetStatistics(ctx)
-	if err != nil {
-		log.Errorf("api GetSystemInfo: %v", err)
-		return err
-	}
+	//respFromAssetStatistics, err := scheduler.Api.GetAssetStatistics(ctx)
+	//if err != nil {
+	//	log.Errorf("api GetSystemInfo: %v", err)
+	//	return err
+	//}
 	s.Push(ctx, func() error {
 		if err := dao.UpsertSystemInfo(ctx, &model.SystemInfo{
-			SchedulerUuid:    scheduler.Uuid,
-			CarFileCount:     int64(respFromAssetStatistics.ReplicaCount),
-			DownloadCount:    int64(respFromAssetStatistics.UserDownloadCount),
+			SchedulerUuid: scheduler.Uuid,
+			// todo
+			//CarFileCount:     int64(respFromAssetStatistics.ReplicaCount),
+			CarFileCount: 0,
+			//DownloadCount:    int64(respFromAssetStatistics.UserDownloadCount),
+			DownloadCount:    0,
 			NextElectionTime: respFromValidationInfo.NextElectionTime,
 		}); err != nil {
 			log.Errorf("upsert system info: %v", err)

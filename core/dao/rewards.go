@@ -17,26 +17,26 @@ var (
 
 func BulkUpsertDeviceInfoHours(ctx context.Context, hourInfos []*model.DeviceInfoHour) error {
 	upsertStatement := fmt.Sprintf(`INSERT INTO %s (created_at, updated_at, hour_income, user_id, device_id,
-				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage, upstream_traffic, downstream_traffic, retrieval_count, block_count, time)
+				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage,disk_space, upstream_traffic, downstream_traffic, retrieval_count, block_count, time)
 			VALUES (:created_at, :updated_at, :hour_income, :user_id, :device_id, :online_time, :pkg_loss_ratio, :latency, 
-			    :nat_ratio, :disk_usage, :upstream_traffic, :downstream_traffic, :retrieval_count, :block_count, :time) 
-			 ON DUPLICATE KEY UPDATE updated_at = now(), hour_income = VALUES(hour_income),
+			    :nat_ratio, :disk_usage, :disk_space, :upstream_traffic, :downstream_traffic, :retrieval_count, :block_count, :time) 
+			 ON DUPLICATE KEY UPDATE updated_at = now(), hour_income = VALUES(hour_income), user_id = VALUES(user_id),
 			online_time = VALUES(online_time), pkg_loss_ratio = VALUES(pkg_loss_ratio), latency = VALUES(latency),
 			upstream_traffic = VALUES(upstream_traffic), downstream_traffic = VALUES(downstream_traffic), retrieval_count = VALUES(retrieval_count), block_count = VALUES(block_count),
-			nat_ratio = VALUES(nat_ratio), disk_usage = VALUES(disk_usage)`, tableNameDeviceInfoHour)
+			nat_ratio = VALUES(nat_ratio), disk_usage = VALUES(disk_usage),disk_space = VALUES(disk_space)`, tableNameDeviceInfoHour)
 	_, err := DB.NamedExecContext(ctx, upsertStatement, hourInfos)
 	return err
 }
 
 func BulkUpsertDeviceInfoDaily(ctx context.Context, dailyInfos []*model.DeviceInfoDaily) error {
 	upsertStatement := fmt.Sprintf(`INSERT INTO %s (created_at, updated_at, income, user_id, device_id,
-				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage, upstream_traffic, downstream_traffic, retrieval_count, block_count, time)
+				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage, disk_space, upstream_traffic, downstream_traffic, retrieval_count, block_count, time)
 			VALUES (:created_at, :updated_at, :income, :user_id, :device_id,
-				:online_time, :pkg_loss_ratio, :latency, :nat_ratio, :disk_usage, :upstream_traffic, :downstream_traffic, :retrieval_count, :block_count, :time) 
-			 ON DUPLICATE KEY UPDATE updated_at = now(), income = VALUES(income),
+				:online_time, :pkg_loss_ratio, :latency, :nat_ratio, :disk_usage, :disk_space, :upstream_traffic, :downstream_traffic, :retrieval_count, :block_count, :time) 
+			 ON DUPLICATE KEY UPDATE updated_at = now(), income = VALUES(income),user_id = VALUES(user_id),
 			online_time = VALUES(online_time), pkg_loss_ratio = VALUES(pkg_loss_ratio), latency = VALUES(latency),
 			upstream_traffic = VALUES(upstream_traffic), downstream_traffic = VALUES(downstream_traffic), retrieval_count = VALUES(retrieval_count), block_count = VALUES(block_count),
-			nat_ratio = VALUES(nat_ratio), disk_usage = VALUES(disk_usage)`, tableNameDeviceInfoDaily)
+			nat_ratio = VALUES(nat_ratio), disk_usage = VALUES(disk_usage), disk_space = VALUES(disk_space)`, tableNameDeviceInfoDaily)
 
 	_, err := DB.NamedExecContext(ctx, upsertStatement, dailyInfos)
 	return err
@@ -46,6 +46,7 @@ type DeviceStatistics struct {
 	Date              string  `json:"date" db:"date"`
 	NatRatio          float64 `json:"nat_ratio" db:"nat_ratio"`
 	DiskUsage         float64 `json:"disk_usage" db:"disk_usage"`
+	DiskSpace         float64 `json:"disk_space" db:"disk_space"`
 	Latency           float64 `json:"latency" db:"latency"`
 	PkgLossRatio      float64 `json:"pkg_loss_ratio" db:"pkg_loss_ratio"`
 	Income            float64 `json:"income" db:"income"`
@@ -53,15 +54,19 @@ type DeviceStatistics struct {
 	UpstreamTraffic   float64 `json:"upstream_traffic" db:"upstream_traffic"`
 	DownstreamTraffic float64 `json:"downstream_traffic" db:"downstream_traffic"`
 	RetrievalCount    float64 `json:"retrieval_count" db:"retrieval_count"`
+	BlockCount        float64 `json:"block_count" db:"block_count"`
+	NodeCount         float64 `json:"node_count" db:"node_count"`
 }
 
 func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour, option QueryOption) ([]*DeviceStatistics, error) {
 	sqlClause := fmt.Sprintf(`select date_format(time, '%%Y-%%m-%%d %%H') as date, avg(nat_ratio) as nat_ratio, 
-	avg(disk_usage) as disk_usage, avg(latency) as latency, avg(pkg_loss_ratio) as pkg_loss_ratio, 
-	max(online_time) - min(online_time) as online_time,
+	avg(disk_usage) as disk_usage,avg(disk_space) as disk_space, avg(latency) as latency, avg(pkg_loss_ratio) as pkg_loss_ratio, 
+	if( (max(online_time) - min(online_time)) > 60,60,(max(online_time) - min(online_time))) as online_time,
 	max(hour_income) - min(hour_income) as income,
 	max(upstream_traffic) - min(upstream_traffic) as upstream_traffic, 
 	max(downstream_traffic) - min(downstream_traffic) as downstream_traffic,
+	max(retrieval_count) - min(retrieval_count) as retrieval_count,
+	max(block_count) - min(block_count) as block_count,
 	max(retrieval_count) - min(retrieval_count) as retrieval_count
 	from %s where device_id='%s' and time>='%s' and time<='%s' group by date order by date`, tableNameDeviceInfoHour, cond.DeviceID, option.StartTime, option.EndTime)
 	var out []*DeviceStatistics
@@ -69,7 +74,7 @@ func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour,
 	if err != nil {
 		return nil, err
 	}
-	if len(out) > 1 {
+	if len(out) > 0 {
 		return handleHourList(out[1:]), err
 	}
 	return out, err
@@ -93,13 +98,67 @@ func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, op
 
 	var out []*DeviceStatistics
 	err := DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT DATE_FORMAT(time, '%%Y-%%m-%%d') as date, nat_ratio, disk_usage, latency, pkg_loss_ratio, income, online_time, upstream_traffic, 
-    	downstream_traffic, retrieval_count FROM %s %s`, tableNameDeviceInfoDaily, where), args...)
+		`SELECT DATE_FORMAT(time, '%%Y-%%m-%%d') as date, nat_ratio, disk_usage,disk_space, latency, pkg_loss_ratio, income, online_time, upstream_traffic, 
+    	downstream_traffic, retrieval_count,block_count FROM %s %s`, tableNameDeviceInfoDaily, where), args...)
 	if err != nil {
 		return nil, err
 	}
 
-	return handleDailyList(option.StartTime, option.EndTime, out), err
+	return handleDailyList(option.StartTime[0:10], option.EndTime[0:10], out), err
+}
+
+func GetNodesInfoDailyListByUser(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*DeviceStatistics, error) {
+	var args []interface{}
+	where := `WHERE 1=1`
+	if cond.UserID != "" {
+		where += ` AND user_id = ?`
+		args = append(args, cond.UserID)
+	}
+	if option.StartTime != "" {
+		where += ` AND time >= ?`
+		args = append(args, option.StartTime)
+	}
+	if option.EndTime != "" {
+		where += ` AND time <= ?`
+		args = append(args, option.EndTime)
+	}
+
+	var out []*DeviceStatistics
+	err := DB.SelectContext(ctx, &out, fmt.Sprintf(
+		`SELECT DATE_FORMAT(time, '%%Y-%%m-%%d') as date, nat_ratio, ROUND(sum(disk_usage),2) as disk_usage,ROUND(sum(disk_space),2) as disk_space,  ROUND(sum(income),2) as income, ROUND(sum(upstream_traffic),2) as upstream_traffic, 
+    	ROUND(sum(downstream_traffic),2) as downstream_traffic FROM %s %s group by user_id,date`, tableNameDeviceInfoDaily, where), args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return handleDailyList(option.StartTime[0:10], option.EndTime[0:10], out), err
+}
+
+func GetNodesInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*DeviceStatistics, error) {
+	var args []interface{}
+	where := `WHERE 1=1`
+	if cond.UserID != "" {
+		where += ` AND user_id = ?`
+		args = append(args, cond.UserID)
+	}
+	if option.StartTime != "" {
+		where += ` AND time >= ?`
+		args = append(args, option.StartTime)
+	}
+	if option.EndTime != "" {
+		where += ` AND time <= ?`
+		args = append(args, option.EndTime)
+	}
+
+	var out []*DeviceStatistics
+	err := DB.SelectContext(ctx, &out, fmt.Sprintf(
+		`SELECT DATE_FORMAT(time, '%%Y-%%m-%%d') as date, COUNT(DISTINCT(device_id)) as node_count,nat_ratio, ROUND(sum(disk_usage),2) as disk_usage,ROUND(sum(disk_space),2) as disk_space,  ROUND(sum(income),2) as income, ROUND(sum(upstream_traffic),2) as upstream_traffic, 
+    	ROUND(sum(downstream_traffic),2) as downstream_traffic, ROUND(sum(retrieval_count),2) as retrieval_count,ROUND(sum(block_count),2) as block_count FROM %s %s group by date`, tableNameDeviceInfoDaily, where), args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return handleDailyList(option.StartTime[0:10], option.EndTime[0:10], out), err
 }
 
 func handleDailyList(start, end string, in []*DeviceStatistics) []*DeviceStatistics {
@@ -202,6 +261,45 @@ func GetDeviceInfoDailyByPage(ctx context.Context, cond *model.DeviceInfoDaily, 
 	}
 	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
 		`SELECT * FROM %s %s LIMIT %d OFFSET %d`, tableNameDeviceInfoDaily, where, limit, offset), args...)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return out, total, err
+}
+
+func GetDeviceInfoByDeviceId(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*model.DeviceInfoDaily, int64, error) {
+	var args []interface{}
+	where := `WHERE 1=1`
+	if cond.DeviceID != "" {
+		where += ` AND device_id = ?`
+		args = append(args, cond.DeviceID)
+	}
+
+	if option.Order != "" && option.OrderField != "" {
+		where += fmt.Sprintf(` ORDER BY %s %s`, option.OrderField, option.Order)
+	}
+
+	limit := option.PageSize
+	offset := option.Page
+	if option.PageSize <= 0 {
+		limit = 50
+	}
+	if option.Page > 0 {
+		offset = limit * (option.Page - 1)
+	}
+
+	var total int64
+	var out []*model.DeviceInfoDaily
+
+	err := DB.GetContext(ctx, &total, fmt.Sprintf(
+		`SELECT count(*) FROM %s %s`, tableNameDeviceInfo, where,
+	), args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
+		`SELECT * FROM %s %s LIMIT %d OFFSET %d`, tableNameDeviceInfo, where, limit, offset), args...)
 	if err != nil {
 		return nil, 0, err
 	}

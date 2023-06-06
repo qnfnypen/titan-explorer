@@ -11,7 +11,7 @@ import (
 )
 
 func addDeviceInfoHours(ctx context.Context, deviceInfo []*model.DeviceInfo) error {
-	log.Info("start to fetch device info hours")
+	log.Info("start to fetch 【device info hours】")
 	start := time.Now()
 	defer func() {
 		log.Infof("fetch device info hours done, cost: %v", time.Since(start))
@@ -20,17 +20,19 @@ func addDeviceInfoHours(ctx context.Context, deviceInfo []*model.DeviceInfo) err
 	var upsertDevice []*model.DeviceInfoHour
 	for _, device := range deviceInfo {
 		var deviceInfoHour model.DeviceInfoHour
+		deviceOrdinaryInfo := dao.GetDeviceInfo(ctx, device.DeviceID)
+		deviceInfoHour.RetrievalCount = deviceOrdinaryInfo.DownloadCount
+		deviceInfoHour.BlockCount = deviceOrdinaryInfo.BlockCount
 		deviceInfoHour.DeviceID = device.DeviceID
+		deviceInfoHour.UserID = deviceOrdinaryInfo.UserID
 		deviceInfoHour.Time = start
 		deviceInfoHour.DiskUsage = device.DiskUsage
 		deviceInfoHour.PkgLossRatio = device.PkgLossRatio
 		deviceInfoHour.HourIncome = device.CumulativeProfit
 		deviceInfoHour.Latency = device.Latency
-		deviceInfoHour.DiskUsage = device.DiskUsage
-		deviceInfoHour.UpstreamTraffic = device.TotalUpload
-		deviceInfoHour.DownstreamTraffic = device.TotalDownload
-		deviceInfoHour.RetrievalCount = device.DownloadCount
-		deviceInfoHour.BlockCount = device.BlockCount
+		deviceInfoHour.UpstreamTraffic = deviceOrdinaryInfo.TotalUpload
+		deviceInfoHour.DownstreamTraffic = deviceOrdinaryInfo.TotalDownload
+		deviceInfoHour.OnlineTime = device.OnlineTime
 		deviceInfoHour.CreatedAt = time.Now()
 		deviceInfoHour.UpdatedAt = time.Now()
 		upsertDevice = append(upsertDevice, &deviceInfoHour)
@@ -84,28 +86,32 @@ func (s *Statistic) SumDeviceInfoDaily() error {
 	startOfTodayTime := carbon.Now().StartOfDay().String()
 	endOfTodayTime := carbon.Now().Tomorrow().StartOfDay().String()
 	sqlClause := fmt.Sprintf(`select user_id, device_id, date_format(time, '%%Y-%%m-%%d') as date, 
-			avg(nat_ratio) as nat_ratio, avg(disk_usage) as disk_usage, avg(latency) as latency, 
+			avg(nat_ratio) as nat_ratio, avg(disk_usage) as disk_usage, avg(disk_space) as disk_space,avg(latency) as latency, 
 			avg(pkg_loss_ratio) as pkg_loss_ratio, 
 			max(hour_income) - min(hour_income) as hour_income,
 			max(online_time) - min(online_time) as online_time,
 			max(upstream_traffic) - min(upstream_traffic) as upstream_traffic,
 			max(downstream_traffic) - min(downstream_traffic) as downstream_traffic,
 			max(retrieval_count) - min(retrieval_count) as retrieval_count,
-			max(block_count) - min(block_count) as block_count  from device_info_hour                                                                                      
+			max(block_count) - min(block_count)   as block_count  from device_info_hour                                                                                      
 			where time>='%s' and time<='%s' group by device_id`, startOfTodayTime, endOfTodayTime)
-	datas, err := dao.GetQueryDataList(sqlClause)
+	dataList, err := dao.GetQueryDataList(sqlClause)
 	if err != nil {
 		return err
 	}
 
 	var dailyInfos []*model.DeviceInfoDaily
-	for _, data := range datas {
+	for _, data := range dataList {
 		var daily model.DeviceInfoDaily
 		daily.Time, _ = time.Parse(utils.TimeFormatDateOnly, data["date"])
 		daily.DiskUsage = utils.Str2Float64(data["disk_usage"])
+		daily.DiskSpace = utils.Str2Float64(data["disk_space"])
 		daily.NatRatio = utils.Str2Float64(data["nat_ratio"])
 		daily.Income = utils.Str2Float64(data["hour_income"])
 		daily.OnlineTime = utils.Str2Float64(data["online_time"])
+		if daily.OnlineTime > 1440 {
+			daily.OnlineTime = 1440
+		}
 		daily.UpstreamTraffic = utils.Str2Float64(data["upstream_traffic"])
 		daily.DownstreamTraffic = utils.Str2Float64(data["downstream_traffic"])
 		daily.RetrievalCount = utils.Str2Int64(data["retrieval_count"])
@@ -222,11 +228,12 @@ func (s *Statistic) SumAllNodes() error {
 		log.Errorf("sum system info: %v", err)
 		return err
 	}
-
+	ReplicaInfo := dao.GetReplicaInfo(s.ctx)
+	fullNodeInfo.TAverageReplica = ReplicaInfo.TAverageReplica
+	fullNodeInfo.TUpstreamFileCount = ReplicaInfo.TUpstreamFileCount
 	fullNodeInfo.TotalCarfile = systemInfo.CarFileCount
 	fullNodeInfo.RetrievalCount = systemInfo.DownloadCount
 	fullNodeInfo.NextElectionTime = systemInfo.NextElectionTime
-
 	fullNodeInfo.Time = time.Now()
 	fullNodeInfo.CreatedAt = time.Now()
 	err = dao.CacheFullNodeInfo(s.ctx, fullNodeInfo)

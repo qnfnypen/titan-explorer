@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	logging "github.com/ipfs/go-log/v2"
 	"math"
 	"strconv"
@@ -57,4 +58,9 @@ func round(num float64) int {
 func ToFixed(num float64, precision int) float64 {
 	output := math.Pow(10, float64(precision))
 	return float64(round(num*output)) / output
+}
+
+func Decimal(num float64) float64 {
+	num, _ = strconv.ParseFloat(fmt.Sprintf("%.4f", num), 64)
+	return num
 }

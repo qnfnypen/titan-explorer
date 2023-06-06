@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/golang-module/carbon/v2"
+	"github.com/gnasnik/titan-explorer/utils"
 	"time"
 )
 
@@ -17,7 +17,7 @@ func newValidationFetcher() *ValidationFetcher {
 }
 
 func (v *ValidationFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
-	log.Info("start to fetch validation events")
+	log.Info("start to fetch 【validation events】")
 	start := time.Now()
 	defer func() {
 		log.Infof("fetch validation events done, cost: %v", time.Since(start))
@@ -36,7 +36,7 @@ func (v *ValidationFetcher) Fetch(ctx context.Context, scheduler *Scheduler) err
 	}
 
 	if lastEvent == nil {
-		startTime = carbon.Now().SubDays(60).Carbon2Time()
+		startTime, _ = time.Parse(utils.TimeFormatDateOnly, utils.TimeFormatDateOnly)
 	} else {
 		startTime = floorFiveMinute(lastEvent.Time)
 	}
@@ -49,7 +49,6 @@ loop:
 		log.Errorf("api GetSummaryValidateMessage: %v", err)
 		return err
 	}
-
 	if resp.Total <= 0 {
 		return nil
 	}
@@ -69,9 +68,9 @@ loop:
 		if err != nil {
 			log.Errorf("create validation events: %v", err)
 		}
+		go toUpdateValidateDownloadCount(ctx, validationEvents)
 		return nil
 	})
-
 	if sum < int64(resp.Total) {
 		goto loop
 	}
@@ -80,3 +79,20 @@ loop:
 }
 
 var _ Fetcher = &ValidationFetcher{}
+
+func toUpdateValidateDownloadCount(ctx context.Context, Events []*model.ValidationEvent) {
+	for _, Event := range Events {
+		if Event.Status == 1 {
+			// handle validator download data
+			err := dao.CountUploadTraffic(ctx, Event.ValidatorID)
+			if err != nil {
+				log.Errorf("CountUploadTraffic err:%v", err)
+			}
+			// handle node upload data
+			err = dao.CountValidateEvent(ctx, Event.DeviceID)
+			if err != nil {
+				log.Errorf("CountUploadTraffic err:%v", err)
+			}
+		}
+	}
+}

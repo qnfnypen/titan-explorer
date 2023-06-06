@@ -26,8 +26,10 @@ func DeviceBindingHandler(c *gin.Context) {
 	deviceInfo := &model.DeviceInfo{}
 	deviceInfo.DeviceID = c.Query("device_id")
 	deviceInfo.UserID = c.Query("user_id")
-	deviceInfo.BindStatus = "binding"
-
+	deviceInfo.BindStatus = c.Query("band_status")
+	if deviceInfo.BindStatus == "" {
+		deviceInfo.BindStatus = "binding"
+	}
 	old, err := dao.GetDeviceInfoByID(c.Request.Context(), deviceInfo.DeviceID)
 	if err != nil {
 		log.Errorf("get user device: %v", err)
@@ -57,8 +59,9 @@ func DeviceBindingHandler(c *gin.Context) {
 func DeviceUnBindingHandler(c *gin.Context) {
 	deviceInfo := &model.DeviceInfo{}
 	deviceInfo.DeviceID = c.Query("device_id")
-	deviceInfo.UserID = c.Query("user_id")
+	UserID := c.Query("user_id")
 	deviceInfo.BindStatus = "unbinding"
+	deviceInfo.ActiveStatus = 2
 
 	old, err := dao.GetDeviceInfoByID(c.Request.Context(), deviceInfo.DeviceID)
 	if err != nil {
@@ -72,7 +75,7 @@ func DeviceUnBindingHandler(c *gin.Context) {
 		return
 	}
 
-	if old.UserID != deviceInfo.UserID {
+	if old.UserID != UserID {
 		c.JSON(http.StatusOK, respError(errors.ErrUnbindingNotAllowed))
 		return
 	}

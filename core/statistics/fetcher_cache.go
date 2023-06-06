@@ -22,7 +22,7 @@ func newCacheFetcher() *CacheFetcher {
 }
 
 func (c *CacheFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
-	log.Info("start to fetch cache files")
+	log.Info("start to fetch 【cache events】")
 	start := time.Now()
 	defer func() {
 		log.Infof("fetch cache files, cost: %v", time.Since(start))
@@ -30,7 +30,7 @@ func (c *CacheFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
 
 	var (
 		startTime, endTime time.Time
-		sum                int64
+		sum                int
 	)
 
 	lastEvent, err := dao.GetLastCacheEvent(ctx)
@@ -40,21 +40,15 @@ func (c *CacheFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
 	}
 
 	if lastEvent == nil {
-		startTime = carbon.Now().StartOfMonth().StartOfMinute().Carbon2Time()
+		startTime, _ = time.Parse(utils.TimeFormatDateOnly, utils.TimeFormatDateOnly)
 	} else {
-		startTime = lastEvent.CreatedAt.Add(time.Second)
+		startTime = lastEvent.Time.Add(time.Second)
 	}
 
 	endTime = carbon.Time2Carbon(start).SubMinutes(start.Minute() % 5).StartOfMinute().Carbon2Time()
-	req := types.ListReplicaInfosReq{
-		StartTime: startTime.Unix(),
-		EndTime:   endTime.Unix(),
-		Cursor:    0,
-		Count:     maxPageSize,
-	}
-
+	size, offset := maxPageSize, 1
 loop:
-	resp, err := scheduler.Api.GetAssetReplicaInfos(ctx, req)
+	resp, err := scheduler.Api.GetAssetEvents(ctx, startTime, endTime, size, (offset-1)*size)
 	if err != nil {
 		log.Errorf("client api GetCacheTaskInfos: %v", err)
 		return err
@@ -63,22 +57,48 @@ loop:
 	if resp.Total <= 0 {
 		return nil
 	}
-
 	var events []*model.CacheEvent
-	for _, data := range resp.Replicas {
-		events = append(events, toCacheEvent(data))
+	for _, data := range resp.AssetEventInfos {
+		eventCid := hashToCID(data.Hash)
+		respRecord, err := scheduler.Api.GetAssetRecord(ctx, eventCid)
+		if err != nil {
+			log.Errorf("client api GetAssetRecord: %v", err)
+			return err
+		}
+		err = dao.ResetCacheEvents(ctx, eventCid)
+		if err != nil {
+			log.Errorf("client api ResetCacheEvents: %v", err)
+			return err
+		}
+		lenReplicaInfo := len(respRecord.ReplicaInfos)
+		if lenReplicaInfo == 0 {
+			var nilType types.ReplicaInfo
+			nilType.EndTime = respRecord.EndTime
+			nilType.Status = 4
+			event := toCacheEvent(respRecord, &nilType, int32(lenReplicaInfo))
+			events = append(events, event)
+		} else {
+			for _, ReplicaInfo := range respRecord.ReplicaInfos {
+				event := toCacheEvent(respRecord, ReplicaInfo, int32(lenReplicaInfo))
+				events = append(events, event)
+			}
+		}
+
 	}
+	sum += len(resp.AssetEventInfos)
+	offset++
+	//req.Cursor += len(resp.AssetEventInfos)
 
-	sum += int64(len(resp.Replicas))
-	req.Cursor += len(resp.Replicas)
-
-	log.Debugf("GetCacheTaskInfos got %d/%d blocks", sum, resp.Total)
-
+	log.Debugf("cacheEvents got %d/%d AssetEventInfos", sum, resp.Total)
+	if len(events) == 0 {
+		return nil
+	}
 	c.Push(ctx, func() error {
 		err = dao.CreateCacheEvents(ctx, events)
 		if err != nil {
 			log.Errorf("create cacheEvents: %v", err)
 		}
+		go toUpdateDeviceInfo(ctx, events)
 		return nil
 	})
 
@@ -93,13 +113,13 @@ var _ Fetcher = &CacheFetcher{}
 
 func toValidationEvent(in types.ValidationResultInfo) *model.ValidationEvent {
 	return &model.ValidationEvent{
-		DeviceID:        in.RoundID,
+		DeviceID:        in.NodeID,
 		ValidatorID:     in.ValidatorID,
 		Status:          int32(in.Status),
 		Blocks:          in.BlockNumber,
 		Time:            in.StartTime,
 		Duration:        in.Duration,
-		UpstreamTraffic: utils.ToFixed(in.UploadTraffic, 2),
+		UpstreamTraffic: utils.ToFixed(float64(in.Duration)*in.Bandwidth, 2),
 	}
 }
 
@@ -166,15 +186,25 @@ func floorFiveMinute(t time.Time) time.Time {
 	return time.Date(year, month, day, hour, minute, 0, 0, time.Local)
 }
 
-func toCacheEvent(data *types.ReplicaInfo) *model.CacheEvent {
+func toCacheEvent(assetRecord *types.AssetRecord, data *types.ReplicaInfo, lenReplicaInfo int32) *model.CacheEvent {
 	return &model.CacheEvent{
-		DeviceID:   data.NodeID,
-		CarfileCid: hashToCID(data.Hash),
-		// todo
-		// Blocks:     int64(data.DoneBlocks),
-		Blocks:    0,
-		BlockSize: float64(data.DoneSize),
-		Time:      data.EndTime,
+		DeviceID:     data.NodeID,
+		CarfileCid:   hashToCID(assetRecord.Hash),
+		ReplicaInfos: lenReplicaInfo,
+		Blocks:       assetRecord.TotalBlocks,
+		BlockSize:    float64(assetRecord.TotalSize),
+		Time:         data.EndTime,
+		// todo file create time
 		Status:    int32(data.Status),
+		UpdatedAt: time.Now(),
+	}
+}
+
+func toUpdateDeviceInfo(ctx context.Context, Events []*model.CacheEvent) {
+	for _, Event := range Events {
+		err := dao.CountCacheEvent(ctx, Event.DeviceID)
+		if err != nil {
+			log.Errorf("update device info from event: %v", err)
+		}
 	}
 }
