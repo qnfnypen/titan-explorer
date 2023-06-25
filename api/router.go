@@ -28,6 +28,7 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	// index info all nodes info from device info
 	apiV1.GET("/get_nodes_info", GetNodesInfoHandler)
 	apiV1.GET("/get_device_info", GetDeviceInfoHandler)
+	apiV1.GET("/get_device_active_info", GetDeviceActiveInfoHandler)
 	apiV1.GET("/get_device_status", GetDeviceStatusHandler)
 	apiV1.GET("/get_map_info", GetMapInfoHandler)
 	apiV1.GET("/get_device_info_daily", GetDeviceInfoDailyHandler)
@@ -35,26 +36,29 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	// by-user_id or all node count
 	apiV1.GET("/get_diagnosis_days_user", GetDeviceDiagnosisDailyByUserIdHandler)
 	apiV1.GET("/get_diagnosis_hours", GetDeviceDiagnosisHourHandler)
-	apiV1.GET("/get_cache_list", GetCacheListHandler)
-	apiV1.GET("/get_retrieval_list", GetRetrievalListHandler)
-	apiV1.GET("/get_validation_list", GetValidationListHandler)
+	apiV1.GET("/get_cache_hours", GetCacheHourHandler)
+	apiV1.GET("/get_cache_days", GetCacheDaysHandler)
 	apiV1.POST("/create_application", CreateApplicationHandler)
 	apiV1.GET("/get_applications", GetApplicationsHandler)
-
+	apiV1.GET("/get_application_amount", GetApplicationAmountHandler)
+	// node daily count
+	apiV1.GET("/get_nodes_days", GetDiskDaysHandler)
 	// console
 	apiV1.GET("/device_binding", DeviceBindingHandler)
 	apiV1.GET("/device_unbinding", DeviceUnBindingHandler)
 	apiV1.GET("/device_update", DeviceUpdateHandler)
 	apiV1.GET("/get_user_device_profile", GetUserDeviceProfileHandler)
 	apiV1.GET("/get_user_device_count", GetUserDevicesCountHandler)
-
+	// request from titan api
+	apiV1.GET("/get_cache_list", GetCacheListHandler)
+	apiV1.GET("/get_retrieval_list", GetRetrievalListHandler)
+	apiV1.GET("/get_validation_list", GetValidationListHandler)
 	user := apiV1.Group("/user")
 	user.POST("/login", authMiddleware.LoginHandler)
 	user.POST("/logout", authMiddleware.LogoutHandler)
 	user.Use(authMiddleware.MiddlewareFunc())
 	user.GET("/refresh_token", authMiddleware.RefreshHandler)
 	user.POST("/info", GetUserInfoHandler)
-
 	// admin
 	admin := apiV1.Group("/admin")
 	admin.Use(authMiddleware.MiddlewareFunc())
@@ -68,6 +72,25 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	admin.GET("/get_operation_log", GetOperationLogHandler)
 	admin.GET("/get_node_daily_trend", GetNodeDailyTrendHandler)
 	// storage
-	//storage := apiV1.Group("/storage")
-	//
+	storage := apiV1.Group("/storage")
+	storage.POST("/get_verify_code", GetVerifyCodeHandle)
+	storage.POST("/register", UserRegister)
+	storage.POST("/password_reset", PasswordRest)
+	storage.POST("/login", authMiddleware.LoginHandler)
+	storage.POST("/logout", authMiddleware.LogoutHandler)
+	storage.GET("/get_locateStorage", GetAllocateStorageHandler)
+	storage.GET("/get_Storage_size", GetStorageSizeHandler)
+	storage.GET("/create_asset", CreateAssetHandler)
+	storage.GET("/delete_asset", DeleteAssetHandler)
+	storage.GET("/get_asset_info", GetAssetInfoHandler)
+	storage.GET("/get_asset_list", GetAssetListHandler)
+	storage.GET("/share_asset", ShareAssetsHandler)
+	storage.GET("/create_key", CreateKeyHandler)
+	storage.GET("/get_keys", GetKeyListHandler)
+	storage.GET("/delete_key", DeleteKeyHandler)
+	storage.GET("/get_asset_count", GetAssetCountHandler)
+	storage.GET("/get_user_info_hour", GetStorageHourHandler)
+	storage.GET("/get_user_info_daily", GetStorageDailyHandler)
+	storage.Use(authMiddleware.MiddlewareFunc())
+	storage.GET("/refresh_token", authMiddleware.RefreshHandler)
 }

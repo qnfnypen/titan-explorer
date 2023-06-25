@@ -98,6 +98,26 @@ func GetApplicationsByPage(ctx context.Context, option QueryOption) ([]*model.Ap
 	return out, total, nil
 }
 
+func GetApplicationAmount(ctx context.Context, option QueryOption) (int64, error) {
+	var args []interface{}
+	where := "WHERE 1=1"
+
+	if option.UserID != "" {
+		where += ` AND user_id = ?`
+		args = append(args, option.UserID)
+	}
+
+	var total int64
+
+	err := DB.GetContext(ctx, &total, fmt.Sprintf(
+		`SELECT sum(amount) as total FROM %s %s group by '%s'`, tableNameApplication, where, option.UserID), args...)
+	if err != nil {
+		return 0, err
+	}
+
+	return total, nil
+}
+
 func AddApplicationResult(ctx context.Context, result []*model.ApplicationResult) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
 		`INSERT INTO %s (user_id, application_id, device_id, secret, node_type, created_at, updated_at) 

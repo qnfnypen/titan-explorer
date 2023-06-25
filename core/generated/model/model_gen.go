@@ -17,7 +17,7 @@ type Application struct {
 	IpCountry         string    `db:"ip_country" json:"ip_country"`
 	IpCity            string    `db:"ip_city" json:"ip_city"`
 	PublicKey         string    `db:"public_key" json:"public_key"`
-	NodeType          string    `db:"node_type" json:"node_type"`
+	NodeType          int32     `db:"node_type" json:"node_type"`
 	Amount            int32     `db:"amount" json:"amount"`
 	UpstreamBandwidth float64   `db:"upstream_bandwidth" json:"upstream_bandwidth"`
 	DiskSpace         float64   `db:"disk_space" json:"disk_space"`
@@ -50,65 +50,80 @@ type CacheEvent struct {
 	CreatedAt    time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt    time.Time `db:"updated_at" json:"updated_at"`
 }
+type DeviceDynamicInfo struct {
+	DeviceID         string    `db:"device_id" json:"device_id"`
+	UpdateTime       time.Time `db:"update_time" json:"update_time"`
+	DiskUsage        float64   `db:"disk_usage" json:"disk_usage"`
+	DeviceStatus     string    `db:"device_status" json:"device_status"`
+	OnlineTime       float64   `db:"online_time" json:"online_time"`
+	CumulativeProfit float64   `db:"cumulative_profit" json:"cumulative_profit"`
+	BandwidthUp      float64   `db:"bandwidth_up" json:"bandwidth_up"`
+	BandwidthDown    float64   `db:"bandwidth_down" json:"bandwidth_down"`
+	DownloadTraffic  float64   `db:"download_traffic" json:"download_traffic"`
+	UploadTraffic    float64   `db:"upload_traffic" json:"upload_traffic"`
+	CacheCount       int64     `db:"cache_count" json:"cache_count"`
+	RetrievalCount   int64     `db:"retrieval_count" json:"retrieval_count"`
+}
 
-type DeviceInfo struct {
+type DeviceStaticInfo struct {
+	DeviceID string `db:"device_id" json:"device_id"`
+	//首次加入titan的时间
 	CreatedAt     time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt     time.Time `db:"updated_at" json:"updated_at"`
-	DeletedAt     time.Time `db:"deleted_at" json:"deleted_at"`
-	BoundAt       time.Time `db:"bound_at" json:"bound_at"`
-	DeviceID      string    `db:"device_id" json:"device_id"`
-	SchedulerID   string    `db:"scheduler_id" json:"scheduler_id"`
-	NodeType      int32     `db:"node_type" json:"node_type"`
-	DeviceRank    int32     `db:"device_rank" json:"device_rank"`
 	DeviceName    string    `db:"device_name" json:"device_name"`
-	UserID        string    `db:"user_id" json:"user_id"`
-	SnCode        string    `db:"sn_code" json:"sn_code"`
-	Operator      string    `db:"operator" json:"operator"`
-	NetworkType   string    `db:"network_type" json:"network_type"`
+	NodeType      int64     `db:"node_type" json:"node_type"`
+	DiskSpace     float64   `db:"disk_space" json:"disk_space"`
 	SystemVersion string    `db:"system_version" json:"system_version"`
-	ProductType   string    `db:"product_type" json:"product_type"`
-	NetworkInfo   string    `db:"network_info" json:"network_info"`
 	ExternalIp    string    `db:"external_ip" json:"external_ip"`
 	InternalIp    string    `db:"internal_ip" json:"internal_ip"`
-	IpLocation    string    `db:"ip_location" json:"ip_location"`
-	IpCountry     string    `db:"ip_country" json:"ip_country"`
-	IpProvince    string    `db:"ip_province" json:"ip_province"`
-	IpCity        string    `db:"ip_city" json:"ip_city"`
-	Latitude      float64   `db:"latitude" json:"latitude"`
-	Longitude     float64   `db:"longitude" json:"longitude"`
 	MacLocation   string    `db:"mac_location" json:"mac_location"`
-	NatType       string    `db:"nat_type" json:"nat_type"`
-	Upnp          string    `db:"upnp" json:"upnp"`
-	PkgLossRatio  float64   `db:"pkg_loss_ratio" json:"pkg_loss_ratio"`
-	// Nat
-	NatRatio    float64 `db:"nat_ratio" json:"nat_ratio"`
-	Latency     float64 `db:"latency" json:"latency"`
-	CpuUsage    float64 `db:"cpu_usage" json:"cpu_usage"`
-	CpuCores    int32   `db:"cpu_cores" json:"cpu_cores"`
-	MemoryUsage float64 `db:"memory_usage" json:"memory_usage"`
-	Memory      float64 `db:"memory" json:"memory"`
-	DiskUsage   float64 `db:"disk_usage" json:"disk_usage"`
-	DiskSpace   float64 `db:"disk_space" json:"disk_space"`
-	// binding unbinding unbound
-	BindStatus       string  `db:"bind_status" json:"bind_status"`
-	WorkStatus       string  `db:"work_status" json:"work_status"`
-	DeviceStatus     string  `db:"device_status" json:"device_status"`
-	ActiveStatus     int32   `db:"active_status" json:"active_status"`
-	DiskType         string  `db:"disk_type" json:"disk_type"`
-	IoSystem         string  `db:"io_system" json:"io_system"`
-	OnlineTime       float64 `db:"online_time" json:"online_time"`
-	TodayOnlineTime  float64 `db:"today_online_time" json:"today_online_time"`
-	TodayProfit      float64 `db:"today_profit" json:"today_profit"`
-	YesterdayProfit  float64 `db:"yesterday_profit" json:"yesterday_profit"`
-	SevenDaysProfit  float64 `db:"seven_days_profit" json:"seven_days_profit"`
-	MonthProfit      float64 `db:"month_profit" json:"month_profit"`
-	CumulativeProfit float64 `db:"cumulative_profit" json:"cumulative_profit"`
-	BandwidthUp      float64 `db:"bandwidth_up" json:"bandwidth_up"`
-	BandwidthDown    float64 `db:"bandwidth_down" json:"bandwidth_down"`
-	TotalDownload    float64 `db:"total_download" json:"total_download"`
-	TotalUpload      float64 `db:"total_upload" json:"total_upload"`
-	BlockCount       int64   `db:"block_count" json:"block_count"`
-	DownloadCount    int64   `db:"download_count" json:"download_count"`
+	IoSystem      string    `db:"io_system" json:"io_system"`
+}
+
+type DeviceInfo struct {
+	DeviceID         string    `db:"device_id" json:"device_id"`
+	DiskUsage        float64   `db:"disk_usage" json:"disk_usage"`
+	DeviceStatus     string    `db:"device_status" json:"device_status"`
+	OnlineTime       float64   `db:"online_time" json:"online_time"`
+	CumulativeProfit float64   `db:"cumulative_profit" json:"cumulative_profit"`
+	BandwidthUp      float64   `db:"bandwidth_up" json:"bandwidth_up"`
+	BandwidthDown    float64   `db:"bandwidth_down" json:"bandwidth_down"`
+	DownloadTraffic  float64   `db:"download_traffic" json:"download_traffic"`
+	UploadTraffic    float64   `db:"upload_traffic" json:"upload_traffic"`
+	CacheCount       int64     `db:"cache_count" json:"cache_count"`
+	RetrievalCount   int64     `db:"retrieval_count" json:"retrieval_count"`
+	CreatedAt        time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt        time.Time `db:"updated_at" json:"updated_at"`
+	DeletedAt        time.Time `db:"deleted_at" json:"deleted_at"`
+	BoundAt          time.Time `db:"bound_at" json:"bound_at"`
+	UserID           string    `db:"user_id" json:"user_id"`
+	NodeType         int64     `db:"node_type" json:"node_type"`
+	DeviceRank       int64     `db:"device_rank" json:"device_rank"`
+	DeviceName       string    `db:"device_name" json:"device_name"`
+	SystemVersion    string    `db:"system_version" json:"system_version"`
+	NetworkInfo      string    `db:"network_info" json:"network_info"`
+	ExternalIp       string    `db:"external_ip" json:"external_ip"`
+	InternalIp       string    `db:"internal_ip" json:"internal_ip"`
+	IpLocation       string    `db:"ip_location" json:"ip_location"`
+	IpCountry        string    `db:"ip_country" json:"ip_country"`
+	IpProvince       string    `db:"ip_province" json:"ip_province"`
+	IpCity           string    `db:"ip_city" json:"ip_city"`
+	Latitude         float64   `db:"latitude" json:"latitude"`
+	Longitude        float64   `db:"longitude" json:"longitude"`
+	MacLocation      string    `db:"mac_location" json:"mac_location"`
+	CpuUsage         float64   `db:"cpu_usage" json:"cpu_usage"`
+	CpuCores         int64     `db:"cpu_cores" json:"cpu_cores"`
+	MemoryUsage      float64   `db:"memory_usage" json:"memory_usage"`
+	Memory           float64   `db:"memory" json:"memory"`
+	DiskSpace        float64   `db:"disk_space" json:"disk_space"`
+	BindStatus       string    `db:"bind_status" json:"bind_status"`
+	ActiveStatus     int64     `db:"active_status" json:"active_status"`
+	DiskType         string    `db:"disk_type" json:"disk_type"`
+	IoSystem         string    `db:"io_system" json:"io_system"`
+	TodayOnlineTime  float64   `db:"today_online_time" json:"today_online_time"`
+	TodayProfit      float64   `db:"today_profit" json:"today_profit"`
+	YesterdayProfit  float64   `db:"yesterday_profit" json:"yesterday_profit"`
+	SevenDaysProfit  float64   `db:"seven_days_profit" json:"seven_days_profit"`
+	MonthProfit      float64   `db:"month_profit" json:"month_profit"`
 }
 
 type NodesInfo struct {
@@ -135,6 +150,8 @@ type DeviceInfoDaily struct {
 	NatRatio          float64   `db:"nat_ratio" json:"nat_ratio"`
 	DiskUsage         float64   `db:"disk_usage" json:"disk_usage"`
 	DiskSpace         float64   `db:"disk_space" json:"disk_space"`
+	BandwidthUp       float64   `db:"bandwidth_up" json:"bandwidth_up"`
+	BandwidthDown     float64   `db:"bandwidth_down" json:"bandwidth_down"`
 	UpstreamTraffic   float64   `db:"upstream_traffic" json:"upstream_traffic"`
 	DownstreamTraffic float64   `db:"downstream_traffic" json:"downstream_traffic"`
 	RetrievalCount    int64     `db:"retrieval_count" json:"retrieval_count"`
@@ -156,6 +173,8 @@ type DeviceInfoHour struct {
 	NatRatio          float64   `db:"nat_ratio" json:"nat_ratio"`
 	DiskUsage         float64   `db:"disk_usage" json:"disk_usage"`
 	DiskSpace         float64   `db:"disk_space" json:"disk_space"`
+	BandwidthUp       float64   `db:"bandwidth_up" json:"bandwidth_up"`
+	BandwidthDown     float64   `db:"bandwidth_down" json:"bandwidth_down"`
 	UpstreamTraffic   float64   `db:"upstream_traffic" json:"upstream_traffic"`
 	DownstreamTraffic float64   `db:"downstream_traffic" json:"downstream_traffic"`
 	RetrievalCount    int64     `db:"retrieval_count" json:"retrieval_count"`
@@ -165,7 +184,9 @@ type DeviceInfoHour struct {
 type FullNodeInfo struct {
 	ID int64 `db:"id" json:"id"`
 	// 全球分布节点数/RP总节点数
-	TotalNodeCount int32 `db:"total_node_count" json:"total_node_count"`
+	Date            string `db:"date" json:"date" `
+	TotalNodeCount  int32  `db:"total_node_count" json:"total_node_count"`
+	OnlineNodeCount int32  `db:"online_node_count" json:"online_node_count"`
 	// RP节点在线率
 	TNodeOnlineRatio float64 `db:"t_node_online_ratio" json:"t_node_online_ratio"`
 	// titan已上传的文件数
@@ -243,20 +264,21 @@ type OperationLog struct {
 }
 
 type RetrievalEvent struct {
-	ID                int64     `db:"id" json:"id"`
-	DeviceID          string    `db:"device_id" json:"device_id"`
-	TokenID           string    `db:"token_id" json:"token_id"`
-	ClientID          string    `db:"client_id" json:"client_id"`
-	CarfileCid        string    `db:"carfile_cid" json:"carfile_cid"`
-	Blocks            int64     `db:"blocks" json:"blocks"`
-	BlockSize         float64   `db:"block_size" json:"block_size"`
-	Time              time.Time `db:"time" json:"time"`
-	StartTime         int64     `db:"start_time" json:"start_time"`
-	EndTime           int64     `db:"end_time" json:"end_time"`
-	Status            int32     `db:"status" json:"status"`
-	UpstreamBandwidth float64   `db:"upstream_bandwidth" json:"upstream_bandwidth"`
-	CreatedAt         time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt         time.Time `db:"updated_at" json:"updated_at"`
+	//ID                int64     `db:"id" json:"id"`
+	DeviceID string `db:"device_id" json:"device_id"`
+	//TokenID           string    `db:"token_id" json:"token_id"`
+	ClientID   string `db:"client_id" json:"client_id"`
+	CarfileCid string `db:"carfile_cid" json:"carfile_cid"`
+	//Blocks            int64     `db:"blocks" json:"blocks"`
+	BlockSize  float64   `db:"block_size" json:"block_size"`
+	Time       time.Time `db:"time" json:"time"`
+	StartTime  int64     `db:"start_time" json:"start_time"`
+	EndTime    int64     `db:"end_time" json:"end_time"`
+	Expiration time.Time `db:"expiration" json:"expiration"`
+	Status     int32     `db:"status" json:"status"`
+	//UpstreamBandwidth float64   `db:"upstream_bandwidth" json:"upstream_bandwidth"`
+	//CreatedAt         time.Time `db:"created_at" json:"created_at"`
+	//UpdatedAt         time.Time `db:"updated_at" json:"updated_at"`
 }
 
 type Scheduler struct {
@@ -282,17 +304,18 @@ type SystemInfo struct {
 }
 
 type User struct {
-	ID        int64     `db:"id" json:"id"`
-	Uuid      string    `db:"uuid" json:"uuid"`
-	Avatar    string    `db:"avatar" json:"avatar"`
-	Username  string    `db:"username" json:"username"`
-	PassHash  string    `db:"pass_hash" json:"pass_hash"`
-	UserEmail string    `db:"user_email" json:"user_email"`
-	Address   string    `db:"address" json:"address"`
-	Role      int32     `db:"role" json:"role"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
-	DeletedAt time.Time `db:"deleted_at" json:"deleted_at"`
+	ID         int64     `db:"id" json:"id"`
+	Uuid       string    `db:"uuid" json:"uuid"`
+	Avatar     string    `db:"avatar" json:"avatar"`
+	Username   string    `db:"username" json:"username"`
+	VerifyCode string    `db:"verify_code" json:"verify_code"`
+	PassHash   string    `db:"pass_hash" json:"pass_hash"`
+	UserEmail  string    `db:"user_email" json:"user_email"`
+	Address    string    `db:"address" json:"address"`
+	Role       int32     `db:"role" json:"role"`
+	CreatedAt  time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt  time.Time `db:"updated_at" json:"updated_at"`
+	DeletedAt  time.Time `db:"deleted_at" json:"deleted_at"`
 }
 
 type ValidationEvent struct {
@@ -323,4 +346,17 @@ type Location struct {
 	Elevation string    `db:"elevation" json:"elevation"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+}
+
+type UserInfo struct {
+	CreatedAt      time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt      time.Time `db:"updated_at" json:"updated_at"`
+	Date           string    `json:"date" db:"date"`
+	UserId         string    `db:"user_id"`
+	TotalSize      int64     `db:"total_storage_size"`
+	UsedSize       int64     `db:"used_storage_size"`
+	TotalBandwidth int64     `db:"total_bandwidth"`
+	PeakBandwidth  int64     `db:"peak_bandwidth"`
+	DownloadCount  int64     `db:"download_count"`
+	Time           time.Time `db:"time"`
 }

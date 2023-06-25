@@ -210,7 +210,6 @@ func queryDeviceStatisticHourly(deviceID, startTime, endTime string) []*dao.Devi
 	condition := &model.DeviceInfoHour{
 		DeviceID: deviceID,
 	}
-
 	list, err := dao.GetDeviceInfoDailyHourList(context.Background(), condition, option)
 	if err != nil {
 		log.Errorf("get incoming hour daily: %v", err)
@@ -267,24 +266,22 @@ func GetDeviceInfoHandler(c *gin.Context) {
 	info := &model.DeviceInfo{}
 	info.UserID = c.Query("user_id")
 	info.DeviceID = c.Query("device_id")
-	info.DeviceStatus = c.Query("device_status")
 	info.IpLocation = c.Query("ip_location")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 	order := c.Query("order")
 	orderField := c.Query("order_field")
-	nodeType, _ := strconv.ParseInt(c.Query("node_type"), 10, 64)
-	info.NodeType = int32(nodeType)
+	nodeTypeStr := c.Query("node_type")
+	if nodeTypeStr != "" {
+		nodeType, _ := strconv.ParseInt(nodeTypeStr, 10, 64)
+		info.NodeType = nodeType
+	}
 	activeStatusStr := c.Query("active_status")
 	if activeStatusStr == "" {
-		info.ActiveStatus = 1
+		info.ActiveStatus = 10
 	} else {
 		activeStatus, _ := strconv.ParseInt(activeStatusStr, 10, 64)
-		info.ActiveStatus = int32(activeStatus)
-	}
-	info.BindStatus = c.Query("bind_status")
-	if info.BindStatus == "" {
-		info.BindStatus = "binding"
+		info.ActiveStatus = activeStatus
 	}
 	deviceStatus := c.Query("device_status")
 
@@ -301,6 +298,39 @@ func GetDeviceInfoHandler(c *gin.Context) {
 		OrderField: orderField,
 	}
 	list, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
+	if err != nil {
+		log.Errorf("get device info list: %v", err)
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list":  list,
+		"total": total,
+	}))
+}
+
+func GetDeviceActiveInfoHandler(c *gin.Context) {
+	info := &model.DeviceInfo{}
+	info.UserID = c.Query("user_id")
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+	page, _ := strconv.Atoi(c.Query("page"))
+	order := c.Query("order")
+	orderField := c.Query("order_field")
+	activeStatusStr := c.Query("active_status")
+	if activeStatusStr == "" {
+		info.ActiveStatus = 10
+	} else {
+		activeStatus, _ := strconv.ParseInt(activeStatusStr, 10, 64)
+		info.ActiveStatus = activeStatus
+	}
+	option := dao.QueryOption{
+		Page:       page,
+		PageSize:   pageSize,
+		Order:      order,
+		OrderField: orderField,
+	}
+	list, total, err := dao.GetDeviceActiveInfoList(c.Request.Context(), info, option)
 	if err != nil {
 		log.Errorf("get device info list: %v", err)
 		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
@@ -351,7 +381,7 @@ func GetNodesInfoHandler(c *gin.Context) {
 	order := c.Query("order")
 	orderField := c.Query("order_field")
 	nodeType, _ := strconv.ParseInt(c.Query("node_type"), 10, 64)
-	info.NodeType = int32(nodeType)
+	info.NodeType = nodeType
 	option := dao.QueryOption{
 		Page:       page,
 		PageSize:   pageSize,
@@ -370,6 +400,7 @@ func GetNodesInfoHandler(c *gin.Context) {
 		"total": total,
 	}))
 }
+
 func handleNodesRank(nodes *[]model.NodesInfo) *[]model.NodesInfo {
 	var nodesRank []model.NodesInfo
 	for i, info := range *nodes {
@@ -390,7 +421,7 @@ func GetMapInfoHandler(c *gin.Context) {
 	order := c.Query("order")
 	orderField := c.Query("order_field")
 	nodeType, _ := strconv.ParseInt(c.Query("node_type"), 10, 64)
-	info.NodeType = int32(nodeType)
+	info.NodeType = nodeType
 	info.ActiveStatus = 1
 	option := dao.QueryOption{
 		Page:       page,
@@ -437,12 +468,15 @@ func GetDeviceDiagnosisHourHandler(c *gin.Context) {
 	start := c.Query("from")
 	end := c.Query("to")
 	m := queryDeviceStatisticHourly(deviceID, start, end)
+	if len(m) < 1 {
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		return
+	}
 	deviceInfo, err := dao.GetDeviceInfoByID(c.Request.Context(), deviceID)
 	if err != nil {
 		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
-
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"series_data":  m,
 		"cpu_cores":    deviceInfo.CpuCores,
@@ -479,5 +513,15 @@ func GetDeviceInfoDailyHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"list":  list,
 		"total": total,
+	}))
+}
+
+func GetDiskDaysHandler(c *gin.Context) {
+	//date := c.Query("date")
+	start := c.Query("from")
+	end := c.Query("to")
+	m := dao.QueryNodesDailyInfo(start, end)
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"series_data": m,
 	}))
 }

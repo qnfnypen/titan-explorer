@@ -21,8 +21,9 @@ const (
 )
 
 type login struct {
-	Username string `form:"username" json:"username" binding:"required"`
-	Password string `form:"password" json:"password" binding:"required"`
+	Username   string `form:"username" json:"username" binding:"required"`
+	Password   string `form:"password" json:"password" binding:"required"`
+	VerifyCode string `form:"verify_code" json:"verify_code" binding:"required"`
 }
 
 type loginResponse struct {
@@ -69,20 +70,32 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 		},
 		Authenticator: func(c *gin.Context) (interface{}, error) {
 			var loginParams login
-			if err := c.ShouldBind(&loginParams); err != nil {
+			loginParams.Username = c.Query("username")
+			loginParams.VerifyCode = c.Query("verify_code")
+			loginParams.Password = c.Query("password")
+			if loginParams.Username == "" {
 				return "", jwt.ErrMissingLoginValues
 			}
-
+			if loginParams.VerifyCode == "" && loginParams.Password == "" {
+				return "", jwt.ErrMissingLoginValues
+			}
 			userID := loginParams.Username
 			password := loginParams.Password
+			verifyCode := loginParams.VerifyCode
 			userAgent := c.Request.Header.Get("User-Agent")
 			ua := user_agent.New(userAgent)
 			os := ua.OS()
 			explorer, _ := ua.Browser()
 			clientIP := utils.GetClientIP(c.Request)
 			location := utils.GetLocationByIP(clientIP)
+			var err error
+			var user interface{}
+			if verifyCode != "" {
+				user, err = loginByVerifyCode(c.Request.Context(), userID, verifyCode)
+			} else {
+				user, err = loginByPassword(c.Request.Context(), userID, password)
+			}
 
-			user, err := loginByPassword(c.Request.Context(), userID, password)
 			if err != nil {
 				oplog.AddLoginLog(&model.LoginLog{
 					IpAddress:     clientIP,
@@ -114,9 +127,9 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			return false
 		},
 		Unauthorized: func(c *gin.Context, code int, message string) {
-			c.JSON(code, gin.H{
-				"code":    code,
-				"message": message,
+			c.JSON(200, gin.H{
+				"code":    200,
+				"msg":     message,
 				"success": false,
 			})
 		},
@@ -150,6 +163,27 @@ func loginByPassword(ctx context.Context, username, password string) (interface{
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PassHash), []byte(password)); err != nil {
 		log.Errorf("can't compare hash %s ans password %s: %v", user.PassHash, password, err)
 		return nil, errors.ErrInvalidPassword
+	}
+
+	return &model.User{Uuid: user.Uuid, Username: user.Username, Role: user.Role}, nil
+}
+
+func loginByVerifyCode(ctx context.Context, username, userVerifyCode string) (interface{}, error) {
+	verifyCode, err := GetVerifyCode(ctx, username+"2")
+	if err != nil {
+		log.Errorf("get user by verify code: %v", err)
+		return nil, errors.ErrUnknown
+	}
+	if verifyCode == "" {
+		return nil, errors.ErrVerifyCodeExpired
+	}
+	user, err := dao.GetUserByUsername(ctx, username)
+	if err != nil {
+		log.Errorf("get user by username: %v", err)
+		return nil, errors.ErrUserNotFound
+	}
+	if verifyCode != userVerifyCode {
+		return nil, errors.ErrVerifyCode
 	}
 
 	return &model.User{Uuid: user.Uuid, Username: user.Username, Role: user.Role}, nil

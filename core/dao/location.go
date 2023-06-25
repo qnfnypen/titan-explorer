@@ -20,6 +20,7 @@ func GetLocationInfoByIp(ctx context.Context, ip string, out *model.Location) er
 	}
 	return nil
 }
+
 func UpsertLocationInfo(ctx context.Context, out *model.Location) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
 		`INSERT INTO %s (ip, continent, country, province, city, longitude, latitude,area_code, isp, 

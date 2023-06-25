@@ -4,7 +4,9 @@ import (
 	"fmt"
 	logging "github.com/ipfs/go-log/v2"
 	"math"
+	"math/rand"
 	"strconv"
+	"time"
 )
 
 var log = logging.Logger("utils")
@@ -63,4 +65,15 @@ func ToFixed(num float64, precision int) float64 {
 func Decimal(num float64) float64 {
 	num, _ = strconv.ParseFloat(fmt.Sprintf("%.4f", num), 64)
 	return num
+}
+func RandFloat64() float64 {
+	rand.Seed(time.Now().UnixNano())
+	randInt := rand.Intn(100)
+	var randFloat float64
+	if randInt%2 == 0 {
+		randFloat = float64(randInt)
+	} else {
+		randFloat = -float64(randInt)
+	}
+	return randFloat
 }

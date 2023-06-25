@@ -5,11 +5,22 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/utils"
 	"strings"
 	"time"
 )
 
-var tableNameDeviceInfo = "device_info"
+var (
+	tableNameDeviceInfo = "device_info"
+)
+
+const increase = 0.00111
+
+type ActiveInfoOut struct {
+	DeviceId     string `db:"device_id" json:"device_id"`
+	ActiveStatus string `db:"active_status" json:"active_status"`
+	Secret       string `db:"secret" json:"secret"`
+}
 
 func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option QueryOption) ([]*model.DeviceInfo, int64, error) {
 	var args []interface{}
@@ -22,13 +33,15 @@ func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option Query
 		where += ` AND bind_status = ?`
 		args = append(args, cond.BindStatus)
 	}
-	where += ` AND active_status = ?`
-	args = append(args, cond.ActiveStatus)
+	if cond.ActiveStatus < 10 {
+		where += ` AND active_status = ?`
+		args = append(args, cond.ActiveStatus)
+	}
+	//where += ` AND active_status = ?`
+	//args = append(args, cond.ActiveStatus)
 	if cond.UserID != "" {
 		where += ` AND user_id = ?`
 		args = append(args, cond.UserID)
-	} else {
-		where += ` AND user_id <> ''`
 	}
 	if cond.DeviceStatus != "" && cond.DeviceStatus != "allDevices" {
 		where += ` AND device_status = ?`
@@ -75,6 +88,59 @@ func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option Query
 	return handleIpInfo(out), total, err
 }
 
+func GetDeviceActiveInfoList(ctx context.Context, cond *model.DeviceInfo, option QueryOption) ([]*ActiveInfoOut, int64, error) {
+	var args []interface{}
+	where := `WHERE a.device_id <> ''`
+	if cond.DeviceID != "" {
+		where += ` AND a.device_id = ?`
+		args = append(args, cond.DeviceID)
+	}
+	if cond.BindStatus != "" {
+		where += ` AND b.bind_status = ?`
+		args = append(args, cond.BindStatus)
+	}
+	if cond.ActiveStatus < 10 {
+		where += ` AND b.active_status = ?`
+		args = append(args, cond.ActiveStatus)
+	}
+	if cond.UserID != "" {
+		where += ` AND a.user_id = ?`
+		args = append(args, cond.UserID)
+	}
+
+	if option.Order != "" && option.OrderField != "" {
+		where += fmt.Sprintf(` ORDER BY %s %s`, option.OrderField, option.Order)
+	}
+
+	limit := option.PageSize
+	offset := option.Page
+	if option.PageSize <= 0 {
+		limit = 500
+	}
+	if option.Page > 0 {
+		offset = limit * (option.Page - 1)
+	}
+
+	var total int64
+
+	err := DB.GetContext(ctx, &total, fmt.Sprintf(
+		`SELECT count(*)  FROM %s a LEFT JOIN %s b on a.device_id = b.device_id %s`, tableNameApplicationResult, tableNameDeviceInfo, where,
+	), args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	var out []*ActiveInfoOut
+	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
+		`SELECT a.device_id,b.active_status,a.secret FROM %s a LEFT JOIN %s b on a.device_id = b.device_id %s ORDER BY device_rank LIMIT %d OFFSET %d`, tableNameApplicationResult, tableNameDeviceInfo, where, limit, offset,
+	), args...)
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return out, total, err
+}
+
 func handleIpInfo(in []*model.DeviceInfo) []*model.DeviceInfo {
 	for _, deviceInfo := range in {
 		eIp := strings.Split(deviceInfo.ExternalIp, ".")
@@ -82,7 +148,7 @@ func handleIpInfo(in []*model.DeviceInfo) []*model.DeviceInfo {
 			deviceInfo.ExternalIp = eIp[0] + "." + "xxx" + "." + "xxx" + "." + eIp[3]
 		}
 		iIp := strings.Split(deviceInfo.InternalIp, ".")
-		if len(eIp) > 3 {
+		if len(iIp) > 3 {
 			deviceInfo.InternalIp = iIp[0] + "." + "xxx" + "." + "xxx" + "." + iIp[3]
 		}
 	}
@@ -144,13 +210,23 @@ func GetDeviceInfoListByKey(ctx context.Context, cond *model.DeviceInfo, option 
 		return nil, 0, err
 	}
 
-	return out, total, err
+	return handleIpInfo(out), total, err
 }
 
 func HandleMapInfo(in []*model.DeviceInfo) []map[string]interface{} {
 	type MapObject map[string]interface{}
 	var mapInfoOut []map[string]interface{}
+	mapLocationExit := make(map[float64]float64)
 	for _, m := range in {
+		if m.DeviceStatus == "offline" {
+			continue
+		}
+		Latitude, ok := mapLocationExit[m.Longitude]
+		mapLocationExit[m.Longitude] = m.Latitude
+		if ok && Latitude == m.Latitude {
+			m.Latitude += utils.RandFloat64() / 10000
+			m.Longitude += utils.RandFloat64() / 10000
+		}
 		mapInfoOut = append(mapInfoOut, MapObject{
 			"name":     m.IpCity,
 			"nodeType": m.NodeType,
@@ -218,6 +294,13 @@ func UpdateDeviceName(ctx context.Context, deviceInfo *model.DeviceInfo) error {
 	return err
 }
 
+func UpdateDeviceStatus(ctx context.Context, deviceInfo *model.DeviceInfo) error {
+	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
+		`UPDATE %s SET updated_at = now(),device_status = :device_status WHERE device_id = :device_id`, tableNameDeviceInfo),
+		deviceInfo)
+	return err
+}
+
 func BulkUpsertDeviceInfo(ctx context.Context, deviceInfos []*model.DeviceInfo) error {
 	statement := upsertDeviceInfoStatement()
 	_, err := DB.NamedExecContext(ctx, statement, deviceInfos)
@@ -240,28 +323,26 @@ func BulkUpdateDeviceInfo(ctx context.Context, deviceInfos []*model.DeviceInfo) 
 
 func upsertDeviceInfoStatement() string {
 	insertStatement := fmt.Sprintf(
-		`INSERT INTO %s (device_id, node_type, device_name, user_id, sn_code, operator,
-				network_type, system_version, product_type, active_status,
-				network_info, external_ip, internal_ip, ip_location, ip_country, ip_province, ip_city, latitude, longitude, mac_location, nat_type, upnp,
-				pkg_loss_ratio, nat_ratio, latency, cpu_usage, memory_usage, cpu_cores, memory, disk_usage, disk_space, work_status,
-				device_status, disk_type, io_system, online_time, today_online_time, today_profit, 
-				yesterday_profit, seven_days_profit, month_profit, cumulative_profit, bandwidth_up, bandwidth_down, created_at, updated_at)
-			VALUES (:device_id, :node_type, :device_name, :user_id, :sn_code, :operator,
-			    :network_type, :system_version, :product_type, :active_status,
-			    :network_info, :external_ip, :internal_ip, :ip_location, :ip_country, :ip_province, :ip_city, :latitude, :longitude, :mac_location, :nat_type, :upnp, 
-			    :pkg_loss_ratio, :nat_ratio, :latency, :cpu_usage, :memory_usage, :cpu_cores, :memory, :disk_usage, :disk_space, :work_status, 
-			    :device_status, :disk_type, :io_system, :online_time, :today_online_time, :today_profit,
-				:yesterday_profit, :seven_days_profit, :month_profit, :cumulative_profit, :bandwidth_up, :bandwidth_down, now(), now())`, tableNameDeviceInfo,
+		`INSERT INTO %s (
+                	device_id, node_type, device_name, user_id, system_version,  active_status,network_info, external_ip, internal_ip, ip_location,
+                	ip_country, ip_province, ip_city, latitude, longitude, mac_location, cpu_usage, memory_usage, cpu_cores, memory, disk_usage, disk_space,
+                	device_status, io_system, online_time, today_online_time, today_profit, yesterday_profit, seven_days_profit, month_profit,
+                	cumulative_profit, bandwidth_up, bandwidth_down,download_traffic,upload_traffic, created_at, updated_at, bound_at,cache_count,retrieval_count
+                	)
+				VALUES (
+					:device_id, :node_type, :device_name, :user_id,  :system_version, :active_status,:network_info, :external_ip, :internal_ip, :ip_location,
+					:ip_country, :ip_province, :ip_city, :latitude, :longitude, :mac_location,:cpu_usage, :memory_usage, :cpu_cores, :memory, :disk_usage, :disk_space,
+					:device_status, :io_system, :online_time, :today_online_time, :today_profit,:yesterday_profit, :seven_days_profit, :month_profit,
+					:cumulative_profit, :bandwidth_up, :bandwidth_down,:download_traffic,:upload_traffic, now(), now(),:bound_at,:cache_count,:retrieval_count
+				)`, tableNameDeviceInfo,
 	)
-	updateStatement := ` ON DUPLICATE KEY UPDATE node_type = VALUES(node_type),  device_name = VALUES(device_name),
-				sn_code = VALUES(sn_code),  operator = VALUES(operator), network_type = VALUES(network_type), active_status = VALUES(active_status),
-				system_version = VALUES(system_version),  product_type = VALUES(product_type), network_info = VALUES(network_info), cumulative_profit = VALUES(cumulative_profit),
-				external_ip = VALUES(external_ip), internal_ip = VALUES(internal_ip), ip_location = VALUES(ip_location), ip_country = VALUES(ip_country), ip_province = VALUES(ip_province), ip_city = VALUES(ip_city), 
-				latitude = VALUES(latitude), longitude = VALUES(longitude), mac_location = VALUES(mac_location),  nat_type = VALUES(nat_type),  upnp = VALUES(upnp), 
-				pkg_loss_ratio = VALUES(pkg_loss_ratio), online_time = VALUES(online_time),
-				nat_ratio = VALUES(nat_ratio), latency = VALUES(latency),  cpu_usage = VALUES(cpu_usage), cpu_cores = VALUES(cpu_cores),  memory_usage = VALUES(memory_usage), memory = VALUES(memory),
-				disk_usage = VALUES(disk_usage), disk_space = VALUES(disk_space), work_status = VALUES(work_status), device_status = VALUES(device_status),  disk_type = VALUES(disk_type),
-				io_system = VALUES(io_system), bandwidth_up = VALUES(bandwidth_up), bandwidth_down = VALUES(bandwidth_down), updated_at = now()`
+	updateStatement := ` ON DUPLICATE KEY UPDATE node_type = VALUES(node_type),  device_name = VALUES(device_name),active_status = VALUES(active_status),
+				system_version = VALUES(system_version), network_info = VALUES(network_info), cumulative_profit = VALUES(cumulative_profit),
+				external_ip = VALUES(external_ip), internal_ip = VALUES(internal_ip), ip_location = VALUES(ip_location), ip_country = VALUES(ip_country), 
+				ip_province = VALUES(ip_province), ip_city = VALUES(ip_city),latitude = VALUES(latitude), longitude = VALUES(longitude), mac_location = VALUES(mac_location),
+				online_time = VALUES(online_time),cpu_usage = VALUES(cpu_usage), cpu_cores = VALUES(cpu_cores),  memory_usage = VALUES(memory_usage), memory = VALUES(memory),
+				disk_usage = VALUES(disk_usage), disk_space = VALUES(disk_space), device_status = VALUES(device_status),io_system = VALUES(io_system), bandwidth_up = VALUES(bandwidth_up),
+				bandwidth_down = VALUES(bandwidth_down),download_traffic = VALUES(download_traffic),upload_traffic = VALUES(upload_traffic), updated_at = now(),bound_at = VALUES(bound_at),cache_count = VALUES(cache_count),retrieval_count = VALUES(retrieval_count)`
 	return insertStatement + updateStatement
 }
 
@@ -277,7 +358,8 @@ func GetAllAreaFromDeviceInfo(ctx context.Context) ([]string, error) {
 
 func SumFullNodeInfoFromDeviceInfo(ctx context.Context) (*model.FullNodeInfo, error) {
 	queryStatement := fmt.Sprintf(`SELECT count( device_id ) AS total_node_count ,  SUM(IF(node_type = 1, 1, 0)) AS edge_count, 
-       SUM(IF(node_type = 2, 1, 0)) AS candidate_count,
+       SUM(IF(node_type = 2, 1, 0)) AS candidate_count,sum(cache_count) as t_upstream_file_count,
+       count(device_status = 'online' or null) as online_node_count,
        SUM(IF(node_type = 3, 1, 0)) AS validator_count, ROUND(count(device_status = 'online' or null)/count( device_id )*100,2) AS t_node_online_ratio,
        ROUND(SUM( disk_space),4) AS total_storage, ROUND(SUM( disk_usage*disk_space/100),4) AS storage_used, 
        ROUND(SUM(bandwidth_up),2) AS total_upstream_bandwidth, ROUND(SUM(bandwidth_down),2) AS total_downstream_bandwidth FROM %s where active_status = 1;`, tableNameDeviceInfo)
@@ -330,7 +412,7 @@ func RankDeviceInfo(ctx context.Context) error {
 
 func GenerateInactiveNodeRecords(ctx context.Context, t time.Time) error {
 	var inactiveNodeIds []model.DeviceInfo
-	query := fmt.Sprintf("SELECT device_id,block_count,download_count,total_upload,total_download FROM %s where updated_at < ?", tableNameDeviceInfo)
+	query := fmt.Sprintf("SELECT * FROM %s where updated_at < ?", tableNameDeviceInfo)
 	err := DB.SelectContext(ctx, &inactiveNodeIds, query, t)
 	if err != nil {
 		return err
@@ -345,12 +427,17 @@ func GenerateInactiveNodeRecords(ctx context.Context, t time.Time) error {
 			log.Errorf("get inactive node last record,%s: %v", deviceInfo.DeviceID, err)
 			continue
 		}
+		newDIH.CreatedAt = time.Now()
+		newDIH.UpdatedAt = time.Now()
 		newDIH.Time = t
-		newDIH.BlockCount = deviceInfo.BlockCount
-		newDIH.RetrievalCount = deviceInfo.DownloadCount
+		newDIH.OnlineTime = deviceInfo.OnlineTime
+		newDIH.DiskUsage = deviceInfo.DiskUsage
+		newDIH.DiskSpace = deviceInfo.DiskSpace
+		newDIH.BlockCount = deviceInfo.CacheCount
+		newDIH.RetrievalCount = deviceInfo.RetrievalCount
 		newDIH.UserID = deviceInfo.UserID
-		newDIH.UpstreamTraffic = deviceInfo.TotalUpload
-		newDIH.DownstreamTraffic = deviceInfo.TotalDownload
+		newDIH.UpstreamTraffic = deviceInfo.UploadTraffic
+		newDIH.DownstreamTraffic = deviceInfo.DownloadTraffic
 		inactiveNodes = append(inactiveNodes, &newDIH)
 	}
 
@@ -359,7 +446,7 @@ func GenerateInactiveNodeRecords(ctx context.Context, t time.Time) error {
 
 func GetDeviceInfo(ctx context.Context, deviceId string) model.DeviceInfo {
 	var deviceInfo model.DeviceInfo
-	query := fmt.Sprintf("SELECT device_id,block_count,download_count,user_id,total_upload,total_download FROM %s where device_id = '%s'", tableNameDeviceInfo, deviceId)
+	query := fmt.Sprintf("SELECT user_id FROM %s where device_id = '%s'", tableNameDeviceInfo, deviceId)
 	err := DB.QueryRowxContext(ctx, query).StructScan(&deviceInfo)
 	if err != nil {
 		log.Errorf("getDeviceInfo %v", err)
@@ -373,6 +460,14 @@ func GetDeviceInfoById(ctx context.Context, deviceId string) model.DeviceInfo {
 	err := DB.QueryRowxContext(ctx, query).StructScan(&deviceInfo)
 	if err != nil {
 		log.Errorf("getDeviceInfo %v", err)
+	}
+	eIp := strings.Split(deviceInfo.ExternalIp, ".")
+	if len(eIp) > 3 {
+		deviceInfo.ExternalIp = eIp[0] + "." + "xxx" + "." + "xxx" + "." + eIp[3]
+	}
+	iIp := strings.Split(deviceInfo.InternalIp, ".")
+	if len(iIp) > 3 {
+		deviceInfo.InternalIp = iIp[0] + "." + "xxx" + "." + "xxx" + "." + iIp[3]
 	}
 	return deviceInfo
 }

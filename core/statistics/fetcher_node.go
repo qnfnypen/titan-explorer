@@ -53,19 +53,59 @@ loop:
 			continue
 		}
 		nodeInfo := toDeviceInfo(ctx, node)
-		if node.IsOnline {
-			nodeInfo.DeviceStatus = "online"
-		} else {
+		switch node.Status {
+		case 0:
 			nodeInfo.DeviceStatus = "offline"
+			nodeInfo.DeviceID = node.NodeID
+			// just update device status
+			_ = dao.UpdateDeviceStatus(ctx, nodeInfo)
+			continue
+		case 1:
+			nodeInfo.DeviceStatus = "online"
+		default:
+			nodeInfo.DeviceStatus = node.Status.String()
 		}
 		//nodeInfo.IpLocation = scheduler.AreaId
+		nodeInfo.ActiveStatus = 1
+		nodeInfo.CpuUsage = node.CPUUsage
+		nodeInfo.MemoryUsage = node.MemoryUsage
+		nodeInfo.BandwidthUp = float64(node.BandwidthUp)
+		nodeInfo.BandwidthDown = float64(node.BandwidthDown)
+		nodeInfo.DiskSpace = node.DiskSpace
+		nodeInfo.DiskUsage = node.DiskUsage
 		nodeInfo.CumulativeProfit = node.Profit
 		nodeInfo.DeviceID = node.NodeID
 		nodeInfo.DeviceName = node.NodeName
 		nodeInfo.OnlineTime = float64(node.OnlineDuration)
-		nodeInfo.NodeType = int32(node.Type)
-		//nodeInfo.TotalUpload = utils.ToFixed(node.UploadTraffic/megaBytes, 4)
-		//nodeInfo.TotalDownload = utils.ToFixed(node.DownloadTraffic/megaBytes, 4)
+		nodeInfo.NodeType = int64(node.Type)
+		nodeInfo.UploadTraffic = float64(node.UploadTraffic)
+		nodeInfo.DownloadTraffic = float64(node.DownloadTraffic)
+		nodeInfo.CacheCount = node.AssetCount
+		nodeInfo.RetrievalCount = node.RetrieveCount
+		nodeInfo.ExternalIp = node.ExternalIP
+		nodeInfo.InternalIp = node.InternalIP
+		nodeInfo.BoundAt = node.FirstTime
+		var loc model.Location
+		if node.ExternalIP != "" {
+			err = GetIpLocation(ctx, node.ExternalIP, &loc)
+			if err != nil {
+				log.Errorf("%v", err)
+				GetGip(nodeInfo)
+
+			} else {
+				nodeInfo.NetworkInfo = loc.Isp
+				nodeInfo.IpProvince = loc.Province
+				continent := loc.Continent
+				nodeInfo.IpCountry = loc.Country
+				nodeInfo.IpCity = loc.City
+				nodeInfo.IpLocation = continent + "-" + nodeInfo.IpCountry + "-" + nodeInfo.IpProvince
+				if nodeInfo.IpCity != "" {
+					nodeInfo.IpLocation += "-" + nodeInfo.IpCity
+				}
+				nodeInfo.Longitude, _ = strconv.ParseFloat(loc.Longitude, 64)
+				nodeInfo.Latitude, _ = strconv.ParseFloat(loc.Latitude, 64)
+			}
+		}
 		nodes = append(nodes, nodeInfo)
 	}
 	if len(nodes) < 1 {
@@ -116,9 +156,10 @@ func toDeviceInfo(ctx context.Context, v interface{}) *model.DeviceInfo {
 	}
 	deviceInfo.CpuUsage = utils.ToFixed(deviceInfo.CpuUsage, 2)
 	deviceInfo.MemoryUsage = utils.ToFixed(deviceInfo.MemoryUsage, 2)
-	deviceInfo.BandwidthUp = utils.ToFixed(deviceInfo.BandwidthUp/gigaBytes, 2)
-	deviceInfo.BandwidthDown = utils.ToFixed(deviceInfo.BandwidthDown/gigaBytes, 2)
-	deviceInfo.DiskSpace = utils.ToFixed(deviceInfo.DiskSpace/teraBytes, 4)
+	//deviceInfo.BandwidthUp = utils.ToFixed(deviceInfo.BandwidthUp/gigaBytes, 2)
+	deviceInfo.BandwidthUp = utils.ToFixed(deviceInfo.BandwidthUp, 2)
+	deviceInfo.BandwidthDown = utils.ToFixed(deviceInfo.BandwidthDown, 2)
+	deviceInfo.DiskSpace = utils.ToFixed(deviceInfo.DiskSpace, 2)
 	deviceInfo.DiskUsage = utils.ToFixed(deviceInfo.DiskUsage, 2)
 	deviceInfo.ActiveStatus = 1
 	var loc model.Location

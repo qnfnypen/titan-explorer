@@ -2,12 +2,17 @@ package statistics
 
 import (
 	"fmt"
+	"github.com/Filecoin-Titan/titan/api"
+	"github.com/Filecoin-Titan/titan/api/client"
+	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/bsm/redislock"
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/robfig/cron/v3"
 	"golang.org/x/net/context"
+	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -22,6 +27,8 @@ const (
 
 const LockerTTL = 30 * time.Second
 const statisticLockerKeyPrefix = "TITAN::STATISTIC"
+
+var SchedulerConfigs map[string][]*types.SchedulerCfg
 
 type Statistic struct {
 	ctx        context.Context
@@ -46,10 +53,11 @@ func New(cfg config.StatisticsConfig, scheduler []*Scheduler) *Statistic {
 		locker:     redislock.New(dao.Cache),
 		fetchers: []Fetcher{
 			newNodeFetcher(),
-			newCacheFetcher(),
-			newRetrievalFetcher(),
-			newValidationFetcher(),
+			//newCacheFetcher(),
+			//newRetrievalFetcher(),
+			//newValidationFetcher(),
 			newSystemInfoFetcher(),
+			newStorageFetcher(),
 		},
 	}
 
@@ -151,4 +159,21 @@ func (s *Statistic) asyncExecute(jobs []func() error) {
 		}(job)
 	}
 	wg.Wait()
+}
+
+func GetNewScheduler(ctx context.Context, areaId string) api.Scheduler {
+	scheduler, _ := SchedulerConfigs[areaId]
+	if len(scheduler) < 1 {
+		scheduler = SchedulerConfigs["Asia-China-Guangdong-Shenzhen"]
+	}
+	schedulerApiUrl := scheduler[0].SchedulerURL
+	schedulerApiToken := scheduler[0].AccessToken
+	SchedulerURL := strings.Replace(schedulerApiUrl, "https", "http", 1)
+	headers := http.Header{}
+	headers.Add("Authorization", "Bearer "+schedulerApiToken)
+	schedulerClient, _, err := client.NewScheduler(ctx, SchedulerURL, headers)
+	if err != nil {
+		log.Errorf("create scheduler rpc client: %v", err)
+	}
+	return schedulerClient
 }

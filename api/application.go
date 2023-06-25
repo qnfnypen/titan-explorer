@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
@@ -27,13 +28,14 @@ func CreateApplicationHandler(c *gin.Context) {
 		params.Amount = 1
 	}
 
-	if params.Amount > 500 {
+	if params.Amount > 10 {
 		c.JSON(http.StatusOK, respError(errors.ErrAmountLimitExceeded))
 		return
 	}
 
 	params.CreatedAt = time.Now()
 	params.UpdatedAt = time.Now()
+	params.NodeType = 1
 	params.Status = dao.ApplicationStatusCreated
 	params.Ip = utils.GetClientIP(c.Request)
 	if err := dao.AddApplication(c.Request.Context(), &params); err != nil {
@@ -41,7 +43,7 @@ func CreateApplicationHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
-
+	ApplicationC <- true
 	c.JSON(http.StatusOK, respJSON(nil))
 }
 
@@ -66,6 +68,28 @@ func GetApplicationsHandler(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"list":  applications,
+		"total": total,
+	}))
+}
+
+func GetApplicationAmountHandler(c *gin.Context) {
+	userID := c.Query("user_id")
+	option := dao.QueryOption{
+		UserID: userID,
+	}
+	total, err := dao.GetApplicationAmount(c.Request.Context(), option)
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusOK, respJSON(JsonObject{
+			"total": total,
+		}))
+		return
+	}
+	if err != nil {
+		log.Errorf("get applications: %v", err)
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		return
+	}
+	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"total": total,
 	}))
 }

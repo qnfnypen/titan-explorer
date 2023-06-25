@@ -3,6 +3,7 @@ package statistics
 import (
 	"context"
 	"fmt"
+	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/utils"
@@ -21,17 +22,18 @@ func addDeviceInfoHours(ctx context.Context, deviceInfo []*model.DeviceInfo) err
 	for _, device := range deviceInfo {
 		var deviceInfoHour model.DeviceInfoHour
 		deviceOrdinaryInfo := dao.GetDeviceInfo(ctx, device.DeviceID)
-		deviceInfoHour.RetrievalCount = deviceOrdinaryInfo.DownloadCount
-		deviceInfoHour.BlockCount = deviceOrdinaryInfo.BlockCount
+		deviceInfoHour.RetrievalCount = device.RetrievalCount
+		deviceInfoHour.BlockCount = device.CacheCount
 		deviceInfoHour.DeviceID = device.DeviceID
 		deviceInfoHour.UserID = deviceOrdinaryInfo.UserID
 		deviceInfoHour.Time = start
 		deviceInfoHour.DiskUsage = device.DiskUsage
-		deviceInfoHour.PkgLossRatio = device.PkgLossRatio
+		deviceInfoHour.DiskSpace = device.DiskSpace
 		deviceInfoHour.HourIncome = device.CumulativeProfit
-		deviceInfoHour.Latency = device.Latency
-		deviceInfoHour.UpstreamTraffic = deviceOrdinaryInfo.TotalUpload
-		deviceInfoHour.DownstreamTraffic = deviceOrdinaryInfo.TotalDownload
+		deviceInfoHour.BandwidthUp = device.BandwidthUp
+		deviceInfoHour.BandwidthDown = device.BandwidthDown
+		deviceInfoHour.UpstreamTraffic = device.UploadTraffic
+		deviceInfoHour.DownstreamTraffic = device.DownloadTraffic
 		deviceInfoHour.OnlineTime = device.OnlineTime
 		deviceInfoHour.CreatedAt = time.Now()
 		deviceInfoHour.UpdatedAt = time.Now()
@@ -85,16 +87,21 @@ func (s *Statistic) SumDeviceInfoDaily() error {
 
 	startOfTodayTime := carbon.Now().StartOfDay().String()
 	endOfTodayTime := carbon.Now().Tomorrow().StartOfDay().String()
-	sqlClause := fmt.Sprintf(`select user_id, device_id, date_format(time, '%%Y-%%m-%%d') as date, 
-			avg(nat_ratio) as nat_ratio, avg(disk_usage) as disk_usage, avg(disk_space) as disk_space,avg(latency) as latency, 
-			avg(pkg_loss_ratio) as pkg_loss_ratio, 
-			max(hour_income) - min(hour_income) as hour_income,
-			max(online_time) - min(online_time) as online_time,
-			max(upstream_traffic) - min(upstream_traffic) as upstream_traffic,
-			max(downstream_traffic) - min(downstream_traffic) as downstream_traffic,
-			max(retrieval_count) - min(retrieval_count) as retrieval_count,
-			max(block_count) - min(block_count)   as block_count  from device_info_hour                                                                                      
-			where time>='%s' and time<='%s' group by device_id`, startOfTodayTime, endOfTodayTime)
+	var total int64
+	where := fmt.Sprintf("where time>='%s' and time<='%s'", startOfTodayTime, endOfTodayTime)
+	err := dao.DB.GetContext(s.ctx, &total, fmt.Sprintf(
+		`SELECT count(*) FROM %s %s`, "device_info_hour", where,
+	))
+	sqlClause := fmt.Sprintf(`select i.user_id, i.device_id, date_format(i.time, '%%Y-%%m-%%d') as date, 
+			i.nat_ratio, i.disk_usage, i.disk_space,i.latency, i.pkg_loss_ratio, i.bandwidth_up, i.bandwidth_down, 
+			max(i.hour_income) - min(i.hour_income) as hour_income,
+			max(i.online_time) - min(i.online_time) as online_time,
+			max(i.upstream_traffic) - min(i.upstream_traffic) as upstream_traffic,
+			max(i.downstream_traffic) - min(i.downstream_traffic) as downstream_traffic,
+			max(i.retrieval_count) - min(i.retrieval_count) as retrieval_count,
+			max(i.block_count) - min(i.block_count) as block_count
+			from (select * from device_info_hour %s order by id desc limit %d) i                                                                                   
+			group by device_id`, where, total)
 	dataList, err := dao.GetQueryDataList(sqlClause)
 	if err != nil {
 		return err
@@ -119,6 +126,9 @@ func (s *Statistic) SumDeviceInfoDaily() error {
 		daily.PkgLossRatio = utils.Str2Float64(data["pkg_loss_ratio"])
 		daily.Latency = utils.Str2Float64(data["latency"])
 		daily.DeviceID = data["device_id"]
+		daily.UserID = data["user_id"]
+		daily.BandwidthUp = utils.Str2Float64(data["bandwidth_up"])
+		daily.BandwidthDown = utils.Str2Float64(data["bandwidth_down"])
 		daily.UserID = data["user_id"]
 		daily.CreatedAt = time.Now()
 		daily.UpdatedAt = time.Now()
@@ -222,15 +232,17 @@ func (s *Statistic) SumAllNodes() error {
 		log.Errorf("count full node: %v", err)
 		return err
 	}
-
+	// todo NextElectionTime
 	systemInfo, err := dao.SumSystemInfo(s.ctx)
 	if err != nil {
 		log.Errorf("sum system info: %v", err)
 		return err
 	}
-	ReplicaInfo := dao.GetReplicaInfo(s.ctx)
-	fullNodeInfo.TAverageReplica = ReplicaInfo.TAverageReplica
-	fullNodeInfo.TUpstreamFileCount = ReplicaInfo.TUpstreamFileCount
+	AssetCount := config.GNodesInfo.AssetCount
+	if AssetCount == 0 {
+		AssetCount = 1
+	}
+	fullNodeInfo.TAverageReplica = utils.ToFixed(float64(fullNodeInfo.TUpstreamFileCount)/float64(AssetCount), 2)
 	fullNodeInfo.TotalCarfile = systemInfo.CarFileCount
 	fullNodeInfo.RetrievalCount = systemInfo.DownloadCount
 	fullNodeInfo.NextElectionTime = systemInfo.NextElectionTime
@@ -257,6 +269,19 @@ func (s *Statistic) UpdateDeviceRank() error {
 	start := time.Now()
 	defer func() {
 		log.Infof("rank device info done, cost: %v", time.Since(start))
+	}()
+	if err := dao.RankDeviceInfo(s.ctx); err != nil {
+		log.Errorf("ranking device info: %v", err)
+		return err
+	}
+	return nil
+}
+
+func (s *Statistic) UpdateDeviceLocation() error {
+	log.Info("start to update device location info")
+	start := time.Now()
+	defer func() {
+		log.Infof("update device location done, cost: %v", time.Since(start))
 	}()
 	if err := dao.RankDeviceInfo(s.ctx); err != nil {
 		log.Errorf("ranking device info: %v", err)

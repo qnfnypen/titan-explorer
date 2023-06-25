@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/config"
+	"github.com/gnasnik/titan-explorer/utils"
 	"github.com/go-redis/redis/v9"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang-module/carbon/v2"
 	"github.com/jmoiron/sqlx"
 	"strings"
 	"time"
@@ -106,4 +108,23 @@ func GetQueryDataList(sqlClause string, args ...interface{}) ([]map[string]strin
 	}
 
 	return dataList, nil
+}
+
+func OptionHandle(startTime, endTime string) QueryOption {
+	option := QueryOption{
+		StartTime: startTime,
+		EndTime:   endTime,
+	}
+	if startTime == "" {
+		option.StartTime = carbon.Now().SubDays(14).StartOfDay().String()
+	}
+	if endTime == "" {
+		option.EndTime = carbon.Now().EndOfDay().String()
+	} else {
+		end, _ := time.Parse(utils.TimeFormatDateOnly, endTime)
+		end = end.Add(24 * time.Hour).Add(-time.Second)
+		option.EndTime = end.Format(utils.TimeFormatDatetime)
+	}
+
+	return option
 }

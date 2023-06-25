@@ -2,6 +2,12 @@ package config
 
 var Cfg Config
 
+var GNodesInfo NodesInfo
+
+type NodesInfo struct {
+	AssetCount int64
+}
+
 type Config struct {
 	EtcdAddress     string
 	Mode            string
