@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/client"
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -203,7 +202,6 @@ func fetchSchedulersFromEtcd(locatorApi *EtcdClient) ([]*statistics.Scheduler, e
 			SchedulerURL := strings.Replace(SchedulerCfg.SchedulerURL, "https", "http", 1)
 			headers := http.Header{}
 			headers.Add("Authorization", "Bearer "+SchedulerCfg.AccessToken)
-			fmt.Println(SchedulerURL)
 			client, closeScheduler, err := client.NewScheduler(context.Background(), SchedulerURL, headers)
 			if err != nil {
 				log.Errorf("create scheduler rpc client: %v", err)

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
@@ -10,7 +9,6 @@ import (
 	"github.com/gnasnik/titan-explorer/utils"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 func GetCacheListHandlerold(c *gin.Context) {
@@ -42,8 +40,6 @@ func GetCacheListHandlerold(c *gin.Context) {
 }
 
 func GetCacheListHandler(c *gin.Context) {
-	startT := time.Now().Format(utils.TimeFormatDatetime)
-	fmt.Println("start get get_cache_list:", startT)
 	nodeId := c.Query("device_id")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
@@ -53,20 +49,14 @@ func GetCacheListHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
-	startT = time.Now().Format(utils.TimeFormatDatetime)
-	fmt.Println("api GetReplicaEventsForNode:", startT)
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"list":  resp.ReplicaEvents,
 		"total": resp.Total,
 	}))
-	startT = time.Now().Format(utils.TimeFormatDatetime)
-	fmt.Println("request end :", startT)
 	return
 }
 
 func GetValidationListHandler(c *gin.Context) {
-	startT := time.Now().Format(utils.TimeFormatDatetime)
-	fmt.Println("start get get_validation_list:", startT)
 	nodeId := c.Query("device_id")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
@@ -76,8 +66,6 @@ func GetValidationListHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
-	startT = time.Now().Format(utils.TimeFormatDatetime)
-	fmt.Println("api GetValidationResults:", startT)
 	var validationEvents []*model.ValidationEvent
 	for _, blockInfo := range resp.ValidationResultInfos {
 		validationEvents = append(validationEvents, toValidationEvent(blockInfo))
@@ -87,14 +75,11 @@ func GetValidationListHandler(c *gin.Context) {
 		"list":  validationEvents,
 		"total": resp.Total,
 	}))
-	startT = time.Now().Format(utils.TimeFormatDatetime)
-	fmt.Println("request end :", startT)
 	return
 }
 
 func GetAllocateStorageHandler(c *gin.Context) {
 	UserId := c.Query("user_id")
-	fmt.Println(UserId)
 	var userInfo model.User
 	userInfo.Username = UserId
 	_, err := dao.GetUserByUsername(c.Request.Context(), userInfo.Username)
@@ -126,10 +111,9 @@ func GetStorageSizeHandler(c *gin.Context) {
 	StorageSize, err := schedulerClient.GetUserInfo(c.Request.Context(), UserId)
 	if err != nil {
 		log.Errorf("api GetStorageSize: %v", err)
-		c.JSON(http.StatusOK, respError(err))
+		c.JSON(http.StatusOK, respError(errors.ErrNotFound))
 		return
 	}
-
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"PeakBandwidth": StorageSize.PeakBandwidth,
 		"TotalTraffic":  StorageSize.TotalTraffic,
@@ -144,21 +128,23 @@ func CreateAssetHandler(c *gin.Context) {
 	AssetCID := c.Query("asset_cid")
 	AssetName := c.Query("asset_name")
 	AssetSize := c.Query("asset_size")
+	AssetType := c.Query("asset_type")
 	areaId := dao.GetAreaID(c.Request.Context(), UserId)
 	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
 	var createAssetReq types.CreateAssetReq
 	createAssetReq.AssetName = AssetName
 	createAssetReq.AssetCID = AssetCID
 	createAssetReq.UserID = UserId
+	createAssetReq.AssetType = AssetType
 	createAssetReq.AssetSize = utils.Str2Int64(AssetSize)
 	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &createAssetReq)
-	if createAssetRsp.AlreadyExists {
+	if err != nil {
+		log.Errorf("api CreateAsset: %v", err)
 		c.JSON(http.StatusOK, respError(errors.ErrFileExists))
 		return
 	}
-	if err != nil {
-		log.Errorf("api CreateAsset: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrUnknown))
+	if createAssetRsp.AlreadyExists {
+		c.JSON(http.StatusOK, respError(errors.ErrFileExists))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -241,23 +227,17 @@ func ShareAssetsHandler(c *gin.Context) {
 }
 
 func GetAssetListHandler(c *gin.Context) {
-	startT := time.Now().Format(utils.TimeFormatDatetime)
-	fmt.Println("start get get_asset_list:", startT)
 	UserId := c.Query("user_id")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 	areaId := dao.GetAreaID(c.Request.Context(), UserId)
 	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
-	startT = time.Now().Format(utils.TimeFormatDatetime)
-	fmt.Println("api GetNewScheduler:", startT)
 	createAssetRsp, err := schedulerClient.ListAssets(c.Request.Context(), UserId, pageSize, (page-1)*pageSize)
 	if err != nil {
 		log.Errorf("api ListAssets: %v", err)
 		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
-	startT = time.Now().Format(utils.TimeFormatDatetime)
-	fmt.Println("api ListAssets:", startT)
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"list":  createAssetRsp.AssetRecords,
 		"total": createAssetRsp.Total,
@@ -304,6 +284,119 @@ func GetAssetCountHandler(c *gin.Context) {
 		"area_count":      countArea,
 		"candidate_count": CandidateCount,
 		"edge_count":      edgeCount,
+	}))
+}
+
+func GetCarFileCountHandler(c *gin.Context) {
+	UserId := c.Query("user_id")
+	Cid := c.Query("cid")
+	areaId := dao.GetAreaID(c.Request.Context(), UserId)
+	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
+	AssetRsp, err := schedulerClient.GetAssetRecord(c.Request.Context(), Cid)
+	if err != nil {
+		log.Errorf("GetCarFileCountHandler GetAssetRecord: %v", err)
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		return
+	}
+	var deviceIdAll []string
+	deviceExists := make(map[string]int)
+	if len(AssetRsp.ReplicaInfos) > 0 {
+		for _, rep := range AssetRsp.ReplicaInfos {
+			if rep.Status == 3 {
+				deviceIdAll = append(deviceIdAll, rep.NodeID)
+				continue
+			}
+		}
+	}
+
+	AssetListAll, err := dao.GetAssetList(c.Request.Context(), deviceIdAll)
+	if err != nil {
+		log.Errorf("GetAssetList err: %v", err)
+	}
+	for _, NodeInfo := range AssetListAll {
+		if _, ok := deviceExists[NodeInfo.IpCity]; ok {
+			continue
+		}
+		deviceExists[NodeInfo.IpCity] = 1
+	}
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"cid":               AssetRsp.CID,
+		"cid_name":          AssetRsp.AssetName,
+		"ReplicaInfo_count": len(deviceIdAll),
+		"area_count":        len(deviceExists),
+		"titan_count":       len(deviceIdAll),
+		"fileCoin_count":    0,
+	}))
+}
+
+func GetLocationHandler(c *gin.Context) {
+	UserId := c.Query("user_id")
+	Cid := c.Query("cid")
+	areaId := dao.GetAreaID(c.Request.Context(), UserId)
+	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+	page, _ := strconv.Atoi(c.Query("page"))
+	GetRsp, err := schedulerClient.GetReplicas(c.Request.Context(), Cid, pageSize, (page-1)*pageSize)
+	if err != nil {
+		log.Errorf("GetLocationHandler GetReplicas: %v", err)
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		return
+	}
+	var deviceIds []string
+	if len(GetRsp.ReplicaInfos) > 0 {
+		for _, rep := range GetRsp.ReplicaInfos {
+			deviceIds = append(deviceIds, rep.NodeID)
+		}
+	}
+	type DeviceInfoRes struct {
+		DeviceId   string
+		IpLocation string
+	}
+	var AssetInfos []*DeviceInfoRes
+	if len(deviceIds) > 0 {
+		AssetList, err := dao.GetAssetList(c.Request.Context(), deviceIds)
+		if err != nil {
+			log.Errorf("GetAssetList err: %v", err)
+		}
+		for _, NodeInfo := range AssetList {
+			var AssetInfo DeviceInfoRes
+			AssetInfo.DeviceId = NodeInfo.DeviceID
+			AssetInfo.IpLocation = NodeInfo.IpLocation
+			AssetInfos = append(AssetInfos, &AssetInfo)
+		}
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"total":     GetRsp.Total,
+		"node_list": AssetInfos,
+	}))
+}
+
+func GetMapByCidHandler(c *gin.Context) {
+	UserId := c.Query("user_id")
+	Cid := c.Query("cid")
+	areaId := dao.GetAreaID(c.Request.Context(), UserId)
+	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
+	AssetRsp, err := schedulerClient.GetAssetRecord(c.Request.Context(), Cid)
+	if err != nil {
+		log.Errorf("GetCarFileCountHandler GetAssetRecord: %v", err)
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		return
+	}
+	var deviceIds []string
+	if len(AssetRsp.ReplicaInfos) > 0 {
+		for _, rep := range AssetRsp.ReplicaInfos {
+			deviceIds = append(deviceIds, rep.NodeID)
+		}
+	}
+	AssetList, err := dao.GetAssetList(c.Request.Context(), deviceIds)
+	if err != nil {
+		log.Errorf("GetAssetList err: %v", err)
+	}
+	mapList := dao.HandleMapInfo(AssetList)
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list":  mapList,
+		"total": len(mapList),
 	}))
 }
 
@@ -355,8 +448,6 @@ func GetKeyListHandler(c *gin.Context) {
 }
 
 func GetRetrievalListHandler(c *gin.Context) {
-	startT := time.Now().Format(utils.TimeFormatDatetime)
-	fmt.Println("start get get_retrieval_list:", startT)
 	nodeId := c.Query("device_id")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
@@ -366,14 +457,10 @@ func GetRetrievalListHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
-	startT = time.Now().Format(utils.TimeFormatDatetime)
-	fmt.Println("api GetRetrieveEventRecords:", startT)
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"list":  resp.RetrieveEventInfos,
 		"total": resp.Total,
 	}))
-	startT = time.Now().Format(utils.TimeFormatDatetime)
-	fmt.Println("request end :", startT)
 	return
 }
 

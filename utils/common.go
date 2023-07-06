@@ -12,10 +12,11 @@ import (
 var log = logging.Logger("utils")
 
 const (
-	TimeFormatDatetime = "2006-01-02 15:04:05"
-	TimeFormatDateOnly = "2006-01-02"
-	TimeFormatMD       = "01-02"
-	TimeFormatYMDH     = "2006-01-02 15"
+	TimeFormatDatetime   = "2006-01-02 15:04:05"
+	TimeFormatDatetimeMc = "2006-01-02 15:04:05.000"
+	TimeFormatDateOnly   = "2006-01-02"
+	TimeFormatMD         = "01-02"
+	TimeFormatYMDH       = "2006-01-02 15"
 )
 
 func Str2Float64(s string) float64 {

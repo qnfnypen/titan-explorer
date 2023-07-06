@@ -305,9 +305,22 @@ func GetDeviceInfoHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list":  list,
+		"list":  handleNodeList(c.Request.Context(), info.UserID, list),
 		"total": total,
 	}))
+}
+
+func handleNodeList(ctx context.Context, userId string, devicesInfo []*model.DeviceInfo) []*model.DeviceInfo {
+	areaId := dao.GetAreaID(ctx, userId)
+	schedulerClient := GetNewScheduler(ctx, areaId)
+	for _, deviceIfo := range devicesInfo {
+		createAssetRsp, err := schedulerClient.GetNodeInfo(ctx, deviceIfo.DeviceID)
+		if err != nil {
+			log.Errorf("api ListAssets: %v", err)
+		}
+		deviceIfo.DeactivateTime = createAssetRsp.DeactivateTime
+	}
+	return devicesInfo
 }
 
 func GetDeviceActiveInfoHandler(c *gin.Context) {

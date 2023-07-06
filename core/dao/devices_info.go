@@ -85,7 +85,7 @@ func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option Query
 		return nil, 0, err
 	}
 
-	return handleIpInfo(out), total, err
+	return HandleIpInfo(out), total, err
 }
 
 func GetDeviceActiveInfoList(ctx context.Context, cond *model.DeviceInfo, option QueryOption) ([]*ActiveInfoOut, int64, error) {
@@ -141,7 +141,7 @@ func GetDeviceActiveInfoList(ctx context.Context, cond *model.DeviceInfo, option
 	return out, total, err
 }
 
-func handleIpInfo(in []*model.DeviceInfo) []*model.DeviceInfo {
+func HandleIpInfo(in []*model.DeviceInfo) []*model.DeviceInfo {
 	for _, deviceInfo := range in {
 		eIp := strings.Split(deviceInfo.ExternalIp, ".")
 		if len(eIp) > 3 {
@@ -210,7 +210,7 @@ func GetDeviceInfoListByKey(ctx context.Context, cond *model.DeviceInfo, option 
 		return nil, 0, err
 	}
 
-	return handleIpInfo(out), total, err
+	return HandleIpInfo(out), total, err
 }
 
 func HandleMapInfo(in []*model.DeviceInfo) []map[string]interface{} {

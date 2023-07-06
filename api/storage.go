@@ -17,10 +17,6 @@ func GetStorageHourHandler(c *gin.Context) {
 	start := c.Query("from")
 	end := c.Query("to")
 	m := queryStorageHourly(userId, start, end)
-	if len(m) < 1 {
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
-		return
-	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"series_data": m,
 	}))
@@ -31,10 +27,6 @@ func GetStorageDailyHandler(c *gin.Context) {
 	start := c.Query("from")
 	end := c.Query("to")
 	m := QueryStorageDaily(userId, start, end)
-	if len(m) < 1 {
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
-		return
-	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"series_data": m,
 	}))

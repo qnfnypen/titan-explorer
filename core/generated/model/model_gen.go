@@ -124,6 +124,7 @@ type DeviceInfo struct {
 	YesterdayProfit  float64   `db:"yesterday_profit" json:"yesterday_profit"`
 	SevenDaysProfit  float64   `db:"seven_days_profit" json:"seven_days_profit"`
 	MonthProfit      float64   `db:"month_profit" json:"month_profit"`
+	DeactivateTime   int64     `db:"deactivate_time" json:"deactivate_time"`
 }
 
 type NodesInfo struct {

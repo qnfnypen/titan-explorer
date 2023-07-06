@@ -141,3 +141,18 @@ func GetAreaCount(ctx context.Context, deviceIds []string) (int64, error) {
 	}
 	return CountAreas, nil
 }
+
+func GetAssetList(ctx context.Context, deviceIds []string) ([]*model.DeviceInfo, error) {
+	var AssetList []*model.DeviceInfo
+	query, args, err := sqlx.In(fmt.Sprintf(
+		`SELECT * FROM %s WHERE device_id IN (?)`, tableNameDeviceInfo), deviceIds)
+	if err != nil {
+		return nil, err
+	}
+	query = DB.Rebind(query)
+	err = DB.SelectContext(ctx, &AssetList, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	return HandleIpInfo(AssetList), nil
+}

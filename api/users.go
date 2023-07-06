@@ -160,16 +160,34 @@ func DeviceBindingHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
-	if deviceInfo.BindStatus == "binding" {
-		deviceInfo.ActiveStatus = 1
-	}
-	if deviceInfo.BindStatus == "unbinding" {
-		deviceInfo.ActiveStatus = 2
-	}
 	if old != nil && old.UserID != "" && old.BindStatus == deviceInfo.BindStatus {
 		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
 		return
 	}
+	if deviceInfo.UserID != "" {
+		areaId := dao.GetAreaID(c.Request.Context(), deviceInfo.UserID)
+		schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
+		if deviceInfo.BindStatus == "binding" {
+			deviceInfo.ActiveStatus = 1
+			err = schedulerClient.UndoNodeDeactivation(c.Request.Context(), deviceInfo.DeviceID)
+			if err != nil {
+				log.Errorf("api UndoNodeDeactivation: %v", err)
+				c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+				return
+			}
+		}
+		if deviceInfo.BindStatus == "unbinding" {
+			deviceInfo.ActiveStatus = 2
+			err = schedulerClient.DeactivateNode(c.Request.Context(), deviceInfo.DeviceID, 24)
+			if err != nil {
+				log.Errorf("api DeactivateNode: %v", err)
+				c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+				return
+			}
+		}
+
+	}
+
 	var timeWeb = "0000-00-00 00:00:00"
 	timeString, _ := time.Parse(utils.TimeFormatDatetime, timeWeb)
 	if old != nil && old.BoundAt == timeString {
