@@ -309,6 +309,7 @@ type User struct {
 	Uuid       string    `db:"uuid" json:"uuid"`
 	Avatar     string    `db:"avatar" json:"avatar"`
 	Username   string    `db:"username" json:"username"`
+	PublicKey  string    `db:"public_key" json:"public_key"`
 	VerifyCode string    `db:"verify_code" json:"verify_code"`
 	PassHash   string    `db:"pass_hash" json:"pass_hash"`
 	UserEmail  string    `db:"user_email" json:"user_email"`
