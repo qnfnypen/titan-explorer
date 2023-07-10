@@ -85,6 +85,7 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_asset_info", GetAssetInfoHandler)
 	storage.GET("/get_asset_list", GetAssetListHandler)
 	storage.GET("/share_asset", ShareAssetsHandler)
+	storage.GET("/share_status_set", UpdateShareStatusHandler)
 	storage.GET("/create_key", CreateKeyHandler)
 	storage.GET("/get_keys", GetKeyListHandler)
 	storage.GET("/delete_key", DeleteKeyHandler)

@@ -226,6 +226,22 @@ func ShareAssetsHandler(c *gin.Context) {
 	}))
 }
 
+func UpdateShareStatusHandler(c *gin.Context) {
+	UserId := c.Query("user_id")
+	Cid := c.Query("cid")
+	areaId := dao.GetAreaID(c.Request.Context(), UserId)
+	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
+	err := schedulerClient.UpdateShareStatus(c.Request.Context(), UserId, Cid)
+	if err != nil {
+		log.Errorf("api UpdateShareStatus: %v", err)
+		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		return
+	}
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"msg": "success",
+	}))
+}
+
 func GetAssetListHandler(c *gin.Context) {
 	UserId := c.Query("user_id")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
