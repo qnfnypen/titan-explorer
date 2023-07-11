@@ -234,7 +234,8 @@ func ShareLinkHandler(c *gin.Context) {
 	link.LongLink = Url
 	shortLink := dao.GetShortLink(c.Request.Context(), Url)
 	if shortLink == "" {
-		link.ShortLink = "/link?" + "cid=" + Cid
+		link.ShortLink = "/api/v1/storage/link?" + "cid=" + Cid
+		shortLink = link.ShortLink
 		err := dao.CreateLink(c.Request.Context(), &link)
 		if err != nil {
 			log.Errorf("api UpdateShareStatus: %v", err)
