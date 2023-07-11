@@ -19,6 +19,29 @@ func GetAreaID(ctx context.Context, userId string) string {
 	return areaID
 }
 
+func CreateLink(ctx context.Context, link *model.Link) error {
+	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
+		`INSERT INTO %s (cid, short_link, long_link)
+			VALUES (:cid, :short_link, :long_link);`, tableNameLink,
+	), link)
+	return err
+}
+
+func GetShortLink(ctx context.Context, link string) string {
+	var areaID string
+	_ = DB.GetContext(ctx, &areaID, fmt.Sprintf(
+		`SELECT short_link FROM %s where long_link = '%s' order by id desc limit 1`, tableNameLink, link,
+	))
+	return areaID
+}
+func GetLongLink(ctx context.Context, cid string) string {
+	var areaID string
+	_ = DB.GetContext(ctx, &areaID, fmt.Sprintf(
+		`SELECT long_link FROM %s where cid = '%s' order by id desc limit 1`, tableNameLink, cid,
+	))
+	return areaID
+}
+
 func QueryCacheHour(deviceID, startTime, endTime string) []*CacheStatistics {
 	option := QueryOption{
 		StartTime: startTime,

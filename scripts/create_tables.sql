@@ -348,3 +348,18 @@ CREATE TABLE `storage_hour` (
     PRIMARY KEY USING BTREE (`id`),
     UNIQUE KEY `uniq_user_id_time` (`user_id`,`time`) USING BTREE
 ) ENGINE = INNODB CHARSET = utf8;
+
+DROP TABLE IF EXISTS `link`;
+
+CREATE TABLE `link` (
+                         `id` BIGINT(20) NOT NULL AUTO_INCREMENT,
+                         `uuid` VARCHAR(255) NOT NULL DEFAULT '',
+                         `user_id` VARCHAR(255) NOT NULL DEFAULT '',
+                         `cid` VARCHAR(255) NOT NULL DEFAULT '',
+                         `long_link` VARCHAR(1024) NOT NULL DEFAULT '',
+                         `short_link` VARCHAR(255) NOT NULL DEFAULT '',
+                         `created_at` DATETIME(3) NOT NULL DEFAULT 0,
+                         `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
+                         `deleted_at` DATETIME(3) NOT NULL DEFAULT 0,
+                         PRIMARY KEY (`id`)
+) ENGINE = INNODB CHARSET = utf8mb4;

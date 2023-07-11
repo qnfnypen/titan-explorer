@@ -8,6 +8,7 @@ import (
 )
 
 var (
+	tableNameLink              = "link"
 	tableNameApplication       = "application"
 	tableNameApplicationResult = "application_result"
 )

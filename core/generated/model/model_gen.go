@@ -320,6 +320,17 @@ type User struct {
 	DeletedAt  time.Time `db:"deleted_at" json:"deleted_at"`
 }
 
+type Link struct {
+	ID        int64     `db:"id" json:"id"`
+	Uuid      string    `db:"uuid" json:"uuid"`
+	Cid       string    `db:"cid" json:"cid"`
+	LongLink  string    `db:"long_link" json:"long_link"`
+	ShortLink string    `db:"short_link" json:"short_link"`
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+	DeletedAt time.Time `db:"deleted_at" json:"deleted_at"`
+}
+
 type ValidationEvent struct {
 	ID              int64     `db:"id" json:"id"`
 	DeviceID        string    `db:"device_id" json:"device_id"`

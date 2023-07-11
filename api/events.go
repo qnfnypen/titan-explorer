@@ -226,6 +226,37 @@ func ShareAssetsHandler(c *gin.Context) {
 	}))
 }
 
+func ShareLinkHandler(c *gin.Context) {
+	Cid := c.Query("cid")
+	Url := c.Query("url")
+	var link model.Link
+	link.Cid = Cid
+	link.LongLink = Url
+	shortLink := dao.GetShortLink(c.Request.Context(), Url)
+	if shortLink == "" {
+		link.ShortLink = "/link?" + "cid=" + Cid
+		err := dao.CreateLink(c.Request.Context(), &link)
+		if err != nil {
+			log.Errorf("api UpdateShareStatus: %v", err)
+			c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+			return
+		}
+	}
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"url": shortLink,
+	}))
+}
+
+func GetShareLinkHandler(c *gin.Context) {
+	Cid := c.Query("cid")
+	link := dao.GetLongLink(c.Request.Context(), Cid)
+	if link == "" {
+		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
+		return
+	}
+	c.Redirect(http.StatusMovedPermanently, link)
+}
+
 func UpdateShareStatusHandler(c *gin.Context) {
 	UserId := c.Query("user_id")
 	Cid := c.Query("cid")
