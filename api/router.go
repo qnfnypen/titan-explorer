@@ -76,6 +76,7 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	storage.POST("/get_verify_code", GetVerifyCodeHandle)
 	storage.POST("/register", UserRegister)
 	storage.POST("/password_reset", PasswordRest)
+	storage.GET("/login_before", BeforeLogin)
 	storage.POST("/login", authMiddleware.LoginHandler)
 	storage.POST("/logout", authMiddleware.LogoutHandler)
 	storage.GET("/get_locateStorage", GetAllocateStorageHandler)

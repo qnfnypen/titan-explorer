@@ -139,7 +139,7 @@ func PasswordRest(c *gin.Context) {
 func BeforeLogin(c *gin.Context) {
 	userInfo := &model.User{}
 	userInfo.Username = c.Query("username")
-	userInfo.PublicKey = c.Query("public_key")
+	userInfo.PublicKey = userInfo.Username
 	_, err := dao.GetUserByUsername(c.Request.Context(), userInfo.Username)
 	if err != nil && err != sql.ErrNoRows {
 		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
