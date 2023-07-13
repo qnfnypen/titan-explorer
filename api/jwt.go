@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
@@ -12,6 +13,7 @@ import (
 	"github.com/mssola/user_agent"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -35,11 +37,12 @@ var identityKey = "id"
 
 func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 	return jwt.New(&jwt.GinJWTMiddleware{
-		Realm:       "User",
-		Key:         []byte(secretKey),
-		Timeout:     time.Hour,
-		MaxRefresh:  time.Hour,
-		IdentityKey: identityKey,
+		Realm:             "User",
+		Key:               []byte(secretKey),
+		Timeout:           time.Hour,
+		MaxRefresh:        time.Hour,
+		IdentityKey:       identityKey,
+		SendAuthorization: true,
 		PayloadFunc: func(data interface{}) jwt.MapClaims {
 			if v, ok := data.(*model.User); ok {
 				return jwt.MapClaims{
@@ -73,10 +76,11 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			loginParams.Username = c.Query("username")
 			loginParams.VerifyCode = c.Query("verify_code")
 			loginParams.Password = c.Query("password")
+			Signature := c.Query("sign")
 			if loginParams.Username == "" {
 				return "", jwt.ErrMissingLoginValues
 			}
-			if loginParams.VerifyCode == "" && loginParams.Password == "" {
+			if loginParams.VerifyCode == "" && loginParams.Password == "" && Signature == "" {
 				return "", jwt.ErrMissingLoginValues
 			}
 			userID := loginParams.Username
@@ -90,9 +94,15 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			location := utils.GetLocationByIP(clientIP)
 			var err error
 			var user interface{}
+			if Signature != "" {
+				fmt.Println(userID)
+				fmt.Println(Signature)
+				user, err = loginBySignature(c.Request.Context(), userID, Signature)
+			}
 			if verifyCode != "" {
 				user, err = loginByVerifyCode(c.Request.Context(), userID, verifyCode)
-			} else {
+			}
+			if password != "" {
 				user, err = loginByPassword(c.Request.Context(), userID, password)
 			}
 
@@ -119,16 +129,16 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			})
 			return user, nil
 		},
-		Authorizator: func(data interface{}, c *gin.Context) bool {
-			if v, ok := data.(model.User); ok && v.Username == "admin" {
-				return true
-			}
-
-			return false
-		},
+		//Authorizator: func(data interface{}, c *gin.Context) bool {
+		//	if v, ok := data.(model.User); ok && v.Username == "admin" {
+		//		return true
+		//	}
+		//
+		//	return false
+		//},
 		Unauthorized: func(c *gin.Context, code int, message string) {
 			c.JSON(200, gin.H{
-				"code":    200,
+				"code":    code,
 				"msg":     message,
 				"success": false,
 			})
@@ -141,7 +151,8 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 		// - "query:<name>"
 		// - "cookie:<name>"
 		// - "param:<name>"
-		TokenLookup: "header: Authorization, query: token, cookie: jwt",
+		//TokenLookup: "header: Authorization, query: token, cookie: jwt",
+		TokenLookup: "header: JwtAuthorization",
 		// TokenLookup: "query:token",
 		// TokenLookup: "cookie:token",
 
@@ -166,6 +177,28 @@ func loginByPassword(ctx context.Context, username, password string) (interface{
 	}
 
 	return &model.User{Uuid: user.Uuid, Username: user.Username, Role: user.Role}, nil
+}
+
+func loginBySignature(ctx context.Context, username, msg string) (interface{}, error) {
+	verifyCode, err := GetVerifyCode(ctx, username+"C")
+	if err != nil {
+		fmt.Println("ErrInvalidParams")
+		return nil, errors.ErrInvalidParams
+	}
+	if verifyCode == "" {
+		fmt.Println("ErrVerifyCodeExpired")
+		return nil, errors.ErrVerifyCodeExpired
+	}
+	publicKey, err := VerifyMessage(verifyCode, msg)
+	username = strings.ToUpper(username)
+	publicKey = strings.ToUpper(publicKey)
+	fmt.Println("publicKey")
+	fmt.Println(username)
+	fmt.Println(publicKey)
+	if publicKey != username {
+		return nil, errors.ErrPassWord
+	}
+	return &model.User{Uuid: "", Username: username, Role: 0}, nil
 }
 
 func loginByVerifyCode(ctx context.Context, username, userVerifyCode string) (interface{}, error) {

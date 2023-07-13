@@ -139,29 +139,22 @@ func PasswordRest(c *gin.Context) {
 func BeforeLogin(c *gin.Context) {
 	userInfo := &model.User{}
 	userInfo.Username = c.Query("username")
-	userInfo.PublicKey = userInfo.Username
 	_, err := dao.GetUserByUsername(c.Request.Context(), userInfo.Username)
 	if err != nil && err != sql.ErrNoRows {
 		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
 		return
 	}
-	errSK := SetLoginPublicKey(c.Request.Context(), userInfo.Username+"K", userInfo.PublicKey)
-	if errSK != nil {
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
-		return
-	}
+	//errSK := SetLoginPublicKey(c.Request.Context(), userInfo.Username+"K", userInfo.PublicKey)
+	//if errSK != nil {
+	//	c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+	//	return
+	//}
 	code, errSC := SetLoginCode(c.Request.Context(), userInfo.Username+"C")
 	if errSC != nil {
 		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 	if err == nil {
-		err = dao.UpdatePublicKey(c.Request.Context(), userInfo.PublicKey, userInfo.Username)
-		if err != nil {
-			log.Errorf("UpdatePublicKey : %v", err)
-			c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
-			return
-		}
 		c.JSON(http.StatusOK, respJSON(JsonObject{
 			"code": code,
 		}))
@@ -169,7 +162,7 @@ func BeforeLogin(c *gin.Context) {
 	}
 	err = dao.CreateUser(c.Request.Context(), userInfo)
 	if err != nil {
-		log.Errorf("create user : %v", err)
+		log.Errorf("GetUserByUsername : %v", err)
 		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
@@ -177,7 +170,6 @@ func BeforeLogin(c *gin.Context) {
 		"code": code,
 	}))
 }
-
 func SetLoginPublicKey(ctx context.Context, key, publicKey string) error {
 	vc, _ := GetVerifyCode(ctx, key)
 	if vc != "" {
@@ -197,10 +189,6 @@ func SetLoginPublicKey(ctx context.Context, key, publicKey string) error {
 }
 
 func SetLoginCode(ctx context.Context, key string) (string, error) {
-	vc, _ := GetVerifyCode(ctx, key)
-	if vc != "" {
-		return "", nil
-	}
 	randNew := rand.New(rand.NewSource(time.Now().UnixNano()))
 	verifyCode := fmt.Sprintf("%06d", randNew.Intn(1000000))
 	bytes, err := json.Marshal(verifyCode)
@@ -208,9 +196,10 @@ func SetLoginCode(ctx context.Context, key string) (string, error) {
 		return "", err
 	}
 	var expireTime time.Duration
-	expireTime = 5 * time.Second
+	expireTime = 5 * time.Minute
 	_, err = dao.Cache.Set(ctx, key, bytes, expireTime).Result()
 	if err != nil {
+		log.Errorf("%v:", err)
 		return "", err
 	}
 	return verifyCode, nil
@@ -378,6 +367,7 @@ func GetVerifyCode(ctx context.Context, key string) (string, error) {
 		return "", err
 	}
 	if err == redis.Nil {
+		fmt.Println("GetVerifyCode nil")
 		return "", nil
 	}
 	var verifyCode string
@@ -404,7 +394,7 @@ func sendEmail(sendTo string, vc string) error {
 	return nil
 }
 
-func VerifyMessage(ctx context.Context, message string, signedMessage string) (string, error) {
+func VerifyMessage(message string, signedMessage string) (string, error) {
 	// Hash the unsigned message using EIP-191
 	hashedMessage := []byte("\x19Ethereum Signed Message:\n" + strconv.Itoa(len(message)) + message)
 	hash := crypto.Keccak256Hash(hashedMessage)
@@ -434,6 +424,6 @@ func TestVerifySignature() {
 	sign := "0x5321f24a057500605f1d894c2be7cb7f196ba2444e8f6815af261efbcb9d272f70d327f146553c3d51cf1816823dba6254d5500a69b4197e9f4839e0971cf89d1b"
 	publicKey := "0x0bDCC0C6eAc88439fb57b90977714b7430c3c623"
 
-	publicKey2, err := VerifyMessage(context.Background(), initdata, sign)
+	publicKey2, err := VerifyMessage(initdata, sign)
 	fmt.Println(publicKey == publicKey2, err)
 }

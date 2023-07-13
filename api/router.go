@@ -79,6 +79,8 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	storage.GET("/login_before", BeforeLogin)
 	storage.POST("/login", authMiddleware.LoginHandler)
 	storage.POST("/logout", authMiddleware.LogoutHandler)
+	storage.GET("/link", GetShareLinkHandler)
+	storage.Use(authMiddleware.MiddlewareFunc())
 	storage.GET("/get_locateStorage", GetAllocateStorageHandler)
 	storage.GET("/get_Storage_size", GetStorageSizeHandler)
 	storage.GET("/create_asset", CreateAssetHandler)
@@ -87,7 +89,6 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_asset_list", GetAssetListHandler)
 	storage.GET("/share_asset", ShareAssetsHandler)
 	storage.GET("/get_link", ShareLinkHandler)
-	storage.GET("/link", GetShareLinkHandler)
 	storage.GET("/share_status_set", UpdateShareStatusHandler)
 	storage.GET("/create_key", CreateKeyHandler)
 	storage.GET("/get_keys", GetKeyListHandler)
@@ -98,6 +99,5 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_asset_location", GetLocationHandler)
 	storage.GET("/get_user_info_hour", GetStorageHourHandler)
 	storage.GET("/get_user_info_daily", GetStorageDailyHandler)
-	storage.Use(authMiddleware.MiddlewareFunc())
 	storage.GET("/refresh_token", authMiddleware.RefreshHandler)
 }
