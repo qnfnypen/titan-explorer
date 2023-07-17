@@ -227,12 +227,14 @@ func ShareAssetsHandler(c *gin.Context) {
 }
 
 func ShareLinkHandler(c *gin.Context) {
+	Username := c.Query("username")
 	Cid := c.Query("cid")
 	Url := c.Query("url")
 	var link model.Link
+	link.UserName = Username
 	link.Cid = Cid
 	link.LongLink = Url
-	shortLink := dao.GetShortLink(c.Request.Context(), Url)
+	shortLink := dao.GetShortLink(c.Request.Context(), Username, Url)
 	if shortLink == "" {
 		link.ShortLink = "/api/v1/storage/link?" + "cid=" + Cid
 		shortLink = link.ShortLink
@@ -250,7 +252,8 @@ func ShareLinkHandler(c *gin.Context) {
 
 func GetShareLinkHandler(c *gin.Context) {
 	Cid := c.Query("cid")
-	link := dao.GetLongLink(c.Request.Context(), Cid)
+	Username := c.Query("user")
+	link := dao.GetLongLink(c.Request.Context(), Cid, Username)
 	if link == "" {
 		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
 		return

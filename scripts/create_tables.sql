@@ -353,7 +353,7 @@ DROP TABLE IF EXISTS `link`;
 
 CREATE TABLE `link` (
                          `id` BIGINT(20) NOT NULL AUTO_INCREMENT,
-                         `uuid` VARCHAR(255) NOT NULL DEFAULT '',
+                         `username` VARCHAR(255) NOT NULL DEFAULT '',
                          `user_id` VARCHAR(255) NOT NULL DEFAULT '',
                          `cid` VARCHAR(255) NOT NULL DEFAULT '',
                          `long_link` VARCHAR(1024) NOT NULL DEFAULT '',

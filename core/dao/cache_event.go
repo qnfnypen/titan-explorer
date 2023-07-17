@@ -21,23 +21,23 @@ func GetAreaID(ctx context.Context, userId string) string {
 
 func CreateLink(ctx context.Context, link *model.Link) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s (cid, short_link, long_link)
-			VALUES (:cid, :short_link, :long_link);`, tableNameLink,
+		`INSERT INTO %s (username, cid, short_link, long_link)
+			VALUES (:username, :cid, :short_link, :long_link);`, tableNameLink,
 	), link)
 	return err
 }
 
-func GetShortLink(ctx context.Context, link string) string {
+func GetShortLink(ctx context.Context, link, username string) string {
 	var areaID string
 	_ = DB.GetContext(ctx, &areaID, fmt.Sprintf(
-		`SELECT short_link FROM %s where long_link = '%s' order by id desc limit 1`, tableNameLink, link,
+		`SELECT short_link FROM %s where long_link = '%s' and username = '%s' order by id desc limit 1`, tableNameLink, link, username,
 	))
 	return areaID
 }
-func GetLongLink(ctx context.Context, cid string) string {
+func GetLongLink(ctx context.Context, cid, username string) string {
 	var areaID string
 	_ = DB.GetContext(ctx, &areaID, fmt.Sprintf(
-		`SELECT long_link FROM %s where cid = '%s' order by id desc limit 1`, tableNameLink, cid,
+		`SELECT long_link FROM %s where cid = '%s' and username = '%s' order by id desc limit 1`, tableNameLink, cid, username,
 	))
 	return areaID
 }
