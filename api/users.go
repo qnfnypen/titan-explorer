@@ -109,22 +109,19 @@ func PasswordRest(c *gin.Context) {
 		return
 	}
 	userInfo.PassHash = string(PassHash)
-	if userInfo.VerifyCode != "123456" {
-		verifyCode, err := GetVerifyCode(c.Request.Context(), userInfo.Username+"3")
-		if err != nil {
-			c.JSON(http.StatusOK, respError(errors.ErrUnknown))
-			return
-		}
-		if verifyCode == "" {
-			c.JSON(http.StatusOK, respError(errors.ErrVerifyCodeExpired))
-			return
-		}
-		if verifyCode != userInfo.VerifyCode {
-			c.JSON(http.StatusOK, respError(errors.ErrVerifyCode))
-			return
-		}
+	verifyCode, err := GetVerifyCode(c.Request.Context(), userInfo.Username+"3")
+	if err != nil {
+		c.JSON(http.StatusOK, respError(errors.ErrUnknown))
+		return
 	}
-
+	if verifyCode == "" {
+		c.JSON(http.StatusOK, respError(errors.ErrVerifyCodeExpired))
+		return
+	}
+	if verifyCode != userInfo.VerifyCode {
+		c.JSON(http.StatusOK, respError(errors.ErrVerifyCode))
+		return
+	}
 	err = dao.ResetPassword(c.Request.Context(), userInfo.PassHash, userInfo.Username)
 	if err != nil {
 		log.Errorf("update user : %v", err)
@@ -139,7 +136,8 @@ func PasswordRest(c *gin.Context) {
 func BeforeLogin(c *gin.Context) {
 	userInfo := &model.User{}
 	userInfo.Username = c.Query("username")
-	_, err := dao.GetUserByUsername(c.Request.Context(), userInfo.Username)
+	UserName := userInfo.Username
+	_, err := dao.GetUserByUsername(c.Request.Context(), UserName)
 	if err != nil && err != sql.ErrNoRows {
 		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
 		return
@@ -149,7 +147,7 @@ func BeforeLogin(c *gin.Context) {
 	//	c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 	//	return
 	//}
-	code, errSC := SetLoginCode(c.Request.Context(), userInfo.Username+"C")
+	code, errSC := SetLoginCode(c.Request.Context(), UserName+"C")
 	if errSC != nil {
 		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
@@ -170,6 +168,7 @@ func BeforeLogin(c *gin.Context) {
 		"code": code,
 	}))
 }
+
 func SetLoginPublicKey(ctx context.Context, key, publicKey string) error {
 	vc, _ := GetVerifyCode(ctx, key)
 	if vc != "" {
@@ -401,7 +400,6 @@ func VerifyMessage(message string, signedMessage string) (string, error) {
 
 	// Get the bytes of the signed message
 	decodedMessage := hexutil.MustDecode(signedMessage)
-
 	// Handles cases where EIP-115 is not implemented (most wallets don't implement it)
 	if decodedMessage[64] == 27 || decodedMessage[64] == 28 {
 		decodedMessage[64] -= 27

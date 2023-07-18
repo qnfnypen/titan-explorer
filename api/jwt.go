@@ -77,6 +77,7 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			loginParams.VerifyCode = c.Query("verify_code")
 			loginParams.Password = c.Query("password")
 			Signature := c.Query("sign")
+			Address := c.Query("address")
 			if loginParams.Username == "" {
 				return "", jwt.ErrMissingLoginValues
 			}
@@ -95,9 +96,7 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			var err error
 			var user interface{}
 			if Signature != "" {
-				fmt.Println(userID)
-				fmt.Println(Signature)
-				user, err = loginBySignature(c.Request.Context(), userID, Signature)
+				user, err = loginBySignature(c.Request.Context(), userID, Address, Signature)
 			}
 			if verifyCode != "" {
 				user, err = loginByVerifyCode(c.Request.Context(), userID, verifyCode)
@@ -179,7 +178,7 @@ func loginByPassword(ctx context.Context, username, password string) (interface{
 	return &model.User{Uuid: user.Uuid, Username: user.Username, Role: user.Role}, nil
 }
 
-func loginBySignature(ctx context.Context, username, msg string) (interface{}, error) {
+func loginBySignature(ctx context.Context, username, address, msg string) (interface{}, error) {
 	verifyCode, err := GetVerifyCode(ctx, username+"C")
 	if err != nil {
 		fmt.Println("ErrInvalidParams")
@@ -189,13 +188,13 @@ func loginBySignature(ctx context.Context, username, msg string) (interface{}, e
 		fmt.Println("ErrVerifyCodeExpired")
 		return nil, errors.ErrVerifyCodeExpired
 	}
+	if address == "" {
+		address = username
+	}
 	publicKey, err := VerifyMessage(verifyCode, msg)
-	username = strings.ToUpper(username)
+	address = strings.ToUpper(address)
 	publicKey = strings.ToUpper(publicKey)
-	fmt.Println("publicKey")
-	fmt.Println(username)
-	fmt.Println(publicKey)
-	if publicKey != username {
+	if publicKey != address {
 		return nil, errors.ErrPassWord
 	}
 	return &model.User{Uuid: "", Username: username, Role: 0}, nil

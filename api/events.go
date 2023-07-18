@@ -230,13 +230,17 @@ func ShareLinkHandler(c *gin.Context) {
 	Username := c.Query("username")
 	Cid := c.Query("cid")
 	Url := c.Query("url")
+	if Username == "" || Cid == "" || Url == "" {
+		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
+		return
+	}
 	var link model.Link
 	link.UserName = Username
 	link.Cid = Cid
 	link.LongLink = Url
 	shortLink := dao.GetShortLink(c.Request.Context(), Username, Url)
 	if shortLink == "" {
-		link.ShortLink = "/api/v1/storage/link?" + "cid=" + Cid
+		link.ShortLink = "/api/v1/storage/link?" + "cid=" + Cid + "&" + "username=" + Username
 		shortLink = link.ShortLink
 		err := dao.CreateLink(c.Request.Context(), &link)
 		if err != nil {
@@ -252,7 +256,11 @@ func ShareLinkHandler(c *gin.Context) {
 
 func GetShareLinkHandler(c *gin.Context) {
 	Cid := c.Query("cid")
-	Username := c.Query("user")
+	Username := c.Query("username")
+	if Username == "" || Cid == "" {
+		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
+		return
+	}
 	link := dao.GetLongLink(c.Request.Context(), Cid, Username)
 	if link == "" {
 		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
