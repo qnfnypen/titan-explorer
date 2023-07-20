@@ -29,14 +29,13 @@ func GetAllAreas(c *gin.Context) {
 func GetIndexInfoHandler(c *gin.Context) {
 	fullNodeInfo, err := dao.GetCacheFullNodeInfo(c.Request.Context())
 	if err != nil {
-		log.Errorf("get full node info: %v", err)
+		log.Errorf("database GetCacheFullNodeInfo: %v", err)
 		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(fullNodeInfo))
 }
 
-// GetUserDeviceProfileHandler devices overview
 func GetUserDeviceProfileHandler(c *gin.Context) {
 	info := &model.DeviceInfo{}
 	info.UserID = c.Query("user_id")
@@ -60,13 +59,13 @@ func GetUserDeviceProfileHandler(c *gin.Context) {
 
 	userDeviceProfile, err := dao.CountUserDeviceInfo(c.Request.Context(), info.UserID)
 	if err != nil {
-		log.Errorf("get user device profile: %v", err)
+		log.Errorf("database CountUserDeviceInfo: %v", err)
 		c.JSON(http.StatusOK, respError(errors.ErrNotFound))
 		return
 	}
-	m, err := dao.GetUserIncome(c.Request.Context(), info, option)
+	m, err := dao.GetUserIncome(info, option)
 	if err != nil {
-		log.Errorf("get user income: %v", err)
+		log.Errorf("database GetUserIncome: %v", err)
 		c.JSON(http.StatusOK, respError(errors.ErrNotFound))
 		return
 	}
@@ -101,7 +100,7 @@ func GetUserDevicesCountHandler(c *gin.Context) {
 
 	userDeviceProfile, err := dao.CountUserDeviceInfo(c.Request.Context(), info.UserID)
 	if err != nil {
-		log.Errorf("get user device profile: %v", err)
+		log.Errorf("GetUserDevicesCountHandler CountUserDeviceInfo: %v", err)
 		c.JSON(http.StatusOK, respError(errors.ErrNotFound))
 		return
 	}
@@ -113,7 +112,6 @@ func GetUserDevicesCountHandler(c *gin.Context) {
 func toDeviceStatistic(start, end string, data map[string]map[string]interface{}) []*dao.DeviceStatistics {
 	startTime, _ := time.Parse(utils.TimeFormatDateOnly, start)
 	endTime, _ := time.Parse(utils.TimeFormatDateOnly, end)
-
 	var oneDay = 24 * time.Hour
 	var out []*dao.DeviceStatistics
 	for startTime.Before(endTime) || startTime.Equal(endTime) {
@@ -156,7 +154,7 @@ func queryDeviceStatisticsDaily(deviceID, startTime, endTime string) []*dao.Devi
 
 	list, err := dao.GetDeviceInfoDailyList(context.Background(), condition, option)
 	if err != nil {
-		log.Errorf("get incoming daily: %v", err)
+		log.Errorf("database GetDeviceInfoDailyList: %v", err)
 		return nil
 	}
 
@@ -184,7 +182,7 @@ func queryDeviceDailyByUserId(userId, startTime, endTime string) []*dao.DeviceSt
 
 	list, err := dao.GetNodesInfoDailyList(context.Background(), condition, option)
 	if err != nil {
-		log.Errorf("get incoming daily: %v", err)
+		log.Errorf("database GetNodesInfoDailyList: %v", err)
 		return nil
 	}
 
@@ -212,7 +210,7 @@ func queryDeviceStatisticHourly(deviceID, startTime, endTime string) []*dao.Devi
 	}
 	list, err := dao.GetDeviceInfoDailyHourList(context.Background(), condition, option)
 	if err != nil {
-		log.Errorf("get incoming hour daily: %v", err)
+		log.Errorf("database GetDeviceInfoDailyHourList: %v", err)
 		return nil
 	}
 
@@ -221,8 +219,7 @@ func queryDeviceStatisticHourly(deviceID, startTime, endTime string) []*dao.Devi
 
 func GetQueryInfoHandler(c *gin.Context) {
 	info := &model.DeviceInfo{}
-	keyValue := c.Query("key")
-	info.UserID = keyValue
+	info.UserID = c.Query("key")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 	order := c.Query("order")
@@ -238,7 +235,7 @@ func GetQueryInfoHandler(c *gin.Context) {
 		log.Errorf("get device by user id info list: %v", err)
 	}
 	if total < 1 {
-		DetailList := dao.GetDeviceInfoById(context.Background(), keyValue)
+		DetailList := dao.GetDeviceInfoById(context.Background(), info.UserID)
 		if DetailList.DeviceID != "" {
 			list = append(list, &DetailList)
 		}
@@ -299,7 +296,7 @@ func GetDeviceInfoHandler(c *gin.Context) {
 	}
 	list, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
 	if err != nil {
-		log.Errorf("get device info list: %v", err)
+		log.Errorf("database GetDeviceInfoList: %v", err)
 		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
@@ -316,7 +313,7 @@ func handleNodeList(ctx context.Context, userId string, devicesInfo []*model.Dev
 	for _, deviceIfo := range devicesInfo {
 		createAssetRsp, err := schedulerClient.GetNodeInfo(ctx, deviceIfo.DeviceID)
 		if err != nil {
-			log.Errorf("api ListAssets: %v", err)
+			log.Errorf("api GetNodeInfo: %v", err)
 		}
 		deviceIfo.DeactivateTime = createAssetRsp.DeactivateTime
 	}
@@ -345,7 +342,7 @@ func GetDeviceActiveInfoHandler(c *gin.Context) {
 	}
 	list, total, err := dao.GetDeviceActiveInfoList(c.Request.Context(), info, option)
 	if err != nil {
-		log.Errorf("get device info list: %v", err)
+		log.Errorf("GetDeviceActiveInfoHandler GetDeviceActiveInfoList: %v", err)
 		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
@@ -366,8 +363,6 @@ func GetDeviceStatusHandler(c *gin.Context) {
 	order := c.Query("order")
 	orderField := c.Query("order_field")
 	info.ActiveStatus = 1
-	//nodeType, _ := strconv.ParseInt(c.Query("node_type"), 10, 64)
-	//info.NodeType = int32(nodeType)
 	option := dao.QueryOption{
 		Page:       page,
 		PageSize:   pageSize,
@@ -376,7 +371,7 @@ func GetDeviceStatusHandler(c *gin.Context) {
 	}
 	list, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
 	if err != nil {
-		log.Errorf("get device info list: %v", err)
+		log.Errorf("GetDeviceStatusHandler GetDeviceInfoList: %v", err)
 		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
@@ -404,7 +399,7 @@ func GetNodesInfoHandler(c *gin.Context) {
 	var total int64
 	total, list, err := dao.GetNodesInfo(c.Request.Context(), option)
 	if err != nil {
-		log.Errorf("get nodes info list: %v", err)
+		log.Errorf("GetNodesInfoHandler GetNodesInfo: %v", err)
 		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}
@@ -444,7 +439,7 @@ func GetMapInfoHandler(c *gin.Context) {
 	}
 	list, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
 	if err != nil {
-		log.Errorf("get device info list: %v", err)
+		log.Errorf("GetMapInfoHandler GetDeviceInfoList: %v", err)
 		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
 		return
 	}

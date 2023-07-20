@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
-	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/utils"
 	"github.com/golang-module/carbon/v2"
 	"net/http"
@@ -32,20 +31,6 @@ func GetStorageDailyHandler(c *gin.Context) {
 	}))
 }
 
-func GetStorageAllHandler(c *gin.Context) {
-	userId := c.Query("user_id")
-	start := c.Query("from")
-	end := c.Query("to")
-	m := QueryStorageDaily(userId, start, end)
-	if len(m) < 1 {
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
-		return
-	}
-	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"series_data": m,
-	}))
-}
-
 func queryStorageHourly(userId, startTime, endTime string) []*dao.UserInfoRes {
 	option := dao.QueryOption{
 		StartTime: startTime,
@@ -64,7 +49,7 @@ func queryStorageHourly(userId, startTime, endTime string) []*dao.UserInfoRes {
 
 	list, err := dao.GetStorageInfoHourList(context.Background(), userId, option)
 	if err != nil {
-		log.Errorf("get incoming hour daily: %v", err)
+		log.Errorf("queryStorageHourly GetStorageInfoHourList: %v", err)
 		return nil
 	}
 	return list
@@ -87,7 +72,7 @@ func QueryStorageDaily(userId, startTime, endTime string) []*dao.UserInfoRes {
 	}
 	list, err := dao.GetStorageInfoDaysList(context.Background(), userId, option)
 	if err != nil {
-		log.Errorf("get incoming daily: %v", err)
+		log.Errorf("QueryStorageDaily GetStorageInfoDaysList: %v", err)
 		return nil
 	}
 

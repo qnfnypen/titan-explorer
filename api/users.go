@@ -39,6 +39,10 @@ func UserRegister(c *gin.Context) {
 	userInfo.VerifyCode = c.Query("verify_code")
 	userInfo.UserEmail = userInfo.Username
 	PassStr := c.Query("password")
+	if userInfo.Username == "" {
+		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
+		return
+	}
 	_, err := dao.GetUserByUsername(c.Request.Context(), userInfo.Username)
 	if err == nil {
 		c.JSON(http.StatusOK, respError(errors.ErrNameExists))
@@ -48,30 +52,24 @@ func UserRegister(c *gin.Context) {
 		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
 		return
 	}
-	//if user.Username != "" {
-	//	c.JSON(http.StatusOK, respError(errors.ErrNameExists))
-	//	return
-	//}
 	PassHash, err := bcrypt.GenerateFromPassword([]byte(PassStr), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusOK, respError(errors.ErrPassWord))
 		return
 	}
 	userInfo.PassHash = string(PassHash)
-	if userInfo.VerifyCode != "123456" {
-		verifyCode, err := GetVerifyCode(c.Request.Context(), userInfo.Username+"1")
-		if err != nil {
-			c.JSON(http.StatusOK, respError(errors.ErrUnknown))
-			return
-		}
-		if verifyCode == "" {
-			c.JSON(http.StatusOK, respError(errors.ErrVerifyCodeExpired))
-			return
-		}
-		if verifyCode != userInfo.VerifyCode {
-			c.JSON(http.StatusOK, respError(errors.ErrVerifyCode))
-			return
-		}
+	verifyCode, err := GetVerifyCode(c.Request.Context(), userInfo.Username+"1")
+	if err != nil {
+		c.JSON(http.StatusOK, respError(errors.ErrUnknown))
+		return
+	}
+	if verifyCode == "" {
+		c.JSON(http.StatusOK, respError(errors.ErrVerifyCodeExpired))
+		return
+	}
+	if verifyCode != userInfo.VerifyCode {
+		c.JSON(http.StatusOK, respError(errors.ErrVerifyCode))
+		return
 	}
 	err = dao.CreateUser(c.Request.Context(), userInfo)
 	if err != nil {
@@ -137,16 +135,15 @@ func BeforeLogin(c *gin.Context) {
 	userInfo := &model.User{}
 	userInfo.Username = c.Query("username")
 	UserName := userInfo.Username
+	if UserName == "" {
+		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
+		return
+	}
 	_, err := dao.GetUserByUsername(c.Request.Context(), UserName)
 	if err != nil && err != sql.ErrNoRows {
 		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
 		return
 	}
-	//errSK := SetLoginPublicKey(c.Request.Context(), userInfo.Username+"K", userInfo.PublicKey)
-	//if errSK != nil {
-	//	c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
-	//	return
-	//}
 	code, errSC := SetLoginCode(c.Request.Context(), UserName+"C")
 	if errSC != nil {
 		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
@@ -169,27 +166,9 @@ func BeforeLogin(c *gin.Context) {
 	}))
 }
 
-func SetLoginPublicKey(ctx context.Context, key, publicKey string) error {
-	vc, _ := GetVerifyCode(ctx, key)
-	if vc != "" {
-		return nil
-	}
-	bytes, err := json.Marshal(publicKey)
-	if err != nil {
-		return err
-	}
-	var expireTime time.Duration
-	expireTime = 5 * time.Second
-	_, err = dao.Cache.Set(ctx, key, bytes, expireTime).Result()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func SetLoginCode(ctx context.Context, key string) (string, error) {
 	randNew := rand.New(rand.NewSource(time.Now().UnixNano()))
-	verifyCode := fmt.Sprintf("%06d", randNew.Intn(1000000))
+	verifyCode := "TitanNetWork(" + fmt.Sprintf("%06d", randNew.Intn(1000000)) + ")"
 	bytes, err := json.Marshal(verifyCode)
 	if err != nil {
 		return "", err
@@ -366,7 +345,6 @@ func GetVerifyCode(ctx context.Context, key string) (string, error) {
 		return "", err
 	}
 	if err == redis.Nil {
-		fmt.Println("GetVerifyCode nil")
 		return "", nil
 	}
 	var verifyCode string
@@ -397,14 +375,12 @@ func VerifyMessage(message string, signedMessage string) (string, error) {
 	// Hash the unsigned message using EIP-191
 	hashedMessage := []byte("\x19Ethereum Signed Message:\n" + strconv.Itoa(len(message)) + message)
 	hash := crypto.Keccak256Hash(hashedMessage)
-
 	// Get the bytes of the signed message
 	decodedMessage := hexutil.MustDecode(signedMessage)
 	// Handles cases where EIP-115 is not implemented (most wallets don't implement it)
 	if decodedMessage[64] == 27 || decodedMessage[64] == 28 {
 		decodedMessage[64] -= 27
 	}
-
 	// Recover a public key from the signed message
 	sigPublicKeyECDSA, err := crypto.SigToPub(hash.Bytes(), decodedMessage)
 	if sigPublicKeyECDSA == nil {
@@ -415,13 +391,4 @@ func VerifyMessage(message string, signedMessage string) (string, error) {
 	}
 
 	return crypto.PubkeyToAddress(*sigPublicKeyECDSA).String(), nil
-}
-
-func TestVerifySignature() {
-	initdata := "登录网站"
-	sign := "0x5321f24a057500605f1d894c2be7cb7f196ba2444e8f6815af261efbcb9d272f70d327f146553c3d51cf1816823dba6254d5500a69b4197e9f4839e0971cf89d1b"
-	publicKey := "0x0bDCC0C6eAc88439fb57b90977714b7430c3c623"
-
-	publicKey2, err := VerifyMessage(initdata, sign)
-	fmt.Println(publicKey == publicKey2, err)
 }

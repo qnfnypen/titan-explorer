@@ -2,8 +2,6 @@ package statistics
 
 import (
 	"fmt"
-	"github.com/Filecoin-Titan/titan/api"
-	"github.com/Filecoin-Titan/titan/api/client"
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/bsm/redislock"
 	"github.com/gnasnik/titan-explorer/config"
@@ -11,8 +9,6 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/robfig/cron/v3"
 	"golang.org/x/net/context"
-	"net/http"
-	"strings"
 	"sync"
 	"time"
 )
@@ -108,7 +104,6 @@ func (s *Statistic) runFetchers() error {
 
 	s.asyncExecute([]func() error{
 		s.SumDeviceInfoProfit,
-		//s.CountRetrievals,
 		s.SumAllNodes,
 		s.UpdateDeviceRank,
 	})
@@ -159,21 +154,4 @@ func (s *Statistic) asyncExecute(jobs []func() error) {
 		}(job)
 	}
 	wg.Wait()
-}
-
-func GetNewScheduler(ctx context.Context, areaId string) api.Scheduler {
-	scheduler, _ := SchedulerConfigs[areaId]
-	if len(scheduler) < 1 {
-		scheduler = SchedulerConfigs["Asia-China-Guangdong-Shenzhen"]
-	}
-	schedulerApiUrl := scheduler[0].SchedulerURL
-	schedulerApiToken := scheduler[0].AccessToken
-	SchedulerURL := strings.Replace(schedulerApiUrl, "https", "http", 1)
-	headers := http.Header{}
-	headers.Add("Authorization", "Bearer "+schedulerApiToken)
-	schedulerClient, _, err := client.NewScheduler(ctx, SchedulerURL, headers)
-	if err != nil {
-		log.Errorf("create scheduler rpc client: %v", err)
-	}
-	return schedulerClient
 }

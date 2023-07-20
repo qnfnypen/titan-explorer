@@ -10,6 +10,7 @@ var log = logging.Logger("api")
 
 func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	apiV1 := router.Group("/api/v1")
+	apiV2 := router.Group("/link")
 	authMiddleware, err := jwtGinMiddleware(cfg.SecretKey)
 	if err != nil {
 		log.Fatalf("jwt auth middleware: %v", err)
@@ -79,12 +80,14 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	storage.GET("/login_before", BeforeLogin)
 	storage.POST("/login", authMiddleware.LoginHandler)
 	storage.POST("/logout", authMiddleware.LogoutHandler)
-	storage.GET("/link", GetShareLinkHandler)
+	apiV2.GET("/", GetShareLinkHandler)
+	//storage.GET("/link", GetShareLinkHandler)
 	storage.GET("/get_link", ShareLinkHandler)
 	storage.GET("/get_map_cid", GetMapByCidHandler)
 	storage.GET("/get_asset_detail", GetCarFileCountHandler)
 	storage.GET("/get_asset_location", GetLocationHandler)
 	storage.GET("/share_asset", ShareAssetsHandler)
+	storage.GET("/get_asset_status", GetAssetStatusHandler)
 	storage.Use(authMiddleware.MiddlewareFunc())
 	storage.GET("/get_locateStorage", GetAllocateStorageHandler)
 	storage.GET("/get_Storage_size", GetStorageSizeHandler)

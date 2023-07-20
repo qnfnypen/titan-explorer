@@ -14,8 +14,6 @@ var (
 	tableNameDeviceInfo = "device_info"
 )
 
-const increase = 0.00111
-
 type ActiveInfoOut struct {
 	DeviceId     string `db:"device_id" json:"device_id"`
 	ActiveStatus string `db:"active_status" json:"active_status"`
@@ -37,8 +35,6 @@ func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option Query
 		where += ` AND active_status = ?`
 		args = append(args, cond.ActiveStatus)
 	}
-	//where += ` AND active_status = ?`
-	//args = append(args, cond.ActiveStatus)
 	if cond.UserID != "" {
 		where += ` AND user_id = ?`
 		args = append(args, cond.UserID)
@@ -255,13 +251,6 @@ func GetDeviceInfoByID(ctx context.Context, deviceID string) (*model.DeviceInfo,
 func UpdateUserDeviceInfo(ctx context.Context, deviceInfo *model.DeviceInfo) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
 		`UPDATE %s SET user_id = :user_id, updated_at = now(),bind_status = :bind_status WHERE device_id = :device_id`, tableNameDeviceInfo),
-		deviceInfo)
-	return err
-}
-
-func UpdateCarFileCount(ctx context.Context, deviceInfo *model.DeviceInfo) error {
-	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`UPDATE %s SET block_count = :block_count, updated_at = now() WHERE device_id = :device_id`, tableNameDeviceInfo),
 		deviceInfo)
 	return err
 }

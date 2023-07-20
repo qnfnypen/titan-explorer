@@ -183,54 +183,33 @@ type DeviceInfoHour struct {
 }
 
 type FullNodeInfo struct {
-	ID int64 `db:"id" json:"id"`
-	// 全球分布节点数/RP总节点数
-	Date            string `db:"date" json:"date" `
-	TotalNodeCount  int32  `db:"total_node_count" json:"total_node_count"`
-	OnlineNodeCount int32  `db:"online_node_count" json:"online_node_count"`
-	// RP节点在线率
-	TNodeOnlineRatio float64 `db:"t_node_online_ratio" json:"t_node_online_ratio"`
-	// titan已上传的文件数
-	TUpstreamFileCount int64 `db:"t_upstream_file_count" json:"t_upstream_file_count"`
-	// titan平均文件副本数
-	TAverageReplica float64 `db:"t_average_replica" json:"t_average_replica"`
-	// 已备份到filecoin的数据
-	FBackupsFromTitan float64 `db:"f_backups_from_titan" json:"f_backups_from_titan"`
-	// L1 验证节点
-	ValidatorCount int32 `db:"validator_count" json:"validator_count"`
-	// L1 候选节点
-	CandidateCount int32 `db:"candidate_count" json:"candidate_count"`
-	// L2 边缘节点
-	EdgeCount int32 `db:"edge_count" json:"edge_count"`
-	// 存储总空间
-	TotalStorage float64 `db:"total_storage" json:"total_storage"`
-	// 已用存储量
-	StorageUsed float64 `db:"storage_used" json:"storage_used"`
-	// 可用存储量
-	StorageLeft float64 `db:"storage_left" json:"storage_left"`
-	// 下载带宽
-	TotalUpstreamBandwidth float64 `db:"total_upstream_bandwidth" json:"total_upstream_bandwidth"`
-	// 上行带宽
-	TotalDownstreamBandwidth float64 `db:"total_downstream_bandwidth" json:"total_downstream_bandwidth"`
-	// 总carfile个数
-	TotalCarfile int64 `db:"total_carfile" json:"total_carfile"`
-	// 总carfile大小
-	TotalCarfileSize float64 `db:"total_carfile_size" json:"total_carfile_size"`
-	// 检索次数
-	RetrievalCount int64 `db:"retrieval_count" json:"retrieval_count"`
-	// 下次选举时间
-	NextElectionTime time.Time `db:"next_election_time" json:"next_election_time"`
-	// FVM 订单数量
-	FVMOrderCount int64 `db:"fvm_order_count" json:"fvm_order_count"`
-	// SP总节点数量（Filecoin Node）
-	FNodeCount int64 `db:"f_node_count" json:"f_node_count"`
-	// Filecoin当前高度
-	FHigh int64 `db:"f_high" json:"f_high"`
-	// Titan下一轮选举高度
-	TNextElectionHigh int64     `db:"t_next_election_high" json:"t_next_election_high"`
-	Time              time.Time `db:"time" json:"time"`
-	CreatedAt         time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt         time.Time `db:"updated_at" json:"updated_at"`
+	ID                       int64     `db:"id" json:"id"`
+	Date                     string    `db:"date" json:"date" `
+	TotalNodeCount           int32     `db:"total_node_count" json:"total_node_count"`
+	OnlineNodeCount          int32     `db:"online_node_count" json:"online_node_count"`
+	TNodeOnlineRatio         float64   `db:"t_node_online_ratio" json:"t_node_online_ratio"`
+	TUpstreamFileCount       int64     `db:"t_upstream_file_count" json:"t_upstream_file_count"`
+	TAverageReplica          float64   `db:"t_average_replica" json:"t_average_replica"`
+	FBackupsFromTitan        float64   `db:"f_backups_from_titan" json:"f_backups_from_titan"`
+	ValidatorCount           int32     `db:"validator_count" json:"validator_count"`
+	CandidateCount           int32     `db:"candidate_count" json:"candidate_count"`
+	EdgeCount                int32     `db:"edge_count" json:"edge_count"`
+	TotalStorage             float64   `db:"total_storage" json:"total_storage"`
+	StorageUsed              float64   `db:"storage_used" json:"storage_used"`
+	StorageLeft              float64   `db:"storage_left" json:"storage_left"`
+	TotalUpstreamBandwidth   float64   `db:"total_upstream_bandwidth" json:"total_upstream_bandwidth"`
+	TotalDownstreamBandwidth float64   `db:"total_downstream_bandwidth" json:"total_downstream_bandwidth"`
+	TotalCarfile             int64     `db:"total_carfile" json:"total_carfile"`
+	TotalCarfileSize         float64   `db:"total_carfile_size" json:"total_carfile_size"`
+	RetrievalCount           int64     `db:"retrieval_count" json:"retrieval_count"`
+	NextElectionTime         time.Time `db:"next_election_time" json:"next_election_time"`
+	FVMOrderCount            int64     `db:"fvm_order_count" json:"fvm_order_count"`
+	FNodeCount               int64     `db:"f_node_count" json:"f_node_count"`
+	FHigh                    int64     `db:"f_high" json:"f_high"`
+	TNextElectionHigh        int64     `db:"t_next_election_high" json:"t_next_election_high"`
+	Time                     time.Time `db:"time" json:"time"`
+	CreatedAt                time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt                time.Time `db:"updated_at" json:"updated_at"`
 }
 
 type LoginLog struct {
@@ -265,21 +244,15 @@ type OperationLog struct {
 }
 
 type RetrievalEvent struct {
-	//ID                int64     `db:"id" json:"id"`
-	DeviceID string `db:"device_id" json:"device_id"`
-	//TokenID           string    `db:"token_id" json:"token_id"`
-	ClientID   string `db:"client_id" json:"client_id"`
-	CarfileCid string `db:"carfile_cid" json:"carfile_cid"`
-	//Blocks            int64     `db:"blocks" json:"blocks"`
+	DeviceID   string    `db:"device_id" json:"device_id"`
+	ClientID   string    `db:"client_id" json:"client_id"`
+	CarfileCid string    `db:"carfile_cid" json:"carfile_cid"`
 	BlockSize  float64   `db:"block_size" json:"block_size"`
 	Time       time.Time `db:"time" json:"time"`
 	StartTime  int64     `db:"start_time" json:"start_time"`
 	EndTime    int64     `db:"end_time" json:"end_time"`
 	Expiration time.Time `db:"expiration" json:"expiration"`
 	Status     int32     `db:"status" json:"status"`
-	//UpstreamBandwidth float64   `db:"upstream_bandwidth" json:"upstream_bandwidth"`
-	//CreatedAt         time.Time `db:"created_at" json:"created_at"`
-	//UpdatedAt         time.Time `db:"updated_at" json:"updated_at"`
 }
 
 type Scheduler struct {

@@ -41,9 +41,7 @@ func (s *SystemInfoFetcher) Fetch(ctx context.Context, scheduler *Scheduler) err
 		if err := dao.UpsertSystemInfo(ctx, &model.SystemInfo{
 			SchedulerUuid: scheduler.Uuid,
 			// todo
-			//CarFileCount:     int64(respFromAssetStatistics.ReplicaCount),
-			CarFileCount: 0,
-			//DownloadCount:    int64(respFromAssetStatistics.UserDownloadCount),
+			CarFileCount:     0,
 			DownloadCount:    0,
 			NextElectionTime: respFromValidationInfo.NextElectionTime,
 		}); err != nil {

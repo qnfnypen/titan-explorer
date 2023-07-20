@@ -94,16 +94,11 @@ func GetQueryDataList(sqlClause string, args ...interface{}) ([]map[string]strin
 
 		data := make(map[string]string)
 		for i, col := range values {
-			//			if col == nil {
-			//				continue
-			//			}
-
 			key := columns[i]
 			key = strings.ToLower(key)
 			data[key] = string(col)
 
 		}
-		//		log.Info(&data)
 		dataList = append(dataList, data)
 	}
 

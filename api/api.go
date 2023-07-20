@@ -136,64 +136,6 @@ func (s *Server) Close() {
 	s.statistic.Stop()
 }
 
-func fetchSchedulersFromDatabase() ([]*statistics.Scheduler, error) {
-	schedulers, err := dao.GetSchedulers(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	if len(schedulers) == 0 {
-		log.Fatalf("scheulers not found")
-	}
-
-	var out []*statistics.Scheduler
-	for _, item := range schedulers {
-		// read permission only
-		client, closeScheduler, err := client.NewScheduler(context.Background(), item.Address, nil)
-		if err != nil {
-			log.Errorf("create scheduler rpc client: %v", err)
-		}
-		out = append(out, &statistics.Scheduler{
-			Uuid:   item.Uuid,
-			Api:    client,
-			Closer: closeScheduler,
-		})
-	}
-
-	log.Infof("fetch %d schedulers from database", len(out))
-
-	return out, nil
-}
-
-func fetchSchedulersFromLocator(locatorApi api.Locator) ([]*statistics.Scheduler, error) {
-	accessPoints, err := locatorApi.GetUserAccessPoint(context.Background(), "")
-	if err != nil {
-		log.Errorf("api GetAccessPoints: %v", err)
-		return nil, err
-	}
-
-	var out []*statistics.Scheduler
-	// todo etcd
-	for _, SchedulerURL := range accessPoints.SchedulerURLs {
-		// https protocol still in test, we use http for now.
-		SchedulerURL = strings.Replace(SchedulerURL, "https", "http", 1)
-		client, closeScheduler, err := client.NewScheduler(context.Background(), SchedulerURL, nil)
-		if err != nil {
-			log.Errorf("create scheduler rpc client: %v", err)
-		}
-		out = append(out, &statistics.Scheduler{
-			Uuid:   SchedulerURL,
-			Api:    client,
-			Closer: closeScheduler,
-		})
-
-	}
-
-	log.Infof("fetch %d schedulers from locator", len(out))
-
-	return out, nil
-}
-
 func fetchSchedulersFromEtcd(locatorApi *EtcdClient) ([]*statistics.Scheduler, error) {
 	var out []*statistics.Scheduler
 	for key, SchedulerURLs := range locatorApi.schedulerConfigs {
@@ -202,23 +144,23 @@ func fetchSchedulersFromEtcd(locatorApi *EtcdClient) ([]*statistics.Scheduler, e
 			SchedulerURL := strings.Replace(SchedulerCfg.SchedulerURL, "https", "http", 1)
 			headers := http.Header{}
 			headers.Add("Authorization", "Bearer "+SchedulerCfg.AccessToken)
-			client, closeScheduler, err := client.NewScheduler(context.Background(), SchedulerURL, headers)
+			clientInit, closeScheduler, err := client.NewScheduler(context.Background(), SchedulerURL, headers)
 			if err != nil {
 				log.Errorf("create scheduler rpc client: %v", err)
 			}
 			out = append(out, &statistics.Scheduler{
 				Uuid:   SchedulerURL,
-				Api:    client,
+				Api:    clientInit,
 				AreaId: key,
 				Closer: closeScheduler,
 			})
-			schedulerApi = client
+			schedulerApi = clientInit
 
 		}
 
 	}
 
-	log.Infof("fetch %d schedulers from locator", len(out))
+	log.Infof("fetch %d schedulers from Etcd", len(out))
 
 	return out, nil
 }
@@ -231,18 +173,6 @@ func applyAdminScheduler(url string, token string) {
 		log.Errorf("create scheduler rpc client: %v", err)
 	}
 	schedulerAdmin = client
-}
-
-func getLocatorClient(address, token string) (api.Locator, func(), error) {
-	//headers := http.Header{}
-	//headers.Add("Authorization", "Bearer "+string(token))
-	client, closer, err := client.NewLocator(context.Background(), address, nil)
-	if err != nil {
-		log.Errorf("create locator rpc client: %v", err)
-		return nil, nil, err
-	}
-
-	return client, closer, nil
 }
 
 func (s *Server) asyncHandleApplication() {
@@ -356,7 +286,7 @@ func (s *Server) handleApplication(ctx context.Context, publicKey string, applic
 			IpLocation:   application.AreaID,
 			DeviceID:     deviceInfo.NodeID,
 			NodeType:     1,
-			DeviceName:   "未命名",
+			DeviceName:   "",
 			BindStatus:   "binding",
 			ActiveStatus: 0,
 		})

@@ -109,7 +109,7 @@ type FullNodeDaysInfo struct {
 func QueryNodesDailyInfo(startTime, endTime string) []*FullNodeDaysInfo {
 	list, err := GetNodesDaysList(context.Background(), OptionHandle(startTime, endTime))
 	if err != nil {
-		log.Errorf("get incoming daily: %v", err)
+		log.Errorf("QueryNodesDailyInfo GetNodesDaysList: %v", err)
 		return nil
 	}
 

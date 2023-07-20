@@ -22,12 +22,6 @@ func ResetPassword(ctx context.Context, passHash, username string) error {
 	return err
 }
 
-func UpdatePublicKey(ctx context.Context, publicKey, username string) error {
-	_, err := DB.DB.ExecContext(ctx, fmt.Sprintf(
-		`UPDATE %s SET public_key = '%s', updated_at = now() WHERE username = '%s'`, tableNameUser, publicKey, username))
-	return err
-}
-
 func GetUserByUsername(ctx context.Context, username string) (*model.User, error) {
 	var out model.User
 	if err := DB.QueryRowxContext(ctx, fmt.Sprintf(

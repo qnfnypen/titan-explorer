@@ -21,7 +21,6 @@ func UpsertSystemInfo(ctx context.Context, systemInfo *model.SystemInfo) error {
 func SumSystemInfo(ctx context.Context) (*model.SystemInfo, error) {
 	queryStatement := fmt.Sprintf(`SELECT sum(car_file_count) as car_file_count, sum(download_count) as download_count, 
        min(next_election_time) as next_election_time FROM %s;`, tableNameSystemInfo)
-
 	var out model.SystemInfo
 	if err := DB.QueryRowxContext(ctx, queryStatement).StructScan(&out); err != nil {
 		return nil, err

@@ -108,33 +108,6 @@ func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, op
 	return handleDailyList(option.StartTime[0:10], option.EndTime[0:10], out), err
 }
 
-func GetNodesInfoDailyListByUser(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*DeviceStatistics, error) {
-	var args []interface{}
-	where := `WHERE 1=1`
-	if cond.UserID != "" {
-		where += ` AND user_id = ?`
-		args = append(args, cond.UserID)
-	}
-	if option.StartTime != "" {
-		where += ` AND time >= ?`
-		args = append(args, option.StartTime)
-	}
-	if option.EndTime != "" {
-		where += ` AND time <= ?`
-		args = append(args, option.EndTime)
-	}
-
-	var out []*DeviceStatistics
-	err := DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT DATE_FORMAT(time, '%%Y-%%m-%%d') as date, nat_ratio, ROUND(sum(disk_usage),2) as disk_usage,ROUND(sum(disk_space),2) as disk_space,  ROUND(sum(income),2) as income, ROUND(sum(upstream_traffic),2) as upstream_traffic, 
-    	ROUND(sum(downstream_traffic),2) as downstream_traffic FROM %s %s group by user_id,date`, tableNameDeviceInfoDaily, where), args...)
-	if err != nil {
-		return nil, err
-	}
-
-	return handleDailyList(option.StartTime[0:10], option.EndTime[0:10], out), err
-}
-
 func GetNodesInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*DeviceStatistics, error) {
 	var args []interface{}
 	where := `WHERE 1=1`
@@ -211,7 +184,7 @@ func handleHourList(in []*DeviceStatistics) []*DeviceStatistics {
 	return out
 }
 
-func GetUserIncome(ctx context.Context, cond *model.DeviceInfo, option QueryOption) (map[string]map[string]interface{}, error) {
+func GetUserIncome(cond *model.DeviceInfo, option QueryOption) (map[string]map[string]interface{}, error) {
 	sqlClause := fmt.Sprintf(`
 		select date_format(b.time, '%%Y-%%m-%%d') as date, sum(b.income) as income  from %s a LEFT JOIN %s b on a.device_id = b.device_id 
     	and a.user_id = '%s' and date_format(b.time, '%%Y-%%m-%%d') >='%s' and date_format(b.time, '%%Y-%%m-%%d') <='%s' group by date`,

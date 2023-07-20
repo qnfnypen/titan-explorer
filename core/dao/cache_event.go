@@ -27,17 +27,18 @@ func CreateLink(ctx context.Context, link *model.Link) error {
 	return err
 }
 
-func GetShortLink(ctx context.Context, link, username string) string {
+func GetShortLink(ctx context.Context, link string) string {
 	var areaID string
 	_ = DB.GetContext(ctx, &areaID, fmt.Sprintf(
-		`SELECT short_link FROM %s where long_link = '%s' and username = '%s' order by id desc limit 1`, tableNameLink, link, username,
+		`SELECT short_link FROM %s where long_link = '%s' order by id desc limit 1`, tableNameLink, link,
 	))
 	return areaID
 }
-func GetLongLink(ctx context.Context, cid, username string) string {
+
+func GetLongLink(ctx context.Context, cid string) string {
 	var areaID string
 	_ = DB.GetContext(ctx, &areaID, fmt.Sprintf(
-		`SELECT long_link FROM %s where cid = '%s' and username = '%s' order by id desc limit 1`, tableNameLink, cid, username,
+		`SELECT long_link FROM %s where cid = '%s' order by id desc limit 1`, tableNameLink, cid,
 	))
 	return areaID
 }
@@ -177,51 +178,4 @@ func handleCacheDaysList(start, end string, in []*CacheStatistics) []*CacheStati
 
 	return out
 
-}
-
-func GetCacheEventsByPage(ctx context.Context, cond *model.CacheEvent, option QueryOption) ([]*model.CacheEvent, int64, error) {
-	var args []interface{}
-	where := `WHERE 1=1 AND status=3`
-	if cond.DeviceID != "" {
-		where += ` AND device_id = ?`
-		args = append(args, cond.DeviceID)
-	}
-
-	if option.Order != "" && option.OrderField != "" {
-		where += fmt.Sprintf(` ORDER BY %s %s`, option.OrderField, option.Order)
-	}
-
-	if option.Order != "" && option.OrderField != "" {
-		where += fmt.Sprintf(` ORDER BY %s %s`, option.OrderField, option.Order)
-	} else {
-		where += " ORDER BY time DESC"
-	}
-
-	limit := option.PageSize
-	offset := option.Page
-	if option.PageSize <= 0 {
-		limit = 50
-	}
-	if option.Page > 0 {
-		offset = limit * (option.Page - 1)
-	}
-
-	var total int64
-	var out []*model.CacheEvent
-
-	err := DB.GetContext(ctx, &total, fmt.Sprintf(
-		`SELECT count(*) FROM %s %s`, tableNameCacheEvent, where,
-	), args...)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT * FROM %s %s LIMIT %d OFFSET %d`, tableNameCacheEvent, where, limit, offset,
-	), args...)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return out, total, err
 }
