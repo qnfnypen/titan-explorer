@@ -16,11 +16,11 @@ func CreateApplicationHandler(c *gin.Context) {
 	params := model.Application{}
 	if err := c.BindJSON(&params); err != nil {
 		log.Errorf("create application: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
 	if params.UserID == "" {
-		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
 
@@ -29,7 +29,7 @@ func CreateApplicationHandler(c *gin.Context) {
 	}
 
 	if params.Amount > 10 {
-		c.JSON(http.StatusOK, respError(errors.ErrAmountLimitExceeded))
+		c.JSON(http.StatusOK, respErrorCode(errors.AmountLimitExceeded, c))
 		return
 	}
 
@@ -40,7 +40,7 @@ func CreateApplicationHandler(c *gin.Context) {
 	params.Ip = utils.GetClientIP(c.Request)
 	if err := dao.AddApplication(c.Request.Context(), &params); err != nil {
 		log.Errorf("add application: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	ApplicationC <- true
@@ -63,7 +63,7 @@ func GetApplicationsHandler(c *gin.Context) {
 	applications, total, err := dao.GetApplicationsByPage(c.Request.Context(), option)
 	if err != nil {
 		log.Errorf("get applications: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -86,7 +86,7 @@ func GetApplicationAmountHandler(c *gin.Context) {
 	}
 	if err != nil {
 		log.Errorf("get applications: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{

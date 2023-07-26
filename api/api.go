@@ -299,21 +299,21 @@ func (s *Server) handleApplication(ctx context.Context, publicKey string, applic
 
 	status := dao.ApplicationStatusFinished
 	defer func() {
-		err = dao.UpdateApplicationStatus(ctx, application.ID, status)
-		if err != nil {
+		er := dao.UpdateApplicationStatus(ctx, application.ID, status)
+		if er != nil {
 			log.Errorf("update application status: %v", err)
 		}
 	}()
 
-	err = dao.AddApplicationResult(ctx, results)
-	if err != nil {
+	e := dao.AddApplicationResult(ctx, results)
+	if e != nil {
 		status = dao.ApplicationStatusFailed
 		log.Errorf("create application result: %v", err)
-		return err
+		return e
 	}
 
-	err = dao.BulkUpsertDeviceInfo(ctx, deviceInfos)
-	if err != nil {
+	e = dao.BulkUpsertDeviceInfo(ctx, deviceInfos)
+	if e != nil {
 		log.Errorf("add device info: %v", err)
 	}
 	//var registrations []string

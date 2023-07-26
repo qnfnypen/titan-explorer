@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
@@ -18,7 +19,7 @@ func GetCacheListHandler(c *gin.Context) {
 	resp, err := schedulerApi.GetReplicaEventsForNode(c.Request.Context(), nodeId, pageSize, (page-1)*pageSize)
 	if err != nil {
 		log.Errorf("api GetReplicaEventsForNode: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -35,7 +36,7 @@ func GetValidationListHandler(c *gin.Context) {
 	resp, err := schedulerApi.GetValidationResults(c.Request.Context(), nodeId, pageSize, (page-1)*pageSize)
 	if err != nil {
 		log.Errorf("api GetValidationResults: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	var validationEvents []*model.ValidationEvent
@@ -53,7 +54,7 @@ func GetValidationListHandler(c *gin.Context) {
 func GetAllocateStorageHandler(c *gin.Context) {
 	UserId := c.Query("user_id")
 	if UserId == "" {
-		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
 	var userInfo model.User
@@ -70,7 +71,7 @@ func GetAllocateStorageHandler(c *gin.Context) {
 	_, err = schedulerClient.AllocateStorage(c.Request.Context(), UserId)
 	if err != nil {
 		log.Errorf("api GetValidationResults: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
@@ -87,7 +88,7 @@ func GetStorageSizeHandler(c *gin.Context) {
 	StorageSize, err := schedulerClient.GetUserInfo(c.Request.Context(), UserId)
 	if err != nil {
 		log.Errorf("api GetStorageSize: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrNotFound))
+		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -95,6 +96,22 @@ func GetStorageSizeHandler(c *gin.Context) {
 		"TotalTraffic":  StorageSize.TotalTraffic,
 		"TotalSize":     StorageSize.TotalSize,
 		"UsedSize":      StorageSize.UsedSize,
+	}))
+	return
+}
+
+func GetUserVipInfoHandler(c *gin.Context) {
+	UserId := c.Query("user_id")
+	areaId := dao.GetAreaID(c.Request.Context(), UserId)
+	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
+	StorageSize, err := schedulerClient.GetUserInfo(c.Request.Context(), UserId)
+	if err != nil {
+		log.Errorf("api GetUserInfo: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+		return
+	}
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"vip": StorageSize.EnableVIP,
 	}))
 	return
 }
@@ -111,12 +128,13 @@ func CreateAssetHandler(c *gin.Context) {
 	createAssetReq.AssetSize = utils.Str2Int64(c.Query("asset_size"))
 	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &createAssetReq)
 	if err != nil {
-		log.Errorf("api CreateAsset: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrFileExists))
-		return
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			return
+		}
 	}
 	if createAssetRsp.AlreadyExists {
-		c.JSON(http.StatusOK, respError(errors.ErrFileExists))
+		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -134,7 +152,7 @@ func CreateKeyHandler(c *gin.Context) {
 	keyStr, err := schedulerClient.CreateAPIKey(c.Request.Context(), UserId, KeyName)
 	if err != nil {
 		log.Errorf("api CreateAPIKey: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrKeyLimit))
+		c.JSON(http.StatusOK, respErrorCode(errors.KeyLimit, c))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -151,7 +169,7 @@ func DeleteKeyHandler(c *gin.Context) {
 	err := schedulerClient.DeleteAPIKey(c.Request.Context(), UserId, KeyName)
 	if err != nil {
 		log.Errorf("api DeleteAPIKey: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrNotFound))
+		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -167,7 +185,7 @@ func DeleteAssetHandler(c *gin.Context) {
 	err := schedulerClient.DeleteAsset(c.Request.Context(), UserId, cid)
 	if err != nil {
 		log.Errorf("api DeleteAsset: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
@@ -186,7 +204,7 @@ func ShareAssetsHandler(c *gin.Context) {
 	urls, err := schedulerClient.ShareAssets(c.Request.Context(), UserId, assetCIDs)
 	if err != nil {
 		log.Errorf("api ShareAssets: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -200,7 +218,7 @@ func ShareLinkHandler(c *gin.Context) {
 	Cid := c.Query("cid")
 	Url := c.Query("url")
 	if Cid == "" || Url == "" {
-		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
 	var link model.Link
@@ -214,7 +232,7 @@ func ShareLinkHandler(c *gin.Context) {
 		err := dao.CreateLink(c.Request.Context(), &link)
 		if err != nil {
 			log.Errorf("database createLink: %v", err)
-			c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 			return
 		}
 	}
@@ -226,12 +244,12 @@ func ShareLinkHandler(c *gin.Context) {
 func GetShareLinkHandler(c *gin.Context) {
 	Cid := c.Query("cid")
 	if Cid == "" {
-		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
 	link := dao.GetLongLink(c.Request.Context(), Cid)
 	if link == "" {
-		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
 	c.Redirect(http.StatusMovedPermanently, link)
@@ -245,7 +263,7 @@ func UpdateShareStatusHandler(c *gin.Context) {
 	err := schedulerClient.UpdateShareStatus(c.Request.Context(), UserId, Cid)
 	if err != nil {
 		log.Errorf("api UpdateShareStatus: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -262,7 +280,7 @@ func GetAssetListHandler(c *gin.Context) {
 	createAssetRsp, err := schedulerClient.ListAssets(c.Request.Context(), UserId, pageSize, (page-1)*pageSize)
 	if err != nil {
 		log.Errorf("api ListAssets: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -279,7 +297,7 @@ func GetAssetStatusHandler(c *gin.Context) {
 	statusRsp, err := schedulerClient.GetAssetStatus(c.Request.Context(), UserId, Cid)
 	if err != nil {
 		log.Errorf("api GetAssetStatus: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -298,7 +316,7 @@ func GetAssetCountHandler(c *gin.Context) {
 	createAssetRsp, err := schedulerClient.ListAssets(c.Request.Context(), UserId, pageSize, (page-1)*pageSize)
 	if err != nil {
 		log.Errorf("api ListAssets: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	var deviceIds []string
@@ -322,7 +340,10 @@ func GetAssetCountHandler(c *gin.Context) {
 			}
 		}
 	}
-	countArea, err := dao.GetAreaCount(c.Request.Context(), deviceIds)
+	countArea, e := dao.GetAreaCount(c.Request.Context(), deviceIds)
+	if e != nil {
+		log.Errorf("GetAssetList err: %v", e)
+	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"area_count":      countArea,
 		"candidate_count": CandidateCount,
@@ -338,7 +359,7 @@ func GetCarFileCountHandler(c *gin.Context) {
 	AssetRsp, err := schedulerClient.GetAssetRecord(c.Request.Context(), Cid)
 	if err != nil {
 		log.Errorf("api GetAssetRecord: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	var deviceIdAll []string
@@ -352,9 +373,9 @@ func GetCarFileCountHandler(c *gin.Context) {
 		}
 	}
 
-	AssetListAll, err := dao.GetAssetList(c.Request.Context(), deviceIdAll)
+	AssetListAll, e := dao.GetAssetList(c.Request.Context(), deviceIdAll)
 	if err != nil {
-		log.Errorf("GetAssetList err: %v", err)
+		log.Errorf("GetAssetList err: %v", e)
 	}
 	for _, NodeInfo := range AssetListAll {
 		if _, ok := deviceExists[NodeInfo.IpCity]; ok {
@@ -382,7 +403,7 @@ func GetLocationHandler(c *gin.Context) {
 	GetRsp, err := schedulerClient.GetReplicas(c.Request.Context(), Cid, pageSize, (page-1)*pageSize)
 	if err != nil {
 		log.Errorf("api GetReplicas: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	var deviceIds []string
@@ -423,18 +444,20 @@ func GetMapByCidHandler(c *gin.Context) {
 	AssetRsp, err := schedulerClient.GetAssetRecord(c.Request.Context(), Cid)
 	if err != nil {
 		log.Errorf("api GetAssetRecord: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	var deviceIds []string
 	if len(AssetRsp.ReplicaInfos) > 0 {
 		for _, rep := range AssetRsp.ReplicaInfos {
-			deviceIds = append(deviceIds, rep.NodeID)
+			if rep.Status == 3 {
+				deviceIds = append(deviceIds, rep.NodeID)
+			}
 		}
 	}
-	AssetList, err := dao.GetAssetList(c.Request.Context(), deviceIds)
+	AssetList, e := dao.GetAssetList(c.Request.Context(), deviceIds)
 	if err != nil {
-		log.Errorf("GetAssetList err: %v", err)
+		log.Errorf("GetAssetList err: %v", e)
 	}
 	mapList := dao.HandleMapInfo(AssetList)
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -451,13 +474,15 @@ func GetAssetInfoHandler(c *gin.Context) {
 	AssetRsp, err := schedulerClient.GetAssetRecord(c.Request.Context(), Cid)
 	if err != nil {
 		log.Errorf("api GetAssetRecord: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	var deviceIds []string
 	if len(AssetRsp.ReplicaInfos) > 0 {
 		for _, rep := range AssetRsp.ReplicaInfos {
-			deviceIds = append(deviceIds, rep.NodeID)
+			if rep.Status == 3 {
+				deviceIds = append(deviceIds, rep.NodeID)
+			}
 		}
 	}
 
@@ -474,7 +499,7 @@ func GetKeyListHandler(c *gin.Context) {
 	keyRsp, err := schedulerClient.GetAPIKeys(c.Request.Context(), UserId)
 	if err != nil {
 		log.Errorf("api GetAPIKeys: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	var Rsp []map[string]interface{}
@@ -497,7 +522,7 @@ func GetRetrievalListHandler(c *gin.Context) {
 	resp, err := schedulerApi.GetRetrieveEventRecords(c.Request.Context(), nodeId, pageSize, (page-1)*pageSize)
 	if err != nil {
 		log.Errorf("api GetRetrieveEventRecords: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{

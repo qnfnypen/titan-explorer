@@ -22,6 +22,12 @@ func ResetPassword(ctx context.Context, passHash, username string) error {
 	return err
 }
 
+func UpdateAllocateStorageStatus(ctx context.Context, username string) error {
+	_, err := DB.DB.ExecContext(ctx, fmt.Sprintf(
+		`UPDATE %s SET allocate_storage = 1, updated_at = now() WHERE username = '%s'`, tableNameUser, username))
+	return err
+}
+
 func GetUserByUsername(ctx context.Context, username string) (*model.User, error) {
 	var out model.User
 	if err := DB.QueryRowxContext(ctx, fmt.Sprintf(

@@ -10,7 +10,7 @@ import (
 func GetSchedulersHandler(c *gin.Context) {
 	schedulers, err := dao.GetSchedulers(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusOK, respError(errors.ErrNotFound))
+		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 		return
 	}
 

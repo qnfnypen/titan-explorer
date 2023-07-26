@@ -87,9 +87,9 @@ loop:
 		nodeInfo.BoundAt = node.FirstTime
 		var loc model.Location
 		if node.ExternalIP != "" {
-			err = GetIpLocation(ctx, node.ExternalIP, &loc)
-			if err != nil {
-				log.Errorf("%v", err)
+			e := GetIpLocation(ctx, node.ExternalIP, &loc)
+			if e != nil {
+				log.Errorf("%v", e)
 				GetGip(nodeInfo)
 
 			} else {
@@ -115,11 +115,11 @@ loop:
 	log.Infof("handling %d/%d nodes", total, resp.Total)
 
 	n.Push(ctx, func() error {
-		err = dao.BulkUpsertDeviceInfo(ctx, nodes)
-		if err != nil {
-			log.Errorf("bulk upsert device info: %v", err)
+		e := dao.BulkUpsertDeviceInfo(ctx, nodes)
+		if e != nil {
+			log.Errorf("bulk upsert device info: %v", e)
 		}
-		if err = addDeviceInfoHours(ctx, nodes); err != nil {
+		if e = addDeviceInfoHours(ctx, nodes); err != nil {
 			log.Errorf("add device info hours: %v", err)
 		}
 		return nil
@@ -130,9 +130,9 @@ loop:
 	}
 
 	// add inactive node records for statistics
-	err = dao.GenerateInactiveNodeRecords(context.Background(), start)
-	if err != nil {
-		log.Errorf("generate inactive node records: %v", err)
+	e := dao.GenerateInactiveNodeRecords(context.Background(), start)
+	if e != nil {
+		log.Errorf("generate inactive node records: %v", e)
 	}
 
 	return nil

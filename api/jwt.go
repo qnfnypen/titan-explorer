@@ -1,8 +1,6 @@
 package api
 
 import (
-	"context"
-	"fmt"
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
@@ -40,7 +38,7 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 		Realm:             "User",
 		Key:               []byte(secretKey),
 		Timeout:           time.Hour,
-		MaxRefresh:        time.Hour,
+		MaxRefresh:        24 * time.Hour,
 		IdentityKey:       identityKey,
 		SendAuthorization: true,
 		PayloadFunc: func(data interface{}) jwt.MapClaims {
@@ -96,13 +94,13 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			var err error
 			var user interface{}
 			if Signature != "" {
-				user, err = loginBySignature(c.Request.Context(), userID, Address, Signature)
+				user, err = loginBySignature(c, userID, Address, Signature)
 			}
 			if verifyCode != "" {
-				user, err = loginByVerifyCode(c.Request.Context(), userID, verifyCode)
+				user, err = loginByVerifyCode(c, userID, verifyCode)
 			}
 			if password != "" {
-				user, err = loginByPassword(c.Request.Context(), userID, password)
+				user, err = loginByPassword(c, userID, password)
 			}
 
 			if err != nil {
@@ -160,33 +158,34 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 
 		// TimeFunc provides the current time. You can override it to use another time value. This is useful for testing or if your server uses a different time zone than your tokens.
 		TimeFunc: time.Now,
+
+		RefreshResponse: func(c *gin.Context, code int, token string, t time.Time) {
+			c.Next()
+		},
 	})
 }
 
-func loginByPassword(ctx context.Context, username, password string) (interface{}, error) {
-	user, err := dao.GetUserByUsername(ctx, username)
+func loginByPassword(c *gin.Context, username, password string) (interface{}, error) {
+	user, err := dao.GetUserByUsername(c.Request.Context(), username)
 	if err != nil {
 		log.Errorf("get user by username: %v", err)
-		return nil, errors.ErrUserNotFound
+		return nil, errors.NewErrorCode(errors.UserNotFound, c)
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PassHash), []byte(password)); err != nil {
-		log.Errorf("can't compare hash %s ans password %s: %v", user.PassHash, password, err)
-		return nil, errors.ErrInvalidPassword
+		return nil, errors.NewErrorCode(errors.InvalidPassword, c)
 	}
 
 	return &model.User{Uuid: user.Uuid, Username: user.Username, Role: user.Role}, nil
 }
 
-func loginBySignature(ctx context.Context, username, address, msg string) (interface{}, error) {
-	verifyCode, err := GetVerifyCode(ctx, username+"C")
+func loginBySignature(c *gin.Context, username, address, msg string) (interface{}, error) {
+	verifyCode, err := GetVerifyCode(c.Request.Context(), username+"C")
 	if err != nil {
-		fmt.Println("ErrInvalidParams")
-		return nil, errors.ErrInvalidParams
+		return nil, errors.NewErrorCode(errors.InvalidParams, c)
 	}
 	if verifyCode == "" {
-		fmt.Println("ErrVerifyCodeExpired")
-		return nil, errors.ErrVerifyCodeExpired
+		return nil, errors.NewErrorCode(errors.VerifyCodeExpired, c)
 	}
 	if address == "" {
 		address = username
@@ -195,28 +194,43 @@ func loginBySignature(ctx context.Context, username, address, msg string) (inter
 	address = strings.ToUpper(address)
 	publicKey = strings.ToUpper(publicKey)
 	if publicKey != address {
-		return nil, errors.ErrPassWord
+		return nil, errors.NewErrorCode(errors.PassWordNotAllowed, c)
 	}
 	return &model.User{Uuid: "", Username: username, Role: 0}, nil
 }
 
-func loginByVerifyCode(ctx context.Context, username, userVerifyCode string) (interface{}, error) {
-	verifyCode, err := GetVerifyCode(ctx, username+"2")
+func loginByVerifyCode(c *gin.Context, username, userVerifyCode string) (interface{}, error) {
+	verifyCode, err := GetVerifyCode(c.Request.Context(), username+"2")
 	if err != nil {
 		log.Errorf("get user by verify code: %v", err)
-		return nil, errors.ErrUnknown
+		return nil, errors.NewErrorCode(errors.InvalidParams, c)
 	}
 	if verifyCode == "" {
-		return nil, errors.ErrVerifyCodeExpired
+		return nil, errors.NewErrorCode(errors.VerifyCodeExpired, c)
 	}
-	user, err := dao.GetUserByUsername(ctx, username)
+	user, err := dao.GetUserByUsername(c.Request.Context(), username)
 	if err != nil {
 		log.Errorf("get user by username: %v", err)
-		return nil, errors.ErrUserNotFound
+		return nil, errors.NewErrorCode(errors.UserNotFound, c)
 	}
 	if verifyCode != userVerifyCode {
-		return nil, errors.ErrVerifyCode
+		return nil, errors.NewErrorCode(errors.VerifyCodeErr, c)
 	}
 
 	return &model.User{Uuid: user.Uuid, Username: user.Username, Role: user.Role}, nil
+}
+
+func AuthRequired(authMiddleware *jwt.GinJWTMiddleware) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		claims, e := authMiddleware.GetClaimsFromJWT(ctx)
+		if e == nil {
+			if int64(claims["exp"].(float64)-authMiddleware.Timeout.Seconds()/2) < authMiddleware.TimeFunc().Unix() {
+				tokenString, _, e := authMiddleware.RefreshToken(ctx)
+				if e == nil {
+					ctx.Header("new-token", tokenString)
+				}
+			}
+		}
+		ctx.Next()
+	}
 }

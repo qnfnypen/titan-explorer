@@ -27,7 +27,7 @@ func GetUserInfoHandler(c *gin.Context) {
 	uuid := claims[identityKey].(string)
 	user, err := dao.GetUserByUserUUID(c.Request.Context(), uuid)
 	if err != nil {
-		c.JSON(http.StatusOK, respError(errors.ErrUserNotFound))
+		c.JSON(http.StatusOK, respErrorCode(errors.UserNotFound, c))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(user))
@@ -40,41 +40,41 @@ func UserRegister(c *gin.Context) {
 	userInfo.UserEmail = userInfo.Username
 	PassStr := c.Query("password")
 	if userInfo.Username == "" {
-		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
 	_, err := dao.GetUserByUsername(c.Request.Context(), userInfo.Username)
 	if err == nil {
-		c.JSON(http.StatusOK, respError(errors.ErrNameExists))
+		c.JSON(http.StatusOK, respErrorCode(errors.NameExists, c))
 		return
 	}
 	if err != nil && err != sql.ErrNoRows {
-		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
 	PassHash, err := bcrypt.GenerateFromPassword([]byte(PassStr), bcrypt.DefaultCost)
 	if err != nil {
-		c.JSON(http.StatusOK, respError(errors.ErrPassWord))
+		c.JSON(http.StatusOK, respErrorCode(errors.PassWordNotAllowed, c))
 		return
 	}
 	userInfo.PassHash = string(PassHash)
 	verifyCode, err := GetVerifyCode(c.Request.Context(), userInfo.Username+"1")
 	if err != nil {
-		c.JSON(http.StatusOK, respError(errors.ErrUnknown))
+		c.JSON(http.StatusOK, respErrorCode(errors.Unknown, c))
 		return
 	}
 	if verifyCode == "" {
-		c.JSON(http.StatusOK, respError(errors.ErrVerifyCodeExpired))
+		c.JSON(http.StatusOK, respErrorCode(errors.VerifyCodeExpired, c))
 		return
 	}
 	if verifyCode != userInfo.VerifyCode {
-		c.JSON(http.StatusOK, respError(errors.ErrVerifyCode))
+		c.JSON(http.StatusOK, respErrorCode(errors.VerifyCodeErr, c))
 		return
 	}
 	err = dao.CreateUser(c.Request.Context(), userInfo)
 	if err != nil {
 		log.Errorf("create user : %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -90,40 +90,36 @@ func PasswordRest(c *gin.Context) {
 	PassStr := c.Query("password")
 	_, err := dao.GetUserByUsername(c.Request.Context(), userInfo.Username)
 	if err == sql.ErrNoRows {
-		c.JSON(http.StatusOK, respError(errors.ErrNameNotExists))
+		c.JSON(http.StatusOK, respErrorCode(errors.NameNotExists, c))
 		return
 	}
 	if err != nil {
-		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
-	//if user.Username != "" {
-	//	c.JSON(http.StatusOK, respError(errors.ErrNameExists))
-	//	return
-	//}
 	PassHash, err := bcrypt.GenerateFromPassword([]byte(PassStr), bcrypt.DefaultCost)
 	if err != nil {
-		c.JSON(http.StatusOK, respError(errors.ErrPassWord))
+		c.JSON(http.StatusOK, respErrorCode(errors.PassWordNotAllowed, c))
 		return
 	}
 	userInfo.PassHash = string(PassHash)
 	verifyCode, err := GetVerifyCode(c.Request.Context(), userInfo.Username+"3")
 	if err != nil {
-		c.JSON(http.StatusOK, respError(errors.ErrUnknown))
+		c.JSON(http.StatusOK, respErrorCode(errors.Unknown, c))
 		return
 	}
 	if verifyCode == "" {
-		c.JSON(http.StatusOK, respError(errors.ErrVerifyCodeExpired))
+		c.JSON(http.StatusOK, respErrorCode(errors.VerifyCodeExpired, c))
 		return
 	}
 	if verifyCode != userInfo.VerifyCode {
-		c.JSON(http.StatusOK, respError(errors.ErrVerifyCode))
+		c.JSON(http.StatusOK, respErrorCode(errors.VerifyCodeErr, c))
 		return
 	}
 	err = dao.ResetPassword(c.Request.Context(), userInfo.PassHash, userInfo.Username)
 	if err != nil {
 		log.Errorf("update user : %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -136,17 +132,17 @@ func BeforeLogin(c *gin.Context) {
 	userInfo.Username = c.Query("username")
 	UserName := userInfo.Username
 	if UserName == "" {
-		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
 	_, err := dao.GetUserByUsername(c.Request.Context(), UserName)
 	if err != nil && err != sql.ErrNoRows {
-		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
 	code, errSC := SetLoginCode(c.Request.Context(), UserName+"C")
 	if errSC != nil {
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	if err == nil {
@@ -158,7 +154,7 @@ func BeforeLogin(c *gin.Context) {
 	err = dao.CreateUser(c.Request.Context(), userInfo)
 	if err != nil {
 		log.Errorf("GetUserByUsername : %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -190,7 +186,7 @@ func GetVerifyCodeHandle(c *gin.Context) {
 	userInfo.UserEmail = userInfo.Username
 	err := SetVerifyCode(c.Request.Context(), userInfo.Username, userInfo.Username+verifyType)
 	if err != nil {
-		c.JSON(http.StatusOK, respError(errors.ErrUnknown))
+		c.JSON(http.StatusOK, respErrorCode(errors.Unknown, c))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -207,11 +203,11 @@ func DeviceBindingHandler(c *gin.Context) {
 	old, err := dao.GetDeviceInfoByID(c.Request.Context(), deviceInfo.DeviceID)
 	if err != nil {
 		log.Errorf("get user device: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	if old != nil && old.UserID != "" && old.BindStatus == deviceInfo.BindStatus {
-		c.JSON(http.StatusOK, respError(errors.ErrInvalidParams))
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
 	if deviceInfo.UserID != "" {
@@ -222,7 +218,7 @@ func DeviceBindingHandler(c *gin.Context) {
 			err = schedulerClient.UndoNodeDeactivation(c.Request.Context(), deviceInfo.DeviceID)
 			if err != nil {
 				log.Errorf("api UndoNodeDeactivation: %v", err)
-				c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+				c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 				return
 			}
 		}
@@ -231,7 +227,7 @@ func DeviceBindingHandler(c *gin.Context) {
 			err = schedulerClient.DeactivateNode(c.Request.Context(), deviceInfo.DeviceID, 24)
 			if err != nil {
 				log.Errorf("api DeactivateNode: %v", err)
-				c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+				c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 				return
 			}
 		}
@@ -246,7 +242,7 @@ func DeviceBindingHandler(c *gin.Context) {
 	err = dao.UpdateUserDeviceInfo(c.Request.Context(), deviceInfo)
 	if err != nil {
 		log.Errorf("update user device: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
@@ -263,24 +259,24 @@ func DeviceUnBindingHandler(c *gin.Context) {
 	old, err := dao.GetDeviceInfoByID(c.Request.Context(), deviceInfo.DeviceID)
 	if err != nil {
 		log.Errorf("get user device: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
 	if old == nil {
-		c.JSON(http.StatusOK, respError(errors.ErrDeviceNotExists))
+		c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
 		return
 	}
 
 	if old.UserID != UserID {
-		c.JSON(http.StatusOK, respError(errors.ErrUnbindingNotAllowed))
+		c.JSON(http.StatusOK, respErrorCode(errors.UnbindingNotAllowed, c))
 		return
 	}
 
 	err = dao.UpdateUserDeviceInfo(c.Request.Context(), deviceInfo)
 	if err != nil {
 		log.Errorf("update user device: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
@@ -296,19 +292,19 @@ func DeviceUpdateHandler(c *gin.Context) {
 	old, err := dao.GetDeviceInfoByID(c.Request.Context(), deviceInfo.DeviceID)
 	if err != nil {
 		log.Errorf("get user device: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
 	if old != nil && old.UserID != "" {
-		c.JSON(http.StatusOK, respError(errors.ErrDeviceExists))
+		c.JSON(http.StatusOK, respErrorCode(errors.DeviceExists, c))
 		return
 	}
 
 	err = dao.UpdateDeviceName(c.Request.Context(), deviceInfo)
 	if err != nil {
 		log.Errorf("update user device: %v", err)
-		c.JSON(http.StatusOK, respError(errors.ErrInternalServer))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
@@ -361,11 +357,10 @@ func sendEmail(sendTo string, vc string) error {
 	EData.Tittle = "please check your verify code "
 	EData.SendTo = sendTo
 	EData.Content = "<h1>Your verify code ：</h1>\n"
-
 	EData.Content = vc + "<br>"
-
 	err := utils.SendEmail(config.Cfg.Email, EData)
 	if err != nil {
+		log.Errorf("sendEmailing failed:%v", err)
 		return err
 	}
 	return nil
