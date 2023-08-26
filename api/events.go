@@ -10,6 +10,7 @@ import (
 	"github.com/gnasnik/titan-explorer/utils"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 func GetCacheListHandler(c *gin.Context) {
@@ -90,6 +91,15 @@ func GetStorageSizeHandler(c *gin.Context) {
 		log.Errorf("api GetStorageSize: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 		return
+	}
+	peakBandwidth := GetUserInfo(c.Request.Context(), UserId)
+	if peakBandwidth > StorageSize.PeakBandwidth {
+		StorageSize.PeakBandwidth = peakBandwidth
+	} else {
+		var expireTime time.Duration
+		expireTime = time.Hour
+		// update redis data
+		_ = SetUserInfo(c.Request.Context(), UserId, StorageSize.PeakBandwidth, expireTime)
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"PeakBandwidth": StorageSize.PeakBandwidth,
@@ -207,9 +217,16 @@ func ShareAssetsHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+	var redirect bool
+	if UserId == "f1hl7vbopivazgion4ql25opmjnoj2ldfsvm5fuzi" {
+		redirect = false
+	} else {
+		redirect = true
+	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"asset_cid": Cid,
 		"url":       urls[Cid],
+		"redirect":  redirect,
 	}))
 }
 
@@ -253,6 +270,7 @@ func GetShareLinkHandler(c *gin.Context) {
 		return
 	}
 	c.Redirect(http.StatusMovedPermanently, link)
+
 }
 
 func UpdateShareStatusHandler(c *gin.Context) {
@@ -285,6 +303,32 @@ func GetAssetListHandler(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"list":  createAssetRsp.AssetOverviews,
+		"total": createAssetRsp.Total,
+	}))
+}
+
+func GetAssetAllListHandler(c *gin.Context) {
+	UserId := c.Query("user_id")
+	areaId := dao.GetAreaID(c.Request.Context(), UserId)
+	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
+	var total int
+	page, size := 1, 100
+	var listRsp []*types.AssetOverview
+loop:
+	createAssetRsp, err := schedulerClient.ListAssets(c.Request.Context(), UserId, size, (page-1)*size)
+	if err != nil {
+		log.Errorf("api ListAssets: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	listRsp = append(listRsp, createAssetRsp.AssetOverviews...)
+	total += len(createAssetRsp.AssetOverviews)
+	page++
+	if total < createAssetRsp.Total {
+		goto loop
+	}
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list":  listRsp,
 		"total": createAssetRsp.Total,
 	}))
 }
@@ -459,7 +503,7 @@ func GetMapByCidHandler(c *gin.Context) {
 	if err != nil {
 		log.Errorf("GetAssetList err: %v", e)
 	}
-	mapList := dao.HandleMapInfo(AssetList)
+	mapList := dao.HandleMapInfo(c, AssetList)
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"list":  mapList,
 		"total": len(mapList),

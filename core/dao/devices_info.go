@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/utils"
 	"strings"
@@ -209,7 +210,43 @@ func GetDeviceInfoListByKey(ctx context.Context, cond *model.DeviceInfo, option 
 	return HandleIpInfo(out), total, err
 }
 
-func HandleMapInfo(in []*model.DeviceInfo) []map[string]interface{} {
+func HandleMapList(ctx *gin.Context, deviceIfo *model.DeviceInfo) *model.DeviceInfo {
+	if ctx.GetHeader("Lang") == "en" {
+		continents := strings.Split(deviceIfo.IpLocation, "-")
+		continent := "Asia"
+		if len(continents) > 1 {
+			switch continents[0] {
+			case "亚洲":
+				continent = "Asia"
+				deviceIfo.IpProvince = GetProvinceName(ctx.Request.Context(), deviceIfo.IpProvince)
+				deviceIfo.IpCity = GetCityName(ctx.Request.Context(), deviceIfo.IpCity)
+			case "欧洲":
+				continent = "Europe"
+			case "非洲":
+				continent = "Africa"
+			case "大洋洲":
+				continent = "Oceania"
+			case "南极洲":
+				continent = "Antarctica"
+			case "北美洲":
+				continent = "North America"
+			case "南美洲":
+				continent = "South America"
+			default:
+				continent = "Asia"
+
+			}
+			deviceIfo.IpLocation = continent
+			deviceIfo.IpLocation += "-" + GetCountryName(ctx.Request.Context(), deviceIfo.IpCountry)
+			deviceIfo.IpLocation += "-" + deviceIfo.IpProvince
+			deviceIfo.IpLocation += "-" + deviceIfo.IpCity
+		}
+
+	}
+	return deviceIfo
+}
+
+func HandleMapInfo(ctx *gin.Context, in []*model.DeviceInfo) []map[string]interface{} {
 	type MapObject map[string]interface{}
 	var mapInfoOut []map[string]interface{}
 	mapLocationExit := make(map[float64]float64)
@@ -223,6 +260,7 @@ func HandleMapInfo(in []*model.DeviceInfo) []map[string]interface{} {
 			m.Latitude += utils.RandFloat64() / 10000
 			m.Longitude += utils.RandFloat64() / 10000
 		}
+		HandleMapList(ctx, m)
 		mapInfoOut = append(mapInfoOut, MapObject{
 			"name":     m.IpCity,
 			"nodeType": m.NodeType,
@@ -366,6 +404,7 @@ type UserDeviceProfile struct {
 	TodayProfit      float64 `json:"today_profit" db:"today_profit"`
 	SevenDaysProfit  float64 `json:"seven_days_profit" db:"seven_days_profit"`
 	MonthProfit      float64 `json:"month_profit" db:"month_profit"`
+	NodeType         *int    `json:"node_type" db:"node_type"`
 	TotalNum         int64   `json:"total_num" db:"total_num"`
 	OnlineNum        int64   `json:"online_num" db:"online_num"`
 	OfflineNum       int64   `json:"offline_num" db:"offline_num"`
@@ -375,7 +414,7 @@ type UserDeviceProfile struct {
 
 func CountUserDeviceInfo(ctx context.Context, userID string) (*UserDeviceProfile, error) {
 	queryStatement := fmt.Sprintf(`SELECT COALESCE(sum(cumulative_profit),0) as cumulative_profit, COALESCE(sum(yesterday_profit),0) as yesterday_profit, 
-COALESCE(sum(today_profit),0) as today_profit, COALESCE(sum(seven_days_profit),0) as seven_days_profit, COALESCE(sum(month_profit),0) as month_profit, count(*) as total_num, 
+COALESCE(sum(today_profit),0) as today_profit,node_type, COALESCE(sum(seven_days_profit),0) as seven_days_profit, COALESCE(sum(month_profit),0) as month_profit, count(*) as total_num, 
 count(IF(device_status = 'online', 1, NULL)) as online_num ,count(IF(device_status = 'offline', 1, NULL)) as offline_num, 
 count(IF(device_status = 'abnormal', 1, NULL)) as abnormal_num, COALESCE(sum(bandwidth_up),0) as total_bandwidth from %s where user_id = ? and active_status = 1;`, tableNameDeviceInfo)
 

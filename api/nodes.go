@@ -1,7 +1,9 @@
 package api
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
@@ -9,6 +11,8 @@ import (
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/utils"
 	"github.com/golang-module/carbon/v2"
+	"golang.org/x/xerrors"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
@@ -24,6 +28,97 @@ func GetAllAreas(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"areas": areas,
 	}))
+}
+
+var heightDown int64
+
+var heightNow int64
+
+var heightTimeSecond int64
+
+func GetHigh(c *gin.Context) {
+	url := "http://api.node.glif.io/rpc/v0"
+	height, err := ChainHead(url)
+	if err != nil {
+		log.Errorf("create scheduler rpc client: %v", err)
+	}
+	if heightNow == height {
+		heightDown += time.Now().Unix() - heightTimeSecond
+		heightTimeSecond = time.Now().Unix()
+	} else {
+		heightNow = height
+		heightDown = 30
+	}
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"height":    heightNow,
+		"countDown": heightDown,
+	}))
+}
+
+type (
+	// lotus struct
+	tipSet struct {
+		Height int64
+	}
+
+	randomness []byte
+)
+
+func ChainHead(url string) (int64, error) {
+	req := model.LotusRequest{
+		Jsonrpc: "2.0",
+		Method:  "Filecoin.ChainHead",
+		Params:  nil,
+		ID:      1,
+	}
+
+	rsp, err := requestLotus(url, req)
+	if err != nil {
+		return 0, err
+	}
+
+	var ts tipSet
+	b, err := json.Marshal(rsp.Result)
+	if err != nil {
+		return 0, err
+	}
+
+	err = json.Unmarshal(b, &ts)
+	if err != nil {
+		return 0, err
+	}
+
+	return ts.Height, nil
+}
+
+func requestLotus(url string, req model.LotusRequest) (*model.LotusResponse, error) {
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var rsp model.LotusResponse
+	err = json.Unmarshal(body, &rsp)
+	if err != nil {
+		return nil, err
+	}
+
+	if rsp.Error != nil {
+		return nil, xerrors.New(rsp.Error.Message)
+	}
+
+	return &rsp, nil
 }
 
 func GetIndexInfoHandler(c *gin.Context) {
@@ -302,20 +397,21 @@ func GetDeviceInfoHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list":  handleNodeList(c.Request.Context(), info.UserID, list),
+		"list":  handleNodeList(c, info.UserID, list),
 		"total": total,
 	}))
 }
 
-func handleNodeList(ctx context.Context, userId string, devicesInfo []*model.DeviceInfo) []*model.DeviceInfo {
-	areaId := dao.GetAreaID(ctx, userId)
-	schedulerClient := GetNewScheduler(ctx, areaId)
+func handleNodeList(ctx *gin.Context, userId string, devicesInfo []*model.DeviceInfo) []*model.DeviceInfo {
+	areaId := dao.GetAreaID(ctx.Request.Context(), userId)
+	schedulerClient := GetNewScheduler(ctx.Request.Context(), areaId)
 	for _, deviceIfo := range devicesInfo {
 		createAssetRsp, err := schedulerClient.GetNodeInfo(ctx, deviceIfo.DeviceID)
 		if err != nil {
 			log.Errorf("api GetNodeInfo: %v", err)
 		}
 		deviceIfo.DeactivateTime = createAssetRsp.DeactivateTime
+		dao.HandleMapList(ctx, deviceIfo)
 	}
 	return devicesInfo
 }
@@ -445,7 +541,7 @@ func GetMapInfoHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list":  dao.HandleMapInfo(list),
+		"list":  dao.HandleMapInfo(c, list),
 		"total": total,
 	}))
 }

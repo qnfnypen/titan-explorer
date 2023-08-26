@@ -6,7 +6,6 @@ import (
 	"github.com/Filecoin-Titan/titan/api/client"
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Filecoin-Titan/titan/lib/etcdcli"
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
@@ -94,13 +93,13 @@ func (ec *EtcdClient) loadSchedulerConfigs() error {
 func NewServer(cfg config.Config) (*Server, error) {
 	gin.SetMode(cfg.Mode)
 	router := gin.Default()
-	router.Use(cors.New(cors.Config{
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
-		AllowHeaders:     []string{"Authorization", "Origin", "Content-Length", "Content-Type"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-		AllowAllOrigins:  true,
-	}))
+	//router.Use(cors.New(cors.Config{
+	//	//AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
+	//	//AllowHeaders:     []string{"Authorization", "Origin", "Content-Length", "Content-Type"},
+	//	//AllowCredentials: true,
+	//	MaxAge: 12 * time.Hour,
+	//	//AllowAllOrigins:  true,
+	//}))
 	ConfigRouter(router, cfg)
 	var address []string
 	address = append(address, cfg.EtcdAddress)

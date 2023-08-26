@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
@@ -38,7 +37,6 @@ func GetStorageHourHandler(c *gin.Context) {
 	userInfo.CreatedAt = time.Now()
 	userInfo.UpdatedAt = time.Now()
 	infos = append(infos, &userInfo)
-	fmt.Println(userInfo)
 	e := dao.BulkUpsertStorageHours(c.Request.Context(), infos)
 	if err != nil {
 		log.Errorf("create user info hour: %v", e)

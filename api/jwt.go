@@ -124,6 +124,7 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 				Status:        loginStatusSuccess,
 				Msg:           "success",
 			})
+			go SetPeakBandwidth(userID)
 			return user, nil
 		},
 		// Authorizator: func(data interface{}, c *gin.Context) bool {
@@ -227,10 +228,25 @@ func AuthRequired(authMiddleware *jwt.GinJWTMiddleware) gin.HandlerFunc {
 			if int64(claims["exp"].(float64)-authMiddleware.Timeout.Seconds()/2) < authMiddleware.TimeFunc().Unix() {
 				tokenString, _, e := authMiddleware.RefreshToken(ctx)
 				if e == nil {
+					go SetPeakBandwidth(ctx.Query("user_id"))
 					ctx.Header("new-token", tokenString)
 				}
 			}
 		}
 		ctx.Next()
+	}
+}
+
+func Cors() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		//c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		//c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
+		//c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		//c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(200)
+			return
+		}
+		c.Next()
 	}
 }

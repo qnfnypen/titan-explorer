@@ -246,7 +246,9 @@ func DeviceBindingHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, respJSON(nil))
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"msg": "success",
+	}))
 }
 
 func DeviceUnBindingHandler(c *gin.Context) {
@@ -280,7 +282,9 @@ func DeviceUnBindingHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, respJSON(nil))
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"msg": "success",
+	}))
 }
 
 func DeviceUpdateHandler(c *gin.Context) {
@@ -295,9 +299,8 @@ func DeviceUpdateHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-
-	if old != nil && old.UserID != "" {
-		c.JSON(http.StatusOK, respErrorCode(errors.DeviceExists, c))
+	if old == nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
 		return
 	}
 
@@ -308,7 +311,9 @@ func DeviceUpdateHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, respJSON(nil))
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"msg": "success",
+	}))
 }
 
 func SetVerifyCode(ctx context.Context, username, key string) error {
@@ -335,6 +340,38 @@ func SetVerifyCode(ctx context.Context, username, key string) error {
 	return nil
 }
 
+func SetPeakBandwidth(userId string) {
+	peakBandwidth, e := dao.GetPeakBandwidth(context.Background(), userId)
+	if e != nil {
+		fmt.Printf("%v", e)
+		return
+	}
+	var expireTime time.Duration
+	expireTime = time.Hour
+	_ = SetUserInfo(context.Background(), userId, peakBandwidth, expireTime)
+	return
+}
+
+func SetUserInfo(ctx context.Context, key string, peakBandwidth int64, expireTime time.Duration) error {
+	bytes, err := json.Marshal(peakBandwidth)
+	vc := GetUserInfo(ctx, key)
+	if vc != 0 {
+		_, err := dao.Cache.Expire(ctx, key, expireTime).Result()
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	_, err = dao.Cache.Set(ctx, key, bytes, expireTime).Result()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func GetVerifyCode(ctx context.Context, key string) (string, error) {
 	bytes, err := dao.Cache.Get(ctx, key).Bytes()
 	if err != nil && err != redis.Nil {
@@ -353,11 +390,24 @@ func GetVerifyCode(ctx context.Context, key string) (string, error) {
 
 func sendEmail(sendTo string, vc string) error {
 	var EData utils.EmailData
-	EData.Subject = "[Application]: Your verify code Info"
+	EData.Subject = "【Titan Storage】您的验证码"
 	EData.Tittle = "please check your verify code "
 	EData.SendTo = sendTo
-	EData.Content = "<h1>Your verify code ：</h1>\n"
-	EData.Content = vc + "<br>"
+	EData.Content += "<p style=\"line-height:38px;margin:30px;\"> <b>亲爱的用户:</b><br>"
+	EData.Content +=
+		"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;您好！感谢您选择使用Titan Storage，我们是一家基" +
+			"于Filecoin提供去中心化存储云盘服务的平台。您正在" +
+			"进行邮箱验证，以验证您的身份或在我们的平台上进行注" +
+			"册或登录。<br>您的验证码为：<strong>" + vc + "</strong><br>" +
+			"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;请在操作页面输入此验证码以完成验证。为了保证您的账" +
+			"号安全，请勿将此验证码透露给他人。请注意，此验证码" +
+			"在接收后的5分钟内有效。若您未在有效时间内完成验" +
+			"证，验证码将会失效。如果验证码失效，您可以重新发起" +
+			"邮箱验证流程获取新的验证码。如果您并未进行相关操作，" +
+			"可能是其他用户误操作，此情况下请忽略此邮件。<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;感谢您" +
+			"对Titan Storage的信任和支持，我们将一如既往地为" +
+			"您提供高品质的服务。祝您使用愉快！<br></p>" +
+			"<h1>Titan Storage团队</h1>"
 	err := utils.SendEmail(config.Cfg.Email, EData)
 	if err != nil {
 		log.Errorf("sendEmailing failed:%v", err)
@@ -386,4 +436,25 @@ func VerifyMessage(message string, signedMessage string) (string, error) {
 	}
 
 	return crypto.PubkeyToAddress(*sigPublicKeyECDSA).String(), nil
+}
+
+func GetUserInfo(ctx context.Context, key string) int64 {
+	bytes, err := dao.Cache.Get(ctx, key).Bytes()
+	if err != nil && err != redis.Nil {
+		return 0
+	}
+	if err == redis.Nil {
+		return 0
+	}
+	var peakBandwidth int64
+	err = json.Unmarshal(bytes, &peakBandwidth)
+	if err != nil {
+		return 0
+	}
+	return peakBandwidth
+}
+
+func GetUserInfoE(ctx context.Context, key string) (time.Duration, error) {
+	bytes, _ := dao.Cache.TTL(ctx, key).Result()
+	return bytes, nil
 }
