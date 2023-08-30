@@ -1,6 +1,10 @@
 package api
 
 import (
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/gin-gonic/gin"
@@ -8,9 +12,6 @@ import (
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/utils"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 func GetCacheListHandler(c *gin.Context) {
@@ -130,12 +131,34 @@ func CreateAssetHandler(c *gin.Context) {
 	UserId := c.Query("user_id")
 	areaId := dao.GetAreaID(c.Request.Context(), UserId)
 	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
+
+	nodeIPInfos, err := schedulerClient.GetCandidateIPs(c.Request.Context())
+	if err != nil {
+		log.Warnf("get candidate ips error %s", err.Error())
+	}
+
+	var nearestNode string
+	if len(nodeIPInfos) > 0 {
+		nodeMap := make(map[string]string)
+		ips := make([]string, 0, len(nodeIPInfos))
+		for _, nodeIPInfo := range nodeIPInfos {
+			ips = append(ips, nodeIPInfo.IP)
+			nodeMap[nodeIPInfo.IP] = nodeIPInfo.NodeID
+		}
+
+		ip := utils.GetUserNearestIP(c.ClientIP(), ips, ipCoordinate)
+		nearestNode = nodeMap[ip]
+	}
+
+	log.Debugf("CreateAssetHandler clientIP:%s, areaId:%s, nearestNode:%s\n", c.ClientIP(), areaId, nearestNode)
+
 	var createAssetReq types.CreateAssetReq
 	createAssetReq.AssetName = c.Query("asset_name")
 	createAssetReq.AssetCID = c.Query("asset_cid")
 	createAssetReq.UserID = UserId
 	createAssetReq.AssetType = c.Query("asset_type")
 	createAssetReq.AssetSize = utils.Str2Int64(c.Query("asset_size"))
+	createAssetReq.NodeID = nearestNode
 	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &createAssetReq)
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {

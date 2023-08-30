@@ -2,6 +2,11 @@ package api
 
 import (
 	"context"
+	"math/rand"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/client"
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -12,10 +17,10 @@ import (
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/core/statistics"
 	"github.com/gnasnik/titan-explorer/utils"
-	"math/rand"
-	"net/http"
-	"strings"
-	"time"
+)
+
+const (
+	gepDBPath = "city.mmdb"
 )
 
 var schedulerAdmin api.Scheduler
@@ -25,6 +30,7 @@ var schedulerApi api.Scheduler
 var ApplicationC chan bool
 
 var SchedulerConfigs map[string][]*types.SchedulerCfg
+var ipCoordinate utils.IPCoordinate
 
 type EtcdClient struct {
 	cli *etcdcli.Client
@@ -108,7 +114,19 @@ func NewServer(cfg config.Config) (*Server, error) {
 		log.Errorf("New etcdClient Failed: %v", err)
 		return nil, err
 	}
+
 	schedulers, err := fetchSchedulersFromEtcd(eClient)
+	if err != nil {
+		log.Errorf("fetch scheduler from etcd Failed: %v", err)
+		return nil, err
+	}
+
+	ipCoordinate, err = utils.NewIPCoordinate(gepDBPath)
+	if err != nil {
+		log.Errorf("new ip coordinate error: %v", err)
+		return nil, err
+	}
+
 	if cfg.AdminScheduler.Enable {
 		applyAdminScheduler(cfg.AdminScheduler.Address, cfg.AdminScheduler.Token)
 	}
