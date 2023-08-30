@@ -146,7 +146,7 @@ func CreateAssetHandler(c *gin.Context) {
 			nodeMap[nodeIPInfo.IP] = nodeIPInfo.NodeID
 		}
 
-		ip := utils.GetUserNearestIP(c.ClientIP(), ips, ipCoordinate)
+		ip := GetUserNearestIP(c.Request.Context(), c.ClientIP(), ips, NewIPCoordinate())
 		nearestNode = nodeMap[ip]
 	}
 

@@ -19,10 +19,6 @@ import (
 	"github.com/gnasnik/titan-explorer/utils"
 )
 
-const (
-	gepDBPath = "city.mmdb"
-)
-
 var schedulerAdmin api.Scheduler
 
 var schedulerApi api.Scheduler
@@ -30,7 +26,6 @@ var schedulerApi api.Scheduler
 var ApplicationC chan bool
 
 var SchedulerConfigs map[string][]*types.SchedulerCfg
-var ipCoordinate utils.IPCoordinate
 
 type EtcdClient struct {
 	cli *etcdcli.Client
@@ -118,12 +113,6 @@ func NewServer(cfg config.Config) (*Server, error) {
 	schedulers, err := fetchSchedulersFromEtcd(eClient)
 	if err != nil {
 		log.Errorf("fetch scheduler from etcd Failed: %v", err)
-		return nil, err
-	}
-
-	ipCoordinate, err = utils.NewIPCoordinate(gepDBPath)
-	if err != nil {
-		log.Errorf("new ip coordinate error: %v", err)
 		return nil, err
 	}
 
