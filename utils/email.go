@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"crypto/tls"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/jordan-wright/email"
@@ -29,5 +30,8 @@ func SendEmail(cfg config.EmailConfig, data EmailData) error {
 	addr := fmt.Sprintf("%s:%s", cfg.SMTPHost, cfg.SMTPPort)
 	auth := smtp.PlainAuth("", cfg.Username, cfg.Password, cfg.SMTPHost)
 
-	return message.Send(addr, auth)
+	return message.SendWithTLS(addr, auth, &tls.Config{
+		InsecureSkipVerify: true,
+		ServerName:         cfg.SMTPHost,
+	})
 }
