@@ -422,7 +422,7 @@ func GetAssetCountHandler(c *gin.Context) {
 func GetCarFileCountHandler(c *gin.Context) {
 	UserId := c.Query("user_id")
 	Cid := c.Query("cid")
-	lang := model.Language(c.GetHeader("lang"))
+	lang := model.Language(c.GetHeader("Lang"))
 	areaId := dao.GetAreaID(c.Request.Context(), UserId)
 	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
 	AssetRsp, err := schedulerClient.GetAssetRecord(c.Request.Context(), Cid)
@@ -495,7 +495,7 @@ func GetLocationHandler(c *gin.Context) {
 		for _, NodeInfo := range AssetList {
 			var AssetInfo DeviceInfoRes
 			AssetInfo.DeviceId = NodeInfo.DeviceID
-			AssetInfo.IpLocation = fmt.Sprintf("%s-%s-%s-%s", NodeInfo.Continent, NodeInfo.Country, NodeInfo.Province, NodeInfo.City)
+			AssetInfo.IpLocation = contactIPLocation(NodeInfo.Location, lang)
 			AssetInfos = append(AssetInfos, &AssetInfo)
 		}
 	}
@@ -504,6 +504,25 @@ func GetLocationHandler(c *gin.Context) {
 		"total":     GetRsp.Total,
 		"node_list": AssetInfos,
 	}))
+}
+
+func contactIPLocation(loc model.Location, lang model.Language) string {
+	var unknown string
+	switch lang {
+	case model.LanguageCN:
+		unknown = "未知"
+	default:
+		unknown = "Unknown"
+	}
+
+	cf := func(in string) string {
+		if in == "" {
+			return unknown
+		}
+		return in
+	}
+
+	return fmt.Sprintf("%s-%s-%s-%s", cf(loc.Continent), cf(loc.Country), cf(loc.Province), cf(loc.City))
 }
 
 func GetMapByCidHandler(c *gin.Context) {

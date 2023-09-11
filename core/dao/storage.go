@@ -144,7 +144,8 @@ func GetPeakBandwidth(ctx context.Context, userId string) (int64, error) {
 
 func GetAssetList(ctx context.Context, deviceIds []string, lang model.Language) ([]*model.DeviceInfo, error) {
 	var AssetList []*model.DeviceInfo
-	rawSql := fmt.Sprintf(`SELECT d.*, l.continent, l.country, l.province, l.city FROM %s d left join %s l ON d.external_ip COLLATE utf8mb4_unicode_ci = l.ip WHERE device_id IN (?)`, tableNameDeviceInfo, fmt.Sprintf("%s_%s", tableNameLocation, lang))
+	rawSql := fmt.Sprintf(`SELECT d.*, IFNULL(l.continent, '') as continent, IFNULL(l.country,'') as country, IFNULL(l.province,'') as province, IFNULL(l.city,'') as city FROM %s d left join %s l ON d.external_ip COLLATE utf8mb4_unicode_ci = l.ip WHERE device_id IN (?)`,
+		tableNameDeviceInfo, fmt.Sprintf("%s_%s", tableNameLocation, lang))
 	query, args, err := sqlx.In(rawSql, deviceIds)
 	if err != nil {
 		return nil, err
