@@ -98,6 +98,7 @@ type DeviceInfo struct {
 	DeletedAt        time.Time `db:"deleted_at" json:"deleted_at"`
 	BoundAt          time.Time `db:"bound_at" json:"bound_at"`
 	UserID           string    `db:"user_id" json:"user_id"`
+
 	NodeType         int64     `db:"node_type" json:"node_type"`
 	DeviceRank       int64     `db:"device_rank" json:"device_rank"`
 	DeviceName       string    `db:"device_name" json:"device_name"`
@@ -127,6 +128,8 @@ type DeviceInfo struct {
 	SevenDaysProfit  float64   `db:"seven_days_profit" json:"seven_days_profit"`
 	MonthProfit      float64   `db:"month_profit" json:"month_profit"`
 	DeactivateTime   int64     `db:"deactivate_time" json:"deactivate_time"`
+
+	Location
 }
 
 type NodesInfo struct {
@@ -321,6 +324,23 @@ type ValidationEvent struct {
 }
 
 type Location struct {
+	ID        int64     `db:"id" json:"id"`
+	Ip        string    `db:"ip" json:"ip"`
+	Continent string    `db:"continent" json:"continent"`
+	Province  string    `db:"province" json:"province"`
+	City      string    `db:"city" json:"city"`
+	Country   string    `db:"country" json:"country"`
+	Latitude  string    `db:"latitude" json:"latitude"`
+	Longitude string    `db:"longitude" json:"longitude"`
+	AreaCode  string    `db:"area_code" json:"area_code"`
+	Isp       string    `db:"isp" json:"isp"`
+	ZipCode   string    `db:"zip_code" json:"zip_code"`
+	Elevation string    `db:"elevation" json:"elevation"`
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+}
+
+type LocationEn struct {
 	ID        int64     `db:"id" json:"id"`
 	Ip        string    `db:"ip" json:"ip"`
 	Continent string    `db:"continent" json:"continent"`

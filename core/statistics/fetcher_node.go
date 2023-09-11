@@ -3,20 +3,19 @@ package statistics
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/utils"
 	"github.com/oschwald/geoip2-golang"
-	"io/ioutil"
 	"net"
-	"net/http"
 	"strconv"
 	"time"
 )
 
 const maxPageSize = 100
+
+var supportLanguages = []model.Language{model.LanguageCN, model.LanguageEN}
 
 type NodeFetcher struct {
 	BaseFetcher
@@ -164,7 +163,7 @@ func toDeviceInfo(ctx context.Context, v interface{}) *model.DeviceInfo {
 	deviceInfo.ActiveStatus = 1
 	var loc model.Location
 	if deviceInfo.ExternalIp != "" {
-		err = GetIpLocation(ctx, deviceInfo.ExternalIp, &loc)
+		err = GetIpLocation(ctx, deviceInfo.ExternalIp, &loc, model.LanguageEN)
 		if err != nil {
 			log.Errorf("%v", err)
 			GetGip(&deviceInfo)
@@ -219,55 +218,30 @@ func GetGip(deviceInfo *model.DeviceInfo) *model.DeviceInfo {
 	return deviceInfo
 }
 
-func GetIpLocation(ctx context.Context, ip string, Loc *model.Location) error {
+func GetIpLocation(ctx context.Context, ip string, Loc *model.Location, languages ...model.Language) error {
 	// get info from databases
-	err := dao.GetLocationInfoByIp(ctx, ip, Loc)
+	err := dao.GetLocationInfoByIp(ctx, ip, Loc, model.LanguageCN)
 	if err != nil {
 		return err
 	}
 	if Loc.Ip != "" {
 		return nil
 	}
-	// get info from api
-	err = httpGetApi(ctx, ip, Loc)
-	if err != nil {
-		log.Errorf("api get loction err:%v", err)
-		return err
+
+	if len(languages) == 0 {
+		languages = supportLanguages
 	}
+
+	for _, l := range languages {
+		loc, err := utils.IPTableCloudGetLocation(ctx, config.Cfg.IpUrl, ip, config.Cfg.IpKey, string(l))
+		if err != nil {
+			log.Errorf("iptablecloud get location: %v", err)
+			continue
+		}
+		if err := dao.UpsertLocationInfo(ctx, loc, l); err != nil {
+			continue
+		}
+	}
+
 	return nil
-}
-
-func httpGetApi(ctx context.Context, ip string, Loc *model.Location) error {
-	url := fmt.Sprintf("%s?ip=%s&key=%s", config.Cfg.IpUrl, ip, config.Cfg.IpKey)
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	var rsp LocationInfoRes
-	err = json.Unmarshal(body, &rsp)
-	if err != nil {
-		return err
-	}
-	*Loc = rsp.Data.Location
-	err = dao.UpsertLocationInfo(ctx, Loc)
-	if err != nil {
-		log.Errorf("update location err:%v", err)
-	}
-	return nil
-}
-
-type LocationInfoRes struct {
-	Code int    `json:"code"`
-	Data Data   `json:"data"`
-	Msg  string `json:"msg"`
-}
-
-type Data struct {
-	Location model.Location `json:"location"`
 }

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -421,6 +422,7 @@ func GetAssetCountHandler(c *gin.Context) {
 func GetCarFileCountHandler(c *gin.Context) {
 	UserId := c.Query("user_id")
 	Cid := c.Query("cid")
+	lang := model.Language(c.GetHeader("lang"))
 	areaId := dao.GetAreaID(c.Request.Context(), UserId)
 	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
 	AssetRsp, err := schedulerClient.GetAssetRecord(c.Request.Context(), Cid)
@@ -440,7 +442,7 @@ func GetCarFileCountHandler(c *gin.Context) {
 		}
 	}
 
-	AssetListAll, e := dao.GetAssetList(c.Request.Context(), deviceIdAll)
+	AssetListAll, e := dao.GetAssetList(c.Request.Context(), deviceIdAll, lang)
 	if err != nil {
 		log.Errorf("GetAssetList err: %v", e)
 	}
@@ -463,6 +465,7 @@ func GetCarFileCountHandler(c *gin.Context) {
 func GetLocationHandler(c *gin.Context) {
 	UserId := c.Query("user_id")
 	Cid := c.Query("cid")
+	lang := model.Language(c.GetHeader("Lang"))
 	areaId := dao.GetAreaID(c.Request.Context(), UserId)
 	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
@@ -485,14 +488,14 @@ func GetLocationHandler(c *gin.Context) {
 	}
 	var AssetInfos []*DeviceInfoRes
 	if len(deviceIds) > 0 {
-		AssetList, err := dao.GetAssetList(c.Request.Context(), deviceIds)
+		AssetList, err := dao.GetAssetList(c.Request.Context(), deviceIds, lang)
 		if err != nil {
 			log.Errorf("GetAssetList err: %v", err)
 		}
 		for _, NodeInfo := range AssetList {
 			var AssetInfo DeviceInfoRes
 			AssetInfo.DeviceId = NodeInfo.DeviceID
-			AssetInfo.IpLocation = NodeInfo.IpLocation
+			AssetInfo.IpLocation = fmt.Sprintf("%s-%s-%s-%s", NodeInfo.Continent, NodeInfo.Country, NodeInfo.Province, NodeInfo.City)
 			AssetInfos = append(AssetInfos, &AssetInfo)
 		}
 	}
@@ -506,6 +509,7 @@ func GetLocationHandler(c *gin.Context) {
 func GetMapByCidHandler(c *gin.Context) {
 	UserId := c.Query("user_id")
 	Cid := c.Query("cid")
+	lang := model.Language(c.GetHeader("Lang"))
 	areaId := dao.GetAreaID(c.Request.Context(), UserId)
 	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
 	AssetRsp, err := schedulerClient.GetAssetRecord(c.Request.Context(), Cid)
@@ -522,7 +526,7 @@ func GetMapByCidHandler(c *gin.Context) {
 			}
 		}
 	}
-	AssetList, e := dao.GetAssetList(c.Request.Context(), deviceIds)
+	AssetList, e := dao.GetAssetList(c.Request.Context(), deviceIds, lang)
 	if err != nil {
 		log.Errorf("GetAssetList err: %v", e)
 	}

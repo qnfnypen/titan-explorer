@@ -12,6 +12,7 @@ require (
 	github.com/go-redis/redis/v9 v9.0.0-rc.1
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/golang-module/carbon/v2 v2.2.2
+	github.com/golang/geo v0.0.0-20230421003525-6adc56603217
 	github.com/ipfs/go-log/v2 v2.5.1
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/jordan-wright/email v4.0.1-0.20210109023952-943e75fe5223+incompatible
@@ -79,8 +80,8 @@ require (
 require (
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
-	github.com/coreos/go-semver v0.3.0 // indirect
-	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
+	github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e // indirect
+	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/filecoin-project/go-cbor-util v0.0.1 // indirect
 	github.com/filecoin-project/go-jsonrpc v0.2.3 // indirect
@@ -89,7 +90,6 @@ require (
 	github.com/go-playground/validator/v10 v10.11.1 // indirect
 	github.com/goccy/go-json v0.9.11 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang/geo v0.0.0-20230421003525-6adc56603217 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/holiman/uint256 v1.2.2 // indirect
 	github.com/ipfs/go-block-format v0.1.1 // indirect
@@ -105,11 +105,12 @@ require (
 	github.com/oschwald/maxminddb-golang v1.9.0 // indirect
 	github.com/polydawn/refmt v0.89.0 // indirect
 	github.com/whyrusleeping/cbor-gen v0.0.0-20230126041949-52956bd4c9aa // indirect
-	go.etcd.io/etcd/api/v3 v3.5.9 // indirect
-	go.etcd.io/etcd/client/pkg/v3 v3.5.9 // indirect
-	go.etcd.io/etcd/client/v3 v3.5.9 // indirect
+	go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738 // indirect
 	google.golang.org/genproto v0.0.0-20221024183307-1bc688fe9f3e // indirect
 	google.golang.org/grpc v1.50.1 // indirect
+	sigs.k8s.io/yaml v1.2.0 // indirect
 )
 
-replace github.com/Filecoin-Titan/titan v0.0.0-20230414233209-f4fad7df425f => ../titan
+replace google.golang.org/grpc => google.golang.org/grpc v1.26.0
+
+replace github.com/Filecoin-Titan/titan v0.0.0-20230414233209-f4fad7df425f => ../filecoin-titan

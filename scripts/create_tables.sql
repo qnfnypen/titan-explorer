@@ -323,13 +323,34 @@ CREATE TABLE `location` (
    `longitude`VARCHAR(28) NOT NULL DEFAULT '',
    `area_code` VARCHAR(28) NOT NULL DEFAULT '',
    `latitude` VARCHAR(28) NOT NULL DEFAULT '',
-   `isp` VARCHAR(28) NOT NULL DEFAULT '',
+   `isp` VARCHAR(256) NOT NULL DEFAULT '',
    `zip_code` VARCHAR(28) NOT NULL DEFAULT '',
    `elevation` VARCHAR(28) NOT NULL DEFAULT '',
    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
    PRIMARY KEY (`id`),
    UNIQUE KEY `uniq_uuid` (`ip`) USING BTREE
+) ENGINE = INNODB CHARSET = utf8mb4;
+
+
+DROP TABLE IF EXISTS `location_en`;
+CREATE TABLE `location_en` (
+`id` BIGINT(20) NOT NULL AUTO_INCREMENT,
+`ip` VARCHAR(28) NOT NULL DEFAULT '',
+`continent` VARCHAR(28) NOT NULL DEFAULT '',
+`country` VARCHAR(128) NOT NULL DEFAULT '',
+`province` VARCHAR(128) NOT NULL DEFAULT '',
+`city` VARCHAR(128) NOT NULL DEFAULT '',
+`longitude`VARCHAR(28) NOT NULL DEFAULT '',
+`area_code` VARCHAR(28) NOT NULL DEFAULT '',
+`latitude` VARCHAR(28) NOT NULL DEFAULT '',
+`isp` VARCHAR(256) NOT NULL DEFAULT '',
+`zip_code` VARCHAR(28) NOT NULL DEFAULT '',
+`elevation` VARCHAR(28) NOT NULL DEFAULT '',
+`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+`updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+PRIMARY KEY (`id`),
+UNIQUE KEY `uniq_uuid` (`ip`) USING BTREE
 ) ENGINE = INNODB CHARSET = utf8mb4;
 
 DROP TABLE IF EXISTS `storage_hour`;
@@ -353,14 +374,14 @@ CREATE TABLE `storage_hour` (
 DROP TABLE IF EXISTS `link`;
 
 CREATE TABLE `link` (
-                         `id` BIGINT(20) NOT NULL AUTO_INCREMENT,
-                         `username` VARCHAR(255) NOT NULL DEFAULT '',
-                         `user_id` VARCHAR(255) NOT NULL DEFAULT '',
-                         `cid` VARCHAR(255) NOT NULL DEFAULT '',
-                         `long_link` VARCHAR(1024) NOT NULL DEFAULT '',
-                         `short_link` VARCHAR(255) NOT NULL DEFAULT '',
-                         `created_at` DATETIME(3) NOT NULL DEFAULT 0,
-                         `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
-                         `deleted_at` DATETIME(3) NOT NULL DEFAULT 0,
-                         PRIMARY KEY (`id`)
+`id` BIGINT(20) NOT NULL AUTO_INCREMENT,
+`username` VARCHAR(255) NOT NULL DEFAULT '',
+`user_id` VARCHAR(255) NOT NULL DEFAULT '',
+`cid` VARCHAR(255) NOT NULL DEFAULT '',
+`long_link` VARCHAR(1024) NOT NULL DEFAULT '',
+`short_link` VARCHAR(255) NOT NULL DEFAULT '',
+`created_at` DATETIME(3) NOT NULL DEFAULT 0,
+`updated_at` DATETIME(3) NOT NULL DEFAULT 0,
+`deleted_at` DATETIME(3) NOT NULL DEFAULT 0,
+PRIMARY KEY (`id`)
 ) ENGINE = INNODB CHARSET = utf8mb4;

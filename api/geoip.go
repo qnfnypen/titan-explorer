@@ -24,7 +24,7 @@ func NewIPCoordinate() IPCoordinate {
 
 func (coordinate *ipCoordinate) GetLatLng(ctx context.Context, ip string) (float64, float64, error) {
 	var loc model.Location
-	err := statistics.GetIpLocation(ctx, ip, &loc)
+	err := statistics.GetIpLocation(ctx, ip, &loc, "en")
 	if err != nil {
 		return 0, 0, err
 	}

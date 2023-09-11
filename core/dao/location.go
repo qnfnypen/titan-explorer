@@ -9,9 +9,9 @@ import (
 
 var tableNameLocation = "location"
 
-func GetLocationInfoByIp(ctx context.Context, ip string, out *model.Location) error {
+func GetLocationInfoByIp(ctx context.Context, ip string, out *model.Location, lang model.Language) error {
 	if err := DB.QueryRowxContext(ctx, fmt.Sprintf(
-		`SELECT * FROM %s WHERE ip = ?`, tableNameLocation), ip,
+		`SELECT * FROM %s WHERE ip = ?`, fmt.Sprintf("%s_%s", tableNameLocation, lang)), ip,
 	).StructScan(out); err != nil {
 		if err == sql.ErrNoRows {
 			return nil
@@ -21,7 +21,7 @@ func GetLocationInfoByIp(ctx context.Context, ip string, out *model.Location) er
 	return nil
 }
 
-func UpsertLocationInfo(ctx context.Context, out *model.Location) error {
+func UpsertLocationInfo(ctx context.Context, out *model.Location, lang model.Language) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
 		`INSERT INTO %s (ip, continent, country, province, city, longitude, latitude,area_code, isp, 
                 zip_code, elevation,  created_at) 
@@ -29,7 +29,7 @@ func UpsertLocationInfo(ctx context.Context, out *model.Location) error {
 		 :elevation, :created_at) 
 		 ON DUPLICATE KEY UPDATE continent = VALUES(continent), country = VALUES(country), province = VALUES(province), city = VALUES(city),
 		longitude = VALUES(longitude), latitude = VALUES(latitude), area_code = VALUES(area_code), isp = VALUES(isp),
-		zip_code = VALUES(zip_code), elevation = VALUES(elevation)`, tableNameLocation),
+		zip_code = VALUES(zip_code), elevation = VALUES(elevation)`, fmt.Sprintf("%s_%s", tableNameLocation, lang)),
 		out)
 	return err
 }

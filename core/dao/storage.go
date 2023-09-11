@@ -142,10 +142,10 @@ func GetPeakBandwidth(ctx context.Context, userId string) (int64, error) {
 	return peakBandwidth, nil
 }
 
-func GetAssetList(ctx context.Context, deviceIds []string) ([]*model.DeviceInfo, error) {
+func GetAssetList(ctx context.Context, deviceIds []string, lang model.Language) ([]*model.DeviceInfo, error) {
 	var AssetList []*model.DeviceInfo
-	query, args, err := sqlx.In(fmt.Sprintf(
-		`SELECT * FROM %s WHERE device_id IN (?)`, tableNameDeviceInfo), deviceIds)
+	rawSql := fmt.Sprintf(`SELECT d.*, l.continent, l.country, l.province, l.city FROM %s d left join %s l ON d.external_ip COLLATE utf8mb4_unicode_ci = l.ip WHERE device_id IN (?)`, tableNameDeviceInfo, fmt.Sprintf("%s_%s", tableNameLocation, lang))
+	query, args, err := sqlx.In(rawSql, deviceIds)
 	if err != nil {
 		return nil, err
 	}
