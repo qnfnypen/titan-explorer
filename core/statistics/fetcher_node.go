@@ -3,14 +3,15 @@ package statistics
 import (
 	"context"
 	"encoding/json"
+	"net"
+	"strconv"
+	"time"
+
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/utils"
 	"github.com/oschwald/geoip2-golang"
-	"net"
-	"strconv"
-	"time"
 )
 
 const maxPageSize = 100
@@ -241,6 +242,8 @@ func GetIpLocation(ctx context.Context, ip string, Loc *model.Location, language
 		if err := dao.UpsertLocationInfo(ctx, loc, l); err != nil {
 			continue
 		}
+
+		*Loc = *loc
 	}
 
 	return nil

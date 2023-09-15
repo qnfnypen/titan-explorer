@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"strconv"
 
@@ -24,7 +25,7 @@ func NewIPCoordinate() IPCoordinate {
 
 func (coordinate *ipCoordinate) GetLatLng(ctx context.Context, ip string) (float64, float64, error) {
 	var loc model.Location
-	err := statistics.GetIpLocation(ctx, ip, &loc, "en")
+	err := statistics.GetIpLocation(ctx, ip, &loc)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -53,34 +54,30 @@ func calculateDistance(lat1, lon1, lat2, lon2 float64) float64 {
 	return distanceKm
 }
 
-func calculateTwoIPDistance(ctx context.Context, ip1, ip2 string, coordinate IPCoordinate) (float64, error) {
-	lat1, lon1, err := coordinate.GetLatLng(ctx, ip1)
+func GetUserNearestIP(ctx context.Context, userIP string, ipList []string, coordinate IPCoordinate) (string, error) {
+	lat1, lon1, err := coordinate.GetLatLng(ctx, userIP)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 
-	lat2, lon2, err := coordinate.GetLatLng(ctx, ip2)
-	if err != nil {
-		return 0, err
-	}
-
-	distance := calculateDistance(lat1, lon1, lat2, lon2)
-	return distance, nil
-}
-
-func GetUserNearestIP(ctx context.Context, userIP string, ipList []string, coordinate IPCoordinate) string {
 	ipDistanceMap := make(map[string]float64)
 	for _, ip := range ipList {
-		distance, err := calculateTwoIPDistance(ctx, userIP, ip, coordinate)
+		lat2, lon2, err := coordinate.GetLatLng(ctx, ip)
 		if err != nil {
-			log.Errorf("calculate tow ip distance error %s", err.Error())
+			log.Errorf("get %s latLng error %s", ip, err.Error())
 			continue
 		}
+
+		distance := calculateDistance(lat1, lon1, lat2, lon2)
 		ipDistanceMap[ip] = distance
 	}
 
-	minDistance := math.MaxFloat64
+	if len(ipDistanceMap) == 0 {
+		return "", fmt.Errorf("can not get any ip distance")
+	}
+
 	var nearestIP string
+	minDistance := math.MaxFloat64
 	for ip, distance := range ipDistanceMap {
 		if distance < minDistance {
 			minDistance = distance
@@ -88,5 +85,5 @@ func GetUserNearestIP(ctx context.Context, userIP string, ipList []string, coord
 		}
 	}
 
-	return nearestIP
+	return nearestIP, nil
 }
