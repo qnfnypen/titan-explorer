@@ -25,6 +25,8 @@ const (
 	UploadExceed
 	FileExists
 	KeyLimit
+	InvalidAPPKey
+	NoBearerToken
 
 	Unknown     = -1
 	GenericCode = 1
@@ -61,6 +63,8 @@ var ErrMap = map[int]string{
 	terrors.NotFoundNode:             "Can't find the node:节点未找到",
 	terrors.RequestNodeErr:           "Request node error:请求节点错误",
 	terrors.MarshalErr:               "Marshal error:数据解析错误",
+	InvalidAPPKey:                    "invalid key:无效的key",
+	NoBearerToken:                    "Could not find bearer token in Authorization header: 找不到 Bearer token",
 }
 
 type GenericError struct {

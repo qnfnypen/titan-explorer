@@ -411,3 +411,48 @@ type LotusRespError struct {
 	Meta    json.RawMessage `json:"meta,omitempty"`
 }
 type errorCode int
+
+
+type Asset struct {
+	ID         int64     `db:"id" json:"id"`
+	NodeID     string    `db:"node_id" json:"node_id"`
+	Event      int64     `db:"event" json:"event"`
+	Cid        string    `db:"cid" json:"cid"`
+	Hash       string    `db:"hash" json:"hash"`
+	TotalSize  int64     `db:"total_size" json:"total_size"`
+	Path       string    `db:"path" json:"path"`
+	EndTime    time.Time `db:"end_time" json:"end_time"`
+	Expiration time.Time `db:"expiration" json:"expiration"`
+	CreatedAt  time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt  time.Time `db:"updated_at" json:"updated_at"`
+	DeletedAt  time.Time `db:"deleted_at" json:"deleted_at"`
+}
+
+type FilStorage struct {
+	ID                    int64     `db:"id" json:"id"`
+	Provider              string    `db:"provider" json:"provider"`
+	SectorNum             string    `db:"sector_num" json:"sector_num"`
+	Cost           		  float64   `db:"cost" json:"cost"`
+	MessageCid            string    `db:"message_cid" json:"message_cid"`
+	PieceCid              string    `db:"piece_cid" json:"piece_cid"`
+	PayloadCid            string    `db:"payload_cid" json:"payload_cid"`
+	DealID                string    `db:"deal_id" json:"deal_id"`
+	Path                  string    `db:"path" json:"path"`
+	PieceSize             float64   `db:"piece_size" json:"piece_size"`
+	StartHeight           int64 	`db:"start_height" json:"start_height"`
+	EndHeight             int64 	`db:"end_height" json:"end_height"`
+	CreatedAt             time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt             time.Time `db:"updated_at" json:"updated_at"`
+	DeletedAt             time.Time `db:"deleted_at" json:"deleted_at"`
+}
+
+type UserSecret struct {
+	ID     int64 			 `db:"id" json:"id"`
+	UserID string 			 `db:"user_id" json:"user_id"`
+	AppKey string 			 `db:"app_key" json:"app_key"`
+	AppSecret string         `db:"app_secret" json:"app_secret"`
+	Status    int32          `db:"status" json:"status"`
+	CreatedAt time.Time      `db:"created_at" json:"created_at"`
+	UpdatedAt time.Time      `db:"updated_at" json:"updated_at"`
+	DeletedAt time.Time 	 `db:"deleted_at" json:"deleted_at"`
+}

@@ -49,9 +49,7 @@ func New(cfg config.StatisticsConfig, scheduler []*Scheduler) *Statistic {
 		locker:     redislock.New(dao.Cache),
 		fetchers: []Fetcher{
 			newNodeFetcher(),
-			//newCacheFetcher(),
-			//newRetrievalFetcher(),
-			//newValidationFetcher(),
+			newAssertFetcher(),
 			newSystemInfoFetcher(),
 			newStorageFetcher(),
 		},

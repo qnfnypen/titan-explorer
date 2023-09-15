@@ -13,6 +13,9 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	apiV1 := router.Group("/api/v1")
 	apiV2 := router.Group("/api/v2")
 	apiV3 := router.Group("/link")
+
+	RegisterV1RouterAuthByKey(router)
+
 	authMiddleware, err := jwtGinMiddleware(cfg.SecretKey)
 	if err != nil {
 		log.Fatalf("jwt auth middleware: %v", err)
@@ -82,6 +85,7 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	admin.GET("/get_login_log", GetLoginLogHandler)
 	admin.GET("/get_operation_log", GetOperationLogHandler)
 	admin.GET("/get_node_daily_trend", GetNodeDailyTrendHandler)
+
 	// storage
 	storage := apiV1.Group("/storage")
 	storage.GET("/get_map_info", GetMapInfoHandler)
@@ -117,4 +121,13 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_user_info_hour", GetStorageHourHandler)
 	storage.GET("/get_user_info_daily", GetStorageDailyHandler)
 	storage.GET("/refresh_token", authMiddleware.RefreshHandler)
+	storage.GET("/get_fil_storage_list", GetFilStorageListHandler)
+	storage.GET("/new_secret", CreateNewSecretKeyHandler)
+}
+
+func RegisterV1RouterAuthByKey(router *gin.Engine) {
+	authV1 := router.Group("/v1")
+	storage := authV1.Group("/storage")
+	storage.Use(AuthAPIKeyMiddlewareFunc())
+	storage.POST("/add_fil_storage", CreateFilStorageHandler)
 }

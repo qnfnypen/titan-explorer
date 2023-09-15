@@ -23,6 +23,7 @@ type Config struct {
 	Statistic       StatisticsConfig
 	Email           EmailConfig
 	AdminScheduler  AdminSchedulerConfig
+	StorageBackup   StorageBackupConfig
 }
 
 type EmailConfig struct {
@@ -48,4 +49,10 @@ type AdminSchedulerConfig struct {
 	Enable  bool
 	Address string
 	Token   string
+}
+
+type StorageBackupConfig struct {
+	BackupPath string
+	Crontab    string
+	Disable    bool
 }

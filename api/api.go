@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"github.com/gnasnik/titan-explorer/core/backup"
 	"math/rand"
 	"net/http"
 	"strings"
@@ -42,6 +43,7 @@ type Server struct {
 	etcdClient      *EtcdClient
 	statistic       *statistics.Statistic
 	statisticCloser func()
+	storageBackup   *backup.StorageBackup
 }
 
 func NewEtcdClient(addresses []string) (*EtcdClient, error) {
@@ -120,10 +122,11 @@ func NewServer(cfg config.Config) (*Server, error) {
 		applyAdminScheduler(cfg.AdminScheduler.Address, cfg.AdminScheduler.Token)
 	}
 	s := &Server{
-		cfg:        cfg,
-		router:     router,
-		statistic:  statistics.New(cfg.Statistic, schedulers),
-		etcdClient: eClient,
+		cfg:           cfg,
+		router:        router,
+		statistic:     statistics.New(cfg.Statistic, schedulers),
+		etcdClient:    eClient,
+		storageBackup: backup.NewStorageBackup(cfg.StorageBackup, schedulers),
 	}
 
 	return s, nil
@@ -132,6 +135,7 @@ func NewServer(cfg config.Config) (*Server, error) {
 func (s *Server) Run() {
 	s.statistic.Run()
 	s.asyncHandleApplication()
+	s.storageBackup.Run()
 	err := s.router.Run(s.cfg.ApiListen)
 	if err != nil {
 		log.Fatal(err)

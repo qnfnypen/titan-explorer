@@ -128,7 +128,7 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			return user, nil
 		},
 		// Authorizator: func(data interface{}, c *gin.Context) bool {
-		//	if v, ok := data.(model.User); ok && v.Username == "admin" {
+		//	if v, ok := data.(model.User); ok && v.UserID == "admin" {
 		//		return true
 		//	}
 		//
