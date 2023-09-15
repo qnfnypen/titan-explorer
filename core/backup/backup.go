@@ -68,9 +68,10 @@ func (s *StorageBackup) cronJob() {
 
 	ctx := context.Background()
 	var offset int64
+	var total int64
 
 Loop:
-	assets, total, err := dao.GetAssetsByEmptyPath(ctx, defaultRequestLimit, offset)
+	assets, count, err := dao.GetAssetsByEmptyPath(ctx, defaultRequestLimit, offset)
 	if err != nil {
 		log.Errorf("GetAssertsByEmptyPath: %v", err)
 		return
@@ -78,6 +79,10 @@ Loop:
 
 	if len(assets) == 0 {
 		return
+	}
+
+	if total == 0 {
+		total = count
 	}
 
 	offset += int64(len(assets))
