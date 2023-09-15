@@ -39,10 +39,10 @@ func GetLatestAsset(ctx context.Context) (*model.Asset, error) {
 	return &asset, err
 }
 
-func GetAssetsByEmptyPath(ctx context.Context, limit, offset int64) ([]*model.Asset, int64, error) {
+func GetAssetsByEmptyPath(ctx context.Context) ([]*model.Asset, int64, error) {
 	var out []*model.Asset
 	err := DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT * FROM %s WHERE event = 1 AND path = '' LIMIT %d OFFSET %d`, tableNameAsset, limit, offset,
+		`SELECT * FROM %s WHERE event = 1 AND path = ''`, tableNameAsset,
 	))
 
 	if err != nil {

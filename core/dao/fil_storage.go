@@ -34,7 +34,7 @@ func ListFilStorages(ctx context.Context, path string, option QueryOption) ([]*m
 
 	err := DB.GetContext(ctx, &total, fmt.Sprintf(
 		`SELECT count(*) FROM %s WHERE path = ?`, tableNameFilStorage,
-	), args)
+	), args...)
 	if err != nil {
 		return nil, 0, err
 	}

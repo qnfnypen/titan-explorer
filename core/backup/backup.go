@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -67,11 +68,7 @@ func (s *StorageBackup) cronJob() {
 	}
 
 	ctx := context.Background()
-	var offset int64
-	var total int64
-
-Loop:
-	assets, count, err := dao.GetAssetsByEmptyPath(ctx, defaultRequestLimit, offset)
+	assets, total, err := dao.GetAssetsByEmptyPath(ctx)
 	if err != nil {
 		log.Errorf("GetAssertsByEmptyPath: %v", err)
 		return
@@ -81,21 +78,11 @@ Loop:
 		return
 	}
 
-	if total == 0 {
-		total = count
-	}
-
-	offset += int64(len(assets))
-	log.Debugf("loading assets %d/%d", offset, total)
+	log.Debugf("loading assets %d", total)
 
 	for _, assert := range assets {
 		s.assetChan <- assert
 	}
-
-	if total > offset {
-		goto Loop
-	}
-
 }
 
 func (s *StorageBackup) run() {
@@ -239,7 +226,12 @@ func getDirSize(path string) (int64, error) {
 }
 
 func request(url, cid string, token *types.Token) (io.ReadCloser, error) {
-	endpoint := fmt.Sprintf("https://%s/ipfs/%s?format=car", url, cid)
+	var scheme string
+	if !strings.HasPrefix(url, "http") {
+		scheme = "https://"
+	}
+
+	endpoint := fmt.Sprintf("%s%s/ipfs/%s?format=car", scheme, url, cid)
 
 	log.Debugf("endpoint: %s", endpoint)
 
