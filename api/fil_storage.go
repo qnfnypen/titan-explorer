@@ -7,6 +7,13 @@ import (
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"net/http"
 	"strconv"
+	"time"
+)
+
+const (
+	FilcoinMainnetResetTimestamp       = 1602773040
+	FilcoinMainnetStartBlock           = 148888
+	FilcoinMainnetEpochDurationSeconds = 30
 )
 
 func CreateFilStorageHandler(c *gin.Context) {
@@ -14,6 +21,13 @@ func CreateFilStorageHandler(c *gin.Context) {
 	if err := c.BindJSON(&params); err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
+	}
+
+	for i := 0; i < len(params); i++ {
+		params[i].StartTime = time.Unix(getTimestampByHeight(params[i].StartHeight), 0)
+		params[i].EndTime = time.Unix(getTimestampByHeight(params[i].EndHeight), 0)
+		params[i].CreatedAt = time.Now()
+		params[i].UpdatedAt = time.Now()
 	}
 
 	if err := dao.AddFilStorages(c.Request.Context(), params); err != nil {
@@ -53,4 +67,13 @@ func GetFilStorageListHandler(c *gin.Context) {
 		"list":  list,
 		"total": total,
 	}))
+}
+
+func getTimestampByHeight(height int64) int64 {
+	height = height - FilcoinMainnetStartBlock
+	if height < 0 {
+		return 0
+	}
+
+	return FilcoinMainnetResetTimestamp + FilcoinMainnetEpochDurationSeconds*height
 }

@@ -441,6 +441,8 @@ type FilStorage struct {
 	PieceSize             float64   `db:"piece_size" json:"piece_size"`
 	StartHeight           int64 	`db:"start_height" json:"start_height"`
 	EndHeight             int64 	`db:"end_height" json:"end_height"`
+	StartTime 			  time.Time  `db:"start_time" json:"start_time"`
+	EndTime               time.Time `db:"end_time" json:"end_time"`
 	CreatedAt             time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt             time.Time `db:"updated_at" json:"updated_at"`
 	DeletedAt             time.Time `db:"deleted_at" json:"deleted_at"`
