@@ -485,27 +485,31 @@ func GetLocationHandler(c *gin.Context) {
 			deviceIds = append(deviceIds, rep.NodeID)
 		}
 	}
+
 	type DeviceInfoRes struct {
 		DeviceId   string
 		IpLocation string
+		Status     string
 	}
-	var AssetInfos []*DeviceInfoRes
+
+	var assetInfos []*DeviceInfoRes
 	if len(deviceIds) > 0 {
 		AssetList, err := dao.GetAssetList(c.Request.Context(), deviceIds, lang)
 		if err != nil {
 			log.Errorf("GetAssetList err: %v", err)
 		}
-		for _, NodeInfo := range AssetList {
-			var AssetInfo DeviceInfoRes
-			AssetInfo.DeviceId = NodeInfo.DeviceID
-			AssetInfo.IpLocation = contactIPLocation(NodeInfo.Location, lang)
-			AssetInfos = append(AssetInfos, &AssetInfo)
+		for _, nodeInfo := range AssetList {
+			assetInfos = append(assetInfos, &DeviceInfoRes{
+				DeviceId:   nodeInfo.DeviceID,
+				IpLocation: contactIPLocation(nodeInfo.Location, lang),
+				Status:     nodeInfo.DeviceStatus,
+			})
 		}
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"total":     GetRsp.Total,
-		"node_list": AssetInfos,
+		"node_list": assetInfos,
 	}))
 }
 
