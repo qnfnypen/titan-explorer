@@ -316,6 +316,14 @@ func UpdateShareStatusHandler(c *gin.Context) {
 	}))
 }
 
+type AccessOverview struct {
+	AssetRecord      *types.AssetRecord
+	UserAssetDetail  *types.UserAssetDetail
+	VisitCount       int
+	RemainVisitCount int
+	FilcoinCount     int64
+}
+
 func GetAssetListHandler(c *gin.Context) {
 	UserId := c.Query("user_id")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
@@ -328,8 +336,26 @@ func GetAssetListHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+
+	var list []*AccessOverview
+	for _, asset := range createAssetRsp.AssetOverviews {
+		filReplicas, err := dao.CountFilStorage(c.Request.Context(), asset.AssetRecord.CID)
+		if err != nil {
+			log.Errorf("count fil storage: %v", err)
+			continue
+		}
+
+		list = append(list, &AccessOverview{
+			AssetRecord:      asset.AssetRecord,
+			UserAssetDetail:  asset.UserAssetDetail,
+			VisitCount:       asset.VisitCount,
+			RemainVisitCount: asset.RemainVisitCount,
+			FilcoinCount:     filReplicas,
+		})
+	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list":  createAssetRsp.AssetOverviews,
+		"list":  list,
 		"total": createAssetRsp.Total,
 	}))
 }
@@ -423,12 +449,12 @@ func GetAssetCountHandler(c *gin.Context) {
 }
 
 func GetCarFileCountHandler(c *gin.Context) {
-	UserId := c.Query("user_id")
-	Cid := c.Query("cid")
+	userId := c.Query("user_id")
+	cid := c.Query("cid")
 	lang := model.Language(c.GetHeader("Lang"))
-	areaId := dao.GetAreaID(c.Request.Context(), UserId)
+	areaId := dao.GetAreaID(c.Request.Context(), userId)
 	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
-	AssetRsp, err := schedulerClient.GetAssetRecord(c.Request.Context(), Cid)
+	assetRsp, err := schedulerClient.GetAssetRecord(c.Request.Context(), cid)
 	if err != nil {
 		log.Errorf("api GetAssetRecord: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -436,8 +462,8 @@ func GetCarFileCountHandler(c *gin.Context) {
 	}
 	var deviceIdAll []string
 	deviceExists := make(map[string]int)
-	if len(AssetRsp.ReplicaInfos) > 0 {
-		for _, rep := range AssetRsp.ReplicaInfos {
+	if len(assetRsp.ReplicaInfos) > 0 {
+		for _, rep := range assetRsp.ReplicaInfos {
 			if rep.Status == 3 {
 				deviceIdAll = append(deviceIdAll, rep.NodeID)
 				continue
@@ -445,23 +471,29 @@ func GetCarFileCountHandler(c *gin.Context) {
 		}
 	}
 
-	AssetListAll, e := dao.GetAssetList(c.Request.Context(), deviceIdAll, lang)
+	assetListAll, e := dao.GetAssetList(c.Request.Context(), deviceIdAll, lang)
 	if err != nil {
 		log.Errorf("GetAssetList err: %v", e)
 	}
-	for _, NodeInfo := range AssetListAll {
-		if _, ok := deviceExists[NodeInfo.IpCity]; ok {
+	for _, nodeInfo := range assetListAll {
+		if _, ok := deviceExists[nodeInfo.IpCity]; ok {
 			continue
 		}
-		deviceExists[NodeInfo.IpCity] = 1
+		deviceExists[nodeInfo.IpCity] = 1
 	}
+
+	filReplicas, err := dao.CountFilStorage(c.Request.Context(), cid)
+	if err != nil {
+		log.Errorf("count fil storage: %v", err)
+	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"cid":               AssetRsp.CID,
+		"cid":               assetRsp.CID,
 		"cid_name":          "",
 		"ReplicaInfo_count": len(deviceIdAll),
 		"area_count":        len(deviceExists),
 		"titan_count":       len(deviceIdAll),
-		"fileCoin_count":    0,
+		"fileCoin_count":    filReplicas,
 	}))
 }
 

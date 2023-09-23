@@ -19,6 +19,17 @@ func AddFilStorages(ctx context.Context, storages []*model.FilStorage) error {
 	return err
 }
 
+func CountFilStorage(ctx context.Context, cid string) (int64, error) {
+	var total int64
+	err := DB.GetContext(ctx, &total, fmt.Sprintf(
+		`select count(*) from %s f left join %s a on f.path = a.path where a.path <> '' and a.cid = ?`, tableNameFilStorage, tableNameAsset,
+	), cid)
+	if err != nil {
+		return 0, err
+	}
+	return total, nil
+}
+
 func ListFilStorages(ctx context.Context, path string, option QueryOption) ([]*model.FilStorage, int64, error) {
 	var args []interface{}
 	var total int64
