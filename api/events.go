@@ -128,6 +128,21 @@ func GetUserVipInfoHandler(c *gin.Context) {
 	return
 }
 
+func GetUserAccessTokenHandler(c *gin.Context) {
+	UserId := c.Query("user_id")
+	areaId := dao.GetAreaID(c.Request.Context(), UserId)
+	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
+	token, err := schedulerClient.GetUserAccessToken(c.Request.Context(), UserId)
+	if err != nil {
+		log.Errorf("api GetUserAccessToken: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+		return
+	}
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"AccessToken": token,
+	}))
+}
+
 func CreateAssetHandler(c *gin.Context) {
 	UserId := c.Query("user_id")
 	areaId := dao.GetAreaID(c.Request.Context(), UserId)

@@ -109,6 +109,7 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_locateStorage", GetAllocateStorageHandler)
 	storage.GET("/get_storage_size", GetStorageSizeHandler)
 	storage.GET("/get_vip_info", GetUserVipInfoHandler)
+	storage.GET("/get_user_access_token", GetUserAccessTokenHandler)
 	storage.GET("/create_asset", CreateAssetHandler)
 	storage.GET("/delete_asset", DeleteAssetHandler)
 	storage.GET("/get_asset_info", GetAssetInfoHandler)
