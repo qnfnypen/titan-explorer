@@ -28,6 +28,9 @@ func CreateFilStorageHandler(c *gin.Context) {
 		params[i].EndTime = time.Unix(getTimestampByHeight(params[i].EndHeight), 0)
 		params[i].CreatedAt = time.Now()
 		params[i].UpdatedAt = time.Now()
+		if params[i].FIndex == 0 {
+			params[i].FIndex = int64(i)
+		}
 	}
 
 	if err := dao.AddFilStorages(c.Request.Context(), params); err != nil {

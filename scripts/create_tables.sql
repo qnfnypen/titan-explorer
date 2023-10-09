@@ -419,6 +419,7 @@ CREATE TABLE `fil_storage` (
 `payload_cid` VARCHAR(255) NOT NULL DEFAULT '',
 `deal_id` VARCHAR(255) NOT NULL DEFAULT '',
 `path` VARCHAR(255) NOT NULL DEFAULT '',
+`f_index` INT(20) NOT NULL DEFAULT 0,
 `piece_size` FLOAT(32) NOT NULL DEFAULT 0,
 `start_height` BIGINT(20) NOT NULL DEFAULT 0,
 `end_height` BIGINT(20) NOT NULL DEFAULT 0,
@@ -428,7 +429,7 @@ CREATE TABLE `fil_storage` (
 `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
 `deleted_at` DATETIME(3) NOT NULL DEFAULT 0,
 PRIMARY KEY (`id`),
-UNIQUE KEY `uniq_path` (`path`) USING BTREE
+UNIQUE KEY `uniq_path_index` (`path`, `index`) USING BTREE
 ) ENGINE = INNODB CHARSET = utf8mb4;
 
 

@@ -438,6 +438,7 @@ type FilStorage struct {
 	PayloadCid            string    `db:"payload_cid" json:"payload_cid"`
 	DealID                string    `db:"deal_id" json:"deal_id"`
 	Path                  string    `db:"path" json:"path"`
+	FIndex                int64     `db:"f_index" json:"f_index"`
 	PieceSize             float64   `db:"piece_size" json:"piece_size"`
 	StartHeight           int64 	`db:"start_height" json:"start_height"`
 	EndHeight             int64 	`db:"end_height" json:"end_height"`
