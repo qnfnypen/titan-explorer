@@ -62,3 +62,12 @@ func ListFilStorages(ctx context.Context, path string, option QueryOption) ([]*m
 
 	return out, total, err
 }
+
+func SumFilStorage(ctx context.Context) (int64, error) {
+	var total int64
+	err := DB.GetContext(ctx, &total, fmt.Sprintf(`select sum(piece_size) from %s`, tableNameFilStorage))
+	if err != nil {
+		return 0, err
+	}
+	return total, nil
+}

@@ -248,6 +248,13 @@ func (s *Statistic) SumAllNodes() error {
 	fullNodeInfo.NextElectionTime = systemInfo.NextElectionTime
 	fullNodeInfo.Time = time.Now()
 	fullNodeInfo.CreatedAt = time.Now()
+
+	filStorageCount, err := dao.SumFilStorage(s.ctx)
+	if err != nil {
+		log.Errorf("count fil storage: %v", err)
+	}
+	fullNodeInfo.FBackupsFromTitan = float64(filStorageCount)
+
 	err = dao.CacheFullNodeInfo(s.ctx, fullNodeInfo)
 	if err != nil {
 		log.Errorf("cache full node info: %v", err)
