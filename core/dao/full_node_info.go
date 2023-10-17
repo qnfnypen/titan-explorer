@@ -26,7 +26,7 @@ func UpsertFullNodeInfo(ctx context.Context, fullNodeInfo *model.FullNodeInfo) e
 		 :total_carfile, :total_carfile_size, :retrieval_count, :total_node_count, :online_node_count, :next_election_time, :f_backups_from_titan, :time, :created_at) 
 		 ON DUPLICATE KEY UPDATE t_node_online_ratio = VALUES(t_node_online_ratio), t_average_replica = VALUES(t_average_replica), t_upstream_file_count = VALUES(t_upstream_file_count), validator_count = VALUES(validator_count), candidate_count = VALUES(candidate_count),
 		edge_count = VALUES(edge_count), total_storage = VALUES(total_storage), storage_used = VALUES(storage_used), total_upstream_bandwidth = VALUES(total_upstream_bandwidth),
-		total_downstream_bandwidth = VALUES(total_downstream_bandwidth), total_carfile = VALUES(total_carfile), f_backups_from_titan=VALUE(f_backups_from_titan),
+		total_downstream_bandwidth = VALUES(total_downstream_bandwidth), total_carfile = VALUES(total_carfile), f_backups_from_titan=VALUES(f_backups_from_titan),
 		total_carfile_size = VALUES(total_carfile_size), retrieval_count = VALUES(retrieval_count), total_node_count = VALUES(total_node_count), online_node_count = VALUES(online_node_count)`, tableNameFullNodeInfo),
 		fullNodeInfo)
 	return err
