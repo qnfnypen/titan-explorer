@@ -440,6 +440,8 @@ type FilStorage struct {
 	Path                  string    `db:"path" json:"path"`
 	FIndex                int64     `db:"f_index" json:"f_index"`
 	PieceSize             float64   `db:"piece_size" json:"piece_size"`
+	Gas           		  float64   `db:"gas" json:"gas"`
+	Pledge  			  float64 	`db:"pledge" json:"pledge"`
 	StartHeight           int64 	`db:"start_height" json:"start_height"`
 	EndHeight             int64 	`db:"end_height" json:"end_height"`
 	StartTime 			  time.Time  `db:"start_time" json:"start_time"`

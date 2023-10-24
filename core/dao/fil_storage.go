@@ -10,10 +10,10 @@ var tableNameFilStorage = "fil_storage"
 
 func AddFilStorages(ctx context.Context, storages []*model.FilStorage) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s ( provider, sector_num, cost, message_cid, piece_cid, payload_cid, deal_id, path, f_index, piece_size, start_height, end_height, start_time, end_time, created_at, updated_at)
-			VALUES ( :provider, :sector_num, :cost, :message_cid, :piece_cid, :payload_cid, :deal_id, :path, :f_index, :piece_size, :start_height, :end_height, :start_time, :end_time, :created_at, :updated_at)
+		`INSERT INTO %s ( provider, sector_num, cost, message_cid, piece_cid, payload_cid, deal_id, path, f_index, piece_size, gas, pledge, start_height, end_height, start_time, end_time, created_at, updated_at)
+			VALUES ( :provider, :sector_num, :cost, :message_cid, :piece_cid, :payload_cid, :deal_id, :path, :f_index, :piece_size, :gas, :pledge, :start_height, :end_height, :start_time, :end_time, :created_at, :updated_at)
 			ON DUPLICATE KEY UPDATE  provider = VALUES(provider), sector_num = VALUES(sector_num), cost = VALUES(cost), message_cid = VALUES(message_cid), 
-			piece_cid = VALUES(piece_cid), payload_cid = VALUES(payload_cid), deal_id = VALUES(deal_id), piece_size = VALUES(piece_size), 
+			piece_cid = VALUES(piece_cid), payload_cid = VALUES(payload_cid), deal_id = VALUES(deal_id), piece_size = VALUES(piece_size), gas = VALUES(gas), pledge = VALUES(pledge), 
 			start_height = VALUES(start_height), end_height = VALUES(end_height), start_time = VALUES(start_time), end_time = VALUES(end_time);`, tableNameFilStorage,
 	), storages)
 	return err
