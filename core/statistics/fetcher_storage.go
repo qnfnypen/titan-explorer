@@ -29,29 +29,29 @@ func (c *StorageFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error 
 		log.Errorf("get GetUserIds: %v", err)
 		return err
 	}
-	var infos []*model.UserInfo
-	for _, UserId := range userIds {
-		Info, err := scheduler.Api.GetUserInfo(ctx, UserId)
-		if err != nil {
-			log.Errorf("client api GetUserInfo: %v", err)
-			continue
-		}
-		if Info == nil {
-			continue
-		}
-		var userInfo model.UserInfo
-		userInfo.UserId = UserId
-		userInfo.TotalSize = Info.TotalSize
-		userInfo.UsedSize = Info.UsedSize
-		userInfo.TotalBandwidth = Info.TotalTraffic
-		userInfo.PeakBandwidth = Info.PeakBandwidth
-		userInfo.DownloadCount = Info.DownloadCount
-		userInfo.Time = start
-		userInfo.CreatedAt = time.Now()
-		userInfo.UpdatedAt = time.Now()
-		infos = append(infos, &userInfo)
+
+	infos, err := scheduler.Api.GetUserInfos(ctx, userIds)
+	if err != nil {
+		log.Errorf("client api GetUserInfos: %v", err)
+		return err
 	}
-	err = dao.BulkUpsertStorageHours(ctx, infos)
+
+	var mus []*model.UserInfo
+	for userId, user := range infos {
+		mus = append(mus, &model.UserInfo{
+			UserId:         userId,
+			TotalSize:      user.TotalSize,
+			UsedSize:       user.UsedSize,
+			TotalBandwidth: user.TotalTraffic,
+			PeakBandwidth:  user.PeakBandwidth,
+			DownloadCount:  user.DownloadCount,
+			Time:           start,
+			CreatedAt:      time.Now(),
+			UpdatedAt:      time.Now(),
+		})
+	}
+
+	err = dao.BulkUpsertStorageHours(ctx, mus)
 	if err != nil {
 		log.Errorf("create user info hour: %v", err)
 	}
