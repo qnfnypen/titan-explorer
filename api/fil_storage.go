@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
@@ -48,6 +49,14 @@ func GetFilStorageListHandler(c *gin.Context) {
 	page, _ := strconv.Atoi(c.Query("page"))
 
 	asset, err := dao.GetAssetByCID(c.Request.Context(), cid)
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusOK, respJSON(JsonObject{
+			"list":  nil,
+			"total": 0,
+		}))
+		return
+	}
+
 	if err != nil {
 		log.Errorf("GetAssetByCID: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
