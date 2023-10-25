@@ -69,7 +69,13 @@ Loop:
 		goto Loop
 	}
 
-	return nil
+	stats, err := dao.CountAssets(ctx)
+	if err != nil {
+		log.Errorf("count assets err: %v", err)
+		return err
+	}
+
+	return dao.AddStorageStats(ctx, stats)
 }
 
 func toAssets(in []*types.ReplicaEventInfo) ([]*model.Asset, error) {

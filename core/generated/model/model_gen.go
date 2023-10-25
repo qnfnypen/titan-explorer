@@ -294,6 +294,7 @@ type User struct {
 	Address         string    `db:"address" json:"address"`
 	Role            int32     `db:"role" json:"role"`
 	AllocateStorage int       `db:"allocate_storage" json:"allocate_storage"`
+	ProjectId       int64     `db:"project_id"`
 	CreatedAt       time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt       time.Time `db:"updated_at" json:"updated_at"`
 	DeletedAt       time.Time `db:"deleted_at" json:"deleted_at"`
@@ -423,6 +424,10 @@ type Asset struct {
 	Path       string    `db:"path" json:"path"`
 	EndTime    time.Time `db:"end_time" json:"end_time"`
 	Expiration time.Time `db:"expiration" json:"expiration"`
+	UserId     string 	 `db:"user_id" json:"user_id"`
+	Type       string    `db:"type" json:"type"`
+	Name       string 	 `db:"name" json:"name"`
+	ProjectId  int64     `db:"project_id" json:"project_id"`
 	CreatedAt  time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt  time.Time `db:"updated_at" json:"updated_at"`
 	DeletedAt  time.Time `db:"deleted_at" json:"deleted_at"`

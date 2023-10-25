@@ -10,6 +10,7 @@ CREATE TABLE `users` (
 `address` VARCHAR(255) NOT NULL DEFAULT '',
 `role` TINYINT(4) NOT NULL DEFAULT 0,
 `allocate_storage` INT(1) NOT NULL DEFAULT 0,
+`project_id` BIGINT(20) NOT NULL DEFAULT 0,
 `created_at` DATETIME(3) NOT NULL DEFAULT 0,
 `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
 `deleted_at` DATETIME(3) NOT NULL DEFAULT 0,
@@ -399,6 +400,10 @@ CREATE TABLE `assets` (
 `path` VARCHAR(255) NOT NULL DEFAULT '',
 `end_time` DATETIME(3) NOT NULL DEFAULT 0,
 `expiration` DATETIME(3) NOT NULL DEFAULT 0,
+`user_id` VARCHAR(255) NOT NULL DEFAULT '',
+`type` VARCHAR(255) NOT NULL DEFAULT '',
+`name` VARCHAR(255) NOT NULL DEFAULT '',
+`project_id` BIGINT(20) NOT NULL DEFAULT 0,
 `created_at` DATETIME(3) NOT NULL DEFAULT 0,
 `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
 `deleted_at` DATETIME(3) NOT NULL DEFAULT 0,
@@ -421,6 +426,8 @@ CREATE TABLE `fil_storage` (
 `path` VARCHAR(255) NOT NULL DEFAULT '',
 `f_index` INT(20) NOT NULL DEFAULT 0,
 `piece_size` FLOAT(32) NOT NULL DEFAULT 0,
+`gas` FLOAT(32) NOT NULL DEFAULT 0,
+`pledge` FLOAT(32) NOT NULL DEFAULT 0,
 `start_height` BIGINT(20) NOT NULL DEFAULT 0,
 `end_height` BIGINT(20) NOT NULL DEFAULT 0,
 `start_time` DATETIME(3) NOT NULL DEFAULT 0,
@@ -429,7 +436,7 @@ CREATE TABLE `fil_storage` (
 `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
 `deleted_at` DATETIME(3) NOT NULL DEFAULT 0,
 PRIMARY KEY (`id`),
-UNIQUE KEY `uniq_path_index` (`path`, `index`) USING BTREE
+UNIQUE KEY `uniq_path_index` (`path`, `f_index`) USING BTREE
 ) ENGINE = INNODB CHARSET = utf8mb4;
 
 
@@ -444,4 +451,34 @@ CREATE TABLE `user_secret` (
  `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
  `deleted_at` DATETIME(3) NOT NULL DEFAULT 0,
  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `projects`;
+CREATE TABLE `projects` (
+ `id` bigint(20) NOT NULL AUTO_INCREMENT,
+ `name`  VARCHAR(255) NOT NULL DEFAULT '',
+ `created_at` DATETIME(3) NOT NULL DEFAULT 0,
+ `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
+ PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+DROP TABLE IF EXISTS `storage_stats`;
+CREATE TABLE `storage_stats` (
+`id` bigint(32) NOT NULL AUTO_INCREMENT,
+`project_id` int(20) NULL DEFAULT 0,
+`project_name`  VARCHAR(255) NOT NULL DEFAULT '',
+`total_size` BIGINT(32) NOT NULL DEFAULT 0,
+`user_count` BIGINT(20) NOT NULL DEFAULT 0,
+`provider_count` BIGINT(20) NOT NULL DEFAULT 0,
+`storage_change_24h` BIGINT(32) NOT NULL DEFAULT 0,
+`storage_change_percentage_24h` FLOAT(32) NOT NULL DEFAULT 0,
+`time` DATETIME(3) NOT NULL DEFAULT 0,
+`expiration` DATETIME(3) NOT NULL DEFAULT 0,
+`gas` FLOAT(32) NOT NULL DEFAULT 0,
+`pledge` FLOAT(32) NOT NULL DEFAULT 0,
+`locations`  VARCHAR(255) NOT NULL DEFAULT '',
+`created_at` DATETIME(3) NOT NULL DEFAULT 0,
+`updated_at` DATETIME(3) NOT NULL DEFAULT 0,
+PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

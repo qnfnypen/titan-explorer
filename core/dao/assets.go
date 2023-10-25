@@ -7,11 +7,12 @@ import (
 )
 
 var tableNameAsset = "assets"
+var tableNameProject = "projects"
 
 func AddAssets(ctx context.Context, assets []*model.Asset) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s ( node_id, event, cid, hash, total_size, end_time, expiration, created_at, updated_at)
-			VALUES ( :node_id, :event, :cid, :hash, :total_size, :end_time, :expiration, :created_at, :updated_at) 
+		`INSERT INTO %s ( node_id, event, cid, hash, total_size, end_time, expiration, user_id, type, name, created_at, updated_at)
+			VALUES ( :node_id, :event, :cid, :hash, :total_size, :end_time, :expiration, :user_id, :type, :name, :created_at, :updated_at) 
 			ON DUPLICATE KEY UPDATE  event = VALUES(event), end_time = VALUES(end_time), expiration = VALUES(expiration);`, tableNameAsset,
 	), assets)
 	return err
@@ -67,4 +68,17 @@ func GetAssetByCID(ctx context.Context, cid string) (*model.Asset, error) {
 		return nil, err
 	}
 	return &asset, err
+}
+
+func CountAssets(ctx context.Context) ([]*model.StorageStats, error) {
+	queryStatement := fmt.Sprintf(`select a.project_id, s.name, sum(a.total_size) as total_size, now() as time, count(DISTINCT a.user_id) as user_count ,
+       count(DISTINCT f.provider) as provider_count, max(f.end_time) as expiration  from %s a inner join %s s on a.project_id = s.id 
+       left join %s f on a.path = f.path where a.path <> '' group by a.project_id;`, tableNameAsset, tableNameProject, tableNameFilStorage)
+
+	var out []*model.StorageStats
+	if err := DB.SelectContext(ctx, &out, queryStatement); err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }

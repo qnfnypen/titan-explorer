@@ -148,6 +148,12 @@ func CreateAssetHandler(c *gin.Context) {
 	areaId := dao.GetAreaID(c.Request.Context(), UserId)
 	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
 
+	user, err := dao.GetUserByUsername(c.Request.Context(), UserId)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
 	nodeIPInfos, err := schedulerClient.GetCandidateIPs(c.Request.Context())
 	if err != nil {
 		log.Warnf("get candidate ips error %s", err.Error())
@@ -178,6 +184,23 @@ func CreateAssetHandler(c *gin.Context) {
 	createAssetReq.AssetType = c.Query("asset_type")
 	createAssetReq.AssetSize = utils.Str2Int64(c.Query("asset_size"))
 	createAssetReq.NodeID = nearestNode
+
+	if err := dao.AddAssets(c.Request.Context(), []*model.Asset{
+		{
+			UserId:    UserId,
+			Name:      createAssetReq.AssetName,
+			Cid:       createAssetReq.AssetCID,
+			Type:      createAssetReq.AssetType,
+			NodeID:    createAssetReq.NodeID,
+			TotalSize: createAssetReq.AssetSize,
+			Event:     -1,
+			ProjectId: user.ProjectId,
+		},
+	}); err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
 	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &createAssetReq)
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {

@@ -9,6 +9,7 @@ import (
 	"github.com/gnasnik/titan-explorer/utils"
 	"github.com/golang-module/carbon/v2"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -103,4 +104,41 @@ func QueryStorageDaily(ctx context.Context, userId, startTime, endTime string) [
 	}
 
 	return list
+}
+
+func ListStorageStats(c *gin.Context) {
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+	page, _ := strconv.Atoi(c.Query("page"))
+	order := c.Query("order")
+	orderField := c.Query("order_field")
+	option := dao.QueryOption{
+		Page:       page,
+		PageSize:   pageSize,
+		Order:      order,
+		OrderField: orderField,
+		StartTime:  carbon.Now().SubHours(24).String(),
+		EndTime:    carbon.Now().String(),
+	}
+
+	list, count, err := dao.ListStorageStats(c.Request.Context(), option)
+	if err != nil {
+		log.Errorf("ListStorageStats: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	stats, err := dao.CountStorageStats(c.Request.Context())
+	if err != nil {
+		log.Errorf("CountStorageStats: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"storage": stats,
+		"list":    list,
+		"total":   count,
+	}))
+
+	return
 }
