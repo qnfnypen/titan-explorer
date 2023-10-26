@@ -35,12 +35,12 @@ type StorageStats struct {
 }
 
 type StorageSummary struct {
-	StorageSize           float64 `db:"storage_size" json:"storage_size"`
-	Projects              int64   `db:"projects" json:"projects"`
-	Users                 int64   `db:"users" json:"users"`
-	Pledges               float64 `db:"pledges" json:"pledges"`
-	Gases                 float64 `db:"Gases" json:"Gases"`
-	Providers             int64   `db:"providers" json:"providers"`
-	RetrievalProvider     int64   `db:"retrieval_providers" json:"retrieval_providers"`
-	IrretrievableProvider int64   `db:"irretrievable_providers" json:"irretrievable_providers"`
+	StorageSize       float64 `db:"storage_size" json:"storage_size"`
+	Projects          int64   `db:"projects" json:"projects"`
+	Users             int64   `db:"users" json:"users"`
+	Pledges           float64 `db:"pledges" json:"pledges"`
+	Gases             float64 `db:"Gases" json:"Gases"`
+	Providers         int64   `db:"providers" json:"providers"`
+	RetrievalProvider int64   `db:"retrieval_providers" json:"retrieval_providers"`
+	StorageProvider   int64   `db:"storage_providers" json:"storage_providers"`
 }
