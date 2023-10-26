@@ -91,6 +91,33 @@ func ChainHead(url string) (int64, error) {
 	return ts.Height, nil
 }
 
+func AskReuest(url string) (int64, error) {
+	req := model.LotusRequest{
+		Jsonrpc: "2.0",
+		Method:  "Filecoin.ChainHead",
+		Params:  nil,
+		ID:      1,
+	}
+
+	rsp, err := requestLotus(url, req)
+	if err != nil {
+		return 0, err
+	}
+
+	var ts tipSet
+	b, err := json.Marshal(rsp.Result)
+	if err != nil {
+		return 0, err
+	}
+
+	err = json.Unmarshal(b, &ts)
+	if err != nil {
+		return 0, err
+	}
+
+	return ts.Height, nil
+}
+
 func requestLotus(url string, req model.LotusRequest) (*model.LotusResponse, error) {
 	jsonData, err := json.Marshal(req)
 	if err != nil {

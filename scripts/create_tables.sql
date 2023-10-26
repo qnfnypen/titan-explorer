@@ -480,5 +480,6 @@ CREATE TABLE `storage_stats` (
 `locations`  VARCHAR(255) NOT NULL DEFAULT '',
 `created_at` DATETIME(3) NOT NULL DEFAULT 0,
 `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
-PRIMARY KEY (`id`)
+PRIMARY KEY (`id`),
+UNIQUE KEY `uniq_time` (`time`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

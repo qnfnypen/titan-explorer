@@ -19,14 +19,14 @@ type Project struct {
 type StorageStats struct {
 	ID                         int64     `db:"id" json:"id"`
 	ProjectId                  int64     `db:"project_id" json:"project_id"`
-	ProjectName                int64     `db:"project_name" json:"project_name"`
+	ProjectName                string    `db:"project_name" json:"project_name"`
 	TotalSize                  int64     `db:"total_size" json:"total_size"`
 	UserCount                  int64     `db:"user_count" json:"user_count"`
 	ProviderCount              int64     `db:"provider_count" json:"provider_count"`
-	Expiration                 time.Time `db:"expiration" json:"expiration"`
-	Time                       time.Time `db:"time" json:"time"`
+	Expiration                 string    `db:"expiration" json:"expiration"`
+	Time                       string    `db:"time" json:"time"`
 	StorageChange24H           int64     `db:"storage_change_24h" json:"storage_change_24h"`
-	StorageChangePercentage24H int64     `db:"storage_change_percentage_24h" json:"storage_change_percentage_24h"`
+	StorageChangePercentage24H float64   `db:"storage_change_percentage_24h" json:"storage_change_percentage_24h"`
 	Gas                        float64   `db:"gas" json:"gas"`
 	Pledge                     float64   `db:"pledge" json:"pledge"`
 	Locations                  string    `db:"locations" json:"locations"`

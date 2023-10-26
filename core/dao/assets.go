@@ -71,9 +71,12 @@ func GetAssetByCID(ctx context.Context, cid string) (*model.Asset, error) {
 }
 
 func CountAssets(ctx context.Context) ([]*model.StorageStats, error) {
-	queryStatement := fmt.Sprintf(`select a.project_id, s.name as project_name, sum(a.total_size) as total_size, now() as time, count(DISTINCT a.user_id) as user_count ,
-       count(DISTINCT f.provider) as provider_count, max(f.end_time) as expiration  from %s a inner join %s s on a.project_id = s.id 
-       left join %s f on a.path = f.path where a.path <> '' group by a.project_id;`, tableNameAsset, tableNameProject, tableNameFilStorage)
+	queryStatement := fmt.Sprintf(`select t.project_id, t.project_name, t.total_size, t.time, sum(t.user_count) as user_count, 
+       sum(t.provider_count) as provider_count, sum(t.gas) as gas, sum(t.pledge) as pledge, max(t.time) as expiration from (
+		select a.project_id, s.name as project_name, sum(a.total_size) as total_size, DATE_FORMAT(now(),'%%Y-%%m-%%d %%H:%%i') as time, 
+		count(DISTINCT a.user_id) as user_count ,count(DISTINCT f.provider) as provider_count, max(f.gas) as gas, max(f.pledge) as pledge, 
+		max(f.end_time) as expiration  from %s a inner join %s s on a.project_id = s.id left join %s f on a.path = f.path 
+		where a.path <> '' group by a.project_id, f.message_cid) t group by t.project_id`, tableNameAsset, tableNameProject, tableNameFilStorage)
 
 	var out []*model.StorageStats
 	if err := DB.SelectContext(ctx, &out, queryStatement); err != nil {

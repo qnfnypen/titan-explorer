@@ -7,6 +7,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/golang-module/carbon/v2"
+	errs "github.com/pkg/errors"
 	"time"
 )
 
@@ -27,7 +28,7 @@ func (a AssertFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
 	}()
 
 	latest, err := dao.GetLatestAsset(ctx)
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && !errs.Is(err, sql.ErrNoRows) {
 		return err
 	}
 
@@ -73,6 +74,26 @@ Loop:
 	if err != nil {
 		log.Errorf("count assets err: %v", err)
 		return err
+	}
+
+	for _, current := range stats {
+		storages, _, err := dao.ListStorageStats(ctx, current.ProjectId, dao.QueryOption{
+			Page:      1,
+			PageSize:  1,
+			StartTime: carbon.Now().SubHours(24).String(),
+			EndTime:   carbon.Now().String(),
+		})
+		if err != nil {
+			log.Errorf("ListStorageStats: %v", err)
+			continue
+		}
+
+		if len(storages) == 0 {
+			continue
+		}
+
+		current.StorageChange24H = current.TotalSize - storages[0].TotalSize
+		current.StorageChangePercentage24H = float64((current.TotalSize - storages[0].TotalSize) / storages[0].TotalSize)
 	}
 
 	return dao.AddStorageStats(ctx, stats)

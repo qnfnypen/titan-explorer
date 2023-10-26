@@ -122,7 +122,7 @@ func ListStorageStats(c *gin.Context) {
 		EndTime:    carbon.Now().String(),
 	}
 
-	list, count, err := dao.ListStorageStats(c.Request.Context(), option)
+	list, count, err := dao.ListStorageStats(c.Request.Context(), -1, option)
 	if errs.Is(err, sql.ErrNoRows) {
 		c.JSON(http.StatusOK, respJSON(JsonObject{
 			"storage": model.StorageSummary{},

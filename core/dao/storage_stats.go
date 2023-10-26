@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"time"
 )
 
 var tableNameStorageStats = "storage_stats"
@@ -12,22 +11,24 @@ var tableNameStorageStats = "storage_stats"
 func AddStorageStats(ctx context.Context, stats []*model.StorageStats) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(`
 		INSERT INTO %s ( project_id, project_name, total_size, user_count, provider_count, storage_change_24h, storage_change_percentage_24h, time, expiration, gas, pledge, locations, created_at, updated_at)
-			VALUES ( :project_id, :project_name, :total_size, :user_count, :provider_count, :storage_change_24h, :storage_change_percentage_24h, :time, :expiration, :gas, :pledge, :locations, :created_at, :updated_at)`, tableNameStorageStats,
+			VALUES ( :project_id, :project_name, :total_size, :user_count, :provider_count, :storage_change_24h, :storage_change_percentage_24h, :time, :expiration, :gas, :pledge, :locations, :created_at, :updated_at)
+		 ON DUPLICATE KEY UPDATE total_size=VALUES(total_size), user_count=VALUES(user_count), provider_count=VALUES(provider_count), storage_change_24h=VALUES(storage_change_24h), storage_change_percentage_24h=VALUES(storage_change_percentage_24h),
+		expiration=VALUES(expiration), gas=VALUES(gas), pledge=VALUES(pledge), locations=VALUES(locations)`, tableNameStorageStats,
 	), stats)
 	return err
 }
 
 func CountStorageStats(ctx context.Context) (*model.StorageSummary, error) {
-	var lastOneTime time.Time
-	if err := DB.GetContext(ctx, &lastOneTime, fmt.Sprintf(`select time from %s order by id desc limit 1`, tableNameStorageStats)); err != nil {
+	var lastOne model.StorageStats
+	if err := DB.GetContext(ctx, &lastOne, fmt.Sprintf(`select * from %s order by id desc limit 1`, tableNameStorageStats)); err != nil {
 		return nil, err
 	}
 
-	queryStatement := `select count(DISTINCT project_id) projects, sum(total_size) as storage_size, sum(provider_count) as providers, sum(user_count) as users, 
-    	sum(pledge) as pledges, sum(gas) as gases from %s where time=?;`
+	queryStatement := fmt.Sprintf(`select count(DISTINCT project_id) projects, sum(total_size) as storage_size, sum(provider_count) as providers, sum(user_count) as users, 
+    	sum(pledge) as pledges, sum(gas) as gases from %s where time=?;`, tableNameStorageStats)
 
 	var out model.StorageSummary
-	err := DB.GetContext(ctx, &out, queryStatement, lastOneTime)
+	err := DB.GetContext(ctx, &out, queryStatement, lastOne.Time)
 	if err != nil {
 		return nil, err
 	}
@@ -35,17 +36,31 @@ func CountStorageStats(ctx context.Context) (*model.StorageSummary, error) {
 	return &out, nil
 }
 
-func ListStorageStats(ctx context.Context, opts QueryOption) ([]*model.StorageStats, int64, error) {
-	countStatement := `select count(1) from %s where time > '%s'  and time < '%s' group by project_id `
+func ListStorageStats(ctx context.Context, projectId int64, opts QueryOption) ([]*model.StorageStats, int64, error) {
+	var args []interface{}
+	conditionStatement := ` where 1=1`
+	if projectId >= 0 {
+		conditionStatement += ` and project_id = ?`
+		args = append(args, projectId)
+	}
+
+	if opts.StartTime != "" {
+		conditionStatement += ` and time >= ?`
+		args = append(args, opts.StartTime)
+	}
+
+	if opts.EndTime != "" {
+		conditionStatement += ` and time < ?`
+		args = append(args, opts.EndTime)
+	}
 
 	var total int64
-	err := DB.GetContext(ctx, &total, fmt.Sprintf(countStatement, tableNameStorageStats, opts.StartTime, opts.EndTime))
+	err := DB.GetContext(ctx, &total, fmt.Sprintf(`select count(1) from (select * from %s %s group by project_id ) as a`, tableNameStorageStats, conditionStatement), args...)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	queryStatement := `select project_id, project_name, total_size, user_count, provider_count, expiration, gas, pledge, max(total_size) - min(total_size) as storage_change_24h, 
-       	(max(total_size) - min(total_size))/total_size as storage_change_percentage_24h  from %s where time > '%s' and time < '%s' group by project_id limit ? offset ?`
+	queryStatement := `select * from %s %s group by project_id limit ? offset ?`
 
 	limit := opts.PageSize
 	offset := opts.Page
@@ -56,8 +71,10 @@ func ListStorageStats(ctx context.Context, opts QueryOption) ([]*model.StorageSt
 		offset = limit * (opts.Page - 1)
 	}
 
+	args = append(args, limit, offset)
+
 	var out []*model.StorageStats
-	err = DB.SelectContext(ctx, &out, fmt.Sprintf(queryStatement, tableNameStorageStats, opts.StartTime, opts.EndTime), limit, offset)
+	err = DB.SelectContext(ctx, &out, fmt.Sprintf(queryStatement, tableNameStorageStats, conditionStatement), args...)
 
 	if err != nil {
 		return nil, 0, err
