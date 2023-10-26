@@ -150,6 +150,4 @@ func ListStorageStats(c *gin.Context) {
 		"list":    list,
 		"total":   count,
 	}))
-
-	return
 }
