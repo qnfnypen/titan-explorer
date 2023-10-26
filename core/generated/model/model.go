@@ -39,7 +39,7 @@ type StorageSummary struct {
 	Projects          int64   `db:"projects" json:"projects"`
 	Users             int64   `db:"users" json:"users"`
 	Pledges           float64 `db:"pledges" json:"pledges"`
-	Gases             float64 `db:"Gases" json:"Gases"`
+	Gases             float64 `db:"gases" json:"gases"`
 	Providers         int64   `db:"providers" json:"providers"`
 	RetrievalProvider int64   `db:"retrieval_providers" json:"retrieval_providers"`
 	StorageProvider   int64   `db:"storage_providers" json:"storage_providers"`
