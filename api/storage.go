@@ -2,12 +2,14 @@ package api
 
 import (
 	"context"
+	"database/sql"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/utils"
 	"github.com/golang-module/carbon/v2"
+	errs "github.com/pkg/errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -121,6 +123,15 @@ func ListStorageStats(c *gin.Context) {
 	}
 
 	list, count, err := dao.ListStorageStats(c.Request.Context(), option)
+	if errs.Is(err, sql.ErrNoRows) {
+		c.JSON(http.StatusOK, respJSON(JsonObject{
+			"storage": model.StorageSummary{},
+			"list":    nil,
+			"total":   0,
+		}))
+		return
+	}
+
 	if err != nil {
 		log.Errorf("ListStorageStats: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
