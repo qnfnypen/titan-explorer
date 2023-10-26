@@ -71,7 +71,7 @@ func GetAssetByCID(ctx context.Context, cid string) (*model.Asset, error) {
 }
 
 func CountAssets(ctx context.Context) ([]*model.StorageStats, error) {
-	queryStatement := fmt.Sprintf(`select a.project_id, s.name, sum(a.total_size) as total_size, now() as time, count(DISTINCT a.user_id) as user_count ,
+	queryStatement := fmt.Sprintf(`select a.project_id, s.name as project_name, sum(a.total_size) as total_size, now() as time, count(DISTINCT a.user_id) as user_count ,
        count(DISTINCT f.provider) as provider_count, max(f.end_time) as expiration  from %s a inner join %s s on a.project_id = s.id 
        left join %s f on a.path = f.path where a.path <> '' group by a.project_id;`, tableNameAsset, tableNameProject, tableNameFilStorage)
 
