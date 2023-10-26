@@ -93,7 +93,7 @@ Loop:
 		}
 
 		current.StorageChange24H = current.TotalSize - storages[0].TotalSize
-		current.StorageChangePercentage24H = float64((current.TotalSize - storages[0].TotalSize) / storages[0].TotalSize)
+		current.StorageChangePercentage24H = float64(current.TotalSize-storages[0].TotalSize) / float64(storages[0].TotalSize)
 	}
 
 	return dao.AddStorageStats(ctx, stats)

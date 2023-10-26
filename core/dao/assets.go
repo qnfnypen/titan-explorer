@@ -71,16 +71,50 @@ func GetAssetByCID(ctx context.Context, cid string) (*model.Asset, error) {
 }
 
 func CountAssets(ctx context.Context) ([]*model.StorageStats, error) {
-	queryStatement := fmt.Sprintf(`select t.project_id, t.project_name, t.total_size, t.time, sum(t.user_count) as user_count, 
-       sum(t.provider_count) as provider_count, sum(t.gas) as gas, sum(t.pledge) as pledge, max(t.time) as expiration from (
-		select a.project_id, s.name as project_name, sum(a.total_size) as total_size, DATE_FORMAT(now(),'%%Y-%%m-%%d %%H:%%i') as time, 
-		count(DISTINCT a.user_id) as user_count ,count(DISTINCT f.provider) as provider_count, max(f.gas) as gas, max(f.pledge) as pledge, 
+	queryStatement := fmt.Sprintf(`select t.project_id, t.project_name, t.total_size, t.time, sum(t.gas) as gas, sum(t.pledge) as pledge, max(t.time) as expiration from (
+		select a.project_id, s.name as project_name, sum(a.total_size) as total_size, DATE_FORMAT(now(),'%%Y-%%m-%%d %%H:%%i') as time, max(f.gas) as gas, max(f.pledge) as pledge, 
 		max(f.end_time) as expiration  from %s a inner join %s s on a.project_id = s.id left join %s f on a.path = f.path 
 		where a.path <> '' group by a.project_id, f.message_cid) t group by t.project_id`, tableNameAsset, tableNameProject, tableNameFilStorage)
 
 	var out []*model.StorageStats
 	if err := DB.SelectContext(ctx, &out, queryStatement); err != nil {
 		return nil, err
+	}
+
+	userProviderInProject, err := getUserProviderInProject(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, item := range out {
+		uip, ok := userProviderInProject[item.ProjectId]
+		if !ok {
+			continue
+		}
+		out[i].UserCount = uip.UserCount
+		out[i].ProviderCount = uip.ProviderCount
+	}
+
+	return out, nil
+}
+
+func getUserProviderInProject(ctx context.Context) (map[int64]*model.StorageStats, error) {
+	out := make(map[int64]*model.StorageStats)
+	queryStatement := fmt.Sprintf(`select a.project_id, count(DISTINCT a.user_id) as user_count ,count(DISTINCT f.provider) as provider_count from %s a 
+    left join %s f on a.path = f.path where a.path <> '' group by a.project_id`, tableNameAsset, tableNameFilStorage)
+
+	rows, err := DB.Queryx(queryStatement)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var s model.StorageStats
+		if err := rows.StructScan(s); err != nil {
+			return nil, err
+		}
+		out[s.ProjectId] = &s
 	}
 
 	return out, nil

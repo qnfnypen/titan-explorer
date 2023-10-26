@@ -118,8 +118,13 @@ func ListStorageStats(c *gin.Context) {
 		PageSize:   pageSize,
 		Order:      order,
 		OrderField: orderField,
-		StartTime:  carbon.Now().SubHours(24).String(),
+		StartTime:  carbon.Now().SubMinutes(5).String(),
 		EndTime:    carbon.Now().String(),
+	}
+
+	lastSs, err := dao.GetLastStorageStats(c.Request.Context())
+	if err == nil && lastSs != nil {
+		option.StartTime = lastSs.Time
 	}
 
 	list, count, err := dao.ListStorageStats(c.Request.Context(), -1, option)

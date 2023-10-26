@@ -19,20 +19,44 @@ func AddStorageStats(ctx context.Context, stats []*model.StorageStats) error {
 }
 
 func CountStorageStats(ctx context.Context) (*model.StorageSummary, error) {
-	var lastOne model.StorageStats
-	if err := DB.GetContext(ctx, &lastOne, fmt.Sprintf(`select * from %s order by id desc limit 1`, tableNameStorageStats)); err != nil {
+	var (
+		users       int64
+		providers   int64
+		lastOneTime string
+		out         model.StorageSummary
+	)
+
+	if err := DB.GetContext(ctx, &lastOneTime, fmt.Sprintf(`select time from %s order by id desc limit 1`, tableNameStorageStats)); err != nil {
 		return nil, err
 	}
 
 	queryStatement := fmt.Sprintf(`select count(DISTINCT project_id) projects, sum(total_size) as storage_size, sum(provider_count) as providers, sum(user_count) as users, 
     	sum(pledge) as pledges, sum(gas) as gases from %s where time=?;`, tableNameStorageStats)
 
-	var out model.StorageSummary
-	err := DB.GetContext(ctx, &out, queryStatement, lastOne.Time)
+	err := DB.GetContext(ctx, &out, queryStatement, lastOneTime)
 	if err != nil {
 		return nil, err
 	}
 
+	if err := DB.GetContext(ctx, &users, fmt.Sprintf(`select count(distinct user_id) from %s`, tableNameAsset)); err != nil {
+		return nil, err
+	}
+
+	if err := DB.GetContext(ctx, &providers, fmt.Sprintf(`select count(distinct provider) from %s`, tableNameFilStorage)); err != nil {
+		return nil, err
+	}
+
+	out.Providers = providers
+	out.Users = users
+
+	return &out, nil
+}
+
+func GetLastStorageStats(ctx context.Context) (*model.StorageStats, error) {
+	var out model.StorageStats
+	if err := DB.GetContext(ctx, &out, fmt.Sprintf(`select * from %s order by time desc limit 1`, tableNameStorageStats)); err != nil {
+		return nil, err
+	}
 	return &out, nil
 }
 
