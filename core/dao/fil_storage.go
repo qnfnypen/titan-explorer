@@ -7,6 +7,7 @@ import (
 )
 
 var tableNameFilStorage = "fil_storage"
+var tableNameStorageProvider = "storage_provider"
 
 func AddFilStorages(ctx context.Context, storages []*model.FilStorage) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
@@ -70,4 +71,21 @@ func SumFilStorage(ctx context.Context) (int64, error) {
 		return 0, err
 	}
 	return total, nil
+}
+
+func AddStorageProvider(ctx context.Context, sp *model.StorageProvider) error {
+	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
+		`INSERT INTO %s ( provider_id, ip, location, retrievable, created_at, updated_at)
+			VALUES (  :provider_id, :ip, :location, :retrievable, :created_at, :updated_at)
+			ON DUPLICATE KEY UPDATE  ip=VALUES(ip), location=VALUES(location), retrievable=VALUES(retrievable);`, tableNameStorageProvider,
+	), sp)
+	return err
+}
+
+func GetStorageProvider(ctx context.Context, providerID string) (*model.StorageProvider, error) {
+	var out model.StorageProvider
+	if err := DB.GetContext(ctx, &out, fmt.Sprintf(`select * from %s where provider_id = ?`, tableNameStorageProvider), providerID); err != nil {
+		return nil, err
+	}
+	return &out, nil
 }

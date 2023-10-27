@@ -8,6 +8,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/golang-module/carbon/v2"
 	errs "github.com/pkg/errors"
+	"sort"
 	"time"
 )
 
@@ -76,7 +77,11 @@ Loop:
 		return err
 	}
 
-	for _, current := range stats {
+	sort.Slice(stats, func(i, j int) bool {
+		return stats[i].TotalSize > stats[j].TotalSize
+	})
+
+	for index, current := range stats {
 		storages, _, err := dao.ListStorageStats(ctx, current.ProjectId, dao.QueryOption{
 			Page:      1,
 			PageSize:  1,
@@ -92,6 +97,7 @@ Loop:
 			continue
 		}
 
+		current.Rank = int64(index)
 		current.StorageChange24H = current.TotalSize - storages[0].TotalSize
 		current.StorageChangePercentage24H = float64(current.TotalSize-storages[0].TotalSize) / float64(storages[0].TotalSize)
 	}

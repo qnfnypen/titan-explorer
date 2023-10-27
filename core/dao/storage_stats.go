@@ -30,7 +30,7 @@ func CountStorageStats(ctx context.Context) (*model.StorageSummary, error) {
 		return nil, err
 	}
 
-	queryStatement := fmt.Sprintf(`select count(DISTINCT project_id) projects, sum(total_size) as storage_size, sum(provider_count) as providers, sum(user_count) as users, 
+	queryStatement := fmt.Sprintf(`select count(DISTINCT project_id) projects, sum(total_size) as total_size, sum(provider_count) as providers, sum(user_count) as users, 
     	sum(pledge) as pledges, sum(gas) as gases from %s where time=?;`, tableNameStorageStats)
 
 	err := DB.GetContext(ctx, &out, queryStatement, lastOneTime)
@@ -84,7 +84,12 @@ func ListStorageStats(ctx context.Context, projectId int64, opts QueryOption) ([
 		return nil, 0, err
 	}
 
-	queryStatement := `select * from %s %s group by project_id limit ? offset ?`
+	queryStatement := `select * from (select * from %s %s group by project_id) a %s limit ? offset ?`
+
+	orderStatement := ""
+	if opts.Order != "" && opts.OrderField != "" {
+		orderStatement += fmt.Sprintf(` ORDER BY %s %s`, opts.OrderField, opts.Order)
+	}
 
 	limit := opts.PageSize
 	offset := opts.Page
@@ -98,11 +103,20 @@ func ListStorageStats(ctx context.Context, projectId int64, opts QueryOption) ([
 	args = append(args, limit, offset)
 
 	var out []*model.StorageStats
-	err = DB.SelectContext(ctx, &out, fmt.Sprintf(queryStatement, tableNameStorageStats, conditionStatement), args...)
+	err = DB.SelectContext(ctx, &out, fmt.Sprintf(queryStatement, tableNameStorageStats, conditionStatement, orderStatement), args...)
 
 	if err != nil {
 		return nil, 0, err
 	}
 
 	return out, total, err
+}
+
+func GetStorageProvidersById(ctx context.Context, providerIds string) ([]*model.StorageProvider, error) {
+	var out []*model.StorageProvider
+	queryStatement := fmt.Sprintf(`select * from %s where provider_id in (%s)`, tableNameStorageProvider, providerIds)
+	if err := DB.SelectContext(ctx, &out, queryStatement); err != nil {
+		return nil, err
+	}
+	return out, nil
 }

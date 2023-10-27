@@ -71,10 +71,10 @@ func GetAssetByCID(ctx context.Context, cid string) (*model.Asset, error) {
 }
 
 func CountAssets(ctx context.Context) ([]*model.StorageStats, error) {
-	queryStatement := fmt.Sprintf(`select t.project_id, t.project_name, t.total_size, t.time, sum(t.gas) as gas, sum(t.pledge) as pledge, max(t.time) as expiration from (
+	queryStatement := fmt.Sprintf(`select t.project_id, t.project_name, sum(t.total_size) as total_size, t.time, sum(t.gas) as gas, sum(t.pledge) as pledge, max(t.expiration) as expiration from (
 		select a.project_id, s.name as project_name, sum(a.total_size) as total_size, DATE_FORMAT(now(),'%%Y-%%m-%%d %%H:%%i') as time, max(f.gas) as gas, max(f.pledge) as pledge, 
 		max(f.end_time) as expiration  from %s a inner join %s s on a.project_id = s.id left join %s f on a.path = f.path 
-		where a.path <> '' group by a.project_id, f.message_cid) t group by t.project_id`, tableNameAsset, tableNameProject, tableNameFilStorage)
+		where a.path <> '' and a.event = 1  group by a.project_id, f.message_cid) t group by t.project_id`, tableNameAsset, tableNameProject, tableNameFilStorage)
 
 	var out []*model.StorageStats
 	if err := DB.SelectContext(ctx, &out, queryStatement); err != nil {
@@ -93,6 +93,7 @@ func CountAssets(ctx context.Context) ([]*model.StorageStats, error) {
 		}
 		out[i].UserCount = uip.UserCount
 		out[i].ProviderCount = uip.ProviderCount
+		out[i].ProviderIds = uip.ProviderIds
 	}
 
 	return out, nil
@@ -100,8 +101,8 @@ func CountAssets(ctx context.Context) ([]*model.StorageStats, error) {
 
 func getUserProviderInProject(ctx context.Context) (map[int64]*model.StorageStats, error) {
 	out := make(map[int64]*model.StorageStats)
-	queryStatement := fmt.Sprintf(`select a.project_id, count(DISTINCT a.user_id) as user_count ,count(DISTINCT f.provider) as provider_count from %s a 
-    left join %s f on a.path = f.path where a.path <> '' group by a.project_id`, tableNameAsset, tableNameFilStorage)
+	queryStatement := fmt.Sprintf(`select a.project_id, count(DISTINCT a.user_id) as user_count, provider from %s a 
+    left join %s f on a.path = f.path where a.path <> '' group by a.project_id, provider`, tableNameAsset, tableNameFilStorage)
 
 	rows, err := DB.Queryx(queryStatement)
 	if err != nil {
@@ -110,11 +111,23 @@ func getUserProviderInProject(ctx context.Context) (map[int64]*model.StorageStat
 	defer rows.Close()
 
 	for rows.Next() {
-		var s model.StorageStats
-		if err := rows.StructScan(s); err != nil {
+		var s struct {
+			model.StorageStats
+			Provider string
+		}
+		if err := rows.StructScan(&s); err != nil {
 			return nil, err
 		}
-		out[s.ProjectId] = &s
+		if _, ok := out[s.ProjectId]; !ok {
+			out[s.ProjectId] = &s.StorageStats
+			out[s.ProjectId].ProviderCount++
+			out[s.ProjectId].ProviderIds = s.Provider
+			continue
+		}
+
+		out[s.ProjectId].UserCount += s.UserCount
+		out[s.ProjectId].ProviderCount++
+		out[s.ProjectId].ProviderIds += "," + s.Provider
 	}
 
 	return out, nil

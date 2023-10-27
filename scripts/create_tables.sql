@@ -478,8 +478,23 @@ CREATE TABLE `storage_stats` (
 `gas` FLOAT(32) NOT NULL DEFAULT 0,
 `pledge` FLOAT(32) NOT NULL DEFAULT 0,
 `locations`  VARCHAR(255) NOT NULL DEFAULT '',
+`provider_ids`  VARCHAR(255) NOT NULL DEFAULT '',
 `created_at` DATETIME(3) NOT NULL DEFAULT 0,
 `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
 PRIMARY KEY (`id`),
-UNIQUE KEY `uniq_time` (`time`) USING BTREE
+UNIQUE KEY `uniq_project_time` (`project_id`,`time`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `storage_providers`;
+CREATE TABLE `storage_providers` (
+`id` bigint(20) NOT NULL AUTO_INCREMENT,
+`provider_id`  VARCHAR(255) NOT NULL DEFAULT '',
+`ip`  VARCHAR(255) NOT NULL DEFAULT '',
+`location`  VARCHAR(255) NOT NULL DEFAULT '',
+`retrievable` INT(1) NOT NULL DEFAULT 0,
+`national_flag_url`  VARCHAR(255) NOT NULL DEFAULT '',
+`created_at` DATETIME(3) NOT NULL DEFAULT 0,
+`updated_at` DATETIME(3) NOT NULL DEFAULT 0,
+PRIMARY KEY (`id`),
+UNIQUE KEY `uniq_provider` (`provider_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

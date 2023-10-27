@@ -143,6 +143,20 @@ func ListStorageStats(c *gin.Context) {
 		return
 	}
 
+	type storage struct {
+		*model.StorageStats
+		Providers []*model.StorageProvider
+	}
+
+	var out []*storage
+	for _, item := range list {
+		providers, err := dao.GetStorageProvidersById(c.Request.Context(), item.ProviderIds)
+		if err != nil {
+			log.Errorf("GetStorageProvidersById: %v", err)
+		}
+		out = append(out, &storage{StorageStats: item, Providers: providers})
+	}
+
 	stats, err := dao.CountStorageStats(c.Request.Context())
 	if err != nil {
 		log.Errorf("CountStorageStats: %v", err)
@@ -152,7 +166,7 @@ func ListStorageStats(c *gin.Context) {
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"storage": stats,
-		"list":    list,
+		"list":    out,
 		"total":   count,
 	}))
 }

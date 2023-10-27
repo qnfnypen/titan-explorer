@@ -254,7 +254,7 @@ func (s *Statistic) SumAllNodes() error {
 		log.Errorf("CountStorageStats: %v", err)
 	}
 	if stats != nil {
-		fullNodeInfo.FBackupsFromTitan = stats.StorageSize
+		fullNodeInfo.FBackupsFromTitan = stats.TotalSize
 	} else {
 		sum, err := dao.SumFilStorage(s.ctx)
 		if err != nil {
