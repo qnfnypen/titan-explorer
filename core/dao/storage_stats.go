@@ -10,10 +10,10 @@ var tableNameStorageStats = "storage_stats"
 
 func AddStorageStats(ctx context.Context, stats []*model.StorageStats) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(`
-		INSERT INTO %s ( project_id, project_name, total_size, user_count, provider_count, storage_change_24h, storage_change_percentage_24h, time, expiration, gas, pledge, locations, created_at, updated_at)
-			VALUES ( :project_id, :project_name, :total_size, :user_count, :provider_count, :storage_change_24h, :storage_change_percentage_24h, :time, :expiration, :gas, :pledge, :locations, :created_at, :updated_at)
-		 ON DUPLICATE KEY UPDATE total_size=VALUES(total_size), user_count=VALUES(user_count), provider_count=VALUES(provider_count), storage_change_24h=VALUES(storage_change_24h), storage_change_percentage_24h=VALUES(storage_change_percentage_24h),
-		expiration=VALUES(expiration), gas=VALUES(gas), pledge=VALUES(pledge), locations=VALUES(locations)`, tableNameStorageStats,
+		INSERT INTO %s ( rank, project_id, project_name, total_size, user_count, provider_count, storage_change_24h, storage_change_percentage_24h, time, expiration, gas, pledge, provider_ids, created_at, updated_at)
+			VALUES (:rank, :project_id, :project_name, :total_size, :user_count, :provider_count, :storage_change_24h, :storage_change_percentage_24h, :time, :expiration, :gas, :pledge, :provider_ids, :created_at, :updated_at)
+		 ON DUPLICATE KEY UPDATE rank=VALUES(rank), total_size=VALUES(total_size), user_count=VALUES(user_count), provider_count=VALUES(provider_count), storage_change_24h=VALUES(storage_change_24h), storage_change_percentage_24h=VALUES(storage_change_percentage_24h),
+		expiration=VALUES(expiration), gas=VALUES(gas), pledge=VALUES(pledge), provider_ids=VALUES(provider_ids)`, tableNameStorageStats,
 	), stats)
 	return err
 }
@@ -114,7 +114,7 @@ func ListStorageStats(ctx context.Context, projectId int64, opts QueryOption) ([
 
 func GetStorageProvidersById(ctx context.Context, providerIds string) ([]*model.StorageProvider, error) {
 	var out []*model.StorageProvider
-	queryStatement := fmt.Sprintf(`select * from %s where provider_id in (%s)`, tableNameStorageProvider, providerIds)
+	queryStatement := fmt.Sprintf(`select * from %s where provider_id in ('%s')`, tableNameStorageProvider, providerIds)
 	if err := DB.SelectContext(ctx, &out, queryStatement); err != nil {
 		return nil, err
 	}

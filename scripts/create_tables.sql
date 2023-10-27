@@ -485,14 +485,13 @@ PRIMARY KEY (`id`),
 UNIQUE KEY `uniq_project_time` (`project_id`,`time`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-DROP TABLE IF EXISTS `storage_providers`;
-CREATE TABLE `storage_providers` (
+DROP TABLE IF EXISTS `storage_provider`;
+CREATE TABLE `storage_provider` (
 `id` bigint(20) NOT NULL AUTO_INCREMENT,
 `provider_id`  VARCHAR(255) NOT NULL DEFAULT '',
 `ip`  VARCHAR(255) NOT NULL DEFAULT '',
 `location`  VARCHAR(255) NOT NULL DEFAULT '',
 `retrievable` INT(1) NOT NULL DEFAULT 0,
-`national_flag_url`  VARCHAR(255) NOT NULL DEFAULT '',
 `created_at` DATETIME(3) NOT NULL DEFAULT 0,
 `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
 PRIMARY KEY (`id`),

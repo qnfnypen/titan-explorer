@@ -93,16 +93,28 @@ func CountAssets(ctx context.Context) ([]*model.StorageStats, error) {
 		}
 		out[i].UserCount = uip.UserCount
 		out[i].ProviderCount = uip.ProviderCount
-		out[i].ProviderIds = uip.ProviderIds
+	}
+
+	providerInProject, err := getProviderInProject(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, item := range out {
+		uip, ok := providerInProject[item.ProjectId]
+		if !ok {
+			continue
+		}
+		out[i].Locations = uip.Locations
 	}
 
 	return out, nil
 }
 
-func getUserProviderInProject(ctx context.Context) (map[int64]*model.StorageStats, error) {
+func getProviderInProject(ctx context.Context) (map[int64]*model.StorageStats, error) {
 	out := make(map[int64]*model.StorageStats)
-	queryStatement := fmt.Sprintf(`select a.project_id, count(DISTINCT a.user_id) as user_count, provider from %s a 
-    left join %s f on a.path = f.path where a.path <> '' group by a.project_id, provider`, tableNameAsset, tableNameFilStorage)
+	queryStatement := fmt.Sprintf(`select a.project_id, sp.location from %s a left join %s f on a.path = f.path  
+    left join %s sp on f.provider = sp.provider_id where a.path <> '' group by a.project_id, f.provider`, tableNameAsset, tableNameFilStorage, tableNameStorageProvider)
 
 	rows, err := DB.Queryx(queryStatement)
 	if err != nil {
@@ -111,23 +123,37 @@ func getUserProviderInProject(ctx context.Context) (map[int64]*model.StorageStat
 	defer rows.Close()
 
 	for rows.Next() {
-		var s struct {
-			model.StorageStats
-			Provider string
-		}
+		var s model.StorageStats
 		if err := rows.StructScan(&s); err != nil {
 			return nil, err
 		}
 		if _, ok := out[s.ProjectId]; !ok {
-			out[s.ProjectId] = &s.StorageStats
-			out[s.ProjectId].ProviderCount++
-			out[s.ProjectId].ProviderIds = s.Provider
+			out[s.ProjectId] = &s
 			continue
 		}
+		out[s.ProjectId].Locations += "," + s.Locations
+	}
 
-		out[s.ProjectId].UserCount += s.UserCount
-		out[s.ProjectId].ProviderCount++
-		out[s.ProjectId].ProviderIds += "," + s.Provider
+	return out, nil
+}
+
+func getUserProviderInProject(ctx context.Context) (map[int64]*model.StorageStats, error) {
+	out := make(map[int64]*model.StorageStats)
+	queryStatement := fmt.Sprintf(`select a.project_id, count(DISTINCT a.user_id) as user_count, count(DISTINCT f.provider) as provider_count from %s a 
+    left join %s f on a.path = f.path where a.path <> '' group by a.project_id`, tableNameAsset, tableNameFilStorage)
+
+	rows, err := DB.Queryx(queryStatement)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var s model.StorageStats
+		if err := rows.StructScan(&s); err != nil {
+			return nil, err
+		}
+		out[s.ProjectId] = &s
 	}
 
 	return out, nil

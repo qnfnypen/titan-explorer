@@ -71,6 +71,10 @@ Loop:
 		goto Loop
 	}
 
+	if assertsRes.Total <= 0 {
+		return nil
+	}
+
 	stats, err := dao.CountAssets(ctx)
 	if err != nil {
 		log.Errorf("count assets err: %v", err)

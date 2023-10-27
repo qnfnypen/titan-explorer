@@ -7,7 +7,7 @@ import (
 )
 
 var tableNameFilStorage = "fil_storage"
-var tableNameStorageProvider = "storage_provider"
+var tableNameStorageProvider = "storage_providers"
 
 func AddFilStorages(ctx context.Context, storages []*model.FilStorage) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(

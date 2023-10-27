@@ -12,8 +12,8 @@ const (
 type Project struct {
 	ID        int64     `db:"id" json:"id"`
 	Name      string    `db:"name" json:"name"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+	CreatedAt time.Time `db:"created_at" json:"-"`
+	UpdatedAt time.Time `db:"updated_at" json:"-"`
 }
 
 type StorageStats struct {
@@ -30,9 +30,9 @@ type StorageStats struct {
 	StorageChangePercentage24H float64   `db:"storage_change_percentage_24h" json:"storage_change_percentage_24h"`
 	Gas                        float64   `db:"gas" json:"gas"`
 	Pledge                     float64   `db:"pledge" json:"pledge"`
-	CreatedAt                  time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt                  time.Time `db:"updated_at" json:"updated_at"`
-	ProviderIds                string    `db:"provider_ids" json:"-"`
+	Locations                  string    `db:"locations" json:"locations"`
+	CreatedAt                  time.Time `db:"created_at" json:"-"`
+	UpdatedAt                  time.Time `db:"updated_at" json:"-"`
 }
 
 type StorageSummary struct {
@@ -47,12 +47,11 @@ type StorageSummary struct {
 }
 
 type StorageProvider struct {
-	ID              int64     `db:"id" json:"id"`
-	ProviderID      string    `db:"provider_id" json:"provider_id"`
-	IP              string    `db:"ip" json:"ip"`
-	Location        string    `db:"location" json:"location"`
-	Retrievable     string    `db:"retrievable" json:"retrievable"`
-	NationalFlagUrl string    `db:"national_flag_url" json:"national_flag_url"`
-	CreatedAt       time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt       time.Time `db:"updated_at" json:"updated_at"`
+	ID          int64     `db:"id" json:"id"`
+	ProviderID  string    `db:"provider_id" json:"provider_id"`
+	IP          string    `db:"ip" json:"ip"`
+	Location    string    `db:"location" json:"location"`
+	Retrievable string    `db:"retrievable" json:"retrievable"`
+	CreatedAt   time.Time `db:"created_at" json:"-"`
+	UpdatedAt   time.Time `db:"updated_at" json:"-"`
 }
