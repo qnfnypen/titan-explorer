@@ -10,10 +10,10 @@ var tableNameStorageStats = "storage_stats"
 
 func AddStorageStats(ctx context.Context, stats []*model.StorageStats) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(`
-		INSERT INTO %s ( rank, project_id, project_name, total_size, user_count, provider_count, storage_change_24h, storage_change_percentage_24h, time, expiration, gas, pledge, provider_ids, created_at, updated_at)
-			VALUES (:rank, :project_id, :project_name, :total_size, :user_count, :provider_count, :storage_change_24h, :storage_change_percentage_24h, :time, :expiration, :gas, :pledge, :provider_ids, :created_at, :updated_at)
+		INSERT INTO %s ( rank, project_id, project_name, total_size, user_count, provider_count, storage_change_24h, storage_change_percentage_24h, time, expiration, gas, pledge, locations, created_at, updated_at)
+			VALUES (:rank, :project_id, :project_name, :total_size, :user_count, :provider_count, :storage_change_24h, :storage_change_percentage_24h, :time, :expiration, :gas, :pledge, :locations, :created_at, :updated_at)
 		 ON DUPLICATE KEY UPDATE rank=VALUES(rank), total_size=VALUES(total_size), user_count=VALUES(user_count), provider_count=VALUES(provider_count), storage_change_24h=VALUES(storage_change_24h), storage_change_percentage_24h=VALUES(storage_change_percentage_24h),
-		expiration=VALUES(expiration), gas=VALUES(gas), pledge=VALUES(pledge), provider_ids=VALUES(provider_ids)`, tableNameStorageStats,
+		expiration=VALUES(expiration), gas=VALUES(gas), pledge=VALUES(pledge), locations=VALUES(locations)`, tableNameStorageStats,
 	), stats)
 	return err
 }
@@ -48,6 +48,7 @@ func CountStorageStats(ctx context.Context) (*model.StorageSummary, error) {
 
 	out.Providers = providers
 	out.Users = users
+	out.LatestUpdateTime = lastOneTime
 
 	return &out, nil
 }

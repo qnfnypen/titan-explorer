@@ -478,7 +478,6 @@ CREATE TABLE `storage_stats` (
 `gas` FLOAT(32) NOT NULL DEFAULT 0,
 `pledge` FLOAT(32) NOT NULL DEFAULT 0,
 `locations`  VARCHAR(255) NOT NULL DEFAULT '',
-`provider_ids`  VARCHAR(255) NOT NULL DEFAULT '',
 `created_at` DATETIME(3) NOT NULL DEFAULT 0,
 `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
 PRIMARY KEY (`id`),

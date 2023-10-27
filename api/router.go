@@ -45,6 +45,7 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	apiV2.GET("/get_cache_hours", GetCacheHourHandler)
 	apiV2.GET("/get_cache_days", GetCacheDaysHandler)
 	apiV2.GET("/get_applications", GetApplicationsHandler)
+	apiV2.GET("/get_storage_stats", ListStorageStats)
 
 	// node daily count
 	apiV2.GET("/get_nodes_days", GetDiskDaysHandler)
@@ -67,7 +68,6 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	apiV2.GET("/get_user_device_profile", GetUserDeviceProfileHandler)
 	apiV2.GET("/get_user_device_count", GetUserDevicesCountHandler)
 	apiV2.GET("/get_device_active_info", GetDeviceActiveInfoHandler)
-	apiV2.GET("/get_storage_stats", ListStorageStats)
 	user := apiV1.Group("/user")
 	user.POST("/login", authMiddleware.LoginHandler)
 	user.POST("/logout", authMiddleware.LogoutHandler)

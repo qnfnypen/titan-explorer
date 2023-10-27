@@ -44,6 +44,7 @@ type StorageSummary struct {
 	Providers         int64   `db:"providers" json:"providers"`
 	RetrievalProvider int64   `db:"retrieval_providers" json:"retrieval_providers"`
 	StorageProvider   int64   `db:"storage_providers" json:"storage_providers"`
+	LatestUpdateTime  string  `db:"-" json:"latest_update_time"`
 }
 
 type StorageProvider struct {
