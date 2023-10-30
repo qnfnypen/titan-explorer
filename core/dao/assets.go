@@ -13,7 +13,7 @@ func AddAssets(ctx context.Context, assets []*model.Asset) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
 		`INSERT INTO %s ( node_id, event, cid, hash, total_size, end_time, expiration, user_id, type, name, created_at, updated_at)
 			VALUES ( :node_id, :event, :cid, :hash, :total_size, :end_time, :expiration, :user_id, :type, :name, :created_at, :updated_at) 
-			ON DUPLICATE KEY UPDATE  event = VALUES(event), end_time = VALUES(end_time), expiration = VALUES(expiration);`, tableNameAsset,
+			ON DUPLICATE KEY UPDATE  event = VALUES(event), end_time = VALUES(end_time), expiration = VALUES(expiration), user_id = VALUES(user_id), type = VALUES(type), name = VALUES(name);`, tableNameAsset,
 	), assets)
 	return err
 }
