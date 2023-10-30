@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
@@ -113,14 +112,24 @@ func SaveProviderLocation(providerId string) error {
 		return err
 	}
 
+	ctx := context.Background()
+
+	if len(minerInfo.Multiaddrs) == 0 {
+		return dao.AddStorageProvider(ctx, &model.StorageProvider{
+			ProviderID:  providerId,
+			IP:          "",
+			Retrievable: false,
+			Location:    "",
+			CreatedAt:   time.Now(),
+		})
+	}
+
 	mad, err := multiaddr.NewMultiaddrBytes(minerInfo.Multiaddrs[0])
 	if err != nil {
 		return err
 	}
-	ip := strings.Split(mad.String(), "/")[2]
-	fmt.Println(ip)
 
-	ctx := context.Background()
+	ip := strings.Split(mad.String(), "/")[2]
 	loc, err := utils.IPTableCloudGetLocation(ctx, config.Cfg.IpUrl, ip, config.Cfg.IpKey, model.LanguageEN)
 	if err != nil {
 		return err

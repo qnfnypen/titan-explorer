@@ -30,8 +30,10 @@ func CountStorageStats(ctx context.Context) (*model.StorageSummary, error) {
 		return nil, err
 	}
 
-	queryStatement := fmt.Sprintf(`select count(DISTINCT project_id) projects, sum(total_size) as total_size, sum(provider_count) as providers, sum(user_count) as users, 
-    	sum(pledge) as pledges, sum(gas) as gases from %s where time=?;`, tableNameStorageStats)
+	queryStatement := fmt.Sprintf(`select count(DISTINCT s.project_id) projects, sum(s.total_size) as total_size, sum(s.provider_count) as providers, 
+       sum(s.user_count) as users, sum(s.pledge) as pledges, sum(s.gas) as gases, p.storage_providers, p.retrieval_providers from %s s join (
+		select count(if(retrievable = 1,true,null)) as retrieval_providers, count(if(retrievable = 0,true,null)) as storage_providers from %s
+		) p  where s.time=?;`, tableNameStorageStats, tableNameStorageProvider)
 
 	err := DB.GetContext(ctx, &out, queryStatement, lastOneTime)
 	if err != nil {

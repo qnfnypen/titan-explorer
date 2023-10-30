@@ -339,7 +339,7 @@ type Location struct {
 	Elevation string    `db:"elevation" json:"elevation"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
-	CountryCode   string    `db:"-" json:"country_code"`
+	CountryCode  string `db:"-" json:"country_code"`
 }
 
 type LocationEn struct {
