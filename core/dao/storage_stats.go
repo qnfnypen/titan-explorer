@@ -88,11 +88,7 @@ func ListStorageStats(ctx context.Context, projectId int64, opts QueryOption) ([
 
 	queryStatement := `select * from (select * from %s %s group by project_id) a %s limit ? offset ?`
 
-	orderStatement := ""
-	if opts.OrderField == "rank" {
-		opts.OrderField = "s_rank"
-	}
-
+	orderStatement := "ORDER BY s_rank"
 	if opts.Order != "" && opts.OrderField != "" {
 		orderStatement = fmt.Sprintf(` ORDER BY %s %s`, opts.OrderField, opts.Order)
 	}
