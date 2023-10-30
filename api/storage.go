@@ -143,15 +143,18 @@ func ListStorageStats(c *gin.Context) {
 		return
 	}
 
+	var summary model.StorageSummary
 	stats, err := dao.CountStorageStats(c.Request.Context())
 	if err != nil {
 		log.Errorf("CountStorageStats: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
+	}
+
+	if stats != nil {
+		summary = *stats
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"storage": stats,
+		"storage": summary,
 		"list":    list,
 		"total":   count,
 	}))
