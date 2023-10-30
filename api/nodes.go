@@ -11,6 +11,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/utils"
 	"github.com/golang-module/carbon/v2"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"golang.org/x/xerrors"
 	"io/ioutil"
 	"net/http"
@@ -62,6 +63,11 @@ type (
 	}
 
 	randomness []byte
+
+	minerInfo struct {
+		PeerId     *peer.ID
+		Multiaddrs [][]byte
+	}
 )
 
 func ChainHead(url string) (int64, error) {
@@ -91,31 +97,36 @@ func ChainHead(url string) (int64, error) {
 	return ts.Height, nil
 }
 
-func AskReuest(url string) (int64, error) {
+func StateMinerInfo(url string, minerId string) (*minerInfo, error) {
+	params, err := json.Marshal([]interface{}{minerId, nil})
+	if err != nil {
+		return nil, err
+	}
+
 	req := model.LotusRequest{
 		Jsonrpc: "2.0",
-		Method:  "Filecoin.ChainHead",
-		Params:  nil,
+		Method:  "Filecoin.StateMinerInfo",
+		Params:  params,
 		ID:      1,
 	}
 
 	rsp, err := requestLotus(url, req)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	var ts tipSet
+	var mi minerInfo
 	b, err := json.Marshal(rsp.Result)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	err = json.Unmarshal(b, &ts)
+	err = json.Unmarshal(b, &mi)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	return ts.Height, nil
+	return &mi, nil
 }
 
 func requestLotus(url string, req model.LotusRequest) (*model.LotusResponse, error) {

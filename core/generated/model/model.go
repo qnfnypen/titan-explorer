@@ -52,7 +52,7 @@ type StorageProvider struct {
 	ProviderID  string    `db:"provider_id" json:"provider_id"`
 	IP          string    `db:"ip" json:"ip"`
 	Location    string    `db:"location" json:"location"`
-	Retrievable string    `db:"retrievable" json:"retrievable"`
+	Retrievable bool      `db:"retrievable" json:"retrievable"`
 	CreatedAt   time.Time `db:"created_at" json:"-"`
 	UpdatedAt   time.Time `db:"updated_at" json:"-"`
 }

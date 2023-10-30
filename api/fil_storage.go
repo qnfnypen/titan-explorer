@@ -1,13 +1,19 @@
 package api
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/utils"
+	"github.com/multiformats/go-multiaddr"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -31,6 +37,16 @@ func CreateFilStorageHandler(c *gin.Context) {
 		params[i].UpdatedAt = time.Now()
 		if params[i].FIndex == 0 {
 			params[i].FIndex = int64(i)
+		}
+
+		sp, err := dao.GetStorageProvider(c.Request.Context(), params[i].Provider)
+		if err == nil && sp != nil {
+			continue
+		}
+
+		err = SaveProviderLocation(params[i].Provider)
+		if err != nil {
+			log.Errorf("SaveProviderLocation: %v", err)
 		}
 	}
 
@@ -88,4 +104,33 @@ func getTimestampByHeight(height int64) int64 {
 	}
 
 	return FilcoinMainnetResetTimestamp + FilcoinMainnetEpochDurationSeconds*height
+}
+
+func SaveProviderLocation(providerId string) error {
+	url := "http://api.node.glif.io/rpc/v0"
+	minerInfo, err := StateMinerInfo(url, providerId)
+	if err != nil {
+		return err
+	}
+
+	mad, err := multiaddr.NewMultiaddrBytes(minerInfo.Multiaddrs[0])
+	if err != nil {
+		return err
+	}
+	ip := strings.Split(mad.String(), "/")[2]
+	fmt.Println(ip)
+
+	ctx := context.Background()
+	loc, err := utils.IPTableCloudGetLocation(ctx, config.Cfg.IpUrl, ip, config.Cfg.IpKey, model.LanguageEN)
+	if err != nil {
+		return err
+	}
+
+	return dao.AddStorageProvider(ctx, &model.StorageProvider{
+		ProviderID:  providerId,
+		IP:          ip,
+		Retrievable: true,
+		Location:    loc.CountryCode,
+		CreatedAt:   time.Now(),
+	})
 }
