@@ -7,6 +7,8 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/golang-module/carbon/v2"
+	cid2 "github.com/ipfs/go-cid"
+	mh "github.com/multiformats/go-multihash"
 	"github.com/spf13/viper"
 	"io"
 	"log"
@@ -52,10 +54,15 @@ func main() {
 		}
 
 		totalSize, _ := strconv.ParseInt(record[4], 10, 64)
+		cid, err := hash2Cid(record[0])
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		asssets = append(asssets, &model.Asset{
 			Hash:       record[0],
-			Cid:        record[1],
+			Cid:        cid,
+			UserId:     record[1],
 			CreatedAt:  carbon.Parse(record[2]).Carbon2Time(),
 			Name:       record[3],
 			TotalSize:  totalSize,
@@ -70,4 +77,13 @@ func main() {
 	}
 
 	log.Println("Success")
+}
+
+func hash2Cid(hash string) (string, error) {
+	multiHash, err := mh.FromHexString(hash)
+	if err != nil {
+		return "", err
+	}
+	cid := cid2.NewCidV1(cid2.Raw, multiHash)
+	return cid.String(), nil
 }

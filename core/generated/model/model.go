@@ -24,7 +24,7 @@ type StorageStats struct {
 	TotalSize                  int64     `db:"total_size" json:"total_size"`
 	UserCount                  int64     `db:"user_count" json:"user_count"`
 	ProviderCount              int64     `db:"provider_count" json:"provider_count"`
-	Expiration                 string    `db:"expiration" json:"expiration"`
+	Expiration                 time.Time `db:"expiration" json:"expiration"`
 	Time                       string    `db:"time" json:"time"`
 	StorageChange24H           int64     `db:"storage_change_24h" json:"storage_change_24h"`
 	StorageChangePercentage24H float64   `db:"storage_change_percentage_24h" json:"storage_change_percentage_24h"`
