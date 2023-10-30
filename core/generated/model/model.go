@@ -18,7 +18,7 @@ type Project struct {
 
 type StorageStats struct {
 	ID                         int64     `db:"id" json:"id"`
-	Rank                       int64     `db:"rank" json:"rank"`
+	Rank                       int64     `db:"s_rank" json:"s_rank"`
 	ProjectId                  int64     `db:"project_id" json:"project_id"`
 	ProjectName                string    `db:"project_name" json:"project_name"`
 	TotalSize                  int64     `db:"total_size" json:"total_size"`

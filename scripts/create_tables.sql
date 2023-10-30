@@ -466,6 +466,7 @@ CREATE TABLE `projects` (
 DROP TABLE IF EXISTS `storage_stats`;
 CREATE TABLE `storage_stats` (
 `id` bigint(32) NOT NULL AUTO_INCREMENT,
+`s_rank` int(20) NULL DEFAULT 0,
 `project_id` int(20) NULL DEFAULT 0,
 `project_name`  VARCHAR(255) NOT NULL DEFAULT '',
 `total_size` BIGINT(32) NOT NULL DEFAULT 0,

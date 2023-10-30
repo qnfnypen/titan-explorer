@@ -113,8 +113,8 @@ func CountAssets(ctx context.Context) ([]*model.StorageStats, error) {
 
 func getProviderInProject(ctx context.Context) (map[int64]*model.StorageStats, error) {
 	out := make(map[int64]*model.StorageStats)
-	queryStatement := fmt.Sprintf(`select a.project_id, sp.location as loctations from %s a left join %s f on a.path = f.path  
-    left join %s sp on f.provider = sp.provider_id where a.path <> '' group by a.project_id, f.provider`, tableNameAsset, tableNameFilStorage, tableNameStorageProvider)
+	queryStatement := fmt.Sprintf(`select a.project_id, IFNULL(sp.location ,'') as locations from %s a left join %s f on a.path = f.path  
+    left join %s sp on f.provider = sp.provider_id where a.path <> '' group by a.project_id, locations`, tableNameAsset, tableNameFilStorage, tableNameStorageProvider)
 
 	rows, err := DB.Queryx(queryStatement)
 	if err != nil {
@@ -123,15 +123,21 @@ func getProviderInProject(ctx context.Context) (map[int64]*model.StorageStats, e
 	defer rows.Close()
 
 	for rows.Next() {
-		var s model.StorageStats
-		if err := rows.StructScan(&s); err != nil {
+		var (
+			id       int64
+			location string
+		)
+		if err := rows.Scan(&id, &location); err != nil {
 			return nil, err
 		}
-		if _, ok := out[s.ProjectId]; !ok {
-			out[s.ProjectId] = &s
+		if _, ok := out[id]; !ok {
+			out[id] = &model.StorageStats{
+				ProjectId: id,
+				Locations: location,
+			}
 			continue
 		}
-		out[s.ProjectId].Locations += "," + s.Locations
+		out[id].Locations += "," + location
 	}
 
 	return out, nil

@@ -71,10 +71,6 @@ Loop:
 		goto Loop
 	}
 
-	if assertsRes.Total <= 0 {
-		return nil
-	}
-
 	stats, err := dao.CountAssets(ctx)
 	if err != nil {
 		log.Errorf("count assets err: %v", err)
@@ -86,6 +82,8 @@ Loop:
 	})
 
 	for index, current := range stats {
+		stats[index].Rank = int64(index) + 1
+
 		storages, _, err := dao.ListStorageStats(ctx, current.ProjectId, dao.QueryOption{
 			Page:      1,
 			PageSize:  1,
@@ -101,7 +99,6 @@ Loop:
 			continue
 		}
 
-		current.Rank = int64(index)
 		current.StorageChange24H = current.TotalSize - storages[0].TotalSize
 		current.StorageChangePercentage24H = float64(current.TotalSize-storages[0].TotalSize) / float64(storages[0].TotalSize)
 	}
