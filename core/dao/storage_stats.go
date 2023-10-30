@@ -38,7 +38,8 @@ func CountStorageStats(ctx context.Context) (*model.StorageSummary, error) {
 		return nil, err
 	}
 
-	if err := DB.GetContext(ctx, &users, fmt.Sprintf(`select count(distinct user_id) from %s`, tableNameAsset)); err != nil {
+	queryUserCountStatement := fmt.Sprintf(`select count(distinct user_id) from %s a left join %s f on a.path = f.path where a.path <> '' and  a.event = 1`, tableNameAsset, tableNameFilStorage)
+	if err := DB.GetContext(ctx, &users, queryUserCountStatement); err != nil {
 		return nil, err
 	}
 

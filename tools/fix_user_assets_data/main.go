@@ -67,6 +67,7 @@ func main() {
 			Name:       record[3],
 			TotalSize:  totalSize,
 			Type:       record[5],
+			Event:      1,
 			Expiration: carbon.Parse(record[7]).Carbon2Time(),
 		})
 	}

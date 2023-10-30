@@ -95,7 +95,7 @@ func CountAssets(ctx context.Context) ([]*model.StorageStats, error) {
 		out[i].ProviderCount = uip.ProviderCount
 	}
 
-	providerInProject, err := getProviderInProject(ctx)
+	providerInProject, err := getProviderLocationInProject(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +111,7 @@ func CountAssets(ctx context.Context) ([]*model.StorageStats, error) {
 	return out, nil
 }
 
-func getProviderInProject(ctx context.Context) (map[int64]*model.StorageStats, error) {
+func getProviderLocationInProject(ctx context.Context) (map[int64]*model.StorageStats, error) {
 	out := make(map[int64]*model.StorageStats)
 	queryStatement := fmt.Sprintf(`select a.project_id, IFNULL(sp.location ,'') as locations from %s a left join %s f on a.path = f.path  
     left join %s sp on f.provider = sp.provider_id where a.path <> '' group by a.project_id, locations`, tableNameAsset, tableNameFilStorage, tableNameStorageProvider)
