@@ -5,6 +5,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/backup"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -338,16 +339,28 @@ func (s *Server) handleApplication(ctx context.Context, publicKey string, applic
 }
 
 func (s *Server) sendEmail(sendTo string, registrations []string) error {
-	var EData utils.EmailData
-	EData.Subject = "[Application]: Your Device Info"
-	EData.Tittle = "please check your device id "
-	EData.SendTo = sendTo
-	EData.Content = "<h1>Your Device ID ：</h1>\n"
-	for _, registration := range registrations {
-		EData.Content += registration + "<br>"
-	}
+	//var EData utils.EmailData
+	//EData.Subject = "[Application]: Your Device Info"
+	//EData.Tittle = "please check your device id "
+	//EData.SendTo = sendTo
+	//EData.Content = "<h1>Your Device ID ：</h1>\n"
+	//for _, registration := range registrations {
+	//	EData.Content += registration + "<br>"
+	//}
+	//err := utils.SendEmail(s.cfg.Email, EData)
+	//if err != nil {
+	//	return err
+	//}
 
-	err := utils.SendEmail(s.cfg.Email, EData)
+	subject := "[Application]: Your Device Info"
+	contentType := "text/html"
+	content := "<h1>Your Device ID ：</h1>\n"
+	for _, registration := range registrations {
+		content += registration + "<br>"
+	}
+	port, err := strconv.ParseInt(s.cfg.Email.SMTPPort, 10, 64)
+	message := utils.NewEmailMessage(s.cfg.Email.Username, subject, contentType, content, "", []string{sendTo}, nil)
+	_, err = utils.NewEmailClient(s.cfg.Email.SMTPHost, s.cfg.Email.Username, s.cfg.Email.Password, int(port), message).SendMessage()
 	if err != nil {
 		return err
 	}

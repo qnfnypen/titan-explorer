@@ -389,12 +389,34 @@ func GetVerifyCode(ctx context.Context, key string) (string, error) {
 }
 
 func sendEmail(sendTo string, vc string) error {
-	var EData utils.EmailData
-	EData.Subject = "【Titan Storage】您的验证码"
-	EData.Tittle = "please check your verify code "
-	EData.SendTo = sendTo
-	EData.Content += "<p style=\"line-height:38px;margin:30px;\"> <b>亲爱的用户:</b><br>"
-	EData.Content +=
+	//var EData utils.EmailData
+	//EData.Subject = "【Titan Storage】您的验证码"
+	//EData.Tittle = "please check your verify code "
+	//EData.SendTo = sendTo
+	//EData.Content += "<p style=\"line-height:38px;margin:30px;\"> <b>亲爱的用户:</b><br>"
+	//EData.Content +=
+	//	"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;您好！感谢您选择使用Titan Storage，我们是一家基" +
+	//		"于Filecoin提供去中心化存储云盘服务的平台。您正在" +
+	//		"进行邮箱验证，以验证您的身份或在我们的平台上进行注" +
+	//		"册或登录。<br>您的验证码为：<strong>" + vc + "</strong><br>" +
+	//		"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;请在操作页面输入此验证码以完成验证。为了保证您的账" +
+	//		"号安全，请勿将此验证码透露给他人。请注意，此验证码" +
+	//		"在接收后的5分钟内有效。若您未在有效时间内完成验" +
+	//		"证，验证码将会失效。如果验证码失效，您可以重新发起" +
+	//		"邮箱验证流程获取新的验证码。如果您并未进行相关操作，" +
+	//		"可能是其他用户误操作，此情况下请忽略此邮件。<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;感谢您" +
+	//		"对Titan Storage的信任和支持，我们将一如既往地为" +
+	//		"您提供高品质的服务。祝您使用愉快！<br></p>" +
+	//		"<h1>Titan Storage团队</h1>"
+	//err := utils.SendEmail(config.Cfg.Email, EData)
+	//if err != nil {
+	//	log.Errorf("sendEmailing failed:%v", err)
+	//	return err
+	//}
+	subject := "【Titan Storage】您的验证码"
+	contentType := "text/html"
+	content := "<p style=\"line-height:38px;margin:30px;\"> <b>亲爱的用户:</b><br>"
+	content +=
 		"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;您好！感谢您选择使用Titan Storage，我们是一家基" +
 			"于Filecoin提供去中心化存储云盘服务的平台。您正在" +
 			"进行邮箱验证，以验证您的身份或在我们的平台上进行注" +
@@ -408,11 +430,14 @@ func sendEmail(sendTo string, vc string) error {
 			"对Titan Storage的信任和支持，我们将一如既往地为" +
 			"您提供高品质的服务。祝您使用愉快！<br></p>" +
 			"<h1>Titan Storage团队</h1>"
-	err := utils.SendEmail(config.Cfg.Email, EData)
+
+	port, err := strconv.ParseInt(config.Cfg.Email.SMTPPort, 10, 64)
+	message := utils.NewEmailMessage(config.Cfg.Email.Username, subject, contentType, content, "", []string{sendTo}, nil)
+	_, err = utils.NewEmailClient(config.Cfg.Email.SMTPHost, config.Cfg.Email.Username, config.Cfg.Email.Password, int(port), message).SendMessage()
 	if err != nil {
-		log.Errorf("sendEmailing failed:%v", err)
 		return err
 	}
+
 	return nil
 }
 
