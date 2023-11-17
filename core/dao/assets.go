@@ -142,7 +142,9 @@ func getProviderLocationInProject(ctx context.Context) (map[int64]*model.Storage
 		if out[id].Locations == "" {
 			out[id].Locations = location.String
 		} else {
-			out[id].Locations += "," + location.String
+			if location.String != "" {
+				out[id].Locations += "," + location.String
+			}
 		}
 	}
 
