@@ -509,7 +509,7 @@ func GetCarFileCountHandler(c *gin.Context) {
 		}
 	}
 
-	assetListAll, e := dao.GetAssetList(c.Request.Context(), deviceIdAll, lang)
+	assetListAll, e := dao.GetAssetList(c.Request.Context(), deviceIdAll, lang, dao.QueryOption{})
 	if err != nil {
 		log.Errorf("GetAssetList err: %v", e)
 	}
@@ -543,7 +543,7 @@ func GetLocationHandler(c *gin.Context) {
 	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
-	GetRsp, err := schedulerClient.GetReplicas(c.Request.Context(), Cid, pageSize, (page-1)*pageSize)
+	GetRsp, err := schedulerClient.GetReplicas(c.Request.Context(), Cid, 9999, 0)
 	if err != nil {
 		log.Errorf("api GetReplicas: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -564,7 +564,7 @@ func GetLocationHandler(c *gin.Context) {
 
 	var assetInfos []*DeviceInfoRes
 	if len(deviceIds) > 0 {
-		AssetList, err := dao.GetAssetList(c.Request.Context(), deviceIds, lang)
+		AssetList, err := dao.GetAssetList(c.Request.Context(), deviceIds, lang, dao.QueryOption{PageSize: pageSize, Page: page})
 		if err != nil {
 			log.Errorf("GetAssetList err: %v", err)
 		}
@@ -622,7 +622,7 @@ func GetMapByCidHandler(c *gin.Context) {
 			}
 		}
 	}
-	AssetList, e := dao.GetAssetList(c.Request.Context(), deviceIds, lang)
+	AssetList, e := dao.GetAssetList(c.Request.Context(), deviceIds, lang, dao.QueryOption{})
 	if err != nil {
 		log.Errorf("GetAssetList err: %v", e)
 	}

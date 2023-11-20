@@ -57,13 +57,16 @@ loop:
 		case 0:
 			nodeInfo.DeviceStatus = "offline"
 			nodeInfo.DeviceID = node.NodeID
+			nodeInfo.DeviceStatusCode = 3
 			// just update device status
 			_ = dao.UpdateDeviceStatus(ctx, nodeInfo)
 			continue
 		case 1:
+			nodeInfo.DeviceStatusCode = 1
 			nodeInfo.DeviceStatus = "online"
 		default:
-			nodeInfo.DeviceStatus = node.Status.String()
+			nodeInfo.DeviceStatusCode = 2
+			nodeInfo.DeviceStatus = "abnormal"
 		}
 		//nodeInfo.IpLocation = scheduler.AreaId
 		nodeInfo.ActiveStatus = 1

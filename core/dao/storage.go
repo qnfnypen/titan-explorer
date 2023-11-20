@@ -142,10 +142,21 @@ func GetPeakBandwidth(ctx context.Context, userId string) (int64, error) {
 	return peakBandwidth, nil
 }
 
-func GetAssetList(ctx context.Context, deviceIds []string, lang model.Language) ([]*model.DeviceInfo, error) {
+func GetAssetList(ctx context.Context, deviceIds []string, lang model.Language, option QueryOption) ([]*model.DeviceInfo, error) {
 	var AssetList []*model.DeviceInfo
-	rawSql := fmt.Sprintf(`SELECT d.*, IFNULL(l.continent, '') as continent, IFNULL(l.country,'') as country, IFNULL(l.province,'') as province, IFNULL(l.city,'') as city FROM %s d left join %s l ON d.external_ip COLLATE utf8mb4_unicode_ci = l.ip WHERE device_id IN (?) ORDER by d.device_status DESC`,
+	rawSql := fmt.Sprintf(`SELECT d.*, 
+       IFNULL(l.continent, '') as continent, 
+       IFNULL(l.country,'') as country, 
+       IFNULL(l.province,'') as province, 
+       IFNULL(l.city,'') as city FROM %s d left join %s l ON d.external_ip COLLATE utf8mb4_unicode_ci = l.ip WHERE device_id IN (?) ORDER by d.device_status_code`,
 		tableNameDeviceInfo, fmt.Sprintf("%s_%s", tableNameLocation, lang))
+
+	if option.Page > 0 && option.PageSize > 0 {
+		offset := (option.Page - 1) * option.PageSize
+		limit := option.PageSize
+		rawSql = fmt.Sprintf("%s limit %d offset %d", rawSql, limit, offset)
+	}
+
 	query, args, err := sqlx.In(rawSql, deviceIds)
 	if err != nil {
 		return nil, err

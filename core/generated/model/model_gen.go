@@ -85,6 +85,7 @@ type DeviceInfo struct {
 	DeviceID         string    `db:"device_id" json:"device_id"`
 	DiskUsage        float64   `db:"disk_usage" json:"disk_usage"`
 	DeviceStatus     string    `db:"device_status" json:"device_status"`
+	DeviceStatusCode int64     `db:"device_status_code" json:"device_status_code"`
 	OnlineTime       float64   `db:"online_time" json:"online_time"`
 	CumulativeProfit float64   `db:"cumulative_profit" json:"cumulative_profit"`
 	BandwidthUp      float64   `db:"bandwidth_up" json:"bandwidth_up"`
