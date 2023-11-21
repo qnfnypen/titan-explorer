@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"database/sql"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	jwt "github.com/appleboy/gin-jwt/v2"
@@ -183,8 +184,9 @@ func GetVerifyCodeHandle(c *gin.Context) {
 	userInfo := &model.User{}
 	userInfo.Username = c.Query("username")
 	verifyType := c.Query("type")
+	lang := c.GetHeader("Lang")
 	userInfo.UserEmail = userInfo.Username
-	err := SetVerifyCode(c.Request.Context(), userInfo.Username, userInfo.Username+verifyType)
+	err := SetVerifyCode(c.Request.Context(), userInfo.Username, userInfo.Username+verifyType, lang)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.Unknown, c))
 		return
@@ -316,7 +318,7 @@ func DeviceUpdateHandler(c *gin.Context) {
 	}))
 }
 
-func SetVerifyCode(ctx context.Context, username, key string) error {
+func SetVerifyCode(ctx context.Context, username, key, lang string) error {
 	vc, _ := GetVerifyCode(ctx, key)
 	if vc != "" {
 		return nil
@@ -333,7 +335,7 @@ func SetVerifyCode(ctx context.Context, username, key string) error {
 	if err != nil {
 		return err
 	}
-	err = sendEmail(username, verifyCode)
+	err = sendEmail(username, verifyCode, lang)
 	if err != nil {
 		return err
 	}
@@ -388,51 +390,33 @@ func GetVerifyCode(ctx context.Context, key string) (string, error) {
 	return verifyCode, nil
 }
 
-func sendEmail(sendTo string, vc string) error {
-	//var EData utils.EmailData
-	//EData.Subject = "【Titan Storage】您的验证码"
-	//EData.Tittle = "please check your verify code "
-	//EData.SendTo = sendTo
-	//EData.Content += "<p style=\"line-height:38px;margin:30px;\"> <b>亲爱的用户:</b><br>"
-	//EData.Content +=
-	//	"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;您好！感谢您选择使用Titan Storage，我们是一家基" +
-	//		"于Filecoin提供去中心化存储云盘服务的平台。您正在" +
-	//		"进行邮箱验证，以验证您的身份或在我们的平台上进行注" +
-	//		"册或登录。<br>您的验证码为：<strong>" + vc + "</strong><br>" +
-	//		"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;请在操作页面输入此验证码以完成验证。为了保证您的账" +
-	//		"号安全，请勿将此验证码透露给他人。请注意，此验证码" +
-	//		"在接收后的5分钟内有效。若您未在有效时间内完成验" +
-	//		"证，验证码将会失效。如果验证码失效，您可以重新发起" +
-	//		"邮箱验证流程获取新的验证码。如果您并未进行相关操作，" +
-	//		"可能是其他用户误操作，此情况下请忽略此邮件。<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;感谢您" +
-	//		"对Titan Storage的信任和支持，我们将一如既往地为" +
-	//		"您提供高品质的服务。祝您使用愉快！<br></p>" +
-	//		"<h1>Titan Storage团队</h1>"
-	//err := utils.SendEmail(config.Cfg.Email, EData)
-	//if err != nil {
-	//	log.Errorf("sendEmailing failed:%v", err)
-	//	return err
-	//}
-	subject := "【Titan Storage】您的验证码"
-	contentType := "text/html"
-	content := "<p style=\"line-height:38px;margin:30px;\"> <b>亲爱的用户:</b><br>"
-	content +=
-		"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;您好！感谢您选择使用Titan Storage，我们是一家基" +
-			"于Filecoin提供去中心化存储云盘服务的平台。您正在" +
-			"进行邮箱验证，以验证您的身份或在我们的平台上进行注" +
-			"册或登录。<br>您的验证码为：<strong>" + vc + "</strong><br>" +
-			"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;请在操作页面输入此验证码以完成验证。为了保证您的账" +
-			"号安全，请勿将此验证码透露给他人。请注意，此验证码" +
-			"在接收后的5分钟内有效。若您未在有效时间内完成验" +
-			"证，验证码将会失效。如果验证码失效，您可以重新发起" +
-			"邮箱验证流程获取新的验证码。如果您并未进行相关操作，" +
-			"可能是其他用户误操作，此情况下请忽略此邮件。<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;感谢您" +
-			"对Titan Storage的信任和支持，我们将一如既往地为" +
-			"您提供高品质的服务。祝您使用愉快！<br></p>" +
-			"<h1>Titan Storage团队</h1>"
+//go:embed template/en/mail.html
+var contentEn string
 
+//go:embed template/cn/mail.html
+var contentCn string
+
+func sendEmail(sendTo string, vc, lang string) error {
+	emailSubject := map[string]string{
+		"":               "[Titan Storage] Your verification code",
+		model.LanguageEN: "[Titan Storage] Your verification code",
+		model.LanguageCN: "[Titan Storage] 您的验证码",
+	}
+
+	content := contentEn
+	if lang == model.LanguageCN {
+		content = contentCn
+	}
+
+	var verificationBtn = ""
+	for _, code := range vc {
+		verificationBtn += fmt.Sprintf(`<button class="button" th>%s</button>`, string(code))
+	}
+	content = fmt.Sprintf(content, verificationBtn)
+
+	contentType := "text/html"
 	port, err := strconv.ParseInt(config.Cfg.Email.SMTPPort, 10, 64)
-	message := utils.NewEmailMessage(config.Cfg.Email.Username, subject, contentType, content, "", []string{sendTo}, nil)
+	message := utils.NewEmailMessage(config.Cfg.Email.Username, emailSubject[lang], contentType, content, "", []string{sendTo}, nil)
 	_, err = utils.NewEmailClient(config.Cfg.Email.SMTPHost, config.Cfg.Email.Username, config.Cfg.Email.Password, int(port), message).SendMessage()
 	if err != nil {
 		return err
