@@ -55,7 +55,7 @@ func ListFilStorages(ctx context.Context, path string, option QueryOption) ([]*m
 	}
 
 	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT * FROM %s WHERE path = ? LIMIT %d OFFSET %d`, tableNameFilStorage, limit, offset,
+		`SELECT f.*, p.ip, p.location FROM %s f left join %s p on f.provider = p.provider_id WHERE path = ? LIMIT %d OFFSET %d`, tableNameFilStorage, tableNameStorageProvider, limit, offset,
 	), args...)
 	if err != nil {
 		return nil, 0, err

@@ -439,6 +439,8 @@ type FilStorage struct {
 	ID                    int64     `db:"id" json:"id"`
 	Provider              string    `db:"provider" json:"provider"`
 	SectorNum             string    `db:"sector_num" json:"sector_num"`
+	IP  				  string  	`db:"ip" json:"ip"`
+	Location  			  string  	`db:"location" json:"location"`
 	Cost           		  float64   `db:"cost" json:"cost"`
 	MessageCid            string    `db:"message_cid" json:"message_cid"`
 	PieceCid              string    `db:"piece_cid" json:"piece_cid"`
