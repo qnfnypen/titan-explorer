@@ -204,6 +204,7 @@ func GetVerifyCodeHandle(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.Unknown, c))
 		return
 	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"msg": "success",
 	}))
@@ -338,16 +339,19 @@ func SetVerifyCode(ctx context.Context, username, key, lang string) error {
 	if err != nil {
 		return err
 	}
+
+	err = sendEmail(username, verifyCode, lang)
+	if err != nil {
+		return err
+	}
+
 	var expireTime time.Duration
 	expireTime = 5 * time.Minute
 	_, err = dao.Cache.Set(ctx, key, bytes, expireTime).Result()
 	if err != nil {
 		return err
 	}
-	err = sendEmail(username, verifyCode, lang)
-	if err != nil {
-		return err
-	}
+
 	return nil
 }
 
