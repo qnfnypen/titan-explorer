@@ -40,6 +40,7 @@ func CreateFilStorageHandler(c *gin.Context) {
 
 		sp, err := dao.GetStorageProvider(c.Request.Context(), params[i].Provider)
 		if err == nil && sp != nil {
+			params[i].IP = sp.IP
 			continue
 		}
 
@@ -62,6 +63,7 @@ func GetFilStorageListHandler(c *gin.Context) {
 	cid := c.Query("cid")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
+	lang := c.GetHeader("lang")
 
 	asset, err := dao.GetAssetByCID(c.Request.Context(), cid)
 	if err == sql.ErrNoRows {
@@ -81,6 +83,7 @@ func GetFilStorageListHandler(c *gin.Context) {
 	option := dao.QueryOption{
 		Page:     page,
 		PageSize: pageSize,
+		Lang:     model.Language(lang),
 	}
 
 	list, total, err := dao.ListFilStorages(c.Request.Context(), asset.Path, option)
@@ -130,9 +133,23 @@ func SaveProviderLocation(providerId string) error {
 	}
 
 	ip := strings.Split(mad.String(), "/")[2]
-	loc, err := utils.IPTableCloudGetLocation(ctx, config.Cfg.IpUrl, ip, config.Cfg.IpKey, model.LanguageEN)
-	if err != nil {
-		return err
+
+	var loc *model.Location
+	language := []model.Language{model.LanguageEN, model.LanguageCN}
+	for _, lang := range language {
+		l, err := utils.IPTableCloudGetLocation(ctx, config.Cfg.IpUrl, ip, config.Cfg.IpKey, string(lang))
+		if err != nil {
+			return err
+		}
+
+		err = dao.UpsertLocationInfo(ctx, l, lang)
+		if err != nil {
+			return err
+		}
+
+		if loc == nil {
+			loc = l
+		}
 	}
 
 	return dao.AddStorageProvider(ctx, &model.StorageProvider{

@@ -54,8 +54,13 @@ func ListFilStorages(ctx context.Context, path string, option QueryOption) ([]*m
 		return nil, 0, err
 	}
 
+	if option.Lang == "" {
+		option.Lang = model.LanguageEN
+	}
+	tableLocation := fmt.Sprintf("%s_%s", tableNameLocation, option.Lang)
+
 	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT f.*, p.ip, p.location FROM %s f left join %s p on f.provider = p.provider_id WHERE path = ? LIMIT %d OFFSET %d`, tableNameFilStorage, tableNameStorageProvider, limit, offset,
+		`SELECT f.*, IFNULL(p.ip, '') as ip, CONCAT_WS('-', l.country,l.province,l.city) as location FROM %s f left join %s p on f.provider = p.provider_id left join %s l on l.ip = p.ip WHERE path = ? LIMIT %d OFFSET %d`, tableNameFilStorage, tableNameStorageProvider, tableLocation, limit, offset,
 	), args...)
 	if err != nil {
 		return nil, 0, err

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/config"
+	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/utils"
 	"github.com/go-redis/redis/v9"
 	_ "github.com/go-sql-driver/mysql"
@@ -58,13 +59,14 @@ func Init(cfg *config.Config) error {
 }
 
 type QueryOption struct {
-	Page       int    `json:"page"`
-	PageSize   int    `json:"page_size"`
-	Order      string `json:"order"`
-	OrderField string `json:"order_field"`
-	StartTime  string `json:"start_time"`
-	EndTime    string `json:"end_time" `
-	UserID     string `json:"user_id"`
+	Page       int            `json:"page"`
+	PageSize   int            `json:"page_size"`
+	Order      string         `json:"order"`
+	OrderField string         `json:"order_field"`
+	StartTime  string         `json:"start_time"`
+	EndTime    string         `json:"end_time" `
+	UserID     string         `json:"user_id"`
+	Lang       model.Language `json:"-"`
 }
 
 func GetQueryDataList(sqlClause string, args ...interface{}) ([]map[string]string, error) {
