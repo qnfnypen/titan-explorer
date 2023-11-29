@@ -50,7 +50,7 @@ func addDeviceInfoHours(ctx context.Context, deviceInfo []*model.DeviceInfo) err
 
 	// Add a redundant record to make it easier to count data within the range of 0-60 minutes
 	for i := 0; i < len(upsertDevice); i++ {
-		upsertDevice[i].Time = start.Add(-1 * time.Second)
+		upsertDevice[i].Time = start.Add(-1 * time.Minute)
 	}
 
 	err = dao.BulkUpsertDeviceInfoHours(ctx, upsertDevice)
