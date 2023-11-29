@@ -28,6 +28,7 @@ const (
 	KeyLimit
 	InvalidAPPKey
 	NoBearerToken
+	GetVCFrequently
 
 	Unknown     = -1
 	GenericCode = 1
@@ -66,6 +67,7 @@ var ErrMap = map[int]string{
 	int(terrors.MarshalErr):               "Marshal error:数据解析错误",
 	InvalidAPPKey:                         "invalid key:无效的key",
 	NoBearerToken:                         "Could not find bearer token in Authorization header: 找不到 Bearer token",
+	GetVCFrequently:                       "Please do not obtain verification codes frequently. Please wait for some time and try again.:请勿频繁获取验证码。请等待一段时间后再试。",
 }
 
 type GenericError struct {

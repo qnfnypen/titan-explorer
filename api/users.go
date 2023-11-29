@@ -186,7 +186,20 @@ func GetVerifyCodeHandle(c *gin.Context) {
 	verifyType := c.Query("type")
 	lang := c.GetHeader("Lang")
 	userInfo.UserEmail = userInfo.Username
-	err := SetVerifyCode(c.Request.Context(), userInfo.Username, userInfo.Username+verifyType, lang)
+	key := userInfo.Username + verifyType
+
+	vc, err := GetVerifyCode(c.Request.Context(), key)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.Unknown, c))
+		return
+	}
+
+	if vc != "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.GetVCFrequently, c))
+		return
+	}
+
+	err = SetVerifyCode(c.Request.Context(), userInfo.Username, key, lang)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.Unknown, c))
 		return
@@ -319,10 +332,6 @@ func DeviceUpdateHandler(c *gin.Context) {
 }
 
 func SetVerifyCode(ctx context.Context, username, key, lang string) error {
-	vc, _ := GetVerifyCode(ctx, key)
-	if vc != "" {
-		return nil
-	}
 	randNew := rand.New(rand.NewSource(time.Now().UnixNano()))
 	verifyCode := fmt.Sprintf("%06d", randNew.Intn(1000000))
 	bytes, err := json.Marshal(verifyCode)
