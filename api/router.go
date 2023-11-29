@@ -58,6 +58,8 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	apiV2.GET("/login_before", BeforeLogin)
 	apiV2.POST("/login", authMiddleware.LoginHandler)
 	apiV2.POST("/logout", authMiddleware.LogoutHandler)
+	apiV2.GET("/get_user_device_count", GetUserDevicesCountHandler)
+
 	apiV2.Use(authMiddleware.MiddlewareFunc())
 	apiV2.Use(AuthRequired(authMiddleware))
 	apiV2.GET("/get_device_info_auth", GetDeviceInfoHandler)
@@ -66,8 +68,8 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	apiV2.GET("/device_binding", DeviceBindingHandler)
 	apiV2.GET("/device_unbinding", DeviceUnBindingHandler)
 	apiV2.GET("/get_user_device_profile", GetUserDeviceProfileHandler)
-	apiV2.GET("/get_user_device_count", GetUserDevicesCountHandler)
 	apiV2.GET("/get_device_active_info", GetDeviceActiveInfoHandler)
+
 	user := apiV1.Group("/user")
 	user.POST("/login", authMiddleware.LoginHandler)
 	user.POST("/logout", authMiddleware.LogoutHandler)

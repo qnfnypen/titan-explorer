@@ -362,7 +362,7 @@ func (s *Server) sendEmail(sendTo string, registrations []string) error {
 		content += registration + "<br>"
 	}
 	port, err := strconv.ParseInt(s.cfg.Email.SMTPPort, 10, 64)
-	message := utils.NewEmailMessage(s.cfg.Email.Username, subject, contentType, content, "", []string{sendTo}, nil)
+	message := utils.NewEmailMessage(s.cfg.Email.From, subject, contentType, content, "", []string{sendTo}, nil)
 	_, err = utils.NewEmailClient(s.cfg.Email.SMTPHost, s.cfg.Email.Username, s.cfg.Email.Password, int(port), message).SendMessage()
 	if err != nil {
 		return err

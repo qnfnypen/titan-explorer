@@ -27,7 +27,7 @@ type Config struct {
 }
 
 type EmailConfig struct {
-	Name     string
+	From     string
 	SMTPHost string
 	SMTPPort string
 	Username string

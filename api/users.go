@@ -416,7 +416,7 @@ func sendEmail(sendTo string, vc, lang string) error {
 
 	contentType := "text/html"
 	port, err := strconv.ParseInt(config.Cfg.Email.SMTPPort, 10, 64)
-	message := utils.NewEmailMessage(config.Cfg.Email.Username, emailSubject[lang], contentType, content, "", []string{sendTo}, nil)
+	message := utils.NewEmailMessage(config.Cfg.Email.From, emailSubject[lang], contentType, content, "", []string{sendTo}, nil)
 	_, err = utils.NewEmailClient(config.Cfg.Email.SMTPHost, config.Cfg.Email.Username, config.Cfg.Email.Password, int(port), message).SendMessage()
 	if err != nil {
 		return err
