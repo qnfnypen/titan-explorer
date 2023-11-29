@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"github.com/gnasnik/titan-explorer/core/backup"
+	"github.com/gnasnik/titan-explorer/core/cleanup"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -129,6 +130,8 @@ func NewServer(cfg config.Config) (*Server, error) {
 		etcdClient:    eClient,
 		storageBackup: backup.NewStorageBackup(cfg.StorageBackup, schedulers),
 	}
+
+	go cleanup.Run(context.Background())
 
 	return s, nil
 }

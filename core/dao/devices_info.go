@@ -545,3 +545,9 @@ func GetIdIfExit(ctx context.Context, nodeId string) bool {
 	}
 	return true
 }
+
+func DeleteDeviceInfoHourHistory(ctx context.Context, before time.Time) error {
+	statement := fmt.Sprintf(`DELETE FROM %s where created_at < ?`, tableNameDeviceInfoHour)
+	_, err := DB.ExecContext(ctx, statement, before)
+	return err
+}
