@@ -342,6 +342,7 @@ func SetVerifyCode(ctx context.Context, username, key, lang string) error {
 
 	err = sendEmail(username, verifyCode, lang)
 	if err != nil {
+		log.Errorf("send email: %v", err)
 		return err
 	}
 
