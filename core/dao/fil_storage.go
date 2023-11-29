@@ -60,7 +60,8 @@ func ListFilStorages(ctx context.Context, path string, option QueryOption) ([]*m
 	tableLocation := fmt.Sprintf("%s_%s", tableNameLocation, option.Lang)
 
 	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT f.*, IFNULL(p.ip, '') as ip, CONCAT_WS('-', l.country,l.province,l.city) as location FROM %s f left join %s p on f.provider = p.provider_id left join %s l on l.ip = p.ip WHERE path = ? LIMIT %d OFFSET %d`, tableNameFilStorage, tableNameStorageProvider, tableLocation, limit, offset,
+		`SELECT f.*, IFNULL(p.ip, '') as ip, IF(l.province = l.city, CONCAT_WS('-', l.country, l.province), CONCAT_WS('-', l.country, l.province, l.city)) as location
+		 FROM %s f left join %s p on f.provider = p.provider_id left join %s l on l.ip = p.ip WHERE path = ? LIMIT %d OFFSET %d`, tableNameFilStorage, tableNameStorageProvider, tableLocation, limit, offset,
 	), args...)
 	if err != nil {
 		return nil, 0, err
