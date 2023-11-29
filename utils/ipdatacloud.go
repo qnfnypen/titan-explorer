@@ -33,6 +33,8 @@ func IPTableCloudGetLocation(ctx context.Context, url, ip, key, lang string) (*m
 		return nil, err
 	}
 
+	correction(&result)
+
 	return &result.Data.Location, nil
 }
 
@@ -44,4 +46,16 @@ type LocationInfoRes struct {
 
 type Data struct {
 	Location model.Location `json:"location"`
+}
+
+func correction(res *LocationInfoRes) {
+	switch res.Data.Location.Province {
+	case "Xianggang":
+		res.Data.Location.Province = "HongKong"
+	}
+
+	switch res.Data.Location.City {
+	case "Xianggang":
+		res.Data.Location.City = "HongKong"
+	}
 }
