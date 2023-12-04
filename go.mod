@@ -22,7 +22,7 @@ require (
 	github.com/multiformats/go-multihash v0.2.1
 	github.com/oschwald/geoip2-golang v1.7.0
 	github.com/pkg/errors v0.9.1
-	github.com/quic-go/quic-go v0.39.2
+	github.com/quic-go/quic-go v0.33.0
 	github.com/robfig/cron/v3 v3.0.0
 	github.com/spf13/viper v1.14.0
 	go.etcd.io/etcd/client/pkg/v3 v3.5.9
@@ -101,6 +101,7 @@ require (
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/pprof v0.0.0-20230405160723-4a4c7d95572b // indirect
 	github.com/holiman/uint256 v1.2.2 // indirect
@@ -117,7 +118,8 @@ require (
 	github.com/oschwald/maxminddb-golang v1.9.0 // indirect
 	github.com/polydawn/refmt v0.89.0 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
-	github.com/quic-go/qtls-go1-20 v0.3.4 // indirect
+	github.com/quic-go/qtls-go1-19 v0.3.2 // indirect
+	github.com/quic-go/qtls-go1-20 v0.4.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/whyrusleeping/cbor-gen v0.0.0-20230126041949-52956bd4c9aa // indirect
 	go.etcd.io/etcd/api/v3 v3.5.9 // indirect

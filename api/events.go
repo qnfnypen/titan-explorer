@@ -227,7 +227,11 @@ func CreateKeyHandler(c *gin.Context) {
 	keyStr, err := schedulerClient.CreateAPIKey(c.Request.Context(), UserId, KeyName)
 	if err != nil {
 		log.Errorf("api CreateAPIKey: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.KeyLimit, c))
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+		} else {
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		}
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
