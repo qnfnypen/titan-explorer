@@ -160,3 +160,43 @@ func SaveProviderLocation(providerId string) error {
 		CreatedAt:   time.Now(),
 	})
 }
+
+func GetBackupAssetsHandler(c *gin.Context) {
+	ctx := context.Background()
+	assets, total, err := dao.GetAssetsByEmptyPath(ctx)
+	if err != nil {
+		log.Errorf("GetAssertsByEmptyPath: %v", err)
+		c.JSON(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list":  assets,
+		"total": total,
+	}))
+}
+
+func BackupResultHandler(c *gin.Context) {
+	var params []*model.Asset
+	if err := c.BindJSON(&params); err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	for _, assets := range params {
+		if assets.Path != "" {
+			err := dao.UpdateAssetPath(c.Request.Context(), assets.Cid, assets.Path)
+			if err != nil {
+				log.Errorf("update assets path: %v", err)
+			}
+			continue
+		}
+
+		err := dao.UpdateAssetEvent(c.Request.Context(), assets.Cid, int(assets.Event))
+		if err != nil {
+			log.Errorf("update assets event: %v", err)
+		}
+	}
+
+	c.JSON(http.StatusOK, respJSON(nil))
+}

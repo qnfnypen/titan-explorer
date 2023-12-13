@@ -57,7 +57,7 @@ func NewStorageBackup(cfg config.StorageBackupConfig, schedulers []*statistics.S
 }
 
 func (s *StorageBackup) Run() {
-	go s.run()
+	//go s.run()
 	s.cron.AddFunc(s.cfg.Crontab, s.cronJob)
 	s.cron.Start()
 }
@@ -80,9 +80,17 @@ func (s *StorageBackup) cronJob() {
 
 	log.Debugf("loading assets %d", total)
 
-	for _, assert := range assets {
-		s.assetChan <- assert
-	}
+	// push assets to backup
+
+	//for _, assert := range assets {
+	//	s.assetChan <- assert
+	//}
+
+}
+
+func (s *StorageBackup) AddJobs() error {
+	//request := http.NewRequest(http.MethodPost)
+	return nil
 }
 
 func (s *StorageBackup) run() {

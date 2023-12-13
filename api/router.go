@@ -134,4 +134,6 @@ func RegisterV1RouterAuthByKey(router *gin.Engine) {
 	storage := authV1.Group("/storage")
 	storage.Use(AuthAPIKeyMiddlewareFunc())
 	storage.POST("/add_fil_storage", CreateFilStorageHandler)
+	storage.GET("/backup_assets", GetBackupAssetsHandler)
+	storage.POST("/backup_result", BackupResultHandler)
 }
