@@ -28,49 +28,37 @@ const (
 	ErrorEventID      = 99
 	BackupOutPath     = "/carfile/titan"
 	StorageAPI        = "https://api-storage.container1.titannet.io"
+	BackupResult      = "/v1/storage/backup_result"
+	BackupAssets      = "/v1/storage/backup_assets"
 )
 
 var log = logging.Logger("backup")
 
-var (
-	waitInterval   = time.Minute * 5
-	backupInterval = time.Hour * 1
-)
+var backupInterval = time.Minute * 10
 
 type Downloader struct {
 	lk         sync.Mutex
 	schedulers []*statistics.Scheduler
 
-	JobQueue []*model.Asset
+	JobQueue chan []*model.Asset
 	dirSize  map[string]int64
 	token    string
 }
 
 func newDownloader(token string, scheduler []*statistics.Scheduler) *Downloader {
 	return &Downloader{
-		JobQueue:   make([]*model.Asset, 0),
+		JobQueue:   make(chan []*model.Asset, 1),
 		dirSize:    make(map[string]int64),
 		schedulers: scheduler,
 		token:      token,
 	}
 }
 
-func (d *Downloader) GetJobs() []*model.Asset {
-	d.lk.Lock()
-	defer d.lk.Unlock()
-
-	var out []*model.Asset
-	copy(out, d.JobQueue)
-	d.JobQueue = nil
-
-	return out
-}
-
 func (d *Downloader) Push(jobs []*model.Asset) {
 	d.lk.Lock()
 	defer d.lk.Unlock()
 
-	d.JobQueue = append(d.JobQueue, jobs...)
+	d.JobQueue <- jobs
 }
 
 func (d *Downloader) create(ctx context.Context, job *model.Asset) (*model.Asset, error) {
@@ -154,6 +142,13 @@ func (d *Downloader) async() {
 				log.Errorf("get jobs: %v", err)
 				continue
 			}
+
+			if len(assets) == 0 {
+				continue
+			}
+
+			log.Infof("fetch %d jobs", len(assets))
+
 			d.Push(assets)
 			ticker.Reset(backupInterval)
 		}
@@ -163,26 +158,30 @@ func (d *Downloader) async() {
 
 func (d *Downloader) run() {
 	for {
-		if len(d.JobQueue) == 0 {
-			time.Sleep(waitInterval)
-			continue
-		}
+		select {
+		case jobs := <-d.JobQueue:
+			var todo []*model.Asset
 
-		var todo []*model.Asset
+			for _, job := range jobs {
+				j, err := d.create(context.Background(), job)
+				if err != nil {
+					log.Errorf("download: %v", err)
+				}
 
-		jobs := d.GetJobs()
-		for _, job := range jobs {
-			j, err := d.create(context.Background(), job)
-			if err != nil {
-				log.Errorf("download: %v", err)
+				log.Infof("process job: %s event: %d, path: %s", j.Cid, j.Event, j.Path)
+				todo = append(todo, j)
 			}
-			todo = append(todo, j)
+
+			if len(jobs) == 0 {
+				continue
+			}
+
+			err := pushResult(d.token, todo)
+			if err != nil {
+				log.Errorf("push result: %v", err)
+			}
 		}
 
-		err := pushResult(d.token, todo)
-		if err != nil {
-			log.Errorf("push result: %v", err)
-		}
 	}
 }
 
@@ -280,11 +279,12 @@ func pushResult(token string, jobs []*model.Asset) error {
 		return err
 	}
 
-	url := fmt.Sprintf("%s/backup_result", StorageAPI)
+	url := fmt.Sprintf("%s%s", StorageAPI, BackupResult)
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(data))
 	if err != nil {
 		return err
 	}
+
 	req.Header.Add("Authorization", "Bearer "+token)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -296,12 +296,17 @@ func pushResult(token string, jobs []*model.Asset) error {
 		return fmt.Errorf("status: %d %v", resp.StatusCode, resp.Status)
 	}
 
-	log.Infof("success")
+	log.Infof("Successfully updated backup result")
 	return nil
 }
 
+type getJobResp struct {
+	Code int
+	Data interface{}
+}
+
 func getJobs() ([]*model.Asset, error) {
-	url := fmt.Sprintf("%s/backup_assets", StorageAPI)
+	url := fmt.Sprintf("%s%s", StorageAPI, BackupAssets)
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
@@ -323,11 +328,26 @@ func getJobs() ([]*model.Asset, error) {
 		return nil, err
 	}
 
-	var out []*model.Asset
+	var ret getJobResp
+	err = json.Unmarshal(data, &ret)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err = json.Marshal(ret.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	var out struct {
+		List  []*model.Asset `json:"list"`
+		Total int            `json:"total"`
+	}
+
 	err = json.Unmarshal(data, &out)
 	if err != nil {
 		return nil, err
 	}
 
-	return out, nil
+	return out.List, nil
 }
