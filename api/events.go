@@ -789,26 +789,53 @@ func CreateGroupHandler(c *gin.Context) {
 	}))
 }
 
-func GetGroupsHandler(c *gin.Context) {
+type AssetOrGroup struct {
+	AssetOverview *AccessOverview
+	Group         interface{}
+}
+
+func GetAssetGroupListHandler(c *gin.Context) {
 	userId := c.Query("user_id")
-	parentId, _ := strconv.Atoi(c.Query("parent"))
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
-
+	parentId, _ := strconv.Atoi(c.Query("parent"))
 	areaId := dao.GetAreaID(c.Request.Context(), userId)
 	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
-	groups, err := schedulerClient.ListAssetGroup(c.Request.Context(), userId, parentId, pageSize, (page-1)*pageSize)
+	assetSummary, err := schedulerClient.ListAssetSummary(c.Request.Context(), userId, parentId, pageSize, (page-1)*pageSize)
 	if err != nil {
-		log.Errorf("api ListAssetGroup: %v", err)
-		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-		} else {
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		}
+		log.Errorf("api ListAssetSummary: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+
+	var list []*AssetOrGroup
+	for _, assetGroup := range assetSummary.List {
+		if assetGroup.AssetGroup != nil {
+			list = append(list, &AssetOrGroup{Group: assetGroup.AssetGroup})
+			continue
+		}
+
+		asset := assetGroup.AssetOverview
+		filReplicas, err := dao.CountFilStorage(c.Request.Context(), asset.AssetRecord.CID)
+		if err != nil {
+			log.Errorf("count fil storage: %v", err)
+			continue
+		}
+
+		ao := &AccessOverview{
+			AssetRecord:      asset.AssetRecord,
+			UserAssetDetail:  asset.UserAssetDetail,
+			VisitCount:       asset.VisitCount,
+			RemainVisitCount: asset.RemainVisitCount,
+			FilcoinCount:     filReplicas,
+		}
+
+		list = append(list, &AssetOrGroup{AssetOverview: ao})
+	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"groups": groups,
+		"list":  list,
+		"total": assetSummary.Total,
 	}))
 }
 

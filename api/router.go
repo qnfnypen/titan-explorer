@@ -134,7 +134,7 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	storage.GET("/new_secret", CreateNewSecretKeyHandler)
 	storage.GET("/get_key_perms", GetAPIKeyPermsHandler)
 	storage.GET("/create_group", CreateGroupHandler)
-	storage.GET("/get_groups", GetGroupsHandler)
+	storage.GET("/get_asset_group_list", GetAssetGroupListHandler)
 	storage.GET("/delete_group", DeleteGroupHandler)
 	storage.GET("/rename_group", RenameGroupHandler)
 }
