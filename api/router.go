@@ -132,6 +132,11 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_user_info_daily", GetStorageDailyHandler)
 	storage.GET("/refresh_token", authMiddleware.RefreshHandler)
 	storage.GET("/new_secret", CreateNewSecretKeyHandler)
+	storage.GET("/get_key_perms", GetAPIKeyPermsHandler)
+	storage.GET("/create_group", CreateGroupHandler)
+	storage.GET("/get_groups", GetGroupsHandler)
+	storage.GET("/delete_group", DeleteGroupHandler)
+	storage.GET("/rename_group", RenameGroupHandler)
 }
 
 func RegisterV1RouterAuthByKey(router *gin.Engine) {

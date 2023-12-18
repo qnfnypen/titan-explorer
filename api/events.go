@@ -2,10 +2,12 @@ package api
 
 import (
 	"fmt"
-	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/gnasnik/titan-explorer/pkg/formatter"
 
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -144,11 +146,11 @@ func GetUserAccessTokenHandler(c *gin.Context) {
 }
 
 func CreateAssetHandler(c *gin.Context) {
-	UserId := c.Query("user_id")
-	areaId := dao.GetAreaID(c.Request.Context(), UserId)
+	userId := c.Query("user_id")
+	areaId := dao.GetAreaID(c.Request.Context(), userId)
 	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
 
-	user, err := dao.GetUserByUsername(c.Request.Context(), UserId)
+	user, err := dao.GetUserByUsername(c.Request.Context(), userId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -180,14 +182,15 @@ func CreateAssetHandler(c *gin.Context) {
 	var createAssetReq types.CreateAssetReq
 	createAssetReq.AssetName = c.Query("asset_name")
 	createAssetReq.AssetCID = c.Query("asset_cid")
-	createAssetReq.UserID = UserId
+	createAssetReq.UserID = userId
 	createAssetReq.AssetType = c.Query("asset_type")
 	createAssetReq.AssetSize = formatter.Str2Int64(c.Query("asset_size"))
+	createAssetReq.GroupID, _ = strconv.Atoi(c.Query("group_id"))
 	createAssetReq.NodeID = nearestNode
 
 	if err := dao.AddAssets(c.Request.Context(), []*model.Asset{
 		{
-			UserId:    UserId,
+			UserId:    userId,
 			Name:      createAssetReq.AssetName,
 			Cid:       createAssetReq.AssetCID,
 			Type:      createAssetReq.AssetType,
@@ -216,15 +219,22 @@ func CreateAssetHandler(c *gin.Context) {
 		"CandidateAddr": createAssetRsp.UploadURL,
 		"Token":         createAssetRsp.Token,
 	}))
-	return
 }
 
 func CreateKeyHandler(c *gin.Context) {
-	UserId := c.Query("user_id")
-	KeyName := c.Query("key_name")
-	areaId := dao.GetAreaID(c.Request.Context(), UserId)
+	userId := c.Query("user_id")
+	keyName := c.Query("key_name")
+	permsStr := c.Query("perms")
+
+	perms := strings.Split(permsStr, ",")
+	acl := make([]types.UserAccessControl, 0, len(perms))
+	for _, perm := range perms {
+		acl = append(acl, types.UserAccessControl(perm))
+	}
+
+	areaId := dao.GetAreaID(c.Request.Context(), userId)
 	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
-	keyStr, err := schedulerClient.CreateAPIKey(c.Request.Context(), UserId, KeyName)
+	keyStr, err := schedulerClient.CreateAPIKey(c.Request.Context(), userId, keyName, acl)
 	if err != nil {
 		log.Errorf("api CreateAPIKey: %v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
@@ -237,7 +247,6 @@ func CreateKeyHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"key": keyStr,
 	}))
-	return
 }
 
 func DeleteKeyHandler(c *gin.Context) {
@@ -370,9 +379,10 @@ func GetAssetListHandler(c *gin.Context) {
 	UserId := c.Query("user_id")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
+	groupId, _ := strconv.Atoi(c.Query("group_id"))
 	areaId := dao.GetAreaID(c.Request.Context(), UserId)
 	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
-	createAssetRsp, err := schedulerClient.ListAssets(c.Request.Context(), UserId, pageSize, (page-1)*pageSize)
+	createAssetRsp, err := schedulerClient.ListAssets(c.Request.Context(), UserId, pageSize, (page-1)*pageSize, groupId)
 	if err != nil {
 		log.Errorf("api ListAssets: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -404,13 +414,14 @@ func GetAssetListHandler(c *gin.Context) {
 
 func GetAssetAllListHandler(c *gin.Context) {
 	UserId := c.Query("user_id")
+	groupId, _ := strconv.Atoi(c.Query("group_id"))
 	areaId := dao.GetAreaID(c.Request.Context(), UserId)
 	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
 	var total int
 	page, size := 1, 100
 	var listRsp []*types.AssetOverview
 loop:
-	createAssetRsp, err := schedulerClient.ListAssets(c.Request.Context(), UserId, size, (page-1)*size)
+	createAssetRsp, err := schedulerClient.ListAssets(c.Request.Context(), UserId, size, (page-1)*size, groupId)
 	if err != nil {
 		log.Errorf("api ListAssets: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -446,13 +457,14 @@ func GetAssetStatusHandler(c *gin.Context) {
 
 func GetAssetCountHandler(c *gin.Context) {
 	UserId := c.Query("user_id")
+	groupId, _ := strconv.Atoi(c.Query("group_id"))
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 	pageSize = 100
 	page = 1
 	areaId := dao.GetAreaID(c.Request.Context(), UserId)
 	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
-	createAssetRsp, err := schedulerClient.ListAssets(c.Request.Context(), UserId, pageSize, (page-1)*pageSize)
+	createAssetRsp, err := schedulerClient.ListAssets(c.Request.Context(), UserId, pageSize, (page-1)*pageSize, groupId)
 	if err != nil {
 		log.Errorf("api ListAssets: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -700,7 +712,6 @@ func GetRetrievalListHandler(c *gin.Context) {
 		"list":  resp.RetrieveEventInfos,
 		"total": resp.Total,
 	}))
-	return
 }
 
 func toValidationEvent(in types.ValidationResultInfo) *model.ValidationEvent {
@@ -732,5 +743,114 @@ func GetCacheDaysHandler(c *gin.Context) {
 	dataDaily := dao.QueryCacheDaily(deviceID, start, end)
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"series_data": dataDaily,
+	}))
+}
+
+func GetAPIKeyPermsHandler(c *gin.Context) {
+	userId := c.Query("user_id")
+	keyName := c.Query("key_name")
+
+	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
+	perms, err := schedulerClient.GetAPPKeyPermissions(c.Request.Context(), userId, keyName)
+	if err != nil {
+		log.Errorf("api GetAPPKeyPermissions: %v", err)
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+		} else {
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		}
+		return
+	}
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"perms": perms,
+	}))
+}
+
+func CreateGroupHandler(c *gin.Context) {
+	userId := c.Query("user_id")
+	name := c.Query("name")
+	parent, _ := strconv.Atoi(c.Query("parent"))
+
+	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
+	group, err := schedulerClient.CreateAssetGroup(c.Request.Context(), userId, name, parent)
+	if err != nil {
+		log.Errorf("api CreateAssetGroup: %v", err)
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+		} else {
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		}
+		return
+	}
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"group": group,
+	}))
+}
+
+func GetGroupsHandler(c *gin.Context) {
+	userId := c.Query("user_id")
+	parentId, _ := strconv.Atoi(c.Query("parent"))
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+	page, _ := strconv.Atoi(c.Query("page"))
+
+	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
+	groups, err := schedulerClient.ListAssetGroup(c.Request.Context(), userId, parentId, pageSize, (page-1)*pageSize)
+	if err != nil {
+		log.Errorf("api ListAssetGroup: %v", err)
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+		} else {
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		}
+		return
+	}
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"groups": groups,
+	}))
+}
+
+func DeleteGroupHandler(c *gin.Context) {
+	userId := c.Query("user_id")
+	group_id, _ := strconv.Atoi(c.Query("group_id"))
+
+	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
+	err := schedulerClient.DeleteAssetGroup(c.Request.Context(), userId, group_id)
+	if err != nil {
+		log.Errorf("api DeleteAssetGroup: %v", err)
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+		} else {
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		}
+		return
+	}
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"msg": "success",
+	}))
+}
+
+func RenameGroupHandler(c *gin.Context) {
+	userId := c.Query("user_id")
+	newName := c.Query("new_name")
+	groupId, _ := strconv.Atoi(c.Query("group_id"))
+
+	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
+	err := schedulerClient.RenameAssetGroup(c.Request.Context(), userId, newName, groupId)
+	if err != nil {
+		log.Errorf("api RenameAssetGroup: %v", err)
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+		} else {
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		}
+		return
+	}
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"msg": "success",
 	}))
 }
