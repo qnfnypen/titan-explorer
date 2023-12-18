@@ -789,6 +789,30 @@ func CreateGroupHandler(c *gin.Context) {
 	}))
 }
 
+func GetGroupsHandler(c *gin.Context) {
+	userId := c.Query("user_id")
+	parent, _ := strconv.Atoi(c.Query("parent"))
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+	page, _ := strconv.Atoi(c.Query("page"))
+
+	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
+	rsp, err := schedulerClient.ListAssetGroup(c.Request.Context(), parent, userId, pageSize, (page-1)*pageSize)
+	if err != nil {
+		log.Errorf("api ListAssetGroup: %v", err)
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+		} else {
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		}
+		return
+	}
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list":  rsp.AssetGroups,
+		"total": rsp.Total,
+	}))
+}
+
 type AssetOrGroup struct {
 	AssetOverview *AccessOverview
 	Group         interface{}
@@ -870,6 +894,50 @@ func RenameGroupHandler(c *gin.Context) {
 	err := schedulerClient.RenameAssetGroup(c.Request.Context(), userId, newName, groupId)
 	if err != nil {
 		log.Errorf("api RenameAssetGroup: %v", err)
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+		} else {
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		}
+		return
+	}
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"msg": "success",
+	}))
+}
+
+func MoveGroupToGroupHandler(c *gin.Context) {
+	userId := c.Query("user_id")
+	groupId, _ := strconv.Atoi(c.Query("group_id"))
+	targetGroupId, _ := strconv.Atoi(c.Query("target_group_id"))
+
+	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
+	err := schedulerClient.MoveAssetGroup(c.Request.Context(), groupId, userId, targetGroupId)
+	if err != nil {
+		log.Errorf("api MoveAssetGroup: %v", err)
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+		} else {
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		}
+		return
+	}
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"msg": "success",
+	}))
+}
+
+func MoveAssetToGroupHandler(c *gin.Context) {
+	userId := c.Query("user_id")
+	assetCid := c.Query("asset_cid")
+	groupId, _ := strconv.Atoi(c.Query("group_id"))
+
+	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
+	err := schedulerClient.MoveAssetToGroup(c.Request.Context(), assetCid, groupId, userId)
+	if err != nil {
+		log.Errorf("api MoveAssetToGroup: %v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
 		} else {
