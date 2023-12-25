@@ -797,7 +797,7 @@ func GetGroupsHandler(c *gin.Context) {
 
 	areaId := dao.GetAreaID(c.Request.Context(), userId)
 	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
-	rsp, err := schedulerClient.ListAssetGroup(c.Request.Context(), parent, userId, pageSize, (page-1)*pageSize)
+	rsp, err := schedulerClient.ListAssetGroup(c.Request.Context(), userId, parent, pageSize, (page-1)*pageSize)
 	if err != nil {
 		log.Errorf("api ListAssetGroup: %v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
@@ -865,11 +865,11 @@ func GetAssetGroupListHandler(c *gin.Context) {
 
 func DeleteGroupHandler(c *gin.Context) {
 	userId := c.Query("user_id")
-	group_id, _ := strconv.Atoi(c.Query("group_id"))
+	groupId, _ := strconv.Atoi(c.Query("group_id"))
 
 	areaId := dao.GetAreaID(c.Request.Context(), userId)
 	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
-	err := schedulerClient.DeleteAssetGroup(c.Request.Context(), userId, group_id)
+	err := schedulerClient.DeleteAssetGroup(c.Request.Context(), userId, groupId)
 	if err != nil {
 		log.Errorf("api DeleteAssetGroup: %v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
@@ -913,7 +913,7 @@ func MoveGroupToGroupHandler(c *gin.Context) {
 
 	areaId := dao.GetAreaID(c.Request.Context(), userId)
 	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
-	err := schedulerClient.MoveAssetGroup(c.Request.Context(), groupId, userId, targetGroupId)
+	err := schedulerClient.MoveAssetGroup(c.Request.Context(), userId, groupId, targetGroupId)
 	if err != nil {
 		log.Errorf("api MoveAssetGroup: %v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
@@ -935,7 +935,7 @@ func MoveAssetToGroupHandler(c *gin.Context) {
 
 	areaId := dao.GetAreaID(c.Request.Context(), userId)
 	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
-	err := schedulerClient.MoveAssetToGroup(c.Request.Context(), assetCid, groupId, userId)
+	err := schedulerClient.MoveAssetToGroup(c.Request.Context(), userId, assetCid, groupId)
 	if err != nil {
 		log.Errorf("api MoveAssetToGroup: %v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
