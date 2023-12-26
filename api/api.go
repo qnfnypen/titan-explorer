@@ -302,6 +302,7 @@ func (s *Server) handleApplication(ctx context.Context, publicKey string, applic
 			DeviceName:   "",
 			BindStatus:   "binding",
 			ActiveStatus: 0,
+			DeviceStatus: "offline",
 		})
 	}
 

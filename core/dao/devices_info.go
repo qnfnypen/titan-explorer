@@ -128,7 +128,7 @@ func GetDeviceActiveInfoList(ctx context.Context, cond *model.DeviceInfo, option
 	}
 	var out []*ActiveInfoOut
 	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT a.device_id,b.active_status,a.secret FROM %s a LEFT JOIN %s b on a.device_id = b.device_id %s ORDER BY device_rank LIMIT %d OFFSET %d`, tableNameApplicationResult, tableNameDeviceInfo, where, limit, offset,
+		`SELECT a.device_id,IFNULL(0,b.active_status) active_status,a.secret FROM %s a LEFT JOIN %s b on a.device_id = b.device_id %s ORDER BY device_rank LIMIT %d OFFSET %d`, tableNameApplicationResult, tableNameDeviceInfo, where, limit, offset,
 	), args...)
 
 	if err != nil {
