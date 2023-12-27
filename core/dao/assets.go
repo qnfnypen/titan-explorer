@@ -34,7 +34,7 @@ func UpdateAssetEvent(ctx context.Context, cid string, event int) error {
 func GetLatestAsset(ctx context.Context) (*model.Asset, error) {
 	var asset model.Asset
 	err := DB.GetContext(ctx, &asset, fmt.Sprintf(
-		`SELECT * from %s ORDER BY created_at DESC LIMIT 1`, tableNameAsset))
+		`SELECT * from %s ORDER BY end_time DESC LIMIT 1`, tableNameAsset))
 	if err != nil {
 		return nil, err
 	}

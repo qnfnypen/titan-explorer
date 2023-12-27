@@ -56,6 +56,10 @@ Loop:
 
 	offset += len(assertsRes.ReplicaEvents)
 
+	if len(assertsRes.ReplicaEvents) == 1 && assertsRes.ReplicaEvents[0].Cid == latest.Cid {
+		return nil
+	}
+
 	asserts, err := toAssets(assertsRes.ReplicaEvents)
 	if err != nil {
 		log.Errorf("toAssets: %v", err)
