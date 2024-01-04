@@ -43,6 +43,7 @@ func UserRegister(c *gin.Context) {
 		UserEmail:    c.Query("username"),
 		Referrer:     c.Query("referrer"),
 		ReferralCode: random.GenerateRandomString(6),
+		CreatedAt:    time.Now(),
 	}
 
 	passwd := c.Query("password")
