@@ -1,4 +1,4 @@
-package utils
+package iptool
 
 import (
 	"encoding/json"

@@ -1,4 +1,4 @@
-package utils
+package formatter
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-var log = logging.Logger("utils")
+var log = logging.Logger("pkg")
 
 const (
 	TimeFormatDatetime   = "2006-01-02 15:04:05"
