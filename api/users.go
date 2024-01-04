@@ -36,11 +36,15 @@ func GetUserInfoHandler(c *gin.Context) {
 }
 
 func UserRegister(c *gin.Context) {
-	userInfo := &model.User{}
-	userInfo.Username = c.Query("username")
-	userInfo.VerifyCode = c.Query("verify_code")
-	userInfo.UserEmail = userInfo.Username
-	PassStr := c.Query("password")
+	userInfo := &model.User{
+		Username:     c.Query("username"),
+		VerifyCode:   c.Query("verify_code"),
+		UserEmail:    c.Query("username"),
+		Referrer:     c.Query("referrer"),
+		ReferralCode: generateRandomString(6),
+	}
+
+	passwd := c.Query("password")
 	if userInfo.Username == "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
@@ -54,12 +58,14 @@ func UserRegister(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
-	PassHash, err := bcrypt.GenerateFromPassword([]byte(PassStr), bcrypt.DefaultCost)
+
+	passHash, err := bcrypt.GenerateFromPassword([]byte(passwd), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.PassWordNotAllowed, c))
 		return
 	}
-	userInfo.PassHash = string(PassHash)
+	userInfo.PassHash = string(passHash)
+
 	verifyCode, err := GetVerifyCode(c.Request.Context(), userInfo.Username+"1")
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.Unknown, c))
@@ -73,6 +79,7 @@ func UserRegister(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.VerifyCodeErr, c))
 		return
 	}
+
 	err = dao.CreateUser(c.Request.Context(), userInfo)
 	if err != nil {
 		log.Errorf("create user : %v", err)
@@ -85,11 +92,13 @@ func UserRegister(c *gin.Context) {
 }
 
 func PasswordRest(c *gin.Context) {
-	userInfo := &model.User{}
-	userInfo.Username = c.Query("username")
-	userInfo.VerifyCode = c.Query("verify_code")
-	userInfo.UserEmail = userInfo.Username
-	PassStr := c.Query("password")
+	userInfo := &model.User{
+		Username:   c.Query("username"),
+		VerifyCode: c.Query("verify_code"),
+		UserEmail:  c.Query("username"),
+	}
+
+	passwd := c.Query("password")
 	_, err := dao.GetUserByUsername(c.Request.Context(), userInfo.Username)
 	if err == sql.ErrNoRows {
 		c.JSON(http.StatusOK, respErrorCode(errors.NameNotExists, c))
@@ -99,12 +108,14 @@ func PasswordRest(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
-	PassHash, err := bcrypt.GenerateFromPassword([]byte(PassStr), bcrypt.DefaultCost)
+
+	passHash, err := bcrypt.GenerateFromPassword([]byte(passwd), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.PassWordNotAllowed, c))
 		return
 	}
-	userInfo.PassHash = string(PassHash)
+	userInfo.PassHash = string(passHash)
+
 	verifyCode, err := GetVerifyCode(c.Request.Context(), userInfo.Username+"3")
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.Unknown, c))

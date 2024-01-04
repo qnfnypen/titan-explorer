@@ -51,8 +51,8 @@ func AuthAPIKeyMiddlewareFunc() gin.HandlerFunc {
 
 func CreateNewSecretKeyHandler(c *gin.Context) {
 	username := c.Query("user_id")
-	appKey := randStr(18)
-	appSecret := fmt.Sprintf("ts-%s", randStr(48))
+	appKey := generateRandomString(18)
+	appSecret := fmt.Sprintf("ts-%s", generateRandomString(48))
 
 	err := dao.AddUserSecret(c.Request.Context(), &model.UserSecret{
 		UserID:    username,
@@ -73,12 +73,16 @@ func CreateNewSecretKeyHandler(c *gin.Context) {
 	}))
 }
 
-// n is the length of random string we want to generate
-func randStr(n int) string {
-	b := make([]byte, n)
+// length is the length of random string we want to generate
+func generateRandomString(length int) string {
+	seededRand := rand.New(
+		rand.NewSource(time.Now().UnixNano()))
+
+	b := make([]byte, length)
 	for i := range b {
 		// randomly select 1 character from given charset
-		b[i] = charset[rand.Intn(len(charset))]
+		b[i] = charset[seededRand.Intn(len(charset))]
 	}
+
 	return string(b)
 }

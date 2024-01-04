@@ -29,6 +29,8 @@ const (
 	connMaxIdleTime    = 20
 )
 
+var ErrNoRow = fmt.Errorf("no matching row found")
+
 func Init(cfg *config.Config) error {
 	if cfg.DatabaseURL == "" {
 		return fmt.Errorf("database url not setup")

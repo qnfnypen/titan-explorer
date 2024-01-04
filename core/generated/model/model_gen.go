@@ -296,6 +296,8 @@ type User struct {
 	Role            int32     `db:"role" json:"role"`
 	AllocateStorage int       `db:"allocate_storage" json:"allocate_storage"`
 	ProjectId       int64     `db:"project_id"`
+	Referrer        string    `db:"referrer" json:"referrer"`
+	ReferralCode    string    `db:"referral_code" json:"referral_code"`
 	CreatedAt       time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt       time.Time `db:"updated_at" json:"updated_at"`
 	DeletedAt       time.Time `db:"deleted_at" json:"deleted_at"`
