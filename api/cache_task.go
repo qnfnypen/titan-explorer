@@ -5,7 +5,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/scheduler/assets"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/errors"
-	"github.com/gnasnik/titan-explorer/utils"
+	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"net/http"
 	"strconv"
 	"strings"
@@ -26,7 +26,7 @@ func AddCacheTaskHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
-	expiredTime, _ := time.Parse(utils.TimeFormatDateOnly, params.ExpiredTime)
+	expiredTime, _ := time.Parse(formatter.TimeFormatDateOnly, params.ExpiredTime)
 	info := &types.PullAssetReq{
 		Replicas:   params.Reliability,
 		CID:        strings.TrimSpace(params.CarfileCid),

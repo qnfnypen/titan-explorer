@@ -8,7 +8,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/gnasnik/titan-explorer/utils"
+	"github.com/gnasnik/titan-explorer/pkg/iptool"
 	"github.com/multiformats/go-multiaddr"
 	"net/http"
 	"strconv"
@@ -137,7 +137,7 @@ func SaveProviderLocation(providerId string) error {
 	var loc *model.Location
 	language := []model.Language{model.LanguageEN, model.LanguageCN}
 	for _, lang := range language {
-		l, err := utils.IPTableCloudGetLocation(ctx, config.Cfg.IpUrl, ip, config.Cfg.IpKey, string(lang))
+		l, err := iptool.IPTableCloudGetLocation(ctx, config.Cfg.IpUrl, ip, config.Cfg.IpKey, string(lang))
 		if err != nil {
 			return err
 		}

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/gnasnik/titan-explorer/utils"
+	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"strings"
 	"time"
 )
@@ -257,8 +257,8 @@ func HandleMapInfo(ctx *gin.Context, in []*model.DeviceInfo) []map[string]interf
 		Latitude, ok := mapLocationExit[m.Longitude]
 		mapLocationExit[m.Longitude] = m.Latitude
 		if ok && Latitude == m.Latitude {
-			m.Latitude += utils.RandFloat64() / 10000
-			m.Longitude += utils.RandFloat64() / 10000
+			m.Latitude += formatter.RandFloat64() / 10000
+			m.Longitude += formatter.RandFloat64() / 10000
 		}
 		HandleMapList(ctx, m)
 		mapInfoOut = append(mapInfoOut, MapObject{

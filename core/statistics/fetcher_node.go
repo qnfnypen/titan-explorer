@@ -3,6 +3,8 @@ package statistics
 import (
 	"context"
 	"encoding/json"
+	"github.com/gnasnik/titan-explorer/pkg/formatter"
+	"github.com/gnasnik/titan-explorer/pkg/iptool"
 	"net"
 	"strconv"
 	"time"
@@ -10,7 +12,6 @@ import (
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/gnasnik/titan-explorer/utils"
 	"github.com/oschwald/geoip2-golang"
 )
 
@@ -157,13 +158,13 @@ func toDeviceInfo(ctx context.Context, v interface{}) *model.DeviceInfo {
 	if err != nil {
 		return nil
 	}
-	deviceInfo.CpuUsage = utils.ToFixed(deviceInfo.CpuUsage, 2)
-	deviceInfo.MemoryUsage = utils.ToFixed(deviceInfo.MemoryUsage, 2)
-	//deviceInfo.BandwidthUp = utils.ToFixed(deviceInfo.BandwidthUp/gigaBytes, 2)
-	deviceInfo.BandwidthUp = utils.ToFixed(deviceInfo.BandwidthUp, 2)
-	deviceInfo.BandwidthDown = utils.ToFixed(deviceInfo.BandwidthDown, 2)
-	deviceInfo.DiskSpace = utils.ToFixed(deviceInfo.DiskSpace, 2)
-	deviceInfo.DiskUsage = utils.ToFixed(deviceInfo.DiskUsage, 2)
+	deviceInfo.CpuUsage = formatter.ToFixed(deviceInfo.CpuUsage, 2)
+	deviceInfo.MemoryUsage = formatter.ToFixed(deviceInfo.MemoryUsage, 2)
+	//deviceInfo.BandwidthUp = pkg.ToFixed(deviceInfo.BandwidthUp/gigaBytes, 2)
+	deviceInfo.BandwidthUp = formatter.ToFixed(deviceInfo.BandwidthUp, 2)
+	deviceInfo.BandwidthDown = formatter.ToFixed(deviceInfo.BandwidthDown, 2)
+	deviceInfo.DiskSpace = formatter.ToFixed(deviceInfo.DiskSpace, 2)
+	deviceInfo.DiskUsage = formatter.ToFixed(deviceInfo.DiskUsage, 2)
 	deviceInfo.ActiveStatus = 1
 	var loc model.Location
 	if deviceInfo.ExternalIp != "" {
@@ -237,7 +238,7 @@ func GetIpLocation(ctx context.Context, ip string, Loc *model.Location, language
 	}
 
 	for _, l := range languages {
-		loc, err := utils.IPTableCloudGetLocation(ctx, config.Cfg.IpUrl, ip, config.Cfg.IpKey, string(l))
+		loc, err := iptool.IPTableCloudGetLocation(ctx, config.Cfg.IpUrl, ip, config.Cfg.IpKey, string(l))
 		if err != nil {
 			log.Errorf("iptablecloud get location: %v", err)
 			continue

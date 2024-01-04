@@ -6,7 +6,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/gnasnik/titan-explorer/utils"
+	"github.com/gnasnik/titan-explorer/pkg/iptool"
 	"net/http"
 	"strconv"
 	"time"
@@ -37,7 +37,7 @@ func CreateApplicationHandler(c *gin.Context) {
 	params.UpdatedAt = time.Now()
 	params.NodeType = 1
 	params.Status = dao.ApplicationStatusCreated
-	params.Ip = utils.GetClientIP(c.Request)
+	params.Ip = iptool.GetClientIP(c.Request)
 	if err := dao.AddApplication(c.Request.Context(), &params); err != nil {
 		log.Errorf("add application: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))

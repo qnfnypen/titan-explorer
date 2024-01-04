@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/gnasnik/titan-explorer/utils"
+	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/go-redis/redis/v9"
 	"time"
 )
@@ -132,8 +132,8 @@ func GetNodesDaysList(ctx context.Context, option QueryOption) ([]*FullNodeDaysI
 }
 
 func handleNodesDaysList(start, end string, in []*FullNodeDaysInfo) []*FullNodeDaysInfo {
-	startTime, _ := time.Parse(utils.TimeFormatDateOnly, start)
-	endTime, _ := time.Parse(utils.TimeFormatDateOnly, end)
+	startTime, _ := time.Parse(formatter.TimeFormatDateOnly, start)
+	endTime, _ := time.Parse(formatter.TimeFormatDateOnly, end)
 	oneDay := 24 * time.Hour
 	deviceInDate := make(map[string]*FullNodeDaysInfo)
 	var out []*FullNodeDaysInfo
@@ -141,12 +141,12 @@ func handleNodesDaysList(start, end string, in []*FullNodeDaysInfo) []*FullNodeD
 		deviceInDate[data.Date] = data
 	}
 	for startTime.Before(endTime) || startTime.Equal(endTime) {
-		key := startTime.Format(utils.TimeFormatDateOnly)
+		key := startTime.Format(formatter.TimeFormatDateOnly)
 		val, ok := deviceInDate[key]
 		if !ok {
 			val = &FullNodeDaysInfo{}
 		}
-		val.Date = startTime.Format(utils.TimeFormatMD)
+		val.Date = startTime.Format(formatter.TimeFormatMD)
 		out = append(out, val)
 		startTime = startTime.Add(oneDay)
 	}

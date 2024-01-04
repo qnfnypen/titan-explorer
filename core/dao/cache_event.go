@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/gnasnik/titan-explorer/utils"
+	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/golang-module/carbon/v2"
 	"time"
 )
@@ -54,9 +54,9 @@ func QueryCacheHour(deviceID, startTime, endTime string) []*CacheStatistics {
 	if option.EndTime == "" {
 		option.EndTime = carbon.Now().String()
 	} else {
-		end, _ := time.Parse(utils.TimeFormatDateOnly, endTime)
+		end, _ := time.Parse(formatter.TimeFormatDateOnly, endTime)
 		end = end.Add(1 * time.Hour).Add(-time.Second)
-		option.EndTime = end.Format(utils.TimeFormatDatetime)
+		option.EndTime = end.Format(formatter.TimeFormatDatetime)
 	}
 	where := `WHERE status = 3 `
 	if deviceID != "" {
@@ -82,9 +82,9 @@ func QueryCacheDaily(deviceID, startTime, endTime string) []*CacheStatistics {
 	if endTime == "" {
 		option.EndTime = carbon.Now().EndOfDay().String()
 	} else {
-		end, _ := time.Parse(utils.TimeFormatDateOnly, endTime)
+		end, _ := time.Parse(formatter.TimeFormatDateOnly, endTime)
 		end = end.Add(24 * time.Hour).Add(-time.Second)
-		option.EndTime = end.Format(utils.TimeFormatDatetime)
+		option.EndTime = end.Format(formatter.TimeFormatDatetime)
 	}
 	where := `WHERE status = 3 `
 	if deviceID != "" {
@@ -143,7 +143,7 @@ func handleCacheHourList(in []*CacheStatistics) []*CacheStatistics {
 		deviceInDate[data.Date] = data
 	}
 	for startTime.Before(endTime) || startTime.Equal(endTime) {
-		key := startTime.Format(utils.TimeFormatYMDH)
+		key := startTime.Format(formatter.TimeFormatYMDH)
 		val, ok := deviceInDate[key]
 		if !ok {
 			val = &CacheStatistics{}
@@ -157,8 +157,8 @@ func handleCacheHourList(in []*CacheStatistics) []*CacheStatistics {
 }
 
 func handleCacheDaysList(start, end string, in []*CacheStatistics) []*CacheStatistics {
-	startTime, _ := time.Parse(utils.TimeFormatDateOnly, start)
-	endTime, _ := time.Parse(utils.TimeFormatDateOnly, end)
+	startTime, _ := time.Parse(formatter.TimeFormatDateOnly, start)
+	endTime, _ := time.Parse(formatter.TimeFormatDateOnly, end)
 	oneDay := 24 * time.Hour
 	deviceInDate := make(map[string]*CacheStatistics)
 	var out []*CacheStatistics
@@ -166,12 +166,12 @@ func handleCacheDaysList(start, end string, in []*CacheStatistics) []*CacheStati
 		deviceInDate[data.Date] = data
 	}
 	for startTime.Before(endTime) || startTime.Equal(endTime) {
-		key := startTime.Format(utils.TimeFormatDateOnly)
+		key := startTime.Format(formatter.TimeFormatDateOnly)
 		val, ok := deviceInDate[key]
 		if !ok {
 			val = &CacheStatistics{}
 		}
-		val.Date = startTime.Format(utils.TimeFormatMD)
+		val.Date = startTime.Format(formatter.TimeFormatMD)
 		out = append(out, val)
 		startTime = startTime.Add(oneDay)
 	}

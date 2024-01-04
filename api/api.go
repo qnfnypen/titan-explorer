@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"github.com/gnasnik/titan-explorer/core/cleanup"
+	"github.com/gnasnik/titan-explorer/pkg/mail"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -18,7 +19,6 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/core/statistics"
-	"github.com/gnasnik/titan-explorer/utils"
 )
 
 var schedulerAdmin api.Scheduler
@@ -342,7 +342,7 @@ func (s *Server) handleApplication(ctx context.Context, publicKey string, applic
 }
 
 func (s *Server) sendEmail(sendTo string, registrations []string) error {
-	//var EData utils.EmailData
+	//var EData pkg.EmailData
 	//EData.Subject = "[Application]: Your Device Info"
 	//EData.Tittle = "please check your device id "
 	//EData.SendTo = sendTo
@@ -350,7 +350,7 @@ func (s *Server) sendEmail(sendTo string, registrations []string) error {
 	//for _, registration := range registrations {
 	//	EData.Content += registration + "<br>"
 	//}
-	//err := utils.SendEmail(s.cfg.Email, EData)
+	//err := pkg.SendEmail(s.cfg.Email, EData)
 	//if err != nil {
 	//	return err
 	//}
@@ -362,8 +362,8 @@ func (s *Server) sendEmail(sendTo string, registrations []string) error {
 		content += registration + "<br>"
 	}
 	port, err := strconv.ParseInt(s.cfg.Email.SMTPPort, 10, 64)
-	message := utils.NewEmailMessage(s.cfg.Email.From, subject, contentType, content, "", []string{sendTo}, nil)
-	_, err = utils.NewEmailClient(s.cfg.Email.SMTPHost, s.cfg.Email.Username, s.cfg.Email.Password, int(port), message).SendMessage()
+	message := mail.NewEmailMessage(s.cfg.Email.From, subject, contentType, content, "", []string{sendTo}, nil)
+	_, err = mail.NewEmailClient(s.cfg.Email.SMTPHost, s.cfg.Email.Username, s.cfg.Email.Password, int(port), message).SendMessage()
 	if err != nil {
 		return err
 	}

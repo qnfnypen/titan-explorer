@@ -9,7 +9,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/gnasnik/titan-explorer/utils"
+	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/golang-module/carbon/v2"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"golang.org/x/xerrors"
@@ -184,10 +184,10 @@ func GetUserDeviceProfileHandler(c *gin.Context) {
 	}
 
 	if option.StartTime == "" {
-		option.StartTime = time.Now().AddDate(0, 0, -6).Format(utils.TimeFormatDateOnly)
+		option.StartTime = time.Now().AddDate(0, 0, -6).Format(formatter.TimeFormatDateOnly)
 	}
 	if option.EndTime == "" {
-		option.EndTime = time.Now().Format(utils.TimeFormatDateOnly)
+		option.EndTime = time.Now().Format(formatter.TimeFormatDateOnly)
 	}
 
 	userDeviceProfile, err := dao.CountUserDeviceInfo(c.Request.Context(), info.UserID)
@@ -225,10 +225,10 @@ func GetUserDevicesCountHandler(c *gin.Context) {
 	}
 
 	if option.StartTime == "" {
-		option.StartTime = time.Now().AddDate(0, 0, -6).Format(utils.TimeFormatDateOnly)
+		option.StartTime = time.Now().AddDate(0, 0, -6).Format(formatter.TimeFormatDateOnly)
 	}
 	if option.EndTime == "" {
-		option.EndTime = time.Now().Format(utils.TimeFormatDateOnly)
+		option.EndTime = time.Now().Format(formatter.TimeFormatDateOnly)
 	}
 
 	userDeviceProfile, err := dao.CountUserDeviceInfo(c.Request.Context(), info.UserID)
@@ -243,12 +243,12 @@ func GetUserDevicesCountHandler(c *gin.Context) {
 }
 
 func toDeviceStatistic(start, end string, data map[string]map[string]interface{}) []*dao.DeviceStatistics {
-	startTime, _ := time.Parse(utils.TimeFormatDateOnly, start)
-	endTime, _ := time.Parse(utils.TimeFormatDateOnly, end)
+	startTime, _ := time.Parse(formatter.TimeFormatDateOnly, start)
+	endTime, _ := time.Parse(formatter.TimeFormatDateOnly, end)
 	var oneDay = 24 * time.Hour
 	var out []*dao.DeviceStatistics
 	for startTime.Before(endTime) || startTime.Equal(endTime) {
-		key := startTime.Format(utils.TimeFormatDateOnly)
+		key := startTime.Format(formatter.TimeFormatDateOnly)
 		startTime = startTime.Add(oneDay)
 		val, ok := data[key]
 		if !ok {
@@ -277,9 +277,9 @@ func queryDeviceStatisticsDaily(deviceID, startTime, endTime string) []*dao.Devi
 	if endTime == "" {
 		option.EndTime = carbon.Now().EndOfDay().String()
 	} else {
-		end, _ := time.Parse(utils.TimeFormatDateOnly, endTime)
+		end, _ := time.Parse(formatter.TimeFormatDateOnly, endTime)
 		end = end.Add(24 * time.Hour).Add(-time.Second)
-		option.EndTime = end.Format(utils.TimeFormatDatetime)
+		option.EndTime = end.Format(formatter.TimeFormatDatetime)
 	}
 	condition := &model.DeviceInfoDaily{
 		DeviceID: deviceID,
@@ -305,9 +305,9 @@ func queryDeviceDailyByUserId(userId, startTime, endTime string) []*dao.DeviceSt
 	if endTime == "" {
 		option.EndTime = carbon.Now().EndOfDay().String()
 	} else {
-		end, _ := time.Parse(utils.TimeFormatDateOnly, endTime)
+		end, _ := time.Parse(formatter.TimeFormatDateOnly, endTime)
 		end = end.Add(24 * time.Hour).Add(-time.Second)
-		option.EndTime = end.Format(utils.TimeFormatDatetime)
+		option.EndTime = end.Format(formatter.TimeFormatDatetime)
 	}
 	condition := &model.DeviceInfoDaily{
 		UserID: userId,
@@ -333,9 +333,9 @@ func queryDeviceStatisticHourly(deviceID, startTime, endTime string) []*dao.Devi
 	if option.EndTime == "" {
 		option.EndTime = carbon.Now().String()
 	} else {
-		end, _ := time.Parse(utils.TimeFormatDateOnly, endTime)
+		end, _ := time.Parse(formatter.TimeFormatDateOnly, endTime)
 		end = end.Add(1 * time.Hour).Add(-time.Second)
-		option.EndTime = end.Format(utils.TimeFormatDatetime)
+		option.EndTime = end.Format(formatter.TimeFormatDatetime)
 	}
 
 	condition := &model.DeviceInfoHour{

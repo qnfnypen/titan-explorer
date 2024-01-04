@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"net/http"
 	"strconv"
 	"time"
@@ -12,7 +13,6 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/gnasnik/titan-explorer/utils"
 )
 
 func GetCacheListHandler(c *gin.Context) {
@@ -182,7 +182,7 @@ func CreateAssetHandler(c *gin.Context) {
 	createAssetReq.AssetCID = c.Query("asset_cid")
 	createAssetReq.UserID = UserId
 	createAssetReq.AssetType = c.Query("asset_type")
-	createAssetReq.AssetSize = utils.Str2Int64(c.Query("asset_size"))
+	createAssetReq.AssetSize = formatter.Str2Int64(c.Query("asset_size"))
 	createAssetReq.NodeID = nearestNode
 
 	if err := dao.AddAssets(c.Request.Context(), []*model.Asset{
@@ -711,7 +711,7 @@ func toValidationEvent(in types.ValidationResultInfo) *model.ValidationEvent {
 		Blocks:          in.BlockNumber,
 		Time:            in.StartTime,
 		Duration:        in.Duration,
-		UpstreamTraffic: utils.ToFixed(float64(in.Duration)*in.Bandwidth, 2),
+		UpstreamTraffic: formatter.ToFixed(float64(in.Duration)*in.Bandwidth, 2),
 	}
 }
 

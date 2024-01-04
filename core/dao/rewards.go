@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/gnasnik/titan-explorer/utils"
+	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	logging "github.com/ipfs/go-log/v2"
 	"time"
 )
@@ -137,8 +137,8 @@ func GetNodesInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, opt
 }
 
 func handleDailyList(start, end string, in []*DeviceStatistics) []*DeviceStatistics {
-	startTime, _ := time.Parse(utils.TimeFormatDateOnly, start)
-	endTime, _ := time.Parse(utils.TimeFormatDateOnly, end)
+	startTime, _ := time.Parse(formatter.TimeFormatDateOnly, start)
+	endTime, _ := time.Parse(formatter.TimeFormatDateOnly, end)
 	oneDay := 24 * time.Hour
 	deviceInDate := make(map[string]*DeviceStatistics)
 	var out []*DeviceStatistics
@@ -146,12 +146,12 @@ func handleDailyList(start, end string, in []*DeviceStatistics) []*DeviceStatist
 		deviceInDate[data.Date] = data
 	}
 	for startTime.Before(endTime) || startTime.Equal(endTime) {
-		key := startTime.Format(utils.TimeFormatDateOnly)
+		key := startTime.Format(formatter.TimeFormatDateOnly)
 		val, ok := deviceInDate[key]
 		if !ok {
 			val = &DeviceStatistics{}
 		}
-		val.Date = startTime.Format(utils.TimeFormatMD)
+		val.Date = startTime.Format(formatter.TimeFormatMD)
 		out = append(out, val)
 		startTime = startTime.Add(oneDay)
 	}
@@ -171,7 +171,7 @@ func handleHourList(in []*DeviceStatistics) []*DeviceStatistics {
 		deviceInDate[data.Date] = data
 	}
 	for startTime.Before(endTime) || startTime.Equal(endTime) {
-		key := startTime.Format(utils.TimeFormatYMDH)
+		key := startTime.Format(formatter.TimeFormatYMDH)
 		val, ok := deviceInDate[key]
 		if !ok {
 			val = &DeviceStatistics{}
@@ -199,7 +199,7 @@ func GetUserIncome(cond *model.DeviceInfo, option QueryOption) (map[string]map[s
 		if !ok {
 			out[data["date"]] = make(map[string]interface{})
 		}
-		out[data["date"]]["income"] = utils.StrToFloat(data["income"])
+		out[data["date"]]["income"] = formatter.StrToFloat(data["income"])
 	}
 	return out, nil
 }

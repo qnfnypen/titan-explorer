@@ -100,35 +100,35 @@ type DeviceInfo struct {
 	BoundAt          time.Time `db:"bound_at" json:"bound_at"`
 	UserID           string    `db:"user_id" json:"user_id"`
 
-	NodeType         int64     `db:"node_type" json:"node_type"`
-	DeviceRank       int64     `db:"device_rank" json:"device_rank"`
-	DeviceName       string    `db:"device_name" json:"device_name"`
-	SystemVersion    string    `db:"system_version" json:"system_version"`
-	NetworkInfo      string    `db:"network_info" json:"network_info"`
-	ExternalIp       string    `db:"external_ip" json:"external_ip"`
-	InternalIp       string    `db:"internal_ip" json:"internal_ip"`
-	IpLocation       string    `db:"ip_location" json:"ip_location"`
-	IpCountry        string    `db:"ip_country" json:"ip_country"`
-	IpProvince       string    `db:"ip_province" json:"ip_province"`
-	IpCity           string    `db:"ip_city" json:"ip_city"`
-	Latitude         float64   `db:"latitude" json:"latitude"`
-	Longitude        float64   `db:"longitude" json:"longitude"`
-	MacLocation      string    `db:"mac_location" json:"mac_location"`
-	CpuUsage         float64   `db:"cpu_usage" json:"cpu_usage"`
-	CpuCores         int64     `db:"cpu_cores" json:"cpu_cores"`
-	MemoryUsage      float64   `db:"memory_usage" json:"memory_usage"`
-	Memory           float64   `db:"memory" json:"memory"`
-	DiskSpace        float64   `db:"disk_space" json:"disk_space"`
-	BindStatus       string    `db:"bind_status" json:"bind_status"`
-	ActiveStatus     int64     `db:"active_status" json:"active_status"`
-	DiskType         string    `db:"disk_type" json:"disk_type"`
-	IoSystem         string    `db:"io_system" json:"io_system"`
-	TodayOnlineTime  float64   `db:"today_online_time" json:"today_online_time"`
-	TodayProfit      float64   `db:"today_profit" json:"today_profit"`
-	YesterdayProfit  float64   `db:"yesterday_profit" json:"yesterday_profit"`
-	SevenDaysProfit  float64   `db:"seven_days_profit" json:"seven_days_profit"`
-	MonthProfit      float64   `db:"month_profit" json:"month_profit"`
-	DeactivateTime   int64     `db:"deactivate_time" json:"deactivate_time"`
+	NodeType        int64   `db:"node_type" json:"node_type"`
+	DeviceRank      int64   `db:"device_rank" json:"device_rank"`
+	DeviceName      string  `db:"device_name" json:"device_name"`
+	SystemVersion   string  `db:"system_version" json:"system_version"`
+	NetworkInfo     string  `db:"network_info" json:"network_info"`
+	ExternalIp      string  `db:"external_ip" json:"external_ip"`
+	InternalIp      string  `db:"internal_ip" json:"internal_ip"`
+	IpLocation      string  `db:"ip_location" json:"ip_location"`
+	IpCountry       string  `db:"ip_country" json:"ip_country"`
+	IpProvince      string  `db:"ip_province" json:"ip_province"`
+	IpCity          string  `db:"ip_city" json:"ip_city"`
+	Latitude        float64 `db:"latitude" json:"latitude"`
+	Longitude       float64 `db:"longitude" json:"longitude"`
+	MacLocation     string  `db:"mac_location" json:"mac_location"`
+	CpuUsage        float64 `db:"cpu_usage" json:"cpu_usage"`
+	CpuCores        int64   `db:"cpu_cores" json:"cpu_cores"`
+	MemoryUsage     float64 `db:"memory_usage" json:"memory_usage"`
+	Memory          float64 `db:"memory" json:"memory"`
+	DiskSpace       float64 `db:"disk_space" json:"disk_space"`
+	BindStatus      string  `db:"bind_status" json:"bind_status"`
+	ActiveStatus    int64   `db:"active_status" json:"active_status"`
+	DiskType        string  `db:"disk_type" json:"disk_type"`
+	IoSystem        string  `db:"io_system" json:"io_system"`
+	TodayOnlineTime float64 `db:"today_online_time" json:"today_online_time"`
+	TodayProfit     float64 `db:"today_profit" json:"today_profit"`
+	YesterdayProfit float64 `db:"yesterday_profit" json:"yesterday_profit"`
+	SevenDaysProfit float64 `db:"seven_days_profit" json:"seven_days_profit"`
+	MonthProfit     float64 `db:"month_profit" json:"month_profit"`
+	DeactivateTime  int64   `db:"deactivate_time" json:"deactivate_time"`
 
 	Location
 }
@@ -326,21 +326,21 @@ type ValidationEvent struct {
 }
 
 type Location struct {
-	ID        int64     `db:"id" json:"id"`
-	Ip        string    `db:"ip" json:"ip"`
-	Continent string    `db:"continent" json:"continent"`
-	Province  string    `db:"province" json:"province"`
-	City      string    `db:"city" json:"city"`
-	Country   string    `db:"country" json:"country"`
-	Latitude  string    `db:"latitude" json:"latitude"`
-	Longitude string    `db:"longitude" json:"longitude"`
-	AreaCode  string    `db:"area_code" json:"area_code"`
-	Isp       string    `db:"isp" json:"isp"`
-	ZipCode   string    `db:"zip_code" json:"zip_code"`
-	Elevation string    `db:"elevation" json:"elevation"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
-	CountryCode  string `db:"-" json:"country_code"`
+	ID          int64     `db:"id" json:"id"`
+	Ip          string    `db:"ip" json:"ip"`
+	Continent   string    `db:"continent" json:"continent"`
+	Province    string    `db:"province" json:"province"`
+	City        string    `db:"city" json:"city"`
+	Country     string    `db:"country" json:"country"`
+	Latitude    string    `db:"latitude" json:"latitude"`
+	Longitude   string    `db:"longitude" json:"longitude"`
+	AreaCode    string    `db:"area_code" json:"area_code"`
+	Isp         string    `db:"isp" json:"isp"`
+	ZipCode     string    `db:"zip_code" json:"zip_code"`
+	Elevation   string    `db:"elevation" json:"elevation"`
+	CreatedAt   time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
+	CountryCode string    `db:"-" json:"country_code"`
 }
 
 type LocationEn struct {
@@ -415,7 +415,6 @@ type LotusRespError struct {
 }
 type errorCode int
 
-
 type Asset struct {
 	ID         int64     `db:"id" json:"id"`
 	NodeID     string    `db:"node_id" json:"node_id"`
@@ -426,9 +425,9 @@ type Asset struct {
 	Path       string    `db:"path" json:"path"`
 	EndTime    time.Time `db:"end_time" json:"end_time"`
 	Expiration time.Time `db:"expiration" json:"expiration"`
-	UserId     string 	 `db:"user_id" json:"user_id"`
+	UserId     string    `db:"user_id" json:"user_id"`
 	Type       string    `db:"type" json:"type"`
-	Name       string 	 `db:"name" json:"name"`
+	Name       string    `db:"name" json:"name"`
 	ProjectId  int64     `db:"project_id" json:"project_id"`
 	CreatedAt  time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt  time.Time `db:"updated_at" json:"updated_at"`
@@ -436,37 +435,37 @@ type Asset struct {
 }
 
 type FilStorage struct {
-	ID                    int64     `db:"id" json:"id"`
-	Provider              string    `db:"provider" json:"provider"`
-	SectorNum             string    `db:"sector_num" json:"sector_num"`
-	IP  				  string  	`db:"ip" json:"ip"`
-	Location  			  string  	`db:"location" json:"location"`
-	Cost           		  float64   `db:"cost" json:"cost"`
-	MessageCid            string    `db:"message_cid" json:"message_cid"`
-	PieceCid              string    `db:"piece_cid" json:"piece_cid"`
-	PayloadCid            string    `db:"payload_cid" json:"payload_cid"`
-	DealID                string    `db:"deal_id" json:"deal_id"`
-	Path                  string    `db:"path" json:"path"`
-	FIndex                int64     `db:"f_index" json:"f_index"`
-	PieceSize             float64   `db:"piece_size" json:"piece_size"`
-	Gas           		  float64   `db:"gas" json:"gas"`
-	Pledge  			  float64 	`db:"pledge" json:"pledge"`
-	StartHeight           int64 	`db:"start_height" json:"start_height"`
-	EndHeight             int64 	`db:"end_height" json:"end_height"`
-	StartTime 			  time.Time  `db:"start_time" json:"start_time"`
-	EndTime               time.Time `db:"end_time" json:"end_time"`
-	CreatedAt             time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt             time.Time `db:"updated_at" json:"updated_at"`
-	DeletedAt             time.Time `db:"deleted_at" json:"deleted_at"`
+	ID          int64     `db:"id" json:"id"`
+	Provider    string    `db:"provider" json:"provider"`
+	SectorNum   string    `db:"sector_num" json:"sector_num"`
+	IP          string    `db:"ip" json:"ip"`
+	Location    string    `db:"location" json:"location"`
+	Cost        float64   `db:"cost" json:"cost"`
+	MessageCid  string    `db:"message_cid" json:"message_cid"`
+	PieceCid    string    `db:"piece_cid" json:"piece_cid"`
+	PayloadCid  string    `db:"payload_cid" json:"payload_cid"`
+	DealID      string    `db:"deal_id" json:"deal_id"`
+	Path        string    `db:"path" json:"path"`
+	FIndex      int64     `db:"f_index" json:"f_index"`
+	PieceSize   float64   `db:"piece_size" json:"piece_size"`
+	Gas         float64   `db:"gas" json:"gas"`
+	Pledge      float64   `db:"pledge" json:"pledge"`
+	StartHeight int64     `db:"start_height" json:"start_height"`
+	EndHeight   int64     `db:"end_height" json:"end_height"`
+	StartTime   time.Time `db:"start_time" json:"start_time"`
+	EndTime     time.Time `db:"end_time" json:"end_time"`
+	CreatedAt   time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
+	DeletedAt   time.Time `db:"deleted_at" json:"deleted_at"`
 }
 
 type UserSecret struct {
-	ID     int64 			 `db:"id" json:"id"`
-	UserID string 			 `db:"user_id" json:"user_id"`
-	AppKey string 			 `db:"app_key" json:"app_key"`
-	AppSecret string         `db:"app_secret" json:"app_secret"`
-	Status    int32          `db:"status" json:"status"`
-	CreatedAt time.Time      `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time      `db:"updated_at" json:"updated_at"`
-	DeletedAt time.Time 	 `db:"deleted_at" json:"deleted_at"`
+	ID        int64     `db:"id" json:"id"`
+	UserID    string    `db:"user_id" json:"user_id"`
+	AppKey    string    `db:"app_key" json:"app_key"`
+	AppSecret string    `db:"app_secret" json:"app_secret"`
+	Status    int32     `db:"status" json:"status"`
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+	DeletedAt time.Time `db:"deleted_at" json:"deleted_at"`
 }

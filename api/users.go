@@ -14,7 +14,8 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/gnasnik/titan-explorer/utils"
+	"github.com/gnasnik/titan-explorer/pkg/formatter"
+	"github.com/gnasnik/titan-explorer/pkg/mail"
 	"github.com/go-redis/redis/v9"
 	"golang.org/x/crypto/bcrypt"
 	"math/rand"
@@ -251,7 +252,7 @@ func DeviceBindingHandler(c *gin.Context) {
 	}
 
 	var timeWeb = "0000-00-00 00:00:00"
-	timeString, _ := time.Parse(utils.TimeFormatDatetime, timeWeb)
+	timeString, _ := time.Parse(formatter.TimeFormatDatetime, timeWeb)
 	if old != nil && old.BoundAt == timeString {
 		deviceInfo.BoundAt = time.Now()
 	}
@@ -430,8 +431,8 @@ func sendEmail(sendTo string, vc, lang string) error {
 
 	contentType := "text/html"
 	port, err := strconv.ParseInt(config.Cfg.Email.SMTPPort, 10, 64)
-	message := utils.NewEmailMessage(config.Cfg.Email.From, emailSubject[lang], contentType, content, "", []string{sendTo}, nil)
-	_, err = utils.NewEmailClient(config.Cfg.Email.SMTPHost, config.Cfg.Email.Username, config.Cfg.Email.Password, int(port), message).SendMessage()
+	message := mail.NewEmailMessage(config.Cfg.Email.From, emailSubject[lang], contentType, content, "", []string{sendTo}, nil)
+	_, err = mail.NewEmailClient(config.Cfg.Email.SMTPHost, config.Cfg.Email.Username, config.Cfg.Email.Password, int(port), message).SendMessage()
 	if err != nil {
 		return err
 	}

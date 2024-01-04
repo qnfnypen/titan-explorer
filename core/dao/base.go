@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/gnasnik/titan-explorer/utils"
+	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/go-redis/redis/v9"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang-module/carbon/v2"
@@ -118,9 +118,9 @@ func OptionHandle(startTime, endTime string) QueryOption {
 	if endTime == "" {
 		option.EndTime = carbon.Now().EndOfDay().String()
 	} else {
-		end, _ := time.Parse(utils.TimeFormatDateOnly, endTime)
+		end, _ := time.Parse(formatter.TimeFormatDateOnly, endTime)
 		end = end.Add(24 * time.Hour).Add(-time.Second)
-		option.EndTime = end.Format(utils.TimeFormatDatetime)
+		option.EndTime = end.Format(formatter.TimeFormatDatetime)
 	}
 
 	return option

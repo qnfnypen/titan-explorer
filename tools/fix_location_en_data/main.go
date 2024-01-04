@@ -6,7 +6,7 @@ import (
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/gnasnik/titan-explorer/utils"
+	"github.com/gnasnik/titan-explorer/pkg/iptool"
 	"github.com/spf13/viper"
 	"log"
 	"time"
@@ -52,7 +52,7 @@ func main() {
 			continue
 		}
 
-		loc, err := utils.IPTableCloudGetLocation(ctx, cfg.IpUrl, location.Ip, cfg.IpKey, model.LanguageEN)
+		loc, err := iptool.IPTableCloudGetLocation(ctx, cfg.IpUrl, location.Ip, cfg.IpKey, model.LanguageEN)
 		if err != nil {
 			log.Println(err)
 			continue

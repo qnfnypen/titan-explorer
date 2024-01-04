@@ -5,7 +5,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/gnasnik/titan-explorer/utils"
+	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"net/http"
 	"strconv"
 )
@@ -40,7 +40,7 @@ func GetNodeDailyTrendHandler(c *gin.Context) {
 	var out []NodeDailyTrend
 	for _, item := range list {
 		out = append(out, NodeDailyTrend{
-			X: item.Time.Format(utils.TimeFormatDateOnly),
+			X: item.Time.Format(formatter.TimeFormatDateOnly),
 			Y: item,
 		})
 	}

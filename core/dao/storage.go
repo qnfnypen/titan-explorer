@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/gnasnik/titan-explorer/utils"
+	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/jmoiron/sqlx"
 	"time"
 )
@@ -59,7 +59,7 @@ func handleStorageHourList(in []*UserInfoRes) []*UserInfoRes {
 		userInDate[data.Date] = data
 	}
 	for startTime.Before(endTime) || startTime.Equal(endTime) {
-		key := startTime.Format(utils.TimeFormatYMDH)
+		key := startTime.Format(formatter.TimeFormatYMDH)
 		val, ok := userInDate[key]
 		if !ok {
 			val = &UserInfoRes{}
@@ -89,8 +89,8 @@ func GetStorageInfoDaysList(ctx context.Context, userId string, option QueryOpti
 	return out, err
 }
 func handleStorageDaysList(start, end string, in []*UserInfoRes) []*UserInfoRes {
-	startTime, _ := time.Parse(utils.TimeFormatDateOnly, start)
-	endTime, _ := time.Parse(utils.TimeFormatDateOnly, end)
+	startTime, _ := time.Parse(formatter.TimeFormatDateOnly, start)
+	endTime, _ := time.Parse(formatter.TimeFormatDateOnly, end)
 	oneDay := 24 * time.Hour
 	deviceInDate := make(map[string]*UserInfoRes)
 	var out []*UserInfoRes
@@ -98,12 +98,12 @@ func handleStorageDaysList(start, end string, in []*UserInfoRes) []*UserInfoRes 
 		deviceInDate[data.Date] = data
 	}
 	for startTime.Before(endTime) || startTime.Equal(endTime) {
-		key := startTime.Format(utils.TimeFormatDateOnly)
+		key := startTime.Format(formatter.TimeFormatDateOnly)
 		val, ok := deviceInDate[key]
 		if !ok {
 			val = &UserInfoRes{}
 		}
-		val.Date = startTime.Format(utils.TimeFormatMD)
+		val.Date = startTime.Format(formatter.TimeFormatMD)
 		out = append(out, val)
 		startTime = startTime.Add(oneDay)
 	}

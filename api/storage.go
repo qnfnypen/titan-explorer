@@ -7,7 +7,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/gnasnik/titan-explorer/utils"
+	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/golang-module/carbon/v2"
 	errs "github.com/pkg/errors"
 	"net/http"
@@ -71,9 +71,9 @@ func queryStorageHourly(ctx context.Context, userId, startTime, endTime string) 
 	if option.EndTime == "" {
 		option.EndTime = carbon.Now().String()
 	} else {
-		end, _ := time.Parse(utils.TimeFormatDateOnly, endTime)
+		end, _ := time.Parse(formatter.TimeFormatDateOnly, endTime)
 		end = end.Add(1 * time.Hour).Add(-time.Second)
-		option.EndTime = end.Format(utils.TimeFormatDatetime)
+		option.EndTime = end.Format(formatter.TimeFormatDatetime)
 	}
 
 	list, err := dao.GetStorageInfoHourList(ctx, userId, option)
@@ -95,9 +95,9 @@ func QueryStorageDaily(ctx context.Context, userId, startTime, endTime string) [
 	if endTime == "" {
 		option.EndTime = carbon.Now().EndOfDay().String()
 	} else {
-		end, _ := time.Parse(utils.TimeFormatDateOnly, endTime)
+		end, _ := time.Parse(formatter.TimeFormatDateOnly, endTime)
 		end = end.Add(24 * time.Hour).Add(-time.Second)
-		option.EndTime = end.Format(utils.TimeFormatDatetime)
+		option.EndTime = end.Format(formatter.TimeFormatDatetime)
 	}
 	list, err := dao.GetStorageInfoDaysList(ctx, userId, option)
 	if err != nil {

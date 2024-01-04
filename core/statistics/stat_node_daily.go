@@ -6,7 +6,7 @@ import (
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/gnasnik/titan-explorer/utils"
+	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/golang-module/carbon/v2"
 	"time"
 )
@@ -110,25 +110,25 @@ func (s *Statistic) SumDeviceInfoDaily() error {
 	var dailyInfos []*model.DeviceInfoDaily
 	for _, data := range dataList {
 		var daily model.DeviceInfoDaily
-		daily.Time, _ = time.Parse(utils.TimeFormatDateOnly, data["date"])
-		daily.DiskUsage = utils.Str2Float64(data["disk_usage"])
-		daily.DiskSpace = utils.Str2Float64(data["disk_space"])
-		daily.NatRatio = utils.Str2Float64(data["nat_ratio"])
-		daily.Income = utils.Str2Float64(data["hour_income"])
-		daily.OnlineTime = utils.Str2Float64(data["online_time"])
+		daily.Time, _ = time.Parse(formatter.TimeFormatDateOnly, data["date"])
+		daily.DiskUsage = formatter.Str2Float64(data["disk_usage"])
+		daily.DiskSpace = formatter.Str2Float64(data["disk_space"])
+		daily.NatRatio = formatter.Str2Float64(data["nat_ratio"])
+		daily.Income = formatter.Str2Float64(data["hour_income"])
+		daily.OnlineTime = formatter.Str2Float64(data["online_time"])
 		if daily.OnlineTime > 1440 {
 			daily.OnlineTime = 1440
 		}
-		daily.UpstreamTraffic = utils.Str2Float64(data["upstream_traffic"])
-		daily.DownstreamTraffic = utils.Str2Float64(data["downstream_traffic"])
-		daily.RetrievalCount = utils.Str2Int64(data["retrieval_count"])
-		daily.BlockCount = utils.Str2Int64(data["block_count"])
-		daily.PkgLossRatio = utils.Str2Float64(data["pkg_loss_ratio"])
-		daily.Latency = utils.Str2Float64(data["latency"])
+		daily.UpstreamTraffic = formatter.Str2Float64(data["upstream_traffic"])
+		daily.DownstreamTraffic = formatter.Str2Float64(data["downstream_traffic"])
+		daily.RetrievalCount = formatter.Str2Int64(data["retrieval_count"])
+		daily.BlockCount = formatter.Str2Int64(data["block_count"])
+		daily.PkgLossRatio = formatter.Str2Float64(data["pkg_loss_ratio"])
+		daily.Latency = formatter.Str2Float64(data["latency"])
 		daily.DeviceID = data["device_id"]
 		daily.UserID = data["user_id"]
-		daily.BandwidthUp = utils.Str2Float64(data["bandwidth_up"])
-		daily.BandwidthDown = utils.Str2Float64(data["bandwidth_down"])
+		daily.BandwidthUp = formatter.Str2Float64(data["bandwidth_up"])
+		daily.BandwidthDown = formatter.Str2Float64(data["bandwidth_down"])
 		daily.UserID = data["user_id"]
 		daily.CreatedAt = time.Now()
 		daily.UpdatedAt = time.Now()
@@ -168,7 +168,7 @@ func (s *Statistic) SumDeviceInfoProfit() error {
 				DeviceID: data["device_id"],
 			}
 		}
-		updatedDevices[data["device_id"]].YesterdayProfit = utils.Str2Float64(data["income"])
+		updatedDevices[data["device_id"]].YesterdayProfit = formatter.Str2Float64(data["income"])
 	}
 
 	startOfWeekTime := carbon.Now().SubDays(6).StartOfDay().String()
@@ -181,7 +181,7 @@ func (s *Statistic) SumDeviceInfoProfit() error {
 				DeviceID: data["device_id"],
 			}
 		}
-		updatedDevices[data["device_id"]].SevenDaysProfit = utils.Str2Float64(data["income"])
+		updatedDevices[data["device_id"]].SevenDaysProfit = formatter.Str2Float64(data["income"])
 	}
 
 	startOfMonthTime := carbon.Now().SubDays(29).StartOfDay().String()
@@ -194,7 +194,7 @@ func (s *Statistic) SumDeviceInfoProfit() error {
 				DeviceID: data["device_id"],
 			}
 		}
-		updatedDevices[data["device_id"]].MonthProfit = utils.Str2Float64(data["income"])
+		updatedDevices[data["device_id"]].MonthProfit = formatter.Str2Float64(data["income"])
 	}
 
 	dataT := QueryDataByDate(startOfTodayTime, endOfTodayTime)
@@ -205,8 +205,8 @@ func (s *Statistic) SumDeviceInfoProfit() error {
 				DeviceID: data["device_id"],
 			}
 		}
-		updatedDevices[data["device_id"]].TodayProfit = utils.Str2Float64(data["income"])
-		updatedDevices[data["device_id"]].TodayOnlineTime = utils.Str2Float64(data["online_time"])
+		updatedDevices[data["device_id"]].TodayProfit = formatter.Str2Float64(data["income"])
+		updatedDevices[data["device_id"]].TodayOnlineTime = formatter.Str2Float64(data["online_time"])
 	}
 
 	var deviceInfos []*model.DeviceInfo
@@ -242,7 +242,7 @@ func (s *Statistic) SumAllNodes() error {
 	if AssetCount == 0 {
 		AssetCount = 1
 	}
-	fullNodeInfo.TAverageReplica = utils.ToFixed(float64(fullNodeInfo.TUpstreamFileCount)/float64(AssetCount), 2)
+	fullNodeInfo.TAverageReplica = formatter.ToFixed(float64(fullNodeInfo.TUpstreamFileCount)/float64(AssetCount), 2)
 	fullNodeInfo.TotalCarfile = systemInfo.CarFileCount
 	fullNodeInfo.RetrievalCount = systemInfo.DownloadCount
 	fullNodeInfo.NextElectionTime = systemInfo.NextElectionTime

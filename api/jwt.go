@@ -7,7 +7,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/core/oplog"
-	"github.com/gnasnik/titan-explorer/utils"
+	"github.com/gnasnik/titan-explorer/pkg/iptool"
 	"github.com/mssola/user_agent"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
@@ -89,8 +89,8 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			ua := user_agent.New(userAgent)
 			os := ua.OS()
 			explorer, _ := ua.Browser()
-			clientIP := utils.GetClientIP(c.Request)
-			location := utils.GetLocationByIP(clientIP)
+			clientIP := iptool.GetClientIP(c.Request)
+			location := iptool.GetLocationByIP(clientIP)
 			var err error
 			var user interface{}
 			if Signature != "" {
