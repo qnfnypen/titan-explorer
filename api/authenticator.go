@@ -6,13 +6,11 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"math/rand"
+	"github.com/gnasnik/titan-explorer/pkg/random"
 	"net/http"
 	"strings"
 	"time"
 )
-
-var charset = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 // AuthAPIKeyMiddlewareFunc makes GinJWTMiddleware implement the Middleware interface.
 func AuthAPIKeyMiddlewareFunc() gin.HandlerFunc {
@@ -51,8 +49,8 @@ func AuthAPIKeyMiddlewareFunc() gin.HandlerFunc {
 
 func CreateNewSecretKeyHandler(c *gin.Context) {
 	username := c.Query("user_id")
-	appKey := generateRandomString(18)
-	appSecret := fmt.Sprintf("ts-%s", generateRandomString(48))
+	appKey := random.GenerateRandomString(18)
+	appSecret := fmt.Sprintf("ts-%s", random.GenerateRandomString(48))
 
 	err := dao.AddUserSecret(c.Request.Context(), &model.UserSecret{
 		UserID:    username,
@@ -71,18 +69,4 @@ func CreateNewSecretKeyHandler(c *gin.Context) {
 		"app_key":    appKey,
 		"app_secret": appSecret,
 	}))
-}
-
-// length is the length of random string we want to generate
-func generateRandomString(length int) string {
-	seededRand := rand.New(
-		rand.NewSource(time.Now().UnixNano()))
-
-	b := make([]byte, length)
-	for i := range b {
-		// randomly select 1 character from given charset
-		b[i] = charset[seededRand.Intn(len(charset))]
-	}
-
-	return string(b)
 }

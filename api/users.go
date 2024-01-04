@@ -16,6 +16,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/gnasnik/titan-explorer/pkg/mail"
+	"github.com/gnasnik/titan-explorer/pkg/random"
 	"github.com/go-redis/redis/v9"
 	"golang.org/x/crypto/bcrypt"
 	"math/rand"
@@ -41,7 +42,7 @@ func UserRegister(c *gin.Context) {
 		VerifyCode:   c.Query("verify_code"),
 		UserEmail:    c.Query("username"),
 		Referrer:     c.Query("referrer"),
-		ReferralCode: generateRandomString(6),
+		ReferralCode: random.GenerateRandomString(6),
 	}
 
 	passwd := c.Query("password")
