@@ -74,12 +74,12 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			loginParams.Username = c.Query("username")
 			loginParams.VerifyCode = c.Query("verify_code")
 			loginParams.Password = c.Query("password")
-			Signature := c.Query("sign")
-			Address := c.Query("address")
+			signature := c.Query("sign")
+			walletAddress := c.Query("address")
 			if loginParams.Username == "" {
 				return "", jwt.ErrMissingLoginValues
 			}
-			if loginParams.VerifyCode == "" && loginParams.Password == "" && Signature == "" {
+			if loginParams.VerifyCode == "" && loginParams.Password == "" && signature == "" {
 				return "", jwt.ErrMissingLoginValues
 			}
 			userID := loginParams.Username
@@ -93,8 +93,8 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			location := iptool.GetLocationByIP(clientIP)
 			var err error
 			var user interface{}
-			if Signature != "" {
-				user, err = loginBySignature(c, userID, Address, Signature)
+			if signature != "" {
+				user, err = loginBySignature(c, userID, walletAddress, signature)
 			}
 			if verifyCode != "" {
 				user, err = loginByVerifyCode(c, userID, verifyCode)
@@ -181,32 +181,30 @@ func loginByPassword(c *gin.Context, username, password string) (interface{}, er
 }
 
 func loginBySignature(c *gin.Context, username, address, msg string) (interface{}, error) {
-	verifyCode, err := GetVerifyCode(c.Request.Context(), username+"C")
+	nonce, err := queryNonceString(c.Request.Context(), username, NonceStringTypeSignature)
 	if err != nil {
 		return nil, errors.NewErrorCode(errors.InvalidParams, c)
 	}
-	if verifyCode == "" {
+	if nonce == "" {
 		return nil, errors.NewErrorCode(errors.VerifyCodeExpired, c)
 	}
 	if address == "" {
 		address = username
 	}
-	publicKey, err := VerifyMessage(verifyCode, msg)
-	address = strings.ToUpper(address)
-	publicKey = strings.ToUpper(publicKey)
-	if publicKey != address {
+	recoverAddress, err := VerifyMessage(nonce, msg)
+	if strings.ToUpper(recoverAddress) != strings.ToUpper(address) {
 		return nil, errors.NewErrorCode(errors.PassWordNotAllowed, c)
 	}
-	return &model.User{Uuid: "", Username: username, Role: 0}, nil
+	return &model.User{Username: username, Role: 0}, nil
 }
 
-func loginByVerifyCode(c *gin.Context, username, userVerifyCode string) (interface{}, error) {
-	verifyCode, err := GetVerifyCode(c.Request.Context(), username+"2")
+func loginByVerifyCode(c *gin.Context, username, inputCode string) (interface{}, error) {
+	code, err := queryNonceString(c.Request.Context(), username, NonceStringTypeLogin)
 	if err != nil {
 		log.Errorf("get user by verify code: %v", err)
 		return nil, errors.NewErrorCode(errors.InvalidParams, c)
 	}
-	if verifyCode == "" {
+	if code == "" {
 		return nil, errors.NewErrorCode(errors.VerifyCodeExpired, c)
 	}
 	user, err := dao.GetUserByUsername(c.Request.Context(), username)
@@ -214,7 +212,7 @@ func loginByVerifyCode(c *gin.Context, username, userVerifyCode string) (interfa
 		log.Errorf("get user by username: %v", err)
 		return nil, errors.NewErrorCode(errors.UserNotFound, c)
 	}
-	if verifyCode != userVerifyCode {
+	if code != inputCode {
 		return nil, errors.NewErrorCode(errors.VerifyCodeErr, c)
 	}
 

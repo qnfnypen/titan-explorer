@@ -3,19 +3,16 @@ package api
 import (
 	"context"
 	"database/sql"
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gin-gonic/gin"
-	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
-	"github.com/gnasnik/titan-explorer/pkg/mail"
 	"github.com/gnasnik/titan-explorer/pkg/random"
 	"github.com/go-redis/redis/v9"
 	"golang.org/x/crypto/bcrypt"
@@ -24,6 +21,17 @@ import (
 	"strconv"
 	"time"
 )
+
+type NonceStringType string
+
+const (
+	NonceStringTypeRegister  NonceStringType = "1"
+	NonceStringTypeLogin     NonceStringType = "2"
+	NonceStringTypeReset     NonceStringType = "3"
+	NonceStringTypeSignature NonceStringType = "4"
+)
+
+var defaultNonceExpiration = 1 * time.Minute
 
 func GetUserInfoHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
@@ -68,7 +76,7 @@ func UserRegister(c *gin.Context) {
 	}
 	userInfo.PassHash = string(passHash)
 
-	verifyCode, err := GetVerifyCode(c.Request.Context(), userInfo.Username+"1")
+	verifyCode, err := queryNonceString(c.Request.Context(), userInfo.Username, NonceStringTypeRegister)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.Unknown, c))
 		return
@@ -118,7 +126,7 @@ func PasswordRest(c *gin.Context) {
 	}
 	userInfo.PassHash = string(passHash)
 
-	verifyCode, err := GetVerifyCode(c.Request.Context(), userInfo.Username+"3")
+	verifyCode, err := queryNonceString(c.Request.Context(), userInfo.Username, NonceStringTypeReset)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.Unknown, c))
 		return
@@ -145,52 +153,52 @@ func PasswordRest(c *gin.Context) {
 func BeforeLogin(c *gin.Context) {
 	userInfo := &model.User{}
 	userInfo.Username = c.Query("username")
-	UserName := userInfo.Username
-	if UserName == "" {
+	userName := userInfo.Username
+	if userName == "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
-	_, err := dao.GetUserByUsername(c.Request.Context(), UserName)
+	_, err := dao.GetUserByUsername(c.Request.Context(), userName)
 	if err != nil && err != sql.ErrNoRows {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
-	code, errSC := SetLoginCode(c.Request.Context(), UserName+"C")
-	if errSC != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
-	if err == nil {
-		c.JSON(http.StatusOK, respJSON(JsonObject{
-			"code": code,
-		}))
-		return
-	}
-	err = dao.CreateUser(c.Request.Context(), userInfo)
+
+	nonce, err := generateNonceString(c.Request.Context(), getRedisNonceSignatureKey(userName))
 	if err != nil {
-		log.Errorf("GetUserByUsername : %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"code": code,
+		"code": nonce,
 	}))
+
+	//if err = dao.CreateUser(c.Request.Context(), userInfo); err != nil {
+	//	log.Errorf("GetUserByUsername : %v", err)
+	//	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	//	return
+	//}
+	//
+	//c.JSON(http.StatusOK, respJSON(JsonObject{
+	//	"code": nonce,
+	//}))
 }
 
-func SetLoginCode(ctx context.Context, key string) (string, error) {
+func generateNonceString(ctx context.Context, key string) (string, error) {
 	randNew := rand.New(rand.NewSource(time.Now().UnixNano()))
 	verifyCode := "TitanNetWork(" + fmt.Sprintf("%06d", randNew.Intn(1000000)) + ")"
 	bytes, err := json.Marshal(verifyCode)
 	if err != nil {
 		return "", err
 	}
-	var expireTime time.Duration
-	expireTime = 5 * time.Minute
-	_, err = dao.Cache.Set(ctx, key, bytes, expireTime).Result()
+
+	_, err = dao.Cache.Set(ctx, key, bytes, defaultNonceExpiration).Result()
 	if err != nil {
 		log.Errorf("%v:", err)
 		return "", err
 	}
+
 	return verifyCode, nil
 }
 
@@ -200,22 +208,35 @@ func GetVerifyCodeHandle(c *gin.Context) {
 	verifyType := c.Query("type")
 	lang := c.GetHeader("Lang")
 	userInfo.UserEmail = userInfo.Username
-	key := userInfo.Username + verifyType
 
-	vc, err := GetVerifyCode(c.Request.Context(), key)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.Unknown, c))
+	var key string
+	switch NonceStringType(verifyType) {
+	case NonceStringTypeRegister:
+		key = getRedisNonceRegisterKey(userInfo.Username)
+	case NonceStringTypeLogin:
+		key = getRedisNonceLoginKey(userInfo.Username)
+	case NonceStringTypeReset:
+		key = getRedisNonceResetKey(userInfo.Username)
+	case NonceStringTypeSignature:
+		key = getRedisNonceSignatureKey(userInfo.Username)
+	default:
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
-	if vc != "" {
+	nonce, err := queryNonceString(c.Request.Context(), userInfo.Username, NonceStringType(verifyType))
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	if nonce != "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.GetVCFrequently, c))
 		return
 	}
 
-	err = SetVerifyCode(c.Request.Context(), userInfo.Username, key, lang)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.Unknown, c))
+	if err = SetVerifyCode(c.Request.Context(), userInfo.Username, key, lang); err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
@@ -360,9 +381,7 @@ func SetVerifyCode(ctx context.Context, username, key, lang string) error {
 		return err
 	}
 
-	var expireTime time.Duration
-	expireTime = 5 * time.Minute
-	_, err = dao.Cache.Set(ctx, key, bytes, expireTime).Result()
+	_, err = dao.Cache.Set(ctx, key, bytes, defaultNonceExpiration).Result()
 	if err != nil {
 		return err
 	}
@@ -402,55 +421,54 @@ func SetUserInfo(ctx context.Context, key string, peakBandwidth int64, expireTim
 	return nil
 }
 
-func GetVerifyCode(ctx context.Context, key string) (string, error) {
-	bytes, err := dao.Cache.Get(ctx, key).Bytes()
-	if err != nil && err != redis.Nil {
-		return "", err
+func getRedisNonceSignatureKey(username string) string {
+	return fmt.Sprintf("TITAN::SIGN::%s", username)
+}
+
+func getRedisNonceRegisterKey(username string) string {
+	return fmt.Sprintf("TITAN::REG::%s", username)
+}
+
+func getRedisNonceLoginKey(username string) string {
+	return fmt.Sprintf("TITAN::LOGIN::%s", username)
+}
+
+func getRedisNonceResetKey(username string) string {
+	return fmt.Sprintf("TITAN::RESET::%s", username)
+}
+
+func queryNonceString(ctx context.Context, username string, t NonceStringType) (string, error) {
+	var key string
+
+	switch t {
+	case NonceStringTypeRegister:
+		key = getRedisNonceRegisterKey(username)
+	case NonceStringTypeLogin:
+		key = getRedisNonceLoginKey(username)
+	case NonceStringTypeReset:
+		key = getRedisNonceResetKey(username)
+	case NonceStringTypeSignature:
+		key = getRedisNonceSignatureKey(username)
+	default:
+		return "", fmt.Errorf("unsupported nonce string type")
 	}
+
+	bytes, err := dao.Cache.Get(ctx, key).Bytes()
 	if err == redis.Nil {
 		return "", nil
 	}
+
+	if err != nil {
+		return "", err
+	}
+
 	var verifyCode string
 	err = json.Unmarshal(bytes, &verifyCode)
 	if err != nil {
 		return "", err
 	}
+
 	return verifyCode, nil
-}
-
-//go:embed template/en/mail.html
-var contentEn string
-
-//go:embed template/cn/mail.html
-var contentCn string
-
-func sendEmail(sendTo string, vc, lang string) error {
-	emailSubject := map[string]string{
-		"":               "[Titan Storage] Your verification code",
-		model.LanguageEN: "[Titan Storage] Your verification code",
-		model.LanguageCN: "[Titan Storage] 您的验证码",
-	}
-
-	content := contentEn
-	if lang == model.LanguageCN {
-		content = contentCn
-	}
-
-	var verificationBtn = ""
-	for _, code := range vc {
-		verificationBtn += fmt.Sprintf(`<button class="button" th>%s</button>`, string(code))
-	}
-	content = fmt.Sprintf(content, verificationBtn)
-
-	contentType := "text/html"
-	port, err := strconv.ParseInt(config.Cfg.Email.SMTPPort, 10, 64)
-	message := mail.NewEmailMessage(config.Cfg.Email.From, emailSubject[lang], contentType, content, "", []string{sendTo}, nil)
-	_, err = mail.NewEmailClient(config.Cfg.Email.SMTPHost, config.Cfg.Email.Username, config.Cfg.Email.Password, int(port), message).SendMessage()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func VerifyMessage(message string, signedMessage string) (string, error) {
@@ -489,9 +507,4 @@ func GetUserInfo(ctx context.Context, key string) int64 {
 		return 0
 	}
 	return peakBandwidth
-}
-
-func GetUserInfoE(ctx context.Context, key string) (time.Duration, error) {
-	bytes, _ := dao.Cache.TTL(ctx, key).Result()
-	return bytes, nil
 }
