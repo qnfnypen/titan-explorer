@@ -18,3 +18,6 @@ ALTER  TABLE  device_info ADD COLUMN device_status_code BIGINT(20) NOT NULL DEFA
 
 ALTER TABLE users ADD COLUMN referral_code VARCHAR(64) NOT NULL DEFAULT '' AFTER project_id;
 ALTER TABLE users ADD COLUMN referrer VARCHAR(64) NOT NULL DEFAULT '' AFTER referral_code;
+
+ALTER TABLE users ADD COLUMN reward  BIGINT(20) NOT NULL DEFAULT 0 AFTER referrer;
+ALTER TABLE users RENAME COLUMN address TO wallet_address;

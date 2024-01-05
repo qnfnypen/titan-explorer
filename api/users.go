@@ -19,6 +19,7 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -31,12 +32,12 @@ const (
 	NonceStringTypeSignature NonceStringType = "4"
 )
 
-var defaultNonceExpiration = 1 * time.Minute
+var defaultNonceExpiration = 5 * time.Minute
 
 func GetUserInfoHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
-	uuid := claims[identityKey].(string)
-	user, err := dao.GetUserByUserUUID(c.Request.Context(), uuid)
+	username := claims[identityKey].(string)
+	user, err := dao.GetUserByUsername(c.Request.Context(), username)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.UserNotFound, c))
 		return
@@ -47,13 +48,13 @@ func GetUserInfoHandler(c *gin.Context) {
 func UserRegister(c *gin.Context) {
 	userInfo := &model.User{
 		Username:     c.Query("username"),
-		VerifyCode:   c.Query("verify_code"),
 		UserEmail:    c.Query("username"),
 		Referrer:     c.Query("referrer"),
 		ReferralCode: random.GenerateRandomString(6),
 		CreatedAt:    time.Now(),
 	}
 
+	verifyCode := c.Query("verify_code")
 	passwd := c.Query("password")
 	if userInfo.Username == "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
@@ -76,16 +77,16 @@ func UserRegister(c *gin.Context) {
 	}
 	userInfo.PassHash = string(passHash)
 
-	verifyCode, err := queryNonceString(c.Request.Context(), userInfo.Username, NonceStringTypeRegister)
+	nonce, err := queryNonceString(c.Request.Context(), userInfo.Username, NonceStringTypeRegister)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.Unknown, c))
 		return
 	}
-	if verifyCode == "" {
+	if nonce == "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.VerifyCodeExpired, c))
 		return
 	}
-	if verifyCode != userInfo.VerifyCode {
+	if nonce != verifyCode {
 		c.JSON(http.StatusOK, respErrorCode(errors.VerifyCodeErr, c))
 		return
 	}
@@ -102,14 +103,11 @@ func UserRegister(c *gin.Context) {
 }
 
 func PasswordRest(c *gin.Context) {
-	userInfo := &model.User{
-		Username:   c.Query("username"),
-		VerifyCode: c.Query("verify_code"),
-		UserEmail:  c.Query("username"),
-	}
-
+	username := c.Query("username")
+	verifyCode := c.Query("verify_code")
 	passwd := c.Query("password")
-	_, err := dao.GetUserByUsername(c.Request.Context(), userInfo.Username)
+
+	_, err := dao.GetUserByUsername(c.Request.Context(), username)
 	if err == sql.ErrNoRows {
 		c.JSON(http.StatusOK, respErrorCode(errors.NameNotExists, c))
 		return
@@ -124,9 +122,8 @@ func PasswordRest(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.PassWordNotAllowed, c))
 		return
 	}
-	userInfo.PassHash = string(passHash)
 
-	verifyCode, err := queryNonceString(c.Request.Context(), userInfo.Username, NonceStringTypeReset)
+	nonce, err := queryNonceString(c.Request.Context(), username, NonceStringTypeReset)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.Unknown, c))
 		return
@@ -135,11 +132,11 @@ func PasswordRest(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.VerifyCodeExpired, c))
 		return
 	}
-	if verifyCode != userInfo.VerifyCode {
+	if nonce != verifyCode {
 		c.JSON(http.StatusOK, respErrorCode(errors.VerifyCodeErr, c))
 		return
 	}
-	err = dao.ResetPassword(c.Request.Context(), userInfo.PassHash, userInfo.Username)
+	err = dao.ResetPassword(c.Request.Context(), string(passHash), username)
 	if err != nil {
 		log.Errorf("update user : %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -150,21 +147,25 @@ func PasswordRest(c *gin.Context) {
 	}))
 }
 
-func BeforeLogin(c *gin.Context) {
-	userInfo := &model.User{}
-	userInfo.Username = c.Query("username")
-	userName := userInfo.Username
-	if userName == "" {
-		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
-		return
-	}
-	_, err := dao.GetUserByUsername(c.Request.Context(), userName)
-	if err != nil && err != sql.ErrNoRows {
+func GetNonce(c *gin.Context) {
+	username := c.Query("username")
+	if username == "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
 
-	nonce, err := generateNonceString(c.Request.Context(), getRedisNonceSignatureKey(userName))
+	_, err := dao.GetUserByUsername(c.Request.Context(), username)
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusOK, respErrorCode(errors.UserNotFound, c))
+		return
+	}
+
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	nonce, err := generateNonceString(c.Request.Context(), getRedisNonceSignatureKey(username))
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -173,16 +174,6 @@ func BeforeLogin(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"code": nonce,
 	}))
-
-	//if err = dao.CreateUser(c.Request.Context(), userInfo); err != nil {
-	//	log.Errorf("GetUserByUsername : %v", err)
-	//	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-	//	return
-	//}
-	//
-	//c.JSON(http.StatusOK, respJSON(JsonObject{
-	//	"code": nonce,
-	//}))
 }
 
 func generateNonceString(ctx context.Context, key string) (string, error) {
@@ -507,4 +498,83 @@ func GetUserInfo(ctx context.Context, key string) int64 {
 		return 0
 	}
 	return peakBandwidth
+}
+
+func BindWalletHandler(c *gin.Context) {
+	type bindParams struct {
+		Username   string `json:"username"`
+		VerifyCode string `json:"verify_code"`
+		Sign       string `json:"sign"`
+		Address    string `json:"address"`
+	}
+
+	var param bindParams
+	if err := c.BindJSON(&param); err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	nonce, err := queryNonceString(c.Request.Context(), param.Username, NonceStringTypeSignature)
+	if err != nil {
+		log.Errorf("query nonce string: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	if nonce == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.VerifyCodeExpired, c))
+		return
+	}
+
+	recoverAddress, err := VerifyMessage(nonce, param.Sign)
+	if strings.ToUpper(recoverAddress) != strings.ToUpper(param.Address) {
+		c.JSON(http.StatusOK, respErrorCode(errors.UserNotFound, c))
+		return
+	}
+
+	user, err := dao.GetUserByUsername(c.Request.Context(), param.Username)
+	if err != nil || user == nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.UserNotFound, c))
+		return
+	}
+
+	if user.WalletAddress != "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.WalletBound, c))
+		return
+	}
+
+	if err := dao.UpdateUserWalletAddress(context.Background(), param.Username, recoverAddress); err != nil {
+		log.Errorf("update user wallet address: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(nil))
+}
+
+func UnBindWalletHandler(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	username := claims[identityKey].(string)
+
+	ctx := context.Background()
+	user, err := dao.GetUserByUsername(ctx, username)
+	if err != nil {
+		log.Errorf("get user by username: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	if user == nil {
+		log.Errorf("user not found: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	if err := dao.UpdateUserWalletAddress(context.Background(), user.Username, ""); err != nil {
+		log.Errorf("update user wallet address: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(nil))
 }

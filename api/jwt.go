@@ -44,7 +44,7 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 		PayloadFunc: func(data interface{}) jwt.MapClaims {
 			if v, ok := data.(*model.User); ok {
 				return jwt.MapClaims{
-					identityKey: v.Uuid,
+					identityKey: v.Username,
 				}
 			}
 			return jwt.MapClaims{}
@@ -52,7 +52,7 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 		IdentityHandler: func(c *gin.Context) interface{} {
 			claims := jwt.ExtractClaims(c)
 			return &model.User{
-				Uuid: claims[identityKey].(string),
+				Username: claims[identityKey].(string),
 			}
 		},
 		LoginResponse: func(c *gin.Context, code int, token string, expire time.Time) {
@@ -70,10 +70,11 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			})
 		},
 		Authenticator: func(c *gin.Context) (interface{}, error) {
-			var loginParams login
-			loginParams.Username = c.Query("username")
-			loginParams.VerifyCode = c.Query("verify_code")
-			loginParams.Password = c.Query("password")
+			loginParams := &login{
+				Username:   c.Query("username"),
+				VerifyCode: c.Query("verify_code"),
+				Password:   c.Query("password"),
+			}
 			signature := c.Query("sign")
 			walletAddress := c.Query("address")
 			if loginParams.Username == "" {

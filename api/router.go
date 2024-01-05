@@ -55,7 +55,7 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	apiV2.GET("/get_cache_list", GetCacheListHandler)
 	apiV2.GET("/get_retrieval_list", GetRetrievalListHandler)
 	apiV2.GET("/get_validation_list", GetValidationListHandler)
-	apiV2.GET("/login_before", BeforeLogin)
+	apiV2.GET("/login_before", GetNonce)
 	apiV2.POST("/login", authMiddleware.LoginHandler)
 	apiV2.POST("/logout", authMiddleware.LogoutHandler)
 	apiV2.GET("/get_user_device_count", GetUserDevicesCountHandler)
@@ -69,6 +69,8 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	apiV2.GET("/device_unbinding", DeviceUnBindingHandler)
 	apiV2.GET("/get_user_device_profile", GetUserDeviceProfileHandler)
 	apiV2.GET("/get_device_active_info", GetDeviceActiveInfoHandler)
+	apiV2.POST("/wallet/bind", BindWalletHandler)
+	apiV2.POST("/wallet/unbind", UnBindWalletHandler)
 
 	user := apiV1.Group("/user")
 	user.POST("/login", authMiddleware.LoginHandler)
@@ -76,6 +78,7 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	user.Use(authMiddleware.MiddlewareFunc())
 	user.GET("/refresh_token", authMiddleware.RefreshHandler)
 	user.POST("/info", GetUserInfoHandler)
+
 	// admin
 	admin := apiV1.Group("/admin")
 	admin.Use(authMiddleware.MiddlewareFunc())
@@ -95,7 +98,9 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	storage.POST("/get_verify_code", GetVerifyCodeHandle)
 	storage.POST("/register", UserRegister)
 	storage.POST("/password_reset", PasswordRest)
-	storage.GET("/login_before", BeforeLogin)
+	// Deprecated: use /nonce instead
+	storage.GET("/login_before", GetNonce)
+	storage.GET("/nonce", GetNonce)
 	storage.POST("/login", authMiddleware.LoginHandler)
 	storage.POST("/logout", authMiddleware.LogoutHandler)
 	apiV3.GET("/", GetShareLinkHandler)

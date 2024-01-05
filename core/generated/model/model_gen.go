@@ -288,16 +288,15 @@ type User struct {
 	Uuid            string    `db:"uuid" json:"uuid"`
 	Avatar          string    `db:"avatar" json:"avatar"`
 	Username        string    `db:"username" json:"username"`
-	PublicKey       string    `db:"public_key" json:"public_key"`
-	VerifyCode      string    `db:"verify_code" json:"verify_code"`
 	PassHash        string    `db:"pass_hash" json:"pass_hash"`
 	UserEmail       string    `db:"user_email" json:"user_email"`
-	Address         string    `db:"address" json:"address"`
+	WalletAddress   string    `db:"wallet_address" json:"wallet_address"`
 	Role            int32     `db:"role" json:"role"`
 	AllocateStorage int       `db:"allocate_storage" json:"allocate_storage"`
 	ProjectId       int64     `db:"project_id"`
 	Referrer        string    `db:"referrer" json:"referrer"`
 	ReferralCode    string    `db:"referral_code" json:"referral_code"`
+	Reward          string    `db:"reward" json:"reward"`
 	CreatedAt       time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt       time.Time `db:"updated_at" json:"updated_at"`
 	DeletedAt       time.Time `db:"deleted_at" json:"deleted_at"`
