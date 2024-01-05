@@ -528,7 +528,7 @@ func BindWalletHandler(c *gin.Context) {
 
 	recoverAddress, err := VerifyMessage(nonce, param.Sign)
 	if strings.ToUpper(recoverAddress) != strings.ToUpper(param.Address) {
-		c.JSON(http.StatusOK, respErrorCode(errors.UserNotFound, c))
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidSignature, c))
 		return
 	}
 
