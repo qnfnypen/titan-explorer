@@ -12,7 +12,6 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/gnasnik/titan-explorer/pkg/random"
 	"github.com/go-redis/redis/v9"
 	"golang.org/x/crypto/bcrypt"
@@ -30,6 +29,12 @@ const (
 	NonceStringTypeLogin     NonceStringType = "2"
 	NonceStringTypeReset     NonceStringType = "3"
 	NonceStringTypeSignature NonceStringType = "4"
+)
+
+const (
+	RewardEventInviteFrens = "invite_frens"
+	RewardEventBindDevice  = "bind_device"
+	RewardEventEarn        = "earn"
 )
 
 var defaultNonceExpiration = 5 * time.Minute
@@ -70,6 +75,15 @@ func UserRegister(c *gin.Context) {
 		return
 	}
 
+	var referrer *model.User
+	if userInfo.ReferralCode != "" {
+		referrer, err = dao.GetUserByRefCode(c.Request.Context(), userInfo.ReferralCode)
+		if err != nil {
+			c.JSON(http.StatusOK, respErrorCode(errors.InvalidReferralCode, c))
+			return
+		}
+	}
+
 	passHash, err := bcrypt.GenerateFromPassword([]byte(passwd), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.PassWordNotAllowed, c))
@@ -97,6 +111,24 @@ func UserRegister(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+
+	if referrer != nil {
+		rewardStatement := &model.RewardStatement{
+			UserName:  userInfo.Username,
+			From:      "system",
+			To:        userInfo.Username,
+			Amount:    10,
+			Event:     RewardEventInviteFrens,
+			Status:    1,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+		err := dao.UpdateUserReward(c.Request.Context(), rewardStatement)
+		if err != nil {
+			log.Errorf("Update user reward: %v", err)
+		}
+	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"msg": "success",
 	}))
@@ -273,19 +305,39 @@ func DeviceBindingHandler(c *gin.Context) {
 				return
 			}
 		}
-
 	}
 
-	var timeWeb = "0000-00-00 00:00:00"
-	timeString, _ := time.Parse(formatter.TimeFormatDatetime, timeWeb)
-	if old != nil && old.BoundAt == timeString {
+	if old != nil && old.BoundAt.IsZero() {
 		deviceInfo.BoundAt = time.Now()
 	}
+
 	err = dao.UpdateUserDeviceInfo(c.Request.Context(), deviceInfo)
 	if err != nil {
 		log.Errorf("update user device: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
+	}
+
+	_, err = dao.GetRewardStatementByFrom(c.Request.Context(), deviceInfo.DeviceID)
+	if err != nil {
+		log.Errorf("get reward statement: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	rewardStatement := &model.RewardStatement{
+		UserName:  deviceInfo.UserID,
+		From:      deviceInfo.DeviceID,
+		To:        deviceInfo.UserID,
+		Amount:    10,
+		Event:     RewardEventBindDevice,
+		Status:    1,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	err = dao.UpdateUserReward(c.Request.Context(), rewardStatement)
+	if err != nil {
+		log.Errorf("Update user reward: %v", err)
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{

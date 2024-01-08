@@ -30,6 +30,7 @@ const (
 	GetVCFrequently
 	InvalidSignature
 	WalletBound
+	InvalidReferralCode
 
 	Unknown     = -1
 	GenericCode = 1
@@ -72,6 +73,7 @@ var ErrMap = map[int]string{
 	GetVCFrequently:                         "Please do not obtain verification codes frequently. Please wait for some time and try again.:请勿频繁获取验证码。请等待一段时间后再试。",
 	InvalidSignature:                        "invalid signature: 无效的签名",
 	WalletBound:                             "wallet bound: 已绑定钱包",
+	InvalidReferralCode:                     "invalid referral code: 无效的邀请码",
 }
 
 type GenericError struct {

@@ -8,7 +8,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 )
 
-var tableNameUser = "users"
+const tableNameUser = "users"
 
 func CreateUser(ctx context.Context, user *model.User) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
@@ -52,4 +52,30 @@ func UpdateUserWalletAddress(ctx context.Context, username, address string) erro
 	query := fmt.Sprintf("update %s set wallet_address = ? where username = ?", tableNameUser)
 	_, err := DB.ExecContext(ctx, query, address, username)
 	return err
+}
+
+func GetUsersReferrer(ctx context.Context, username string) (*model.User, error) {
+	var u model.User
+	query := fmt.Sprintf("SELECT * FROM %s u JOIN %s ur on ur.referral_code=ur.referrer WHERE ur.username=? LIMIT 1", tableNameUser, tableNameUser)
+	err := DB.QueryRowxContext(ctx, query, username).StructScan(&u)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNoRow
+		}
+		return nil, err
+	}
+	return &u, nil
+}
+
+func GetUserByRefCode(ctx context.Context, refCode string) (*model.User, error) {
+	var u model.User
+	query := "SELECT * FROM users WHERE referral_code=? LIMIT 1"
+	err := DB.QueryRowxContext(ctx, query, refCode).Scan(&u)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNoRow
+		}
+		return nil, err
+	}
+	return &u, nil
 }
