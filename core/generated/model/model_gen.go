@@ -288,7 +288,7 @@ type User struct {
 	Uuid            string    `db:"uuid" json:"uuid"`
 	Avatar          string    `db:"avatar" json:"avatar"`
 	Username        string    `db:"username" json:"username"`
-	PassHash        string    `db:"pass_hash" json:"pass_hash"`
+	PassHash        string    `db:"pass_hash" json:"-"`
 	UserEmail       string    `db:"user_email" json:"user_email"`
 	WalletAddress   string    `db:"wallet_address" json:"wallet_address"`
 	Role            int32     `db:"role" json:"role"`
