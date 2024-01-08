@@ -56,3 +56,11 @@ type StorageProvider struct {
 	CreatedAt   time.Time `db:"created_at" json:"-"`
 	UpdatedAt   time.Time `db:"updated_at" json:"-"`
 }
+
+type InviteFrensRecord struct {
+	Email      string    `db:"email" json:"email"`
+	Status     int       `db:"status" json:"status"`
+	BoundCount int       `db:"bound_count" json:"bound_count"`
+	Reward     int       `db:"reward" json:"reward"`
+	Time       time.Time `db:"time" json:"time"`
+}

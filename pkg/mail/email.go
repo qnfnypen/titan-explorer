@@ -68,7 +68,7 @@ func (c *EmailClient) SendMessage() (bool, error) {
 	}
 	dm := gomail.NewMessage()
 	dm.SetHeader("From", c.Message.From)
-	dm.SetHeader("To", c.Message.To...)
+	dm.SetHeader("Recipient", c.Message.To...)
 
 	if len(c.Message.Cc) != 0 {
 		dm.SetHeader("Cc", c.Message.Cc...)

@@ -71,6 +71,7 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	apiV2.GET("/get_device_active_info", GetDeviceActiveInfoHandler)
 	apiV2.POST("/wallet/bind", BindWalletHandler)
 	apiV2.POST("/wallet/unbind", UnBindWalletHandler)
+	apiV2.GET("/referral_list", GetReferralListHandler)
 
 	user := apiV1.Group("/user")
 	user.POST("/login", authMiddleware.LoginHandler)

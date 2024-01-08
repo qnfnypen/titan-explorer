@@ -114,9 +114,8 @@ func UserRegister(c *gin.Context) {
 
 	if referrer != nil {
 		rewardStatement := &model.RewardStatement{
-			UserName:  userInfo.Username,
-			From:      "system",
-			To:        userInfo.Username,
+			Username:  userInfo.Username,
+			Recipient: referrer.Username,
 			Amount:    10,
 			Event:     RewardEventInviteFrens,
 			Status:    1,
@@ -318,17 +317,31 @@ func DeviceBindingHandler(c *gin.Context) {
 		return
 	}
 
-	_, err = dao.GetRewardStatementByFrom(c.Request.Context(), deviceInfo.DeviceID)
+	_, err = dao.GetRewardStatementByDeviceID(c.Request.Context(), deviceInfo.DeviceID)
 	if err != nil {
 		log.Errorf("get reward statement: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
+	referrer, err := dao.GetUsersReferrer(c.Request.Context(), deviceInfo.DeviceID)
+	if err != nil {
+		log.Errorf("get user referrer: %v", err)
+		c.JSON(http.StatusOK, respJSON(JsonObject{
+			"msg": "success",
+		}))
+	}
+
+	if referrer == nil {
+		c.JSON(http.StatusOK, respJSON(JsonObject{
+			"msg": "success",
+		}))
+	}
+
 	rewardStatement := &model.RewardStatement{
-		UserName:  deviceInfo.UserID,
-		From:      deviceInfo.DeviceID,
-		To:        deviceInfo.UserID,
+		Recipient: referrer.Username,
+		Username:  deviceInfo.UserID,
+		DeviceId:  deviceInfo.DeviceID,
 		Amount:    10,
 		Event:     RewardEventBindDevice,
 		Status:    1,
@@ -629,4 +642,32 @@ func UnBindWalletHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, respJSON(nil))
+}
+
+func GetReferralListHandler(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	username := claims[identityKey].(string)
+
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+	page, _ := strconv.Atoi(c.Query("page"))
+	order := c.Query("order")
+	orderField := c.Query("order_field")
+	option := dao.QueryOption{
+		Page:       page,
+		PageSize:   pageSize,
+		Order:      order,
+		OrderField: orderField,
+	}
+
+	total, referList, err := dao.GetReferralList(c.Request.Context(), username, option)
+	if err != nil {
+		log.Errorf("get referral list: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list":  referList,
+		"total": total,
+	}))
 }
