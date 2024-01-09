@@ -12,7 +12,7 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	router.Use(Cors())
 	apiV1 := router.Group("/api/v1")
 	apiV2 := router.Group("/api/v2")
-	apiV3 := router.Group("/link")
+	link := router.Group("/link")
 
 	RegisterV1RouterAuthByKey(router)
 
@@ -32,6 +32,8 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	apiV2.GET("/schedulers", GetSchedulersHandler)
 	apiV2.GET("/get_index_info", GetIndexInfoHandler)
 	apiV2.GET("/get_query_info", GetQueryInfoHandler)
+	apiV2.POST("/device", GetDeviceProfileHandler)
+
 	// index info all nodes info from device info
 	apiV2.GET("/get_nodes_info", GetNodesInfoHandler)
 	apiV2.GET("/get_device_info", GetDeviceInfoHandler)
@@ -104,7 +106,7 @@ func ConfigRouter(router *gin.Engine, cfg config.Config) {
 	storage.GET("/nonce", GetNonce)
 	storage.POST("/login", authMiddleware.LoginHandler)
 	storage.POST("/logout", authMiddleware.LogoutHandler)
-	apiV3.GET("/", GetShareLinkHandler)
+	link.GET("/", GetShareLinkHandler)
 	storage.GET("/get_link", ShareLinkHandler)
 	storage.GET("/get_map_cid", GetMapByCidHandler)
 	storage.GET("/get_map_link", GetShareLinkHandler)

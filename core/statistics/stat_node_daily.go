@@ -21,7 +21,10 @@ func addDeviceInfoHours(ctx context.Context, deviceInfo []*model.DeviceInfo) err
 	var upsertDevice []*model.DeviceInfoHour
 	for _, device := range deviceInfo {
 		var deviceInfoHour model.DeviceInfoHour
-		deviceOrdinaryInfo := dao.GetDeviceInfo(ctx, device.DeviceID)
+		deviceOrdinaryInfo, err := dao.GetDeviceInfo(ctx, device.DeviceID)
+		if err != nil {
+			continue
+		}
 		deviceInfoHour.RetrievalCount = device.RetrievalCount
 		deviceInfoHour.BlockCount = device.CacheCount
 		deviceInfoHour.DeviceID = device.DeviceID

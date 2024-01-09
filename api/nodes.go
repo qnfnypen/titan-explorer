@@ -667,3 +667,42 @@ func GetDiskDaysHandler(c *gin.Context) {
 		"series_data": m,
 	}))
 }
+
+func GetDeviceProfileHandler(c *gin.Context) {
+	type getEarningReq struct {
+		DeviceID string   `json:"device_id"`
+		Keys     []string `json:"keys"`
+		Since    string   `json:"since"`
+	}
+
+	var param getEarningReq
+	if err := c.BindJSON(&param); err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	response := make(map[string]interface{})
+
+	deviceInfo, err := dao.GetDeviceInfo(c.Request.Context(), param.DeviceID)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	for _, key := range param.Keys {
+		switch key {
+		case "income":
+			response[key] = map[string]interface{}{
+				"today": deviceInfo.TodayProfit,
+				"total": deviceInfo.CumulativeProfit,
+			}
+		case "online":
+			response[key] = map[string]interface{}{
+				"today": deviceInfo.TodayOnlineTime,
+				"total": deviceInfo.OnlineTime,
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, respJSON(response))
+}

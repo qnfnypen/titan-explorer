@@ -472,14 +472,15 @@ func GenerateInactiveNodeRecords(ctx context.Context, t time.Time) error {
 	return BulkUpsertDeviceInfoHours(ctx, inactiveNodes)
 }
 
-func GetDeviceInfo(ctx context.Context, deviceId string) model.DeviceInfo {
+func GetDeviceInfo(ctx context.Context, deviceId string) (*model.DeviceInfo, error) {
 	var deviceInfo model.DeviceInfo
 	query := fmt.Sprintf("SELECT user_id FROM %s where device_id = '%s'", tableNameDeviceInfo, deviceId)
 	err := DB.QueryRowxContext(ctx, query).StructScan(&deviceInfo)
 	if err != nil {
 		log.Errorf("getDeviceInfo %v", err)
+		return nil, err
 	}
-	return deviceInfo
+	return &deviceInfo, nil
 }
 
 func GetDeviceInfoById(ctx context.Context, deviceId string) model.DeviceInfo {
