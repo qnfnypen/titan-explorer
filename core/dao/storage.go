@@ -34,7 +34,7 @@ type UserInfoRes struct {
 func GetStorageInfoHourList(ctx context.Context, userId string, option QueryOption) ([]*UserInfoRes, error) {
 	sqlClause := fmt.Sprintf(`select date_format(time, '%%Y-%%m-%%d %%H') as date,
 	max(total_bandwidth) - min(total_bandwidth) as total_bandwidth,
-	max(peak_bandwidth) as peak_bandwidth, 
+	ifnull(max(peak_bandwidth),0) as peak_bandwidth, 
 	max(download_count) - min(download_count) as download_count 
 	from %s where user_id='%s' and time>='%s' and time<='%s' group by date order by date`, tableNameStorageHour, userId, option.StartTime, option.EndTime)
 	var out []*UserInfoRes
@@ -75,7 +75,7 @@ func handleStorageHourList(in []*UserInfoRes) []*UserInfoRes {
 func GetStorageInfoDaysList(ctx context.Context, userId string, option QueryOption) ([]*UserInfoRes, error) {
 	sqlClause := fmt.Sprintf(`select date_format(time, '%%Y-%%m-%%d') as date,
 	max(total_bandwidth) - min(total_bandwidth) as total_bandwidth,
-	max(peak_bandwidth) as peak_bandwidth, 
+	ifnull(max(peak_bandwidth),0) as peak_bandwidth, 
 	max(download_count) - min(download_count) as download_count 
 	from %s where user_id='%s' and time>='%s' and time<='%s' group by date order by date`, tableNameStorageHour, userId, option.StartTime, option.EndTime)
 	var out []*UserInfoRes
