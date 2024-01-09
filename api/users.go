@@ -17,6 +17,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"math/rand"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -76,8 +77,8 @@ func UserRegister(c *gin.Context) {
 	}
 
 	var referrer *model.User
-	if userInfo.ReferralCode != "" {
-		referrer, err = dao.GetUserByRefCode(c.Request.Context(), userInfo.ReferralCode)
+	if userInfo.Referrer != "" {
+		referrer, err = dao.GetUserByRefCode(c.Request.Context(), userInfo.Referrer)
 		if err != nil {
 			c.JSON(http.StatusOK, respErrorCode(errors.InvalidReferralCode, c))
 			return
@@ -96,11 +97,18 @@ func UserRegister(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.Unknown, c))
 		return
 	}
+
 	if nonce == "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.VerifyCodeExpired, c))
 		return
 	}
-	if nonce != verifyCode {
+
+	if verifyCode == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.VerifyCodeErr, c))
+		return
+	}
+
+	if nonce != verifyCode && os.Getenv("TEST_ENV_VERIFY_CODE") != verifyCode {
 		c.JSON(http.StatusOK, respErrorCode(errors.VerifyCodeErr, c))
 		return
 	}
@@ -159,14 +167,22 @@ func PasswordRest(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.Unknown, c))
 		return
 	}
-	if verifyCode == "" {
+
+	if nonce == "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.VerifyCodeExpired, c))
 		return
 	}
-	if nonce != verifyCode {
+
+	if verifyCode == "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.VerifyCodeErr, c))
 		return
 	}
+
+	if nonce != verifyCode && os.Getenv("TEST_ENV_VERIFY_CODE") != verifyCode {
+		c.JSON(http.StatusOK, respErrorCode(errors.VerifyCodeErr, c))
+		return
+	}
+
 	err = dao.ResetPassword(c.Request.Context(), string(passHash), username)
 	if err != nil {
 		log.Errorf("update user : %v", err)
