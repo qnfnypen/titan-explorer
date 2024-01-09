@@ -26,7 +26,7 @@ func UpdateUserReward(ctx context.Context, statement *model.RewardStatement) err
 
 	_, err = tx.NamedExecContext(ctx, fmt.Sprintf(
 		`INSERT INTO %s (recipient, username, amount, event, status, device_id, created_at, updated_at)
-			VALUES (:recipient, ;username, :amount, :event, :status, :device_id, :created_at, :updated_at);`, tableNameRewardStatement),
+			VALUES (:recipient, :username, :amount, :event, :status, :device_id, :created_at, :updated_at);`, tableNameRewardStatement),
 		statement)
 	if err != nil {
 		return err

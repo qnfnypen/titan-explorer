@@ -77,33 +77,33 @@ CREATE TABLE `device_info` (
   `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
   `deleted_at` DATETIME(3) NOT NULL DEFAULT 0,
   `bound_at` DATETIME(3) NOT NULL DEFAULT 0,
-  `device_id` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+  `device_id` VARCHAR(191) NOT NULL DEFAULT '',
   `node_type` INT(2) NOT NULL DEFAULT 0,
   `device_rank` INT(20) NOT NULL DEFAULT '0' COMMENT '',
-  `device_name` CHAR(56) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-  `user_id` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-  `system_version` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-  `network_info` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-  `external_ip` VARCHAR(28) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-  `internal_ip` VARCHAR(28) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-  `ip_location` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-  `ip_country` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-  `ip_province` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-  `ip_city` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+  `device_name` CHAR(56) NOT NULL DEFAULT '',
+  `user_id` VARCHAR(191) NOT NULL DEFAULT '',
+  `system_version` VARCHAR(191) NOT NULL DEFAULT '',
+  `network_info` VARCHAR(191) NOT NULL DEFAULT '',
+  `external_ip` VARCHAR(28) NOT NULL DEFAULT '',
+  `internal_ip` VARCHAR(28) NOT NULL DEFAULT '',
+  `ip_location` VARCHAR(191) NOT NULL DEFAULT '',
+  `ip_country` VARCHAR(191) NOT NULL DEFAULT '',
+  `ip_province` VARCHAR(191) NOT NULL DEFAULT '',
+  `ip_city` VARCHAR(191) NOT NULL DEFAULT '',
   `latitude`FLOAT(32) NOT NULL DEFAULT '0' COMMENT '',
   `longitude` FLOAT(32) NOT NULL DEFAULT '0' COMMENT '',
-  `mac_location` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+  `mac_location` VARCHAR(191) NOT NULL DEFAULT '',
   `cpu_usage` FLOAT(32) NOT NULL DEFAULT '0' COMMENT '',
   `cpu_cores` INT(20) NOT NULL DEFAULT '0' COMMENT '',
   `memory_usage` FLOAT(32) NOT NULL DEFAULT '0' COMMENT '',
   `memory` FLOAT(32) NOT NULL DEFAULT '0' COMMENT '',
   `disk_usage` FLOAT(32) NOT NULL DEFAULT '0' COMMENT '',
   `disk_space` FLOAT(32) NOT NULL DEFAULT '0' COMMENT '',
-  `bind_status` CHAR(28) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-  `device_status` CHAR(28) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+  `bind_status` CHAR(28) NOT NULL DEFAULT '',
+  `device_status` CHAR(28) NOT NULL DEFAULT '',
   `active_status` INT(2) NOT NULL DEFAULT 0,
-  `disk_type` CHAR(28) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-  `io_system` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+  `disk_type` CHAR(28) NOT NULL DEFAULT '',
+  `io_system` VARCHAR(191) NOT NULL DEFAULT '',
   `online_time` FLOAT(32) NOT NULL DEFAULT '0',
   `today_online_time` FLOAT(32) NOT NULL DEFAULT '0',
   `today_profit` FLOAT(32) NOT NULL DEFAULT '0',
@@ -119,7 +119,7 @@ CREATE TABLE `device_info` (
   `retrieval_count` BIGINT(20) NOT NULL DEFAULT '0',
   PRIMARY KEY (`device_id`),
   INDEX `idx_device_info_deleted_at` USING BTREE(`deleted_at` ASC)
-) ENGINE = INNODB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4;
+) ENGINE = INNODB CHARSET = utf8mb4;
 
 DROP TABLE IF EXISTS `device_info_daily`;
 
@@ -147,7 +147,7 @@ CREATE TABLE `device_info_daily` (
    PRIMARY KEY USING BTREE (`id`),
    UNIQUE KEY `idx_device_id_time` (`device_id`,`time`) USING BTREE,
    INDEX `idx_device_info_daily_deleted_at` USING BTREE(`deleted_at` ASC)
-) ENGINE = INNODB CHARSET = utf8;
+) ENGINE = INNODB CHARSET = utf8mb4;
 
 DROP TABLE IF EXISTS `device_info_hour`;
 
@@ -174,7 +174,7 @@ CREATE TABLE `device_info_hour` (
  `block_count` BIGINT(20) NOT NULL DEFAULT '0',
  PRIMARY KEY USING BTREE (`id`),
  UNIQUE KEY `uniq_device_id_time` (`device_id`,`time`) USING BTREE
-) ENGINE = INNODB CHARSET = utf8;
+) ENGINE = INNODB CHARSET = utf8mb4;
 
 DROP TABLE IF EXISTS `full_node_info`;
 

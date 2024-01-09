@@ -68,7 +68,7 @@ func UserRegister(c *gin.Context) {
 	}
 	_, err := dao.GetUserByUsername(c.Request.Context(), userInfo.Username)
 	if err == nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NameExists, c))
+		c.JSON(http.StatusOK, respErrorCode(errors.UserEmailExists, c))
 		return
 	}
 	if err != nil && err != sql.ErrNoRows {

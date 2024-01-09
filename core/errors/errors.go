@@ -19,7 +19,7 @@ const (
 	AmountLimitExceeded
 	UnbindingNotAllowed
 	PassWordNotAllowed
-	NameExists
+	UserEmailExists
 	NameNotExists
 	VerifyCodeErr
 	VerifyCodeExpired
@@ -49,7 +49,7 @@ var ErrMap = map[int]string{
 	AmountLimitExceeded:                      "request amount limit exceeded:请求数量限制",
 	UnbindingNotAllowed:                      "unbinding not allowed:暂不能解绑",
 	PassWordNotAllowed:                       "password not allowed:密码错误",
-	NameExists:                               "the name Exists:该名称已存在",
+	UserEmailExists:                          "user email exists:用户已注册",
 	NameNotExists:                            "the name not exists:该名称不存在",
 	VerifyCodeErr:                            "verify code err:验证码错误",
 	VerifyCodeExpired:                        "verify code expired:验证码过期",
