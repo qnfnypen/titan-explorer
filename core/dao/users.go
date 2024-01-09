@@ -69,8 +69,8 @@ func GetUsersReferrer(ctx context.Context, username string) (*model.User, error)
 
 func GetUserByRefCode(ctx context.Context, refCode string) (*model.User, error) {
 	var u model.User
-	query := "SELECT * FROM users WHERE referral_code=? LIMIT 1"
-	err := DB.QueryRowxContext(ctx, query, refCode).Scan(&u)
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE referral_code=? LIMIT 1`, tableNameUser)
+	err := DB.QueryRowxContext(ctx, query, refCode).StructScan(&u)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrNoRow

@@ -682,8 +682,16 @@ func GetReferralListHandler(c *gin.Context) {
 		return
 	}
 
+	totalReward, err := dao.GetUserReferralReward(c.Request.Context(), username)
+	if err != nil {
+		log.Errorf("get user referral reward: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list":  referList,
-		"total": total,
+		"list":         referList,
+		"total":        total,
+		"total_reward": totalReward,
 	}))
 }

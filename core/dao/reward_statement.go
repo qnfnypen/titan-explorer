@@ -83,3 +83,15 @@ func GetReferralList(ctx context.Context, recipient string, option QueryOption) 
 
 	return total, out, nil
 }
+
+func GetUserReferralReward(ctx context.Context, recipient string) (int64, error) {
+	var total int64
+	query := fmt.Sprintf(`select ifnull(sum(amount),0) from %s where event in ("invite_frens", "bind_device") and recipient = ?`, tableNameRewardStatement)
+
+	err := DB.GetContext(ctx, &total, query, recipient)
+	if err != nil {
+		return 0, err
+	}
+
+	return total, nil
+}
