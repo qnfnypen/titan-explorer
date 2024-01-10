@@ -670,9 +670,9 @@ func GetDiskDaysHandler(c *gin.Context) {
 
 func GetDeviceProfileHandler(c *gin.Context) {
 	type getEarningReq struct {
-		DeviceID string   `json:"device_id"`
-		Keys     []string `json:"keys"`
-		Since    string   `json:"since"`
+		NodeID string   `json:"node_id"`
+		Keys   []string `json:"keys"`
+		Since  string   `json:"since"`
 	}
 
 	var param getEarningReq
@@ -683,7 +683,7 @@ func GetDeviceProfileHandler(c *gin.Context) {
 
 	response := make(map[string]interface{})
 
-	deviceInfo, err := dao.GetDeviceInfo(c.Request.Context(), param.DeviceID)
+	deviceInfo, err := dao.GetDeviceInfo(c.Request.Context(), param.NodeID)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -701,8 +701,47 @@ func GetDeviceProfileHandler(c *gin.Context) {
 				"today": deviceInfo.TodayOnlineTime,
 				"total": deviceInfo.OnlineTime,
 			}
+		case "day_incomes":
+			response[key] = queryDailyIncome(c.Request.Context(), param.NodeID, param.Since)
 		}
 	}
 
 	c.JSON(http.StatusOK, respJSON(response))
+}
+
+func queryDailyIncome(ctx context.Context, nodeId string, since string) interface{} {
+	start := carbon.Now().SubDays(30).String()
+
+	if since != "" {
+		start = carbon.Parse(since).String()
+	}
+
+	option := dao.QueryOption{
+		StartTime: start,
+	}
+
+	condition := &model.DeviceInfoDaily{
+		DeviceID: nodeId,
+	}
+
+	list, err := dao.GetDeviceInfoDailyList(context.Background(), condition, option)
+	if err != nil {
+		log.Errorf("database GetDeviceInfoDailyList: %v", err)
+		return nil
+	}
+
+	out := make([]interface{}, 0)
+	for _, item := range list {
+		out = append(out, map[string]interface{}{
+			"k": formatDate(item.Date),
+			"v": item.Income,
+		})
+	}
+
+	return out
+}
+
+func formatDate(date string) string {
+	t, _ := time.Parse(time.DateOnly, date)
+	return t.Format(formatter.TimeFormatMD)
 }
