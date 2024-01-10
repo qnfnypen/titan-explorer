@@ -297,6 +297,7 @@ type User struct {
 	Referrer        string    `db:"referrer" json:"referrer"`
 	ReferralCode    string    `db:"referral_code" json:"referral_code"`
 	Reward          int64     `db:"reward" json:"reward"`
+	Payout 			int64     `db:"payout" json:"payout"`
 	CreatedAt       time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt       time.Time `db:"updated_at" json:"updated_at"`
 	DeletedAt       time.Time `db:"deleted_at" json:"deleted_at"`

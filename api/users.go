@@ -712,6 +712,11 @@ func WithdrawHandler(c *gin.Context) {
 		return
 	}
 
+	if params.Amount <= 0 {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
 	user, err := dao.GetUserByUsername(c.Request.Context(), username)
 	if err != nil {
 		log.Errorf("query user: %v", err)

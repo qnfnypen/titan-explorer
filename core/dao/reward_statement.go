@@ -109,9 +109,9 @@ func AddWithdrawRequest(ctx context.Context, withdraw *model.Withdraw) error {
 	}
 	defer tx.Rollback()
 
-	updateRewardQuery := fmt.Sprintf("update %s set reward = reward - ? where username = ?", tableNameUser)
+	updateRewardQuery := fmt.Sprintf("update %s set reward = reward - ?, payout = payout + ? where username = ?", tableNameUser)
 
-	_, err = tx.ExecContext(ctx, updateRewardQuery, withdraw.Amount, withdraw.Username)
+	_, err = tx.ExecContext(ctx, updateRewardQuery, withdraw.Amount, withdraw.Amount, withdraw.Username)
 	if err != nil {
 		return err
 	}
