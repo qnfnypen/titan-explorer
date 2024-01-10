@@ -97,15 +97,15 @@ func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, op
 		args = append(args, option.EndTime)
 	}
 
-	var out []*DeviceStatistics
-	err := DB.SelectContext(ctx, &out, fmt.Sprintf(
+	var result []*DeviceStatistics
+	err := DB.SelectContext(ctx, &result, fmt.Sprintf(
 		`SELECT DATE_FORMAT(time, '%%Y-%%m-%%d') as date, nat_ratio, disk_usage,disk_space,bandwidth_up,bandwidth_down, latency, pkg_loss_ratio, income, online_time, upstream_traffic, 
     	downstream_traffic, retrieval_count,block_count FROM %s %s`, tableNameDeviceInfoDaily, where), args...)
 	if err != nil {
 		return nil, err
 	}
 
-	return handleDailyList(option.StartTime[0:10], option.EndTime[0:10], out), err
+	return handleDailyList(result), err
 }
 
 func GetNodesInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*DeviceStatistics, error) {
@@ -124,8 +124,8 @@ func GetNodesInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, opt
 		args = append(args, option.EndTime)
 	}
 
-	var out []*DeviceStatistics
-	err := DB.SelectContext(ctx, &out, fmt.Sprintf(
+	var result []*DeviceStatistics
+	err := DB.SelectContext(ctx, &result, fmt.Sprintf(
 		`SELECT DATE_FORMAT(time, '%%Y-%%m-%%d') as date, COUNT(DISTINCT(device_id)) as node_count,nat_ratio, ROUND(sum(disk_usage*disk_space/100),4) as disk_usage,ROUND(sum(disk_space),4) as disk_space,  ROUND(sum(income),2) as income, ROUND(sum(upstream_traffic),2) as upstream_traffic, 
     	ROUND(sum(bandwidth_up),2) as bandwidth_up,ROUND(sum(bandwidth_down),2) as bandwidth_down,
     	ROUND(sum(downstream_traffic),2) as downstream_traffic, ROUND(sum(retrieval_count),2) as retrieval_count,ROUND(sum(block_count),2) as block_count FROM %s %s group by date`, tableNameDeviceInfoDaily, where), args...)
@@ -133,18 +133,30 @@ func GetNodesInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, opt
 		return nil, err
 	}
 
-	return handleDailyList(option.StartTime[0:10], option.EndTime[0:10], out), err
+	return handleDailyList(result), err
 }
 
-func handleDailyList(start, end string, in []*DeviceStatistics) []*DeviceStatistics {
-	startTime, _ := time.Parse(formatter.TimeFormatDateOnly, start)
-	endTime, _ := time.Parse(formatter.TimeFormatDateOnly, end)
+func handleDailyList(deviceStat []*DeviceStatistics) []*DeviceStatistics {
+	now := time.Now()
+	startTime, endTime := now, now
 	oneDay := 24 * time.Hour
 	deviceInDate := make(map[string]*DeviceStatistics)
-	var out []*DeviceStatistics
-	for _, data := range in {
+
+	for _, data := range deviceStat {
+		t, _ := time.Parse(time.DateOnly, data.Date)
+
+		if t.Before(startTime) {
+			startTime = t
+		}
+
+		if t.After(endTime) {
+			endTime = t
+		}
+
 		deviceInDate[data.Date] = data
 	}
+
+	var out []*DeviceStatistics
 	for startTime.Before(endTime) || startTime.Equal(endTime) {
 		key := startTime.Format(formatter.TimeFormatDateOnly)
 		val, ok := deviceInDate[key]

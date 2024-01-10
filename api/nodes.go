@@ -733,15 +733,10 @@ func queryDailyIncome(ctx context.Context, nodeId string, since string) interfac
 	out := make([]interface{}, 0)
 	for _, item := range list {
 		out = append(out, map[string]interface{}{
-			"k": formatDate(item.Date),
+			"k": item.Date,
 			"v": item.Income,
 		})
 	}
 
 	return out
-}
-
-func formatDate(date string) string {
-	t, _ := time.Parse(time.DateOnly, date)
-	return t.Format(formatter.TimeFormatMD)
 }

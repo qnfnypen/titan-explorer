@@ -474,7 +474,7 @@ func GenerateInactiveNodeRecords(ctx context.Context, t time.Time) error {
 
 func GetDeviceInfo(ctx context.Context, deviceId string) (*model.DeviceInfo, error) {
 	var deviceInfo model.DeviceInfo
-	query := fmt.Sprintf("SELECT user_id FROM %s where device_id = '%s'", tableNameDeviceInfo, deviceId)
+	query := fmt.Sprintf("SELECT * FROM %s where device_id = '%s'", tableNameDeviceInfo, deviceId)
 	err := DB.QueryRowxContext(ctx, query).StructScan(&deviceInfo)
 	if err != nil {
 		log.Errorf("getDeviceInfo %v", err)
