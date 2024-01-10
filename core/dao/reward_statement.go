@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"strings"
+	"github.com/jmoiron/sqlx"
 )
 
 const (
@@ -66,23 +66,30 @@ func GetReferralList(ctx context.Context, recipient string, events []string, opt
 		offset = limit * (option.Page - 1)
 	}
 
-	eventStr := strings.Join(events, ",")
-
 	var total int64
 
-	countQuery := fmt.Sprintf(`SELECT count(distinct username) FROM %s where event in (%s) and recipient = ?`, tableNameRewardStatement, eventStr)
+	countQuery := fmt.Sprintf(`SELECT count(distinct username) FROM %s where event in (?) and recipient = ?`, tableNameRewardStatement)
+	countQueryIn, countQueryParams, err := sqlx.In(countQuery, events, recipient)
+	if err != nil {
+		return 0, nil, err
+	}
 
-	err := DB.GetContext(ctx, &total, countQuery, recipient)
+	err = DB.GetContext(ctx, &total, countQueryIn, countQueryParams...)
 	if err != nil {
 		return 0, nil, err
 	}
 
 	subQuery := fmt.Sprintf(`select username as email, count(distinct rs.event) as status, SUM(IF(rs.event = 'bind_device', 1, 0)) as bound_count, sum(rs.amount) as reward, min(created_at) as time 
-			from %s rs where event in (%s) and recipient = ? group by username`, tableNameRewardStatement, eventStr)
+			from %s rs where event in (?) and recipient = ? group by username`, tableNameRewardStatement)
 
-	query := fmt.Sprintf(`select * from (%s) s order by time DESC LIMIT ? OFFSET ?`, subQuery)
+	subQueryIn, subQueryParams, err := sqlx.In(subQuery, events, recipient)
+	if err != nil {
+		return 0, nil, err
+	}
 
-	err = DB.SelectContext(ctx, &out, query, recipient, limit, offset)
+	query := fmt.Sprintf(`select * from (%s) s order by time DESC LIMIT ? OFFSET ?`, subQueryIn)
+
+	err = DB.SelectContext(ctx, &out, query, append(subQueryParams, limit, offset)...)
 	if err != nil {
 		return 0, nil, err
 	}
