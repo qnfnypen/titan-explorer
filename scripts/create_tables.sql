@@ -512,3 +512,16 @@ CREATE TABLE reward_statement (
 `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
 PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `withdraw_record`;
+CREATE TABLE withdraw_record (
+`id` bigint(20) NOT NULL AUTO_INCREMENT,
+`username`  VARCHAR(255) NOT NULL DEFAULT '',
+`to_address` VARCHAR(128) NOT NULL DEFAULT '',
+`amount` BIGINT(20) NOT NULL DEFAULT 0,
+`hash` VARCHAR(128) NOT NULL DEFAULT '',
+`status` int(1) NULL DEFAULT 0,
+`created_at` DATETIME(3) NOT NULL DEFAULT 0,
+`updated_at` DATETIME(3) NOT NULL DEFAULT 0,
+PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -12,7 +12,7 @@ import (
 var (
 	tableNameDeviceInfoHour  = "device_info_hour"
 	tableNameDeviceInfoDaily = "device_info_daily"
-	log                      = logging.Logger("statistics")
+	log                      = logging.Logger("device_info")
 )
 
 func BulkUpsertDeviceInfoHours(ctx context.Context, hourInfos []*model.DeviceInfoHour) error {

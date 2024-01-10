@@ -296,7 +296,7 @@ type User struct {
 	ProjectId       int64     `db:"project_id"`
 	Referrer        string    `db:"referrer" json:"referrer"`
 	ReferralCode    string    `db:"referral_code" json:"referral_code"`
-	Reward          string    `db:"reward" json:"reward"`
+	Reward          int64     `db:"reward" json:"reward"`
 	CreatedAt       time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt       time.Time `db:"updated_at" json:"updated_at"`
 	DeletedAt       time.Time `db:"deleted_at" json:"deleted_at"`
@@ -479,6 +479,17 @@ type RewardStatement struct {
 	Event     string    `db:"event" json:"event"`
 	Status    int32     `db:"status" json:"status"`
 	DeviceId  string    `db:"device_id" json:"device_id"`
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+}
+
+type Withdraw struct {
+	ID        int64     `db:"id" json:"id"`
+	Username  string    `db:"username" json:"username"`
+	Amount    int64     `db:"amount" json:"amount"`
+	ToAddress string    `db:"to_address" json:"to_address"`
+	Hash      string    `db:"hash" json:"hash"'`
+	Status    int32     `db:"status" json:"status"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 }

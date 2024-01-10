@@ -675,7 +675,8 @@ func GetReferralListHandler(c *gin.Context) {
 		OrderField: orderField,
 	}
 
-	total, referList, err := dao.GetReferralList(c.Request.Context(), username, option)
+	event := []string{RewardEventInviteFrens, RewardEventBindDevice}
+	total, referList, err := dao.GetReferralList(c.Request.Context(), username, event, option)
 	if err != nil {
 		log.Errorf("get referral list: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -693,5 +694,77 @@ func GetReferralListHandler(c *gin.Context) {
 		"list":         referList,
 		"total":        total,
 		"total_reward": totalReward,
+	}))
+}
+
+func WithdrawHandler(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	username := claims[identityKey].(string)
+
+	type withdrawRequest struct {
+		Amount int64  `json:"amount"`
+		To     string `json:"to"`
+	}
+
+	var params withdrawRequest
+	if err := c.BindJSON(&params); err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	user, err := dao.GetUserByUsername(c.Request.Context(), username)
+	if err != nil {
+		log.Errorf("query user: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	if user.Reward < params.Amount {
+		c.JSON(http.StatusOK, respErrorCode(errors.InsufficientBalance, c))
+		return
+	}
+
+	withdrawRequset := &model.Withdraw{
+		Username:  username,
+		ToAddress: params.To,
+		Amount:    params.Amount,
+		Status:    0,
+		CreatedAt: time.Now(),
+	}
+
+	if err = dao.AddWithdrawRequest(c.Request.Context(), withdrawRequset); err != nil {
+		log.Errorf("add withdraw request: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(nil))
+}
+
+func GetWithdrawListHandler(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	username := claims[identityKey].(string)
+
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+	page, _ := strconv.Atoi(c.Query("page"))
+	order := c.Query("order")
+	orderField := c.Query("order_field")
+	option := dao.QueryOption{
+		Page:       page,
+		PageSize:   pageSize,
+		Order:      order,
+		OrderField: orderField,
+	}
+
+	total, withdrawList, err := dao.GetWithdrawRecordList(c.Request.Context(), username, option)
+	if err != nil {
+		log.Errorf("get withdraw list: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list":  withdrawList,
+		"total": total,
 	}))
 }
