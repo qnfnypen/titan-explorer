@@ -3,6 +3,8 @@ package api
 import (
 	"bytes"
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -10,6 +12,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
+	"github.com/go-redis/redis/v9"
 	"github.com/golang-module/carbon/v2"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"golang.org/x/xerrors"
@@ -684,11 +687,19 @@ func GetDeviceProfileHandler(c *gin.Context) {
 
 	response := make(map[string]interface{})
 
-	//deviceCache, err := dao.GetDeviceProfileFromCache(c.Request.Context(), param.NodeID)
-	//if err != nil && err != redis.Nil {
-	//	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-	//	return
-	//}
+	lastUpdate, err := dao.GetCacheFullNodeInfo(c.Request.Context())
+	if err != nil {
+		log.Errorf("get last update info: %v", err)
+	}
+
+	if lastUpdate != nil && param.Since != "" {
+		sinceT, _ := time.Parse(time.DateTime, param.Since)
+		if lastUpdate.Time.Before(sinceT) {
+			response["since"] = time.Now().Format(time.DateTime)
+			c.JSON(http.StatusOK, respJSON(response))
+			return
+		}
+	}
 
 	deviceInfo, err := dao.GetDeviceInfo(c.Request.Context(), param.NodeID)
 	if err != nil {
@@ -711,13 +722,60 @@ func GetDeviceProfileHandler(c *gin.Context) {
 		case "day_incomes":
 			response[key] = queryHourlyIncome(c.Request.Context(), param.NodeID)
 		case "month_incomes":
-			response[key] = queryDailyIncome(c.Request.Context(), param.NodeID, param.Since)
+			response[key] = queryDailyIncome(c.Request.Context(), param.NodeID)
 		}
 	}
 
-	response["since"] = time.Now().String()
+	if param.Since != "" {
+		filterResp, err := filterResponse(c.Request.Context(), param.NodeID, response)
+		if err != nil {
+			log.Errorf("filter response: %v", err)
+		}
+
+		if filterResp != nil {
+			response = filterResp
+		}
+	}
+
+	response["since"] = time.Now().Format(time.DateTime)
 
 	c.JSON(http.StatusOK, respJSON(response))
+}
+
+func filterResponse(ctx context.Context, nodeId string, response map[string]interface{}) (map[string]interface{}, error) {
+	deviceCache, err := dao.GetDeviceProfileFromCache(ctx, nodeId)
+	if err != nil && err != redis.Nil {
+		return nil, err
+	}
+
+	out := make(map[string]interface{})
+	devHash := make(map[string]string)
+
+	for key, val := range response {
+		encodeData, err := json.Marshal(val)
+		if err != nil {
+			log.Errorf("encode %s: %v", key, err)
+			continue
+		}
+
+		hasher := md5.New()
+		hasher.Write(encodeData)
+		hash := hex.EncodeToString(hasher.Sum(nil))
+		checksum := deviceCache[key]
+
+		if checksum != hash {
+			out[key] = val
+		}
+
+		devHash[key] = hash
+	}
+
+	err = dao.SetDeviceProfileFromCache(ctx, nodeId, devHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
 
 func queryHourlyIncome(ctx context.Context, nodeId string) interface{} {
@@ -743,12 +801,8 @@ func queryHourlyIncome(ctx context.Context, nodeId string) interface{} {
 	return out
 }
 
-func queryDailyIncome(ctx context.Context, nodeId string, since string) interface{} {
+func queryDailyIncome(ctx context.Context, nodeId string) interface{} {
 	start := carbon.Now().SubDays(30).String()
-
-	if since != "" {
-		start = carbon.Parse(since).String()
-	}
 
 	option := dao.QueryOption{
 		StartTime: start,

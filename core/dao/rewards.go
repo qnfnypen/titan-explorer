@@ -78,9 +78,7 @@ func GetDeviceHourlyIncome(ctx context.Context, nodeId string, option QueryOptio
 	if err != nil {
 		return nil, err
 	}
-	if len(out) > 0 {
-		return handleHourList(out[1:]), err
-	}
+
 	return out, err
 }
 
@@ -100,7 +98,7 @@ func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour,
 		return nil, err
 	}
 	if len(out) > 0 {
-		return handleHourList(out[1:]), err
+		return append24HoursData(out[1:]), err
 	}
 	return out, err
 }
@@ -196,7 +194,7 @@ func handleDailyList(deviceStat []*DeviceStatistics) []*DeviceStatistics {
 
 }
 
-func handleHourList(in []*DeviceStatistics) []*DeviceStatistics {
+func append24HoursData(in []*DeviceStatistics) []*DeviceStatistics {
 	now := time.Now()
 	oneHour := time.Hour
 	startTime := now.Add(-23 * oneHour)
