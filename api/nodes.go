@@ -16,6 +16,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -683,6 +684,12 @@ func GetDeviceProfileHandler(c *gin.Context) {
 
 	response := make(map[string]interface{})
 
+	//deviceCache, err := dao.GetDeviceProfileFromCache(c.Request.Context(), param.NodeID)
+	//if err != nil && err != redis.Nil {
+	//	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	//	return
+	//}
+
 	deviceInfo, err := dao.GetDeviceInfo(c.Request.Context(), param.NodeID)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -702,11 +709,38 @@ func GetDeviceProfileHandler(c *gin.Context) {
 				"total": deviceInfo.OnlineTime,
 			}
 		case "day_incomes":
+			response[key] = queryHourlyIncome(c.Request.Context(), param.NodeID)
+		case "month_incomes":
 			response[key] = queryDailyIncome(c.Request.Context(), param.NodeID, param.Since)
 		}
 	}
 
+	response["since"] = time.Now().String()
+
 	c.JSON(http.StatusOK, respJSON(response))
+}
+
+func queryHourlyIncome(ctx context.Context, nodeId string) interface{} {
+	start := carbon.Now().StartOfDay().String()
+	option := dao.QueryOption{
+		StartTime: start,
+	}
+
+	list, err := dao.GetDeviceHourlyIncome(context.Background(), nodeId, option)
+	if err != nil {
+		log.Errorf("database GetDeviceInfoDailyHourList: %v", err)
+		return nil
+	}
+
+	out := make([]interface{}, 0)
+	for _, item := range list {
+		out = append(out, map[string]interface{}{
+			"k": fmt.Sprintf("%s:00", strings.TrimLeft(item.Date, " ")),
+			"v": item.Income,
+		})
+	}
+
+	return out
 }
 
 func queryDailyIncome(ctx context.Context, nodeId string, since string) interface{} {

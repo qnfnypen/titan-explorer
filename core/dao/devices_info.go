@@ -3,6 +3,7 @@ package dao
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
@@ -551,4 +552,30 @@ func DeleteDeviceInfoHourHistory(ctx context.Context, before time.Time) error {
 	statement := fmt.Sprintf(`DELETE FROM %s where created_at < ?`, tableNameDeviceInfoHour)
 	_, err := DB.ExecContext(ctx, statement, before)
 	return err
+}
+
+func SetDeviceProfileFromCache(ctx context.Context, deviceId string, data map[string]string) error {
+	key := fmt.Sprintf("TITAN::NODE::PROFILE::%s", deviceId)
+	val, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	_, err = Cache.Set(ctx, key, val, time.Minute*5).Result()
+	return err
+}
+
+func GetDeviceProfileFromCache(ctx context.Context, deviceId string) (map[string]string, error) {
+	key := fmt.Sprintf("TITAN::NODE::PROFILE::%s", deviceId)
+	result, err := Cache.Get(ctx, key).Result()
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]string)
+
+	err = json.Unmarshal([]byte(result), &out)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }

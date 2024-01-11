@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
+	"github.com/golang-module/carbon/v2"
 	logging "github.com/ipfs/go-log/v2"
 	"time"
 )
@@ -58,6 +59,29 @@ type DeviceStatistics struct {
 	RetrievalCount    float64 `json:"retrieval_count" db:"retrieval_count"`
 	BlockCount        float64 `json:"block_count" db:"block_count"`
 	NodeCount         float64 `json:"node_count" db:"node_count"`
+}
+
+func GetDeviceHourlyIncome(ctx context.Context, nodeId string, option QueryOption) ([]*DeviceStatistics, error) {
+	if option.StartTime == "" {
+		option.StartTime = carbon.Now().StartOfDay().String()
+	}
+
+	if option.EndTime == "" {
+		option.EndTime = carbon.Now().EndOfDay().String()
+	}
+
+	query := fmt.Sprintf(`select date_format(time, '%%H') as date, max(hour_income) - min(hour_income) as income from %s 
+            where device_id='%s' and time>='%s' and time<='%s' group by date order by date`, tableNameDeviceInfoHour, nodeId, option.StartTime, option.EndTime)
+
+	var out []*DeviceStatistics
+	err := DB.SelectContext(ctx, &out, query)
+	if err != nil {
+		return nil, err
+	}
+	if len(out) > 0 {
+		return handleHourList(out[1:]), err
+	}
+	return out, err
 }
 
 func GetDeviceInfoDailyHourList(ctx context.Context, cond *model.DeviceInfoHour, option QueryOption) ([]*DeviceStatistics, error) {
