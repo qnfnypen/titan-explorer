@@ -36,7 +36,10 @@ func TestGeoIP(t *testing.T) {
 	accessToken := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJ3ZWIiXSwiSUQiOiIzOTkzN2E2Zi1lYjhmLTQxZjMtYjNlYS0xNWZlYjM3N2FjNjQiLCJOb2RlSUQiOiIiLCJFeHRlbmQiOiIifQ.6Sonm9R9pY6anX5iuX8QIfb46UMBN0Eltnx3_CtpL2M"
 	schedulerCfg := &types.SchedulerCfg{SchedulerURL: "https://39.108.214.29:3456/rpc/v0", AreaID: "Asia-China-Guangdong-Shenzhen", AccessToken: accessToken}
 	SchedulerConfigs["Asia-China-Guangdong-Shenzhen"] = []*types.SchedulerCfg{schedulerCfg}
-	schedulerClient := GetNewScheduler(context.Background(), "")
+	schedulerClient, err := getSchedulerClient(context.Background(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	nodeIPInfos, err := schedulerClient.GetCandidateIPs(context.Background())
 	if err != nil {

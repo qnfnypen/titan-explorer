@@ -1,8 +1,10 @@
 package api
 
 import (
+	"fmt"
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
+	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
@@ -83,58 +85,65 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			if loginParams.VerifyCode == "" && loginParams.Password == "" && signature == "" {
 				return "", jwt.ErrMissingLoginValues
 			}
-			userID := loginParams.Username
-			password := loginParams.Password
-			verifyCode := loginParams.VerifyCode
+
 			userAgent := c.Request.Header.Get("User-Agent")
 			ua := user_agent.New(userAgent)
 			os := ua.OS()
-			explorer, _ := ua.Browser()
+			browser, _ := ua.Browser()
 			clientIP := iptool.GetClientIP(c.Request)
-			location := iptool.GetLocationByIP(clientIP)
-			var err error
-			var user interface{}
-			if signature != "" {
-				user, err = loginBySignature(c, userID, walletAddress, signature)
-			}
-			if verifyCode != "" {
-				user, err = loginByVerifyCode(c, userID, verifyCode)
-			}
-			if password != "" {
-				user, err = loginByPassword(c, userID, password)
-			}
 
+			location, err := iptool.IPTableCloudGetLocation(c.Request.Context(), config.Cfg.IpUrl, clientIP, config.Cfg.IpKey, model.LanguageEN)
 			if err != nil {
-				oplog.AddLoginLog(&model.LoginLog{
-					IpAddress:     clientIP,
-					Browser:       explorer,
-					Os:            os,
-					Status:        loginStatusFailure,
-					Msg:           err.Error(),
-					LoginLocation: location,
-				})
-				return nil, err
+				log.Errorf("get ip location from iptable cloud: %v", err)
 			}
 
-			oplog.AddLoginLog(&model.LoginLog{
-				LoginUsername: userID,
-				LoginLocation: location,
-				IpAddress:     clientIP,
-				Browser:       explorer,
-				Os:            os,
-				Status:        loginStatusSuccess,
-				Msg:           "success",
-			})
-			go SetPeakBandwidth(userID)
-			return user, nil
+			var loginLocation string
+			if location != nil {
+				loginLocation = fmt.Sprintf("%s-%s-%s", location.Country, location.Province, location.City)
+			}
+
+			defer func() {
+				if err != nil {
+					log.Errorf("user login: %v", err)
+					oplog.AddLoginLog(&model.LoginLog{
+						IpAddress:     clientIP,
+						Browser:       browser,
+						Os:            os,
+						Status:        loginStatusFailure,
+						Msg:           err.Error(),
+						LoginLocation: loginLocation,
+					})
+					return
+				}
+
+				go SetPeakBandwidth(loginParams.Username)
+
+				oplog.AddLoginLog(&model.LoginLog{
+					LoginUsername: loginParams.Username,
+					LoginLocation: loginLocation,
+					IpAddress:     clientIP,
+					Browser:       browser,
+					Os:            os,
+					Status:        loginStatusSuccess,
+					Msg:           "success",
+				})
+
+			}()
+
+			if signature != "" {
+				return loginBySignature(c, loginParams.Username, walletAddress, signature)
+			}
+
+			if loginParams.VerifyCode != "" {
+				return loginByVerifyCode(c, loginParams.Username, loginParams.VerifyCode)
+			}
+
+			if loginParams.Password != "" {
+				return loginByPassword(c, loginParams.Username, loginParams.Password)
+			}
+
+			return nil, nil
 		},
-		// Authorizator: func(data interface{}, c *gin.Context) bool {
-		//	if v, ok := data.(model.User); ok && v.UserID == "admin" {
-		//		return true
-		//	}
-		//
-		//	return false
-		//},
 		Unauthorized: func(c *gin.Context, code int, message string) {
 			c.JSON(200, gin.H{
 				"code":    code,
@@ -182,7 +191,7 @@ func loginByPassword(c *gin.Context, username, password string) (interface{}, er
 }
 
 func loginBySignature(c *gin.Context, username, address, msg string) (interface{}, error) {
-	nonce, err := queryNonceString(c.Request.Context(), username, NonceStringTypeSignature)
+	nonce, err := getNonceFromCache(c.Request.Context(), username, NonceStringTypeSignature)
 	if err != nil {
 		return nil, errors.NewErrorCode(errors.InvalidParams, c)
 	}
@@ -200,7 +209,7 @@ func loginBySignature(c *gin.Context, username, address, msg string) (interface{
 }
 
 func loginByVerifyCode(c *gin.Context, username, inputCode string) (interface{}, error) {
-	code, err := queryNonceString(c.Request.Context(), username, NonceStringTypeLogin)
+	code, err := getNonceFromCache(c.Request.Context(), username, NonceStringTypeLogin)
 	if err != nil {
 		log.Errorf("get user by verify code: %v", err)
 		return nil, errors.NewErrorCode(errors.InvalidParams, c)
@@ -214,7 +223,7 @@ func loginByVerifyCode(c *gin.Context, username, inputCode string) (interface{},
 		return nil, errors.NewErrorCode(errors.UserNotFound, c)
 	}
 	if code != inputCode {
-		return nil, errors.NewErrorCode(errors.VerifyCodeErr, c)
+		return nil, errors.NewErrorCode(errors.InvalidVerifyCode, c)
 	}
 
 	return &model.User{Uuid: user.Uuid, Username: user.Username, Role: user.Role}, nil

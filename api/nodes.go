@@ -446,7 +446,11 @@ func GetDeviceInfoHandler(c *gin.Context) {
 
 func handleNodeList(ctx *gin.Context, userId string, devicesInfo []*model.DeviceInfo) []*model.DeviceInfo {
 	areaId := dao.GetAreaID(ctx.Request.Context(), userId)
-	schedulerClient := GetNewScheduler(ctx.Request.Context(), areaId)
+	schedulerClient, err := getSchedulerClient(ctx, areaId)
+	if err != nil {
+		log.Errorf("no scheder found")
+		return nil
+	}
 	for _, deviceIfo := range devicesInfo {
 		createAssetRsp, err := schedulerClient.GetNodeInfo(ctx, deviceIfo.DeviceID)
 		if err != nil {

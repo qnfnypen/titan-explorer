@@ -1,6 +1,7 @@
 package random
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 )
@@ -19,4 +20,9 @@ func GenerateRandomString(length int) string {
 	}
 
 	return string(b)
+}
+
+func GenerateRandomNumber(length int) string {
+	seededRand := rand.New(rand.NewSource(time.Now().UnixNano()))
+	return fmt.Sprintf("%0*d", length, seededRand.Intn(1000000))
 }

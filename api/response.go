@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	err "github.com/gnasnik/titan-explorer/core/errors"
+	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"strings"
 )
 
@@ -15,18 +16,24 @@ func respJSON(v interface{}) gin.H {
 	}
 }
 func respErrorCode(code int, c *gin.Context) gin.H {
-	l := c.GetHeader("Lang")
-	errSplit := strings.Split(err.ErrMap[code], ":")
-	var e string
-	switch l {
-	case "cn":
-		e = errSplit[1]
-	default:
-		e = errSplit[0]
+	lang := c.GetHeader("Lang")
+
+	var msg string
+
+	messages := strings.Split(err.ErrMap[code], ":")
+	if len(messages) == 0 {
+		msg = err.ErrMap[code]
+	} else {
+		if lang == model.LanguageCN {
+			msg = messages[1]
+		} else {
+			msg = messages[0]
+		}
 	}
+
 	return gin.H{
 		"code": -1,
 		"err":  code,
-		"msg":  e,
+		"msg":  msg,
 	}
 }

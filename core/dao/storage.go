@@ -130,7 +130,7 @@ func GetAreaCount(ctx context.Context, deviceIds []string) (int64, error) {
 func GetPeakBandwidth(ctx context.Context, userId string) (int64, error) {
 	var peakBandwidth int64
 	query, args, err := sqlx.In(fmt.Sprintf(
-		`select max(peak_bandwidth) as peak_bandwidth from %s where user_id='%s'`, tableNameStorageHour, userId))
+		`select ifnull(max(peak_bandwidth) ,0) as peak_bandwidth from %s where user_id='%s'`, tableNameStorageHour, userId))
 	if err != nil {
 		return 0, err
 	}

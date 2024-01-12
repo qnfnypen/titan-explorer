@@ -14,6 +14,7 @@ const (
 	UserNotFound
 	InvalidPassword
 	InternalServer
+	NoSchedulerFound
 	DeviceExists
 	DeviceNotExists
 	AmountLimitExceeded
@@ -21,8 +22,9 @@ const (
 	PassWordNotAllowed
 	UserEmailExists
 	NameNotExists
-	VerifyCodeErr
+	InvalidVerifyCode
 	VerifyCodeExpired
+	UnsupportedVerifyCodeType
 	UploadExceed
 	FileExists
 	InvalidAPPKey
@@ -45,6 +47,7 @@ var ErrMap = map[int]string{
 	UserNotFound:                             "user not found:用户不存在",
 	InvalidPassword:                          "invalid password:密码错误",
 	InternalServer:                           "internal server error:服务器错误",
+	NoSchedulerFound:                         "no scheduler found:没有可用的调度器",
 	DeviceExists:                             "device already exists:设备已存在",
 	DeviceNotExists:                          "device not exists:设备不存在",
 	AmountLimitExceeded:                      "request amount limit exceeded:请求数量限制",
@@ -52,8 +55,9 @@ var ErrMap = map[int]string{
 	PassWordNotAllowed:                       "password not allowed:密码错误",
 	UserEmailExists:                          "user email exists:用户已注册",
 	NameNotExists:                            "the name not exists:该名称不存在",
-	VerifyCodeErr:                            "verify code err:验证码错误",
+	InvalidVerifyCode:                        "invalid verify code:无效的验证码",
 	VerifyCodeExpired:                        "verify code expired:验证码过期",
+	UnsupportedVerifyCodeType:                "unsupported verify code type:不支持的验证码类型",
 	UploadExceed:                             "asset in the pulling exceeds the limit 10:上传数量限制10条",
 	FileExists:                               "file already exists no need to upload:该文件已经存在",
 	int(terrors.NotFound):                    "not found:信息未找到",

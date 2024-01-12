@@ -92,24 +92,19 @@ func UserRegister(c *gin.Context) {
 	}
 	userInfo.PassHash = string(passHash)
 
-	nonce, err := queryNonceString(c.Request.Context(), userInfo.Username, NonceStringTypeRegister)
+	nonce, err := getNonceFromCache(c.Request.Context(), userInfo.Username, NonceStringTypeRegister)
 	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.Unknown, c))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
-	if nonce == "" {
-		c.JSON(http.StatusOK, respErrorCode(errors.VerifyCodeExpired, c))
-		return
-	}
-
-	if verifyCode == "" {
-		c.JSON(http.StatusOK, respErrorCode(errors.VerifyCodeErr, c))
+	if nonce == "" || verifyCode == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidVerifyCode, c))
 		return
 	}
 
 	if nonce != verifyCode && os.Getenv("TEST_ENV_VERIFY_CODE") != verifyCode {
-		c.JSON(http.StatusOK, respErrorCode(errors.VerifyCodeErr, c))
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidVerifyCode, c))
 		return
 	}
 
@@ -162,7 +157,7 @@ func PasswordRest(c *gin.Context) {
 		return
 	}
 
-	nonce, err := queryNonceString(c.Request.Context(), username, NonceStringTypeReset)
+	nonce, err := getNonceFromCache(c.Request.Context(), username, NonceStringTypeReset)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.Unknown, c))
 		return
@@ -174,12 +169,12 @@ func PasswordRest(c *gin.Context) {
 	}
 
 	if verifyCode == "" {
-		c.JSON(http.StatusOK, respErrorCode(errors.VerifyCodeErr, c))
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidVerifyCode, c))
 		return
 	}
 
 	if nonce != verifyCode && os.Getenv("TEST_ENV_VERIFY_CODE") != verifyCode {
-		c.JSON(http.StatusOK, respErrorCode(errors.VerifyCodeErr, c))
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidVerifyCode, c))
 		return
 	}
 
@@ -194,7 +189,7 @@ func PasswordRest(c *gin.Context) {
 	}))
 }
 
-func GetNonce(c *gin.Context) {
+func GetNonceStringHandler(c *gin.Context) {
 	username := c.Query("username")
 	if username == "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
@@ -240,7 +235,7 @@ func generateNonceString(ctx context.Context, key string) (string, error) {
 	return verifyCode, nil
 }
 
-func GetVerifyCodeHandle(c *gin.Context) {
+func GetNumericVerifyCodeHandler(c *gin.Context) {
 	userInfo := &model.User{}
 	userInfo.Username = c.Query("username")
 	verifyType := c.Query("type")
@@ -258,11 +253,11 @@ func GetVerifyCodeHandle(c *gin.Context) {
 	case NonceStringTypeSignature:
 		key = getRedisNonceSignatureKey(userInfo.Username)
 	default:
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		c.JSON(http.StatusOK, respErrorCode(errors.UnsupportedVerifyCodeType, c))
 		return
 	}
 
-	nonce, err := queryNonceString(c.Request.Context(), userInfo.Username, NonceStringType(verifyType))
+	nonce, err := getNonceFromCache(c.Request.Context(), userInfo.Username, NonceStringType(verifyType))
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -273,7 +268,14 @@ func GetVerifyCodeHandle(c *gin.Context) {
 		return
 	}
 
-	if err = SetVerifyCode(c.Request.Context(), userInfo.Username, key, lang); err != nil {
+	verifyCode := random.GenerateRandomNumber(6)
+	if err = cacheVerifyCode(c.Request.Context(), key, verifyCode); err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	if err = sendEmail(userInfo.Username, verifyCode, lang); err != nil {
+		log.Errorf("send email: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
@@ -301,7 +303,11 @@ func DeviceBindingHandler(c *gin.Context) {
 	}
 	if deviceInfo.UserID != "" {
 		areaId := dao.GetAreaID(c.Request.Context(), deviceInfo.UserID)
-		schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
+		schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+		if err != nil {
+			c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+			return
+		}
 		if deviceInfo.BindStatus == "binding" {
 			deviceInfo.ActiveStatus = 1
 			err = schedulerClient.UndoNodeDeactivation(c.Request.Context(), deviceInfo.DeviceID)
@@ -439,17 +445,9 @@ func DeviceUpdateHandler(c *gin.Context) {
 	}))
 }
 
-func SetVerifyCode(ctx context.Context, username, key, lang string) error {
-	randNew := rand.New(rand.NewSource(time.Now().UnixNano()))
-	verifyCode := fmt.Sprintf("%06d", randNew.Intn(1000000))
+func cacheVerifyCode(ctx context.Context, key, verifyCode string) error {
 	bytes, err := json.Marshal(verifyCode)
 	if err != nil {
-		return err
-	}
-
-	err = sendEmail(username, verifyCode, lang)
-	if err != nil {
-		log.Errorf("send email: %v", err)
 		return err
 	}
 
@@ -462,9 +460,9 @@ func SetVerifyCode(ctx context.Context, username, key, lang string) error {
 }
 
 func SetPeakBandwidth(userId string) {
-	peakBandwidth, e := dao.GetPeakBandwidth(context.Background(), userId)
-	if e != nil {
-		fmt.Printf("%v", e)
+	peakBandwidth, err := dao.GetPeakBandwidth(context.Background(), userId)
+	if err != nil {
+		log.Errorf("get peak bandwidth: %v", err)
 		return
 	}
 	var expireTime time.Duration
@@ -509,7 +507,7 @@ func getRedisNonceResetKey(username string) string {
 	return fmt.Sprintf("TITAN::RESET::%s", username)
 }
 
-func queryNonceString(ctx context.Context, username string, t NonceStringType) (string, error) {
+func getNonceFromCache(ctx context.Context, username string, t NonceStringType) (string, error) {
 	var key string
 
 	switch t {
@@ -595,7 +593,7 @@ func BindWalletHandler(c *gin.Context) {
 		return
 	}
 
-	nonce, err := queryNonceString(c.Request.Context(), param.Username, NonceStringTypeSignature)
+	nonce, err := getNonceFromCache(c.Request.Context(), param.Username, NonceStringTypeSignature)
 	if err != nil {
 		log.Errorf("query nonce string: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -729,7 +727,7 @@ func WithdrawHandler(c *gin.Context) {
 		return
 	}
 
-	withdrawRequset := &model.Withdraw{
+	request := &model.Withdraw{
 		Username:  username,
 		ToAddress: params.To,
 		Amount:    params.Amount,
@@ -737,7 +735,7 @@ func WithdrawHandler(c *gin.Context) {
 		CreatedAt: time.Now(),
 	}
 
-	if err = dao.AddWithdrawRequest(c.Request.Context(), withdrawRequset); err != nil {
+	if err = dao.AddWithdrawRequest(c.Request.Context(), request); err != nil {
 		log.Errorf("add withdraw request: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return

@@ -9,21 +9,20 @@ type NodesInfo struct {
 }
 
 type Config struct {
-	EtcdAddress     string
-	Mode            string
-	ApiListen       string
-	DatabaseURL     string
-	SecretKey       string
-	RedisAddr       string
-	RedisPassword   string
-	SchedulerFromDB bool
-	IpKey           string
-	IpUrl           string
-	Locator         LocatorConfig
-	Statistic       StatisticsConfig
-	Email           EmailConfig
-	AdminScheduler  AdminSchedulerConfig
-	StorageBackup   StorageBackupConfig
+	EtcdAddress    string
+	Mode           string
+	ApiListen      string
+	DatabaseURL    string
+	SecretKey      string
+	RedisAddr      string
+	RedisPassword  string
+	IpKey          string
+	IpUrl          string
+	Locator        LocatorConfig
+	Statistic      StatisticsConfig
+	Email          EmailConfig
+	AdminScheduler AdminSchedulerConfig
+	StorageBackup  StorageBackupConfig
 }
 
 type EmailConfig struct {

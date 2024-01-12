@@ -21,7 +21,11 @@ func GetStorageHourHandler(c *gin.Context) {
 	end := c.Query("to")
 	startTime := time.Now()
 	areaId := dao.GetAreaID(c.Request.Context(), userId)
-	schedulerClient := GetNewScheduler(c.Request.Context(), areaId)
+	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+		return
+	}
 	Info, err := schedulerClient.GetUserInfo(c.Request.Context(), userId)
 	if err != nil {
 		log.Errorf("api GetUserInfo: %v", err)
