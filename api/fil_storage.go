@@ -7,6 +7,7 @@ import (
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
+	"github.com/gnasnik/titan-explorer/core/filecoin"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/iptool"
 	"github.com/multiformats/go-multiaddr"
@@ -14,12 +15,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-)
-
-const (
-	FilcoinMainnetResetTimestamp       = 1602773040
-	FilcoinMainnetStartBlock           = 148888
-	FilcoinMainnetEpochDurationSeconds = 30
 )
 
 func CreateFilStorageHandler(c *gin.Context) {
@@ -30,8 +25,8 @@ func CreateFilStorageHandler(c *gin.Context) {
 	}
 
 	for i := 0; i < len(params); i++ {
-		params[i].StartTime = time.Unix(getTimestampByHeight(params[i].StartHeight), 0)
-		params[i].EndTime = time.Unix(getTimestampByHeight(params[i].EndHeight), 0)
+		params[i].StartTime = time.Unix(filecoin.GetTimestampByHeight(params[i].StartHeight), 0)
+		params[i].EndTime = time.Unix(filecoin.GetTimestampByHeight(params[i].EndHeight), 0)
 		params[i].CreatedAt = time.Now()
 		params[i].UpdatedAt = time.Now()
 		if params[i].FIndex == 0 {
@@ -99,25 +94,15 @@ func GetFilStorageListHandler(c *gin.Context) {
 	}))
 }
 
-func getTimestampByHeight(height int64) int64 {
-	height = height - FilcoinMainnetStartBlock
-	if height < 0 {
-		return 0
-	}
-
-	return FilcoinMainnetResetTimestamp + FilcoinMainnetEpochDurationSeconds*height
-}
-
 func SaveProviderLocation(providerId string) error {
-	url := "http://api.node.glif.io/rpc/v0"
-	minerInfo, err := StateMinerInfo(url, providerId)
+	minerInfo, err := filecoin.StateMinerInfo(config.Cfg.FilecoinRPCServerAddress, providerId)
 	if err != nil {
 		return err
 	}
 
 	ctx := context.Background()
 
-	if len(minerInfo.Multiaddrs) == 0 {
+	if len(minerInfo.MultiAddress) == 0 {
 		return dao.AddStorageProvider(ctx, &model.StorageProvider{
 			ProviderID:  providerId,
 			IP:          "",
@@ -127,7 +112,7 @@ func SaveProviderLocation(providerId string) error {
 		})
 	}
 
-	mad, err := multiaddr.NewMultiaddrBytes(minerInfo.Multiaddrs[0])
+	mad, err := multiaddr.NewMultiaddrBytes(minerInfo.MultiAddress[0])
 	if err != nil {
 		return err
 	}
@@ -137,7 +122,7 @@ func SaveProviderLocation(providerId string) error {
 	var loc *model.Location
 	language := []model.Language{model.LanguageEN, model.LanguageCN}
 	for _, lang := range language {
-		l, err := iptool.IPTableCloudGetLocation(ctx, config.Cfg.IpUrl, ip, config.Cfg.IpKey, string(lang))
+		l, err := iptool.IPDataCloudGetLocation(ctx, config.Cfg.IpDataCloud.Url, ip, config.Cfg.IpDataCloud.Url, string(lang))
 		if err != nil {
 			return err
 		}

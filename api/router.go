@@ -29,7 +29,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	}
 
 	// dashboard
-	apiV2.GET("/get_high", GetHigh)
+	apiV2.GET("/get_high", GetBlockHighHandler)
 	apiV2.GET("/all_areas", GetAllAreas)
 	apiV2.GET("/get_index_info", GetIndexInfoHandler)
 	apiV2.GET("/get_query_info", GetQueryInfoHandler)

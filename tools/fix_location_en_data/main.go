@@ -52,7 +52,7 @@ func main() {
 			continue
 		}
 
-		loc, err := iptool.IPTableCloudGetLocation(ctx, cfg.IpUrl, location.Ip, cfg.IpKey, model.LanguageEN)
+		loc, err := iptool.IPDataCloudGetLocation(ctx, cfg.IpDataCloud.Url, location.Ip, cfg.IpDataCloud.Key, model.LanguageEN)
 		if err != nil {
 			log.Println(err)
 			continue

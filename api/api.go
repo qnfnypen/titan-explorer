@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/client"
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -9,8 +11,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/cleanup"
+	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/statistics"
 	"github.com/gnasnik/titan-explorer/pkg/mail"
+	"github.com/go-redis/redis/v9"
 	"github.com/pkg/errors"
 	"net/http"
 	"strconv"
@@ -21,9 +25,12 @@ var schedulerAdmin api.Scheduler
 
 var schedulerApi api.Scheduler
 
-//var ApplicationC chan bool
+//var SchedulerConfigs map[string][]*types.SchedulerCfg
 
-var SchedulerConfigs map[string][]*types.SchedulerCfg
+var (
+	DefaultAreaId            = "Asia-China-Guangdong-Shenzhen"
+	SchedulerConfigKeyPrefix = "TITAN::SCHEDULERCFG"
+)
 
 type EtcdClient struct {
 	cli *etcdcli.Client
@@ -34,9 +41,8 @@ type EtcdClient struct {
 }
 
 type Server struct {
-	cfg    config.Config
-	router *gin.Engine
-	//schedulerClient api.Scheduler
+	cfg             config.Config
+	router          *gin.Engine
 	etcdClient      *EtcdClient
 	statistic       *statistics.Statistic
 	statisticCloser func()
@@ -48,45 +54,51 @@ func NewEtcdClient(addresses []string) (*EtcdClient, error) {
 		return nil, err
 	}
 
-	ec := &EtcdClient{
-		cli:              etcd,
-		schedulerConfigs: make(map[string][]*types.SchedulerCfg),
-		configMap:        make(map[string]*types.SchedulerCfg),
+	etcdClient := &EtcdClient{
+		cli: etcd,
+		//schedulerConfigs: make(map[string][]*types.SchedulerCfg),
+		configMap: make(map[string]*types.SchedulerCfg),
 	}
 
-	if err := ec.loadSchedulerConfigs(); err != nil {
+	//if err := ec.loadSchedulerConfigs(); err != nil {
+	//	return nil, err
+	//}
+
+	return etcdClient, nil
+}
+
+func (ec *EtcdClient) loadSchedulerConfigs() (map[string][]*types.SchedulerCfg, error) {
+	resp, err := ec.cli.GetServers(types.NodeScheduler.String())
+	if err != nil {
 		return nil, err
 	}
 
-	return ec, nil
-}
-
-func (ec *EtcdClient) loadSchedulerConfigs() error {
-	resp, err := ec.cli.GetServers(types.NodeScheduler.String())
-	if err != nil {
-		return err
-	}
-
-	SchedulerConfigs = make(map[string][]*types.SchedulerCfg)
+	schedulerConfigs := make(map[string][]*types.SchedulerCfg)
 
 	for _, kv := range resp.Kvs {
 		var configScheduler *types.SchedulerCfg
 		err := etcdcli.SCUnmarshal(kv.Value, &configScheduler)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		configs, ok := SchedulerConfigs[configScheduler.AreaID]
+		configs, ok := schedulerConfigs[configScheduler.AreaID]
 		if !ok {
 			configs = make([]*types.SchedulerCfg, 0)
 		}
 		configs = append(configs, configScheduler)
 
-		SchedulerConfigs[configScheduler.AreaID] = configs
+		schedulerConfigs[configScheduler.AreaID] = configs
 		ec.configMap[string(kv.Key)] = configScheduler
 	}
 
-	ec.schedulerConfigs = SchedulerConfigs
-	return nil
+	for areaId, cfgs := range schedulerConfigs {
+		if err := SetSchedulerConfigs(context.Background(), fmt.Sprintf("%s::%s", SchedulerConfigKeyPrefix, areaId), cfgs); err != nil {
+			return nil, err
+		}
+	}
+
+	//ec.schedulerConfigs = schedulerConfigs
+	return schedulerConfigs, nil
 }
 
 func NewServer(cfg config.Config) (*Server, error) {
@@ -136,28 +148,34 @@ func (s *Server) Close() {
 	s.statistic.Stop()
 }
 
-func FetchSchedulersFromEtcd(locatorApi *EtcdClient) ([]*statistics.Scheduler, error) {
+func FetchSchedulersFromEtcd(etcdClient *EtcdClient) ([]*statistics.Scheduler, error) {
+
+	schedulerConfigs, err := etcdClient.loadSchedulerConfigs()
+	if err != nil {
+		log.Errorf("load scheduer from etcd: %v", err)
+		return nil, err
+	}
+
 	var out []*statistics.Scheduler
-	for key, SchedulerURLs := range locatorApi.schedulerConfigs {
-		for _, SchedulerCfg := range SchedulerURLs {
+
+	for key, schedulerURLs := range schedulerConfigs {
+		for _, SchedulerCfg := range schedulerURLs {
 			// https protocol still in test, we use http for now.
-			SchedulerURL := strings.Replace(SchedulerCfg.SchedulerURL, "https", "http", 1)
+			schedulerURL := strings.Replace(SchedulerCfg.SchedulerURL, "https", "http", 1)
 			headers := http.Header{}
 			headers.Add("Authorization", "Bearer "+SchedulerCfg.AccessToken)
-			clientInit, closeScheduler, err := client.NewScheduler(context.Background(), SchedulerURL, headers)
+			clientInit, closeScheduler, err := client.NewScheduler(context.Background(), schedulerURL, headers)
 			if err != nil {
 				log.Errorf("create scheduler rpc client: %v", err)
 			}
 			out = append(out, &statistics.Scheduler{
-				Uuid:   SchedulerURL,
+				Uuid:   schedulerURL,
 				Api:    clientInit,
 				AreaId: key,
 				Closer: closeScheduler,
 			})
 			schedulerApi = clientInit
-
 		}
-
 	}
 
 	log.Infof("fetch %d schedulers from Etcd", len(out))
@@ -192,18 +210,18 @@ func (s *Server) sendEmail(sendTo string, registrations []string) error {
 }
 
 func getSchedulerClient(ctx context.Context, areaId string) (api.Scheduler, error) {
-	scheduler, _ := SchedulerConfigs[areaId]
-	if len(scheduler) < 1 {
-		scheduler = SchedulerConfigs["Asia-China-Guangdong-Shenzhen"]
+	schedulers, err := GetSchedulerConfigs(ctx, fmt.Sprintf("%s::%s", SchedulerConfigKeyPrefix, areaId))
+	if err == redis.Nil && areaId != DefaultAreaId {
+		return getSchedulerClient(ctx, DefaultAreaId)
 	}
 
-	if len(scheduler) == 0 {
+	if err != nil || len(schedulers) == 0 {
 		log.Errorf("no scheduler found")
 		return nil, errors.New("no scheduler found")
 	}
 
-	schedulerApiUrl := scheduler[0].SchedulerURL
-	schedulerApiToken := scheduler[0].AccessToken
+	schedulerApiUrl := schedulers[0].SchedulerURL
+	schedulerApiToken := schedulers[0].AccessToken
 	SchedulerURL := strings.Replace(schedulerApiUrl, "https", "http", 1)
 	headers := http.Header{}
 	headers.Add("Authorization", "Bearer "+schedulerApiToken)
@@ -213,4 +231,33 @@ func getSchedulerClient(ctx context.Context, areaId string) (api.Scheduler, erro
 	}
 
 	return schedulerClient, nil
+}
+
+func GetSchedulerConfigs(ctx context.Context, key string) ([]*types.SchedulerCfg, error) {
+	result, err := dao.RedisCache.Get(ctx, key).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	var cfg []*types.SchedulerCfg
+	err = json.Unmarshal([]byte(result), &cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+func SetSchedulerConfigs(ctx context.Context, key string, val interface{}) error {
+	data, err := json.Marshal(val)
+	if err != nil {
+		return err
+	}
+
+	_, err = dao.RedisCache.Set(ctx, key, data, 0).Result()
+	if err != nil {
+		log.Errorf("set chain head: %v", err)
+	}
+
+	return nil
 }

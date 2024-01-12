@@ -15,7 +15,6 @@ import (
 	"github.com/gnasnik/titan-explorer/pkg/random"
 	"github.com/go-redis/redis/v9"
 	"golang.org/x/crypto/bcrypt"
-	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
@@ -219,14 +218,14 @@ func GetNonceStringHandler(c *gin.Context) {
 }
 
 func generateNonceString(ctx context.Context, key string) (string, error) {
-	randNew := rand.New(rand.NewSource(time.Now().UnixNano()))
-	verifyCode := "TitanNetWork(" + fmt.Sprintf("%06d", randNew.Intn(1000000)) + ")"
+	rand := random.GenerateRandomNumber(6)
+	verifyCode := "TitanNetWork(" + rand + ")"
 	bytes, err := json.Marshal(verifyCode)
 	if err != nil {
 		return "", err
 	}
 
-	_, err = dao.Cache.Set(ctx, key, bytes, defaultNonceExpiration).Result()
+	_, err = dao.RedisCache.Set(ctx, key, bytes, defaultNonceExpiration).Result()
 	if err != nil {
 		log.Errorf("%v:", err)
 		return "", err
@@ -451,7 +450,7 @@ func cacheVerifyCode(ctx context.Context, key, verifyCode string) error {
 		return err
 	}
 
-	_, err = dao.Cache.Set(ctx, key, bytes, defaultNonceExpiration).Result()
+	_, err = dao.RedisCache.Set(ctx, key, bytes, defaultNonceExpiration).Result()
 	if err != nil {
 		return err
 	}
@@ -475,7 +474,7 @@ func SetUserInfo(ctx context.Context, key string, peakBandwidth int64, expireTim
 	bytes, err := json.Marshal(peakBandwidth)
 	vc := GetUserInfo(ctx, key)
 	if vc != 0 {
-		_, err := dao.Cache.Expire(ctx, key, expireTime).Result()
+		_, err := dao.RedisCache.Expire(ctx, key, expireTime).Result()
 		if err != nil {
 			return err
 		}
@@ -484,7 +483,7 @@ func SetUserInfo(ctx context.Context, key string, peakBandwidth int64, expireTim
 	if err != nil {
 		return err
 	}
-	_, err = dao.Cache.Set(ctx, key, bytes, expireTime).Result()
+	_, err = dao.RedisCache.Set(ctx, key, bytes, expireTime).Result()
 	if err != nil {
 		return err
 	}
@@ -523,7 +522,7 @@ func getNonceFromCache(ctx context.Context, username string, t NonceStringType) 
 		return "", fmt.Errorf("unsupported nonce string type")
 	}
 
-	bytes, err := dao.Cache.Get(ctx, key).Bytes()
+	bytes, err := dao.RedisCache.Get(ctx, key).Bytes()
 	if err == redis.Nil {
 		return "", nil
 	}
@@ -564,7 +563,7 @@ func VerifyMessage(message string, signedMessage string) (string, error) {
 }
 
 func GetUserInfo(ctx context.Context, key string) int64 {
-	bytes, err := dao.Cache.Get(ctx, key).Bytes()
+	bytes, err := dao.RedisCache.Get(ctx, key).Bytes()
 	if err != nil && err != redis.Nil {
 		return 0
 	}

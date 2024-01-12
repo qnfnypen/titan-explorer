@@ -560,13 +560,13 @@ func SetDeviceProfileFromCache(ctx context.Context, deviceId string, data map[st
 	if err != nil {
 		return err
 	}
-	_, err = Cache.Set(ctx, key, val, time.Minute*5).Result()
+	_, err = RedisCache.Set(ctx, key, val, time.Minute*5).Result()
 	return err
 }
 
 func GetDeviceProfileFromCache(ctx context.Context, deviceId string) (map[string]string, error) {
 	key := fmt.Sprintf("TITAN::NODE::PROFILE::%s", deviceId)
-	result, err := Cache.Get(ctx, key).Result()
+	result, err := RedisCache.Get(ctx, key).Result()
 	if err != nil {
 		return nil, err
 	}

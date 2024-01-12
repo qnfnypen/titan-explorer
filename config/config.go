@@ -9,20 +9,20 @@ type NodesInfo struct {
 }
 
 type Config struct {
-	EtcdAddress    string
-	Mode           string
-	ApiListen      string
-	DatabaseURL    string
-	SecretKey      string
-	RedisAddr      string
-	RedisPassword  string
-	IpKey          string
-	IpUrl          string
-	Locator        LocatorConfig
-	Statistic      StatisticsConfig
-	Email          EmailConfig
-	AdminScheduler AdminSchedulerConfig
-	StorageBackup  StorageBackupConfig
+	EtcdAddress              string
+	Mode                     string
+	ApiListen                string
+	DatabaseURL              string
+	SecretKey                string
+	RedisAddr                string
+	RedisPassword            string
+	FilecoinRPCServerAddress string
+	Locator                  LocatorConfig
+	Statistic                StatisticsConfig
+	Email                    EmailConfig
+	AdminScheduler           AdminSchedulerConfig
+	StorageBackup            StorageBackupConfig
+	IpDataCloud              IpDataCloudConfig
 }
 
 type EmailConfig struct {
@@ -54,4 +54,9 @@ type StorageBackupConfig struct {
 	BackupPath string
 	Crontab    string
 	Disable    bool
+}
+
+type IpDataCloudConfig struct {
+	Url string
+	Key string
 }

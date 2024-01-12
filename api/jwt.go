@@ -12,6 +12,7 @@ import (
 	"github.com/gnasnik/titan-explorer/pkg/iptool"
 	"github.com/mssola/user_agent"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/net/context"
 	"net/http"
 	"strings"
 	"time"
@@ -92,14 +93,14 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			browser, _ := ua.Browser()
 			clientIP := iptool.GetClientIP(c.Request)
 
-			location, err := iptool.IPTableCloudGetLocation(c.Request.Context(), config.Cfg.IpUrl, clientIP, config.Cfg.IpKey, model.LanguageEN)
+			location, err := GetLocation(c.Request.Context(), clientIP)
 			if err != nil {
 				log.Errorf("get ip location from iptable cloud: %v", err)
 			}
 
 			var loginLocation string
 			if location != nil {
-				loginLocation = fmt.Sprintf("%s-%s-%s", location.Country, location.Province, location.City)
+				loginLocation = fmt.Sprintf("%s-%s-%s-%s", location.Continent, location.Country, location.Province, location.City)
 			}
 
 			defer func() {
@@ -257,4 +258,24 @@ func Cors() gin.HandlerFunc {
 		}
 		c.Next()
 	}
+}
+
+func GetLocation(ctx context.Context, ipAddr string) (*model.Location, error) {
+	var location model.Location
+
+	err := dao.GetLocationInfoByIp(ctx, ipAddr, &location, model.LanguageEN)
+	if err != nil {
+		log.Errorf("get location by ip: %v", err)
+	}
+
+	if location == (model.Location{}) {
+		return &location, nil
+	}
+
+	loc, err := iptool.IPDataCloudGetLocation(ctx, config.Cfg.IpDataCloud.Url, ipAddr, config.Cfg.IpDataCloud.Key, model.LanguageEN)
+	if err != nil {
+		log.Errorf("get ip location from iptable cloud: %v", err)
+	}
+
+	return loc, nil
 }

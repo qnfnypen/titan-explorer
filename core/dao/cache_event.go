@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
@@ -12,10 +13,16 @@ import (
 const tableNameCacheEvent = "cache_event"
 
 func GetAreaID(ctx context.Context, userId string) string {
+
 	var areaID string
-	_ = DB.GetContext(ctx, &areaID, fmt.Sprintf(
+	err := DB.GetContext(ctx, &areaID, fmt.Sprintf(
 		`SELECT area_id FROM %s where user_id = '%s' order by id desc limit 1`, tableNameApplication, userId,
 	))
+
+	if err == sql.ErrNoRows {
+		return GetLoginLocation(ctx, userId)
+	}
+
 	return areaID
 }
 

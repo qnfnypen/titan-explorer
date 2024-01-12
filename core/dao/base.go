@@ -18,8 +18,8 @@ import (
 var (
 	// DB reference to database
 	DB *sqlx.DB
-	// Cache  redis caching instance
-	Cache *redis.Client
+	// RedisCache  redis caching instance
+	RedisCache *redis.Client
 )
 
 const (
@@ -56,7 +56,7 @@ func Init(cfg *config.Config) error {
 	}
 
 	DB = db
-	Cache = client
+	RedisCache = client
 	return nil
 }
 

@@ -2,7 +2,6 @@ package statistics
 
 import (
 	"fmt"
-	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/bsm/redislock"
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
@@ -24,7 +23,7 @@ const (
 const LockerTTL = 30 * time.Second
 const statisticLockerKeyPrefix = "TITAN::STATISTIC"
 
-var SchedulerConfigs map[string][]*types.SchedulerCfg
+//var SchedulerConfigs map[string][]*types.SchedulerCfg
 
 type Statistic struct {
 	ctx        context.Context
@@ -46,7 +45,7 @@ func New(cfg config.StatisticsConfig, scheduler []*Scheduler) *Statistic {
 		cron:       c,
 		cfg:        cfg,
 		schedulers: scheduler,
-		locker:     redislock.New(dao.Cache),
+		locker:     redislock.New(dao.RedisCache),
 		fetchers: []Fetcher{
 			newNodeFetcher(),
 			newAssertFetcher(),

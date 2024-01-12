@@ -10,7 +10,7 @@ import (
 	"net/http"
 )
 
-func IPTableCloudGetLocation(ctx context.Context, url, ip, key, lang string) (*model.Location, error) {
+func IPDataCloudGetLocation(ctx context.Context, url, ip, key, lang string) (*model.Location, error) {
 	reqURL := fmt.Sprintf("%s?ip=%s&key=%s&language=%s", url, ip, key, lang)
 	resp, err := http.Get(reqURL)
 	if err != nil {

@@ -1,22 +1,20 @@
 package api
 
 import (
-	"bytes"
 	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
+	"github.com/gnasnik/titan-explorer/core/filecoin"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/go-redis/redis/v9"
 	"github.com/golang-module/carbon/v2"
-	"github.com/libp2p/go-libp2p/core/peer"
-	"golang.org/x/xerrors"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -35,132 +33,68 @@ func GetAllAreas(c *gin.Context) {
 	}))
 }
 
-var heightDown int64
+var (
+	ChainHeadKey           = "TITAN::FILECOIN::CHAINHEAD"
+	ChainHeadKeyExpiration = 10 * time.Second
+)
 
-var heightNow int64
+func GetBlockHighHandler(c *gin.Context) {
+	lastTipSet, err := getChainHead(c.Request.Context())
+	if err == nil {
+		ts := filecoin.GetTimestampByHeight(lastTipSet.Height)
+		c.JSON(http.StatusOK, respJSON(JsonObject{
+			"height":    lastTipSet.Height,
+			"countDown": time.Now().Unix() - ts,
+		}))
+		return
+	}
 
-var heightTimeSecond int64
-
-func GetHigh(c *gin.Context) {
-	url := "http://api.node.glif.io/rpc/v0"
-	height, err := ChainHead(url)
+	tipSet, err := filecoin.ChainHead(config.Cfg.FilecoinRPCServerAddress)
 	if err != nil {
-		log.Errorf("create scheduler rpc client: %v", err)
+		log.Errorf("get chain head: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
 	}
-	if heightNow == height {
-		heightDown += time.Now().Unix() - heightTimeSecond
-		heightTimeSecond = time.Now().Unix()
-	} else {
-		heightNow = height
-		heightDown = 30
+
+	if err := setChainHead(c.Request.Context(), tipSet); err != nil {
+		log.Errorf("set chain head: %v", err)
 	}
+
+	ts := filecoin.GetTimestampByHeight(tipSet.Height)
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"height":    heightNow,
-		"countDown": heightDown,
+		"height":    tipSet.Height,
+		"countDown": time.Now().Unix() - ts,
 	}))
 }
 
-type (
-	// lotus struct
-	tipSet struct {
-		Height int64
-	}
-
-	randomness []byte
-
-	minerInfo struct {
-		PeerId     *peer.ID
-		Multiaddrs [][]byte
-	}
-)
-
-func ChainHead(url string) (int64, error) {
-	req := model.LotusRequest{
-		Jsonrpc: "2.0",
-		Method:  "Filecoin.ChainHead",
-		Params:  nil,
-		ID:      1,
-	}
-
-	rsp, err := requestLotus(url, req)
+func getChainHead(ctx context.Context) (*filecoin.TipSet, error) {
+	result, err := dao.RedisCache.Get(ctx, ChainHeadKey).Result()
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	var ts tipSet
-	b, err := json.Marshal(rsp.Result)
+	var ts filecoin.TipSet
+	err = json.Unmarshal([]byte(result), &ts)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	err = json.Unmarshal(b, &ts)
-	if err != nil {
-		return 0, err
-	}
-
-	return ts.Height, nil
+	return &ts, nil
 }
 
-func StateMinerInfo(url string, minerId string) (*minerInfo, error) {
-	params, err := json.Marshal([]interface{}{minerId, nil})
+func setChainHead(ctx context.Context, val interface{}) error {
+	data, err := json.Marshal(val)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	req := model.LotusRequest{
-		Jsonrpc: "2.0",
-		Method:  "Filecoin.StateMinerInfo",
-		Params:  params,
-		ID:      1,
-	}
-
-	rsp, err := requestLotus(url, req)
+	_, err = dao.RedisCache.Set(ctx, ChainHeadKey, data, ChainHeadKeyExpiration).Result()
 	if err != nil {
-		return nil, err
+		log.Errorf("set chain head: %v", err)
 	}
 
-	var mi minerInfo
-	b, err := json.Marshal(rsp.Result)
-	if err != nil {
-		return nil, err
-	}
-
-	err = json.Unmarshal(b, &mi)
-	if err != nil {
-		return nil, err
-	}
-
-	return &mi, nil
-}
-
-func requestLotus(url string, req model.LotusRequest) (*model.LotusResponse, error) {
-	jsonData, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var rsp model.LotusResponse
-	err = json.Unmarshal(body, &rsp)
-	if err != nil {
-		return nil, err
-	}
-
-	if rsp.Error != nil {
-		return nil, xerrors.New(rsp.Error.Message)
-	}
-
-	return &rsp, nil
+	return nil
 }
 
 func GetIndexInfoHandler(c *gin.Context) {

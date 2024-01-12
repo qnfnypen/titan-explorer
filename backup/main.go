@@ -32,7 +32,7 @@ func main() {
 		log.Fatal("New etcdClient Failed: %v", err)
 	}
 
-	schedulers, err := api.FetchSchedulersFromEtcd(eClient)
+	schedulers, err := api.FetchSchedulers(eClient)
 	if err != nil {
 		log.Fatal("fetch scheduler from etcd Failed: %v", err)
 	}

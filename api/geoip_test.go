@@ -2,6 +2,9 @@ package api
 
 import (
 	"context"
+	"github.com/Filecoin-Titan/titan/api/client"
+	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -32,13 +35,23 @@ func TestGeoIP(t *testing.T) {
 		log.Fatalf("initital: %v\n", err)
 	}
 
-	SchedulerConfigs = make(map[string][]*types.SchedulerCfg)
+	//SchedulerConfigs = make(map[string][]*types.SchedulerCfg)
 	accessToken := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJ3ZWIiXSwiSUQiOiIzOTkzN2E2Zi1lYjhmLTQxZjMtYjNlYS0xNWZlYjM3N2FjNjQiLCJOb2RlSUQiOiIiLCJFeHRlbmQiOiIifQ.6Sonm9R9pY6anX5iuX8QIfb46UMBN0Eltnx3_CtpL2M"
 	schedulerCfg := &types.SchedulerCfg{SchedulerURL: "https://39.108.214.29:3456/rpc/v0", AreaID: "Asia-China-Guangdong-Shenzhen", AccessToken: accessToken}
-	SchedulerConfigs["Asia-China-Guangdong-Shenzhen"] = []*types.SchedulerCfg{schedulerCfg}
-	schedulerClient, err := getSchedulerClient(context.Background(), "")
+	//SchedulerConfigs["Asia-China-Guangdong-Shenzhen"] = []*types.SchedulerCfg{schedulerCfg}
+	//schedulerClient, err := getSchedulerClient(context.Background(), "")
+	//if err != nil {
+	//	t.Fatal(err)
+	//}
+
+	schedulerApiUrl := schedulerCfg.SchedulerURL
+	schedulerApiToken := schedulerCfg.AccessToken
+	SchedulerURL := strings.Replace(schedulerApiUrl, "https", "http", 1)
+	headers := http.Header{}
+	headers.Add("Authorization", "Bearer "+schedulerApiToken)
+	schedulerClient, _, err := client.NewScheduler(context.Background(), SchedulerURL, headers)
 	if err != nil {
-		t.Fatal(err)
+		log.Errorf("create scheduler rpc client: %v", err)
 	}
 
 	nodeIPInfos, err := schedulerClient.GetCandidateIPs(context.Background())

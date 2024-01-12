@@ -21,6 +21,16 @@ func GetCacheListHandler(c *gin.Context) {
 	nodeId := c.Query("device_id")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
+
+	//device, err := dao.GetDeviceInfo(c.Request.Context(), nodeId)
+	//if err != nil {
+	//	log.Errorf("get device info: %v", err)
+	//	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	//	return
+	//}
+	//
+
+	// todo: get scheduler from area id
 	resp, err := schedulerApi.GetReplicaEventsForNode(c.Request.Context(), nodeId, pageSize, (page-1)*pageSize)
 	if err != nil {
 		log.Errorf("api GetReplicaEventsForNode: %v", err)

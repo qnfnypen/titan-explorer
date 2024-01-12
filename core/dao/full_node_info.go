@@ -14,7 +14,7 @@ var tableNameFullNodeInfo = "full_node_info"
 
 const (
 	FullNodeInfoKeyExpiration = 0
-	FullNodeInfoKey           = "titan::full_node_info"
+	FullNodeInfoKey           = "TITAN::FULL_NODE_INFO"
 )
 
 func UpsertFullNodeInfo(ctx context.Context, fullNodeInfo *model.FullNodeInfo) error {
@@ -37,13 +37,13 @@ func CacheFullNodeInfo(ctx context.Context, fullNodeInfo *model.FullNodeInfo) er
 	if err != nil {
 		return err
 	}
-	_, err = Cache.Set(ctx, FullNodeInfoKey, bytes, FullNodeInfoKeyExpiration).Result()
+	_, err = RedisCache.Set(ctx, FullNodeInfoKey, bytes, FullNodeInfoKeyExpiration).Result()
 	return err
 }
 
 func GetCacheFullNodeInfo(ctx context.Context) (*model.FullNodeInfo, error) {
 	out := &model.FullNodeInfo{}
-	bytes, err := Cache.Get(ctx, FullNodeInfoKey).Bytes()
+	bytes, err := RedisCache.Get(ctx, FullNodeInfoKey).Bytes()
 	if err != nil && err != redis.Nil {
 		return nil, err
 	}

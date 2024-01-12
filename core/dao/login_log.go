@@ -8,6 +8,18 @@ import (
 
 var tableNameloginLog = "login_log"
 
+func GetLoginLocation(ctx context.Context, userId string) string {
+	query := fmt.Sprintf(`select login_location from %s where login_username = ? order by id desc limit 1`, tableNameloginLog)
+
+	var areaId string
+	if err := DB.GetContext(ctx, &areaId, query, userId); err != nil {
+		log.Errorf("get user area id: %v", err)
+		return ""
+	}
+
+	return areaId
+}
+
 func AddLoginLog(ctx context.Context, log *model.LoginLog) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
 		`INSERT INTO %s (login_username, ip_address, login_location, browser, os, status, msg, created_at) VALUES 
