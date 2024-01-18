@@ -38,7 +38,7 @@ var (
 	ChainHeadKeyExpiration = 10 * time.Second
 )
 
-func GetBlockHighHandler(c *gin.Context) {
+func GetBlockHeightHandler(c *gin.Context) {
 	lastTipSet, err := getChainHead(c.Request.Context())
 	if err == nil {
 		ts := filecoin.GetTimestampByHeight(lastTipSet.Height)
@@ -614,7 +614,7 @@ func GetDeviceProfileHandler(c *gin.Context) {
 	type getEarningReq struct {
 		NodeID string   `json:"node_id"`
 		Keys   []string `json:"keys"`
-		Since  string   `json:"since"`
+		Since  int64    `json:"since"`
 	}
 
 	var param getEarningReq
@@ -630,10 +630,10 @@ func GetDeviceProfileHandler(c *gin.Context) {
 		log.Errorf("get last update info: %v", err)
 	}
 
-	if lastUpdate != nil && param.Since != "" {
-		sinceT, _ := time.Parse(time.DateTime, param.Since)
+	if lastUpdate != nil && param.Since > 0 {
+		sinceT := time.Unix(param.Since, 0)
 		if lastUpdate.Time.Before(sinceT) {
-			response["since"] = time.Now().Format(time.DateTime)
+			response["since"] = time.Now().Unix()
 			c.JSON(http.StatusOK, respJSON(response))
 			return
 		}
@@ -664,7 +664,7 @@ func GetDeviceProfileHandler(c *gin.Context) {
 		}
 	}
 
-	if param.Since != "" {
+	if param.Since > 0 {
 		filterResp, err := filterResponse(c.Request.Context(), param.NodeID, response)
 		if err != nil {
 			log.Errorf("filter response: %v", err)
@@ -675,7 +675,7 @@ func GetDeviceProfileHandler(c *gin.Context) {
 		}
 	}
 
-	response["since"] = time.Now().Format(time.DateTime)
+	response["since"] = time.Now().Unix()
 
 	c.JSON(http.StatusOK, respJSON(response))
 }
