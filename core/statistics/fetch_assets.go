@@ -81,6 +81,10 @@ Loop:
 		return err
 	}
 
+	if len(stats) == 0 {
+		return nil
+	}
+
 	sort.Slice(stats, func(i, j int) bool {
 		return stats[i].TotalSize > stats[j].TotalSize
 	})

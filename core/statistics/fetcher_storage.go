@@ -51,9 +51,14 @@ func (c *StorageFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error 
 		})
 	}
 
+	if len(mus) == 0 {
+		return nil
+	}
+
 	err = dao.BulkUpsertStorageHours(ctx, mus)
 	if err != nil {
 		log.Errorf("create user info hour: %v", err)
 	}
+
 	return nil
 }
