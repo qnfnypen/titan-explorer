@@ -503,7 +503,7 @@ DROP TABLE IF EXISTS `reward_statement`;
 CREATE TABLE reward_statement (
 `id` bigint(20) NOT NULL AUTO_INCREMENT,
 `username`  VARCHAR(255) NOT NULL DEFAULT '',
-`recipient` VARCHAR(64) NOT NULL DEFAULT '',
+`from_user` VARCHAR(64) NOT NULL DEFAULT '',
 `amount` BIGINT(20) NOT NULL DEFAULT 0,
 `event` VARCHAR(64) NOT NULL DEFAULT '',
 `status` int(1) NULL DEFAULT 0,

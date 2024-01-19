@@ -441,7 +441,7 @@ func RankDeviceInfo(ctx context.Context) error {
 
 func GenerateInactiveNodeRecords(ctx context.Context, t time.Time) error {
 	var inactiveNodeIds []model.DeviceInfo
-	query := fmt.Sprintf("SELECT * FROM %s where updated_at < ?", tableNameDeviceInfo)
+	query := fmt.Sprintf("SELECT * FROM %s where active_status = 1 and updated_at < ?", tableNameDeviceInfo)
 	err := DB.SelectContext(ctx, &inactiveNodeIds, query, t)
 	if err != nil {
 		return err
@@ -534,7 +534,7 @@ func GetNodesInfo(ctx context.Context, option QueryOption) (int64, []model.Nodes
 	return total, nodeInfo, nil
 }
 
-func GetIdIfExit(ctx context.Context, nodeId string) bool {
+func GetIdIfExist(ctx context.Context, nodeId string) bool {
 	var out model.DeviceInfo
 	query := fmt.Sprintf(`SELECT * FROM %s where device_id = '%s';`, tableNameDeviceInfo, nodeId)
 	err := DB.QueryRowxContext(ctx, query).StructScan(&out)
@@ -542,10 +542,35 @@ func GetIdIfExit(ctx context.Context, nodeId string) bool {
 		return false
 	}
 	if err != nil {
-		log.Errorf("GetIdIfExit err:%v", err)
+		log.Errorf("GetIdIfExist err:%v", err)
 		return false
 	}
 	return true
+}
+
+func SumUserDeviceReward(ctx context.Context) (map[string]int64, error) {
+	query := fmt.Sprintf(`select user_id, sum(today_profit) as income from %s where  user_id <> '' and today_profit > 0 GROUP BY user_id;`, tableNameDeviceInfo)
+
+	out := make(map[string]int64)
+	rows, err := DB.QueryxContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var userID string
+		var reward int64
+
+		err := rows.Scan(&userID, &reward)
+		if err != nil {
+			return nil, err
+		}
+
+		out[userID] = reward
+	}
+
+	return out, nil
 }
 
 func DeleteDeviceInfoHourHistory(ctx context.Context, before time.Time) error {

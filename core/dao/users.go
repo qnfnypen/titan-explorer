@@ -56,10 +56,10 @@ func UpdateUserWalletAddress(ctx context.Context, username, address string) erro
 
 func GetUsersReferrer(ctx context.Context, username string) (*model.User, error) {
 	var u model.User
-	query := fmt.Sprintf("SELECT * FROM %s u JOIN %s ur on ur.referral_code=ur.referrer WHERE ur.username=? LIMIT 1", tableNameUser, tableNameUser)
-	err := DB.QueryRowxContext(ctx, query, username).StructScan(&u)
+	query := fmt.Sprintf("SELECT u.* FROM %s u JOIN %s ur on u.referral_code=ur.referrer WHERE ur.username=? LIMIT 1", tableNameUser, tableNameUser)
+	err := DB.GetContext(ctx, &u, query, username)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNoRow
 		}
 		return nil, err

@@ -9,6 +9,15 @@ const (
 	LanguageCN = "cn"
 )
 
+type RewardEvent string
+
+var (
+	RewardEventInviteFrens RewardEvent = "invite_frens"
+	RewardEventBindDevice  RewardEvent = "bind_device"
+	RewardEventEarning     RewardEvent = "earning"
+	RewardEventReferrals   RewardEvent = "referrals"
+)
+
 type Project struct {
 	ID        int64     `db:"id" json:"id"`
 	Name      string    `db:"name" json:"name"`

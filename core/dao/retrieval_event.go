@@ -49,7 +49,7 @@ func CreateRetrievalEvents(ctx context.Context, events []*model.RetrievalEvent) 
 }
 
 func CountUploadTraffic(ctx context.Context, nodeId string) error {
-	if !GetIdIfExit(ctx, nodeId) {
+	if !GetIdIfExist(ctx, nodeId) {
 		return nil
 	}
 	// count retrieval Traffic

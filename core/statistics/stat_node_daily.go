@@ -307,3 +307,54 @@ func (s *Statistic) UpdateDeviceLocation() error {
 	}
 	return nil
 }
+
+func (s *Statistic) ClaimUserEarning() error {
+	log.Info("start to claim user earning")
+	start := time.Now()
+	defer func() {
+		log.Infof("claim user earning done, cost: %v", time.Since(start))
+	}()
+
+	userRewards, err := dao.SumUserDeviceReward(s.ctx)
+	if err != nil {
+		log.Errorf("sum user rewards: %v", err)
+		return err
+	}
+
+	for userId, reward := range userRewards {
+		err := dao.UpdateUserReward(s.ctx, &model.RewardStatement{
+			Username:  userId,
+			FromUser:  userId,
+			Amount:    reward,
+			Event:     model.RewardEventEarning,
+			Status:    1,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		})
+		if err != nil {
+			log.Errorf("update user reward: %v", err)
+		}
+
+		referer, err := dao.GetUsersReferrer(s.ctx, userId)
+		if err != nil {
+			log.Errorf("get user referer: %v", err)
+			continue
+		}
+
+		// referral rewards
+		err = dao.UpdateUserReward(s.ctx, &model.RewardStatement{
+			Username:  referer.Username,
+			FromUser:  userId,
+			Amount:    reward * 10 / 100,
+			Event:     model.RewardEventReferrals,
+			Status:    1,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		})
+		if err != nil {
+			log.Errorf("update user reward: %v", err)
+		}
+	}
+
+	return nil
+}

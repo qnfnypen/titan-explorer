@@ -31,12 +31,6 @@ const (
 	NonceStringTypeSignature NonceStringType = "4"
 )
 
-const (
-	RewardEventInviteFrens = "invite_frens"
-	RewardEventBindDevice  = "bind_device"
-	RewardEventEarn        = "earn"
-)
-
 var defaultNonceExpiration = 5 * time.Minute
 
 func GetUserInfoHandler(c *gin.Context) {
@@ -116,10 +110,10 @@ func UserRegister(c *gin.Context) {
 
 	if referrer != nil {
 		rewardStatement := &model.RewardStatement{
-			Username:  userInfo.Username,
-			Recipient: referrer.Username,
-			Amount:    10,
-			Event:     RewardEventInviteFrens,
+			Username:  referrer.Username,
+			FromUser:  userInfo.Username,
+			Amount:    0,
+			Event:     model.RewardEventInviteFrens,
 			Status:    1,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
@@ -359,20 +353,20 @@ func DeviceBindingHandler(c *gin.Context) {
 		}))
 	}
 
-	rewardStatement := &model.RewardStatement{
-		Recipient: referrer.Username,
-		Username:  deviceInfo.UserID,
-		DeviceId:  deviceInfo.DeviceID,
-		Amount:    10,
-		Event:     RewardEventBindDevice,
-		Status:    1,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-	err = dao.UpdateUserReward(c.Request.Context(), rewardStatement)
-	if err != nil {
-		log.Errorf("Update user reward: %v", err)
-	}
+	//rewardStatement := &model.RewardStatement{
+	//	FromUser:  referrer.Username,
+	//	Username:  deviceInfo.UserID,
+	//	DeviceId:  deviceInfo.DeviceID,
+	//	Amount:    10,
+	//	Event:     model.RewardEventBindDevice,
+	//	Status:    1,
+	//	CreatedAt: time.Now(),
+	//	UpdatedAt: time.Now(),
+	//}
+	//err = dao.UpdateUserReward(c.Request.Context(), rewardStatement)
+	//if err != nil {
+	//	log.Errorf("Update user reward: %v", err)
+	//}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"msg": "success",
@@ -672,7 +666,7 @@ func GetReferralListHandler(c *gin.Context) {
 		OrderField: orderField,
 	}
 
-	event := []string{RewardEventInviteFrens, RewardEventBindDevice}
+	event := []model.RewardEvent{model.RewardEventInviteFrens, model.RewardEventBindDevice}
 	total, referList, err := dao.GetReferralList(c.Request.Context(), username, event, option)
 	if err != nil {
 		log.Errorf("get referral list: %v", err)
