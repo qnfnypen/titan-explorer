@@ -171,13 +171,16 @@ func applyLocationInfo(deviceInfo *model.DeviceInfo) {
 
 	deviceInfo.NetworkInfo = loc.Isp
 	deviceInfo.IpProvince = loc.Province
-	continent := loc.Continent
 	deviceInfo.IpCountry = loc.Country
 	deviceInfo.IpCity = loc.City
-	deviceInfo.IpLocation = continent + "-" + deviceInfo.IpCountry + "-" + deviceInfo.IpProvince
-	if deviceInfo.IpCity != "" {
-		deviceInfo.IpLocation += "-" + deviceInfo.IpCity
-	}
+	deviceInfo.IpLocation = dao.ContactIPLocation(loc, model.LanguageEN)
+
+	//continent := loc.Continent
+	//deviceInfo.IpLocation = continent + "-" + deviceInfo.IpCountry + "-" + deviceInfo.IpProvince
+	//if deviceInfo.IpCity != "" {
+	//	deviceInfo.IpLocation += "-" + deviceInfo.IpCity
+	//}
+
 	deviceInfo.Longitude, _ = strconv.ParseFloat(loc.Longitude, 64)
 	deviceInfo.Latitude, _ = strconv.ParseFloat(loc.Latitude, 64)
 }

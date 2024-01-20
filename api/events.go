@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -577,12 +576,14 @@ func GetCarFileCountHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
 		return
 	}
+
 	assetRsp, err := schedulerClient.GetAssetRecord(c.Request.Context(), cid)
 	if err != nil {
 		log.Errorf("api GetAssetRecord: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+
 	var deviceIdAll []string
 	deviceExists := make(map[string]int)
 	if len(assetRsp.ReplicaInfos) > 0 {
@@ -598,6 +599,7 @@ func GetCarFileCountHandler(c *gin.Context) {
 	if err != nil {
 		log.Errorf("GetAssetList err: %v", e)
 	}
+
 	for _, nodeInfo := range assetListAll {
 		if _, ok := deviceExists[nodeInfo.IpCity]; ok {
 			continue
@@ -660,7 +662,7 @@ func GetLocationHandler(c *gin.Context) {
 		for _, nodeInfo := range assetList {
 			assetInfos = append(assetInfos, &DeviceInfoRes{
 				DeviceId:   nodeInfo.DeviceID,
-				IpLocation: contactIPLocation(nodeInfo.Location, lang),
+				IpLocation: dao.ContactIPLocation(nodeInfo.Location, lang),
 				Status:     nodeInfo.DeviceStatus,
 			})
 		}
@@ -670,25 +672,6 @@ func GetLocationHandler(c *gin.Context) {
 		"total":     resp.Total,
 		"node_list": assetInfos,
 	}))
-}
-
-func contactIPLocation(loc model.Location, lang model.Language) string {
-	var unknown string
-	switch lang {
-	case model.LanguageCN:
-		unknown = "未知"
-	default:
-		unknown = "Unknown"
-	}
-
-	cf := func(in string) string {
-		if in == "" {
-			return unknown
-		}
-		return in
-	}
-
-	return fmt.Sprintf("%s-%s-%s-%s", cf(loc.Continent), cf(loc.Country), cf(loc.Province), cf(loc.City))
 }
 
 func GetMapByCidHandler(c *gin.Context) {
@@ -701,12 +684,14 @@ func GetMapByCidHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
 		return
 	}
+
 	assetRsp, err := schedulerClient.GetAssetRecord(c.Request.Context(), cid)
 	if err != nil {
 		log.Errorf("api GetAssetRecord: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+
 	var deviceIds []string
 	if len(assetRsp.ReplicaInfos) > 0 {
 		for _, rep := range assetRsp.ReplicaInfos {
@@ -715,13 +700,15 @@ func GetMapByCidHandler(c *gin.Context) {
 			}
 		}
 	}
+
 	assetList, e := dao.GetAssetList(c.Request.Context(), deviceIds, lang, dao.QueryOption{})
 	if err != nil {
 		log.Errorf("GetAssetList err: %v", e)
 	}
-	mapList := dao.HandleMapInfo(c, assetList)
+
+	mapList := dao.HandleMapInfo(assetList, lang)
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list":  mapList,
+		"list":  maskIPAddress(assetList),
 		"total": len(mapList),
 	}))
 }

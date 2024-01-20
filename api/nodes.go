@@ -301,33 +301,55 @@ func GetQueryInfoHandler(c *gin.Context) {
 		Order:      order,
 		OrderField: orderField,
 	}
-	list, total, err := dao.GetDeviceInfoListByKey(c.Request.Context(), info, option)
+
+	deviceInfos, total, err := dao.GetDeviceInfoListByKey(c.Request.Context(), info, option)
 	if err != nil {
 		log.Errorf("get device by user id info list: %v", err)
 	}
-	if total < 1 {
-		DetailList := dao.GetDeviceInfoById(context.Background(), info.UserID)
-		if DetailList.DeviceID != "" {
-			list = append(list, &DetailList)
-		}
-		if len(list) == 0 {
-			c.JSON(http.StatusOK, respJSON(JsonObject{
-				"type": "wrong key",
-			}))
-			return
-		}
+
+	maskIPAddress(deviceInfos)
+
+	if total > 0 {
 		c.JSON(http.StatusOK, respJSON(JsonObject{
-			"list":  list,
-			"total": total,
-			"type":  "node_id",
-		}))
-	} else {
-		c.JSON(http.StatusOK, respJSON(JsonObject{
-			"list":  list,
+			"list":  deviceInfos,
 			"total": total,
 			"type":  "user_id",
 		}))
+		return
 	}
+
+	detailList := dao.GetDeviceInfoById(context.Background(), info.UserID)
+	if detailList.DeviceID != "" {
+		deviceInfos = append(deviceInfos, &detailList)
+	}
+
+	if len(deviceInfos) == 0 {
+		c.JSON(http.StatusOK, respJSON(JsonObject{
+			"type": "wrong key",
+		}))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list":  deviceInfos,
+		"total": total,
+		"type":  "node_id",
+	}))
+
+}
+
+func maskIPAddress(in []*model.DeviceInfo) []*model.DeviceInfo {
+	for _, deviceInfo := range in {
+		eIp := strings.Split(deviceInfo.ExternalIp, ".")
+		if len(eIp) > 3 {
+			deviceInfo.ExternalIp = eIp[0] + "." + "xxx" + "." + "xxx" + "." + eIp[3]
+		}
+		iIp := strings.Split(deviceInfo.InternalIp, ".")
+		if len(iIp) > 3 {
+			deviceInfo.InternalIp = iIp[0] + "." + "xxx" + "." + "xxx" + "." + iIp[3]
+		}
+	}
+	return in
 }
 
 func GetDeviceInfoHandler(c *gin.Context) {
@@ -340,6 +362,8 @@ func GetDeviceInfoHandler(c *gin.Context) {
 	order := c.Query("order")
 	orderField := c.Query("order_field")
 	nodeTypeStr := c.Query("node_type")
+	lang := model.Language(c.GetHeader("Lang"))
+
 	if nodeTypeStr != "" {
 		nodeType, _ := strconv.ParseInt(nodeTypeStr, 10, 64)
 		info.NodeType = nodeType
@@ -365,36 +389,56 @@ func GetDeviceInfoHandler(c *gin.Context) {
 		Order:      order,
 		OrderField: orderField,
 	}
-	list, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
+
+	deviceInfos, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
 	if err != nil {
 		log.Errorf("database GetDeviceInfoList: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
+	//areaId := dao.GetAreaID(c.Request.Context(), info.UserID)
+	//schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	//if err != nil {
+	//	log.Errorf("no scheder found")
+	//	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	//	return
+	//}
+
+	for _, deviceInfo := range deviceInfos {
+		//createAssetRsp, err := schedulerClient.GetNodeInfo(c.Request.Context(), deviceIfo.DeviceID)
+		//if err != nil {
+		//	log.Errorf("api GetNodeInfo: %v", err)
+		//}
+		//deviceIfo.DeactivateTime = createAssetRsp.DeactivateTime
+		//dao.HandleMapList(ctx, deviceIfo)
+		dao.TranslateIPLocation(c.Request.Context(), deviceInfo, lang)
+	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list":  handleNodeList(c, info.UserID, list),
+		"list":  maskIPAddress(deviceInfos),
 		"total": total,
 	}))
 }
 
-func handleNodeList(ctx *gin.Context, userId string, devicesInfo []*model.DeviceInfo) []*model.DeviceInfo {
-	areaId := dao.GetAreaID(ctx.Request.Context(), userId)
-	schedulerClient, err := getSchedulerClient(ctx, areaId)
-	if err != nil {
-		log.Errorf("no scheder found")
-		return nil
-	}
-	for _, deviceIfo := range devicesInfo {
-		createAssetRsp, err := schedulerClient.GetNodeInfo(ctx, deviceIfo.DeviceID)
-		if err != nil {
-			log.Errorf("api GetNodeInfo: %v", err)
-		}
-		deviceIfo.DeactivateTime = createAssetRsp.DeactivateTime
-		dao.HandleMapList(ctx, deviceIfo)
-	}
-	return devicesInfo
-}
+//func handleNodeList(ctx *gin.Context, userId string, devicesInfo []*model.DeviceInfo) []*model.DeviceInfo {
+//	areaId := dao.GetAreaID(ctx.Request.Context(), userId)
+//	schedulerClient, err := getSchedulerClient(ctx, areaId)
+//	if err != nil {
+//		log.Errorf("no scheder found")
+//		return nil
+//	}
+//	for _, deviceIfo := range devicesInfo {
+//		createAssetRsp, err := schedulerClient.GetNodeInfo(ctx, deviceIfo.DeviceID)
+//		if err != nil {
+//			log.Errorf("api GetNodeInfo: %v", err)
+//		}
+//		deviceIfo.DeactivateTime = createAssetRsp.DeactivateTime
+//		//dao.HandleMapList(ctx, deviceIfo)
+//		dao.TranslateIPLocation()
+//	}
+//	return devicesInfo
+//}
 
 func GetDeviceActiveInfoHandler(c *gin.Context) {
 	info := &model.DeviceInfo{}
@@ -445,7 +489,8 @@ func GetDeviceStatusHandler(c *gin.Context) {
 		Order:      order,
 		OrderField: orderField,
 	}
-	list, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
+
+	deviceInfos, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
 	if err != nil {
 		log.Errorf("GetDeviceStatusHandler GetDeviceInfoList: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -453,7 +498,7 @@ func GetDeviceStatusHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list":  list,
+		"list":  maskIPAddress(deviceInfos),
 		"total": total,
 	}))
 }
@@ -504,6 +549,7 @@ func GetMapInfoHandler(c *gin.Context) {
 	page, _ := strconv.Atoi("page")
 	order := c.Query("order")
 	orderField := c.Query("order_field")
+	lang := model.Language(c.GetHeader("Lang"))
 	nodeType, _ := strconv.ParseInt(c.Query("node_type"), 10, 64)
 	info.NodeType = nodeType
 	info.ActiveStatus = 1
@@ -513,7 +559,8 @@ func GetMapInfoHandler(c *gin.Context) {
 		Order:      order,
 		OrderField: orderField,
 	}
-	list, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
+
+	deviceInfos, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
 	if err != nil {
 		log.Errorf("GetMapInfoHandler GetDeviceInfoList: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -521,7 +568,7 @@ func GetMapInfoHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list":  dao.HandleMapInfo(c, list),
+		"list":  dao.HandleMapInfo(maskIPAddress(deviceInfos), lang),
 		"total": total,
 	}))
 }

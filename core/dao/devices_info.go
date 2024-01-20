@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"strings"
@@ -83,7 +82,7 @@ func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option Query
 		return nil, 0, err
 	}
 
-	return HandleIpInfo(out), total, err
+	return out, total, err
 }
 
 func GetDeviceActiveInfoList(ctx context.Context, cond *model.DeviceInfo, option QueryOption) ([]*ActiveInfoOut, int64, error) {
@@ -137,20 +136,6 @@ func GetDeviceActiveInfoList(ctx context.Context, cond *model.DeviceInfo, option
 	}
 
 	return out, total, err
-}
-
-func HandleIpInfo(in []*model.DeviceInfo) []*model.DeviceInfo {
-	for _, deviceInfo := range in {
-		eIp := strings.Split(deviceInfo.ExternalIp, ".")
-		if len(eIp) > 3 {
-			deviceInfo.ExternalIp = eIp[0] + "." + "xxx" + "." + "xxx" + "." + eIp[3]
-		}
-		iIp := strings.Split(deviceInfo.InternalIp, ".")
-		if len(iIp) > 3 {
-			deviceInfo.InternalIp = iIp[0] + "." + "xxx" + "." + "xxx" + "." + iIp[3]
-		}
-	}
-	return in
 }
 
 func GetDeviceInfoListByKey(ctx context.Context, cond *model.DeviceInfo, option QueryOption) ([]*model.DeviceInfo, int64, error) {
@@ -208,69 +193,91 @@ func GetDeviceInfoListByKey(ctx context.Context, cond *model.DeviceInfo, option 
 		return nil, 0, err
 	}
 
-	return HandleIpInfo(out), total, err
+	return out, total, err
 }
 
-func HandleMapList(ctx *gin.Context, deviceIfo *model.DeviceInfo) *model.DeviceInfo {
-	if ctx.GetHeader("Lang") == "en" {
-		continents := strings.Split(deviceIfo.IpLocation, "-")
-		continent := "Asia"
-		if len(continents) > 1 {
-			switch continents[0] {
-			case "亚洲":
-				continent = "Asia"
-				deviceIfo.IpProvince = GetProvinceName(ctx.Request.Context(), deviceIfo.IpProvince)
-				deviceIfo.IpCity = GetCityName(ctx.Request.Context(), deviceIfo.IpCity)
-			case "欧洲":
-				continent = "Europe"
-			case "非洲":
-				continent = "Africa"
-			case "大洋洲":
-				continent = "Oceania"
-			case "南极洲":
-				continent = "Antarctica"
-			case "北美洲":
-				continent = "North America"
-			case "南美洲":
-				continent = "South America"
-			default:
-				continent = "Asia"
-
-			}
-			deviceIfo.IpLocation = continent
-			deviceIfo.IpLocation += "-" + GetCountryName(ctx.Request.Context(), deviceIfo.IpCountry)
-			deviceIfo.IpLocation += "-" + deviceIfo.IpProvince
-			deviceIfo.IpLocation += "-" + deviceIfo.IpCity
-		}
-
+func TranslateIPLocation(ctx context.Context, info *model.DeviceInfo, lang model.Language) {
+	if lang == model.LanguageEN {
+		return
 	}
-	return deviceIfo
+
+	parts := strings.Split(info.IpLocation, "-")
+	if len(parts) < 4 {
+		return
+	}
+
+	var args []interface{}
+	for _, part := range parts {
+		args = append(args, part)
+	}
+
+	if args[len(args)-1] == "Unknown" {
+		args[len(args)-1] = args[len(args)-2]
+	}
+
+	locationEnTable := fmt.Sprintf("%s_%s", tableNameLocation, model.LanguageEN)
+	locationCnTable := fmt.Sprintf("%s_%s", tableNameLocation, lang)
+	query := fmt.Sprintf(`select lc.* from %s lc join %s le on lc.zip_code = le.zip_code where le.continent = ? and le.country = ? and le.province = ? and le.city = ? limit 1`, locationCnTable, locationEnTable)
+
+	var location model.Location
+	err := DB.QueryRowxContext(ctx, query, args...).StructScan(&location)
+	if err != nil {
+		log.Errorf("query location %s: %v", locationCnTable, err)
+		return
+	}
+
+	info.Continent = location.Continent
+	info.Province = location.Province
+	info.Country = location.Country
+	info.City = location.City
+	info.IpLocation = ContactIPLocation(location, lang)
 }
 
-func HandleMapInfo(ctx *gin.Context, in []*model.DeviceInfo) []map[string]interface{} {
-	type MapObject map[string]interface{}
-	var mapInfoOut []map[string]interface{}
+func ContactIPLocation(loc model.Location, lang model.Language) string {
+	var unknown string
+	switch lang {
+	case model.LanguageCN:
+		unknown = "未知"
+	default:
+		unknown = "Unknown"
+	}
+
+	cf := func(in string) string {
+		if in == "" {
+			return unknown
+		}
+		return in
+	}
+
+	return fmt.Sprintf("%s-%s-%s-%s", cf(loc.Continent), cf(loc.Country), cf(loc.Province), cf(loc.City))
+}
+
+func HandleMapInfo(infos []*model.DeviceInfo, lang model.Language) []map[string]interface{} {
+	var out []map[string]interface{}
 	mapLocationExit := make(map[float64]float64)
-	for _, m := range in {
-		if m.DeviceStatus == "offline" {
+	for _, info := range infos {
+		if info.DeviceStatus == "offline" {
 			continue
 		}
-		Latitude, ok := mapLocationExit[m.Longitude]
-		mapLocationExit[m.Longitude] = m.Latitude
-		if ok && Latitude == m.Latitude {
-			m.Latitude += formatter.RandFloat64() / 10000
-			m.Longitude += formatter.RandFloat64() / 10000
+
+		Latitude, ok := mapLocationExit[info.Longitude]
+		mapLocationExit[info.Longitude] = info.Latitude
+		if ok && Latitude == info.Latitude {
+			info.Latitude += formatter.RandFloat64() / 10000
+			info.Longitude += formatter.RandFloat64() / 10000
 		}
-		HandleMapList(ctx, m)
-		mapInfoOut = append(mapInfoOut, MapObject{
-			"name":     m.IpCity,
-			"nodeType": m.NodeType,
-			"ip":       m.ExternalIp,
-			"value":    []float64{m.Latitude, m.Longitude},
+
+		TranslateIPLocation(context.Background(), info, lang)
+
+		out = append(out, map[string]interface{}{
+			"name":     info.IpCity,
+			"nodeType": info.NodeType,
+			"ip":       info.ExternalIp,
+			"value":    []float64{info.Latitude, info.Longitude},
 		})
 
 	}
-	return mapInfoOut
+	return out
 
 }
 
