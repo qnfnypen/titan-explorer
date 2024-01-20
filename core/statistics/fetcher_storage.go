@@ -11,28 +11,34 @@ type StorageFetcher struct {
 	BaseFetcher
 }
 
-func newStorageFetcher() *StorageFetcher {
+func init() {
+	// Register newStorageFetcher during initialization
+	RegisterFetcher(newStorageFetcher)
+}
+
+func newStorageFetcher() Fetcher {
 	return &StorageFetcher{BaseFetcher: newBaseFetcher()}
 }
 
 var _ Fetcher = &StorageFetcher{}
 
+// Fetch fetches storage information and processes the data.
 func (c *StorageFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
-	log.Info("start to fetch 【storage info】")
+	log.Info("start fetching storage info")
 	start := time.Now()
 	defer func() {
-		log.Infof("fetch cache files, cost: %v", time.Since(start))
+		log.Infof("fetched cache files, cost: %v", time.Since(start))
 	}()
 
 	userIds, err := dao.GetUserIds(ctx)
 	if err != nil {
-		log.Errorf("get GetUserIds: %v", err)
+		log.Errorf("failed to get UserIds: %v", err)
 		return err
 	}
 
 	infos, err := scheduler.Api.GetUserInfos(ctx, userIds)
 	if err != nil {
-		log.Errorf("client api GetUserInfos: %v", err)
+		log.Errorf("failed to fetch user infos from API: %v", err)
 		return err
 	}
 
@@ -57,7 +63,7 @@ func (c *StorageFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error 
 
 	err = dao.BulkUpsertStorageHours(ctx, mus)
 	if err != nil {
-		log.Errorf("create user info hour: %v", err)
+		log.Errorf("failed to create user info hour: %v", err)
 	}
 
 	return nil

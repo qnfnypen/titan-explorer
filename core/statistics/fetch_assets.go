@@ -17,15 +17,27 @@ const (
 	defaultBackupDays   = 7
 )
 
+// AssertFetcher represents a fetcher for asset information.
 type AssertFetcher struct {
 	BaseFetcher
 }
 
+// Register the AssertFetcher during initialization
+func init() {
+	RegisterFetcher(newAssertFetcher)
+}
+
+// newAssertFetcher creates a new instance of AssertFetcher.
+func newAssertFetcher() Fetcher {
+	return &AssertFetcher{BaseFetcher: newBaseFetcher()}
+}
+
+// Fetch fetches asset information.
 func (a AssertFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
-	log.Info("start to fetch 【assert info】")
+	log.Info("Start to fetch assert info")
 	start := time.Now()
 	defer func() {
-		log.Infof("fetch assert files, cost: %v", time.Since(start))
+		log.Infof("Fetch assert files, cost: %v", time.Since(start))
 	}()
 
 	latest, err := dao.GetLatestAsset(ctx)
@@ -114,6 +126,7 @@ Loop:
 	return dao.AddStorageStats(ctx, stats)
 }
 
+// toAssets converts a slice of ReplicaEventInfo to a slice of Asset.
 func toAssets(in []*types.ReplicaEventInfo) ([]*model.Asset, error) {
 	var out []*model.Asset
 	for _, r := range in {
@@ -128,10 +141,6 @@ func toAssets(in []*types.ReplicaEventInfo) ([]*model.Asset, error) {
 		})
 	}
 	return out, nil
-}
-
-func newAssertFetcher() *AssertFetcher {
-	return &AssertFetcher{BaseFetcher: newBaseFetcher()}
 }
 
 var _ Fetcher = &AssertFetcher{}

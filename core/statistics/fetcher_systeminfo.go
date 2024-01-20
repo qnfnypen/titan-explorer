@@ -12,7 +12,12 @@ type SystemInfoFetcher struct {
 	BaseFetcher
 }
 
-func newSystemInfoFetcher() *SystemInfoFetcher {
+func init() {
+	// Register newSystemInfoFetcher during initialization
+	RegisterFetcher(newSystemInfoFetcher)
+}
+
+func newSystemInfoFetcher() Fetcher {
 	return &SystemInfoFetcher{BaseFetcher: newBaseFetcher()}
 }
 

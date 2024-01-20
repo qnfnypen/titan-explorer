@@ -14,17 +14,18 @@ import (
 
 var log = logging.Logger("statistics")
 
-const (
-	megaBytes = 1 << 20
-	gigaBytes = 1 << 30
-	teraBytes = 1 << 40
-)
-
 const LockerTTL = 30 * time.Second
 const statisticLockerKeyPrefix = "TITAN::STATISTIC"
 
-//var SchedulerConfigs map[string][]*types.SchedulerCfg
+// FetcherRegistry to keep track of registered fetchers
+var FetcherRegistry []func() Fetcher
 
+// RegisterFetcher allows registering new fetchers
+func RegisterFetcher(fetcher func() Fetcher) {
+	FetcherRegistry = append(FetcherRegistry, fetcher)
+}
+
+// Statistic represents the statistics manager.
 type Statistic struct {
 	ctx        context.Context
 	cfg        config.StatisticsConfig
@@ -34,6 +35,7 @@ type Statistic struct {
 	schedulers []*Scheduler
 }
 
+// New creates a new Statistic instance.
 func New(cfg config.StatisticsConfig, scheduler []*Scheduler) *Statistic {
 	c := cron.New(
 		cron.WithSeconds(),
@@ -46,17 +48,17 @@ func New(cfg config.StatisticsConfig, scheduler []*Scheduler) *Statistic {
 		cfg:        cfg,
 		schedulers: scheduler,
 		locker:     redislock.New(dao.RedisCache),
-		fetchers: []Fetcher{
-			newNodeFetcher(),
-			newAssertFetcher(),
-			newSystemInfoFetcher(),
-			newStorageFetcher(),
-		},
+		fetchers:   make([]Fetcher, 0),
+	}
+
+	for _, fetcher := range FetcherRegistry {
+		s.fetchers = append(s.fetchers, fetcher())
 	}
 
 	return s
 }
 
+// Run starts the cron jobs for statistics.
 func (s *Statistic) Run() {
 	if s.cfg.Disable {
 		return
@@ -109,6 +111,7 @@ func (s *Statistic) runFetchers() error {
 	return nil
 }
 
+// Stop stops the cron jobs and closes schedulers.
 func (s *Statistic) Stop() {
 	ctx := s.cron.Stop()
 	select {

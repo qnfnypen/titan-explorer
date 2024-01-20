@@ -19,16 +19,34 @@ const maxPageSize = 100
 
 var supportLanguages = []model.Language{model.LanguageCN, model.LanguageEN}
 
+const (
+	DeviceStatusOffline  = "offline"
+	DeviceStatusOnline   = "online"
+	DeviceStatusAbnormal = "abnormal"
+
+	DeviceStatusCodeOffline  = 3
+	DeviceStatusCodeOnline   = 1
+	DeviceStatusCodeAbnormal = 2
+)
+
+// NodeFetcher handles fetching information about all nodes
 type NodeFetcher struct {
 	BaseFetcher
 }
 
-func newNodeFetcher() *NodeFetcher {
+func init() {
+	// Register newNodeFetcher during initialization
+	RegisterFetcher(newNodeFetcher)
+}
+
+// newNodeFetcher creates a new NodeFetcher instance
+func newNodeFetcher() Fetcher {
 	return &NodeFetcher{BaseFetcher: newBaseFetcher()}
 }
 
+// Fetch fetches information about all nodes
 func (n *NodeFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
-	log.Info("start to fetch 【all nodes】")
+	log.Info("start fetching all nodes")
 	start := time.Now()
 	defer func() {
 		log.Infof("fetch all nodes done, cost: %v", time.Since(start))
@@ -50,13 +68,12 @@ loop:
 
 	var nodes []*model.DeviceInfo
 	for _, node := range resp.Data {
-
 		if node.NodeID == "" {
 			continue
 		}
 
 		nodeInfo := toDeviceInfo(ctx, node)
-		if nodeInfo.DeviceStatus == "offline" {
+		if nodeInfo.DeviceStatus == DeviceStatusOffline {
 			// just update device status
 			err = dao.UpdateDeviceStatus(ctx, nodeInfo)
 			if err != nil {
@@ -78,6 +95,7 @@ loop:
 		if e != nil {
 			log.Errorf("bulk upsert device info: %v", e)
 		}
+
 		if e = addDeviceInfoHours(ctx, nodes); err != nil {
 			log.Errorf("add device info hours: %v", err)
 		}
@@ -122,15 +140,15 @@ func toDeviceInfo(ctx context.Context, node types.NodeInfo) *model.DeviceInfo {
 
 	switch node.Status {
 	case 0:
-		deviceInfo.DeviceStatus = "offline"
+		deviceInfo.DeviceStatus = DeviceStatusOffline
 		deviceInfo.DeviceID = node.NodeID
-		deviceInfo.DeviceStatusCode = 3
+		deviceInfo.DeviceStatusCode = DeviceStatusCodeOffline
 	case 1:
-		deviceInfo.DeviceStatusCode = 1
-		deviceInfo.DeviceStatus = "online"
+		deviceInfo.DeviceStatusCode = DeviceStatusCodeOnline
+		deviceInfo.DeviceStatus = DeviceStatusOnline
 	default:
-		deviceInfo.DeviceStatusCode = 2
-		deviceInfo.DeviceStatus = "abnormal"
+		deviceInfo.DeviceStatusCode = DeviceStatusCodeAbnormal
+		deviceInfo.DeviceStatus = DeviceStatusAbnormal
 	}
 
 	applyLocationInfo(&deviceInfo)
