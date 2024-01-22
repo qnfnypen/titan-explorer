@@ -162,7 +162,7 @@ func applyLocationInfo(deviceInfo *model.DeviceInfo) {
 	}
 
 	var loc model.Location
-	err := GetIpLocation(context.Background(), deviceInfo.ExternalIp, &loc, model.LanguageEN)
+	err := GetIpLocation(context.Background(), deviceInfo.ExternalIp, &loc, model.LanguageCN, model.LanguageEN)
 	if err != nil {
 		log.Errorf("%v", err)
 		applyLocationFromLocalGEODB(deviceInfo)

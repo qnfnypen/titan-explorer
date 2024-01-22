@@ -202,7 +202,7 @@ func TranslateIPLocation(ctx context.Context, info *model.DeviceInfo, lang model
 	}
 
 	parts := strings.Split(info.IpLocation, "-")
-	if len(parts) < 4 {
+	if len(parts) < 3 {
 		return
 	}
 
