@@ -9,6 +9,8 @@ const (
 	LanguageCN = "cn"
 )
 
+var SupportLanguages = []Language{LanguageEN, LanguageCN}
+
 type RewardEvent string
 
 var (

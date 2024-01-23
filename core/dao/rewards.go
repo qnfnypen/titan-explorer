@@ -79,6 +79,10 @@ func GetDeviceHourlyIncome(ctx context.Context, nodeId string, option QueryOptio
 		return nil, err
 	}
 
+	if len(out) > 0 {
+		append24HoursData(out)
+	}
+
 	return out, err
 }
 

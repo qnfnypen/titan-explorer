@@ -687,6 +687,11 @@ func GetDeviceProfileHandler(c *gin.Context) {
 	}
 
 	deviceInfo, err := dao.GetDeviceInfo(c.Request.Context(), param.NodeID)
+	if err == dao.ErrNoRow {
+		c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
+		return
+	}
+
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return

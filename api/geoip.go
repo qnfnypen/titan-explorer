@@ -3,11 +3,10 @@ package api
 import (
 	"context"
 	"fmt"
+	"github.com/gnasnik/titan-explorer/core/geo"
 	"math"
 	"strconv"
 
-	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/gnasnik/titan-explorer/core/statistics"
 	"github.com/golang/geo/s2"
 )
 
@@ -24,8 +23,12 @@ func NewIPCoordinate() IPCoordinate {
 }
 
 func (coordinate *ipCoordinate) GetLatLng(ctx context.Context, ip string) (float64, float64, error) {
-	var loc model.Location
-	err := statistics.GetIpLocation(ctx, ip, &loc)
+	//var loc model.Location
+	//err := statistics.GetIpLocation(ctx, ip, &loc)
+	//if err != nil {
+	//	return 0, 0, err
+	//}
+	loc, err := geo.GetIpLocation(ctx, ip)
 	if err != nil {
 		return 0, 0, err
 	}

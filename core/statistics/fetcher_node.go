@@ -3,8 +3,10 @@ package statistics
 import (
 	"context"
 	"github.com/Filecoin-Titan/titan/api/types"
+	"github.com/gnasnik/titan-explorer/core/geo"
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/gnasnik/titan-explorer/pkg/iptool"
+	"github.com/oschwald/geoip2-golang"
 	"net"
 	"strconv"
 	"time"
@@ -12,12 +14,9 @@ import (
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/oschwald/geoip2-golang"
 )
 
 const maxPageSize = 100
-
-var supportLanguages = []model.Language{model.LanguageCN, model.LanguageEN}
 
 const (
 	DeviceStatusOffline  = "offline"
@@ -161,8 +160,9 @@ func applyLocationInfo(deviceInfo *model.DeviceInfo) {
 		return
 	}
 
-	var loc model.Location
-	err := GetIpLocation(context.Background(), deviceInfo.ExternalIp, &loc, model.LanguageCN, model.LanguageEN)
+	//var loc model.Location
+	//err := GetIpLocation(context.Background(), deviceInfo.ExternalIp, &loc, model.LanguageCN, model.LanguageEN)
+	loc, err := geo.GetIpLocation(context.Background(), deviceInfo.ExternalIp, model.LanguageEN)
 	if err != nil {
 		log.Errorf("%v", err)
 		applyLocationFromLocalGEODB(deviceInfo)
@@ -173,7 +173,7 @@ func applyLocationInfo(deviceInfo *model.DeviceInfo) {
 	deviceInfo.IpProvince = loc.Province
 	deviceInfo.IpCountry = loc.Country
 	deviceInfo.IpCity = loc.City
-	deviceInfo.IpLocation = dao.ContactIPLocation(loc, model.LanguageEN)
+	deviceInfo.IpLocation = dao.ContactIPLocation(*loc, model.LanguageEN)
 
 	//continent := loc.Continent
 	//deviceInfo.IpLocation = continent + "-" + deviceInfo.IpCountry + "-" + deviceInfo.IpProvince
@@ -234,7 +234,7 @@ func GetIpLocation(ctx context.Context, ip string, Loc *model.Location, language
 	}
 
 	if len(languages) == 0 {
-		languages = supportLanguages
+		languages = model.SupportLanguages
 	}
 
 	for _, l := range languages {

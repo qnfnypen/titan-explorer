@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
@@ -484,6 +485,10 @@ func GetDeviceInfo(ctx context.Context, deviceId string) (*model.DeviceInfo, err
 	var deviceInfo model.DeviceInfo
 	query := fmt.Sprintf("SELECT * FROM %s where device_id = '%s'", tableNameDeviceInfo, deviceId)
 	err := DB.QueryRowxContext(ctx, query).StructScan(&deviceInfo)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNoRow
+	}
+
 	if err != nil {
 		log.Errorf("getDeviceInfo %v", err)
 		return nil, err
