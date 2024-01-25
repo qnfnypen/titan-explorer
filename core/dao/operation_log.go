@@ -13,7 +13,7 @@ func AddOperationLog(ctx context.Context, log *model.OperationLog) error {
 		`INSERT INTO %s (title, business_type, method, request_method, operator_type, operator_username,
 				operator_url, operator_ip, operator_location, operator_param, json_result, status, error_msg, created_at, updated_at)
 			VALUES (:title, :business_type, :method, :request_method, :operator_type, :operator_username, :operator_url, 
-			    :operator_ip, :operator_location, :operator_param, :json_result, :status, :error_msg, :created_at, :updated_at);`, tableNameOperationLog,
+			    :operator_ip, :operator_location, :operator_param, :json_result, :status, :error_msg, now(), now());`, tableNameOperationLog,
 	), log)
 	return err
 }
