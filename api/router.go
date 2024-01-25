@@ -28,6 +28,9 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 		log.Fatalf("authMiddleware.MiddlewareInit: %v", err)
 	}
 
+	// testnet
+	apiV2.POST("/subscribe", SubscribeHandler)
+
 	// dashboard
 	// Deprecated: use /height instead
 	apiV2.GET("/get_high", GetBlockHeightHandler)

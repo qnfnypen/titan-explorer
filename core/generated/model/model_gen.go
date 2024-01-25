@@ -474,15 +474,15 @@ type UserSecret struct {
 }
 
 type RewardStatement struct {
-	ID       int64  `db:"id" json:"id"`
-	FromUser string `db:"from_user" json:"from_user"`
-	Username string `db:"username" json:"username"`
-	Amount    int64     `db:"amount" json:"amount"`
-	Event     RewardEvent    `db:"event" json:"event"`
-	Status    int32     `db:"status" json:"status"`
-	DeviceId  string    `db:"device_id" json:"device_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+	ID        int64       `db:"id" json:"id"`
+	FromUser  string      `db:"from_user" json:"from_user"`
+	Username  string      `db:"username" json:"username"`
+	Amount    int64       `db:"amount" json:"amount"`
+	Event     RewardEvent `db:"event" json:"event"`
+	Status    int32       `db:"status" json:"status"`
+	DeviceId  string      `db:"device_id" json:"device_id"`
+	CreatedAt time.Time   `db:"created_at" json:"created_at"`
+	UpdatedAt time.Time   `db:"updated_at" json:"updated_at"`
 }
 
 type Withdraw struct {
@@ -494,4 +494,21 @@ type Withdraw struct {
 	Status    int32     `db:"status" json:"status"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+}
+
+type Subscription struct {
+	ID                      int64     `db:"id" json:"id"`
+	Company                 string    `db:"company" json:"company"`
+	Name                    string    `db:"name" json:"name"`
+	Email                    string    `db:"email" json:"email"`
+	Telegram                string    `db:"telegram" json:"mail"`
+	Wechat                  string    `db:"wechat" json:"wechat"`
+	Location                string    `db:"location" json:"location"`
+	Storage                 string    `db:"storage" json:"storage"`
+	Calculation             string    `db:"calculation" json:"calculation"`
+	IdleResourcePercentages string    `db:"idle_resource_percentages" json:"idle_resource_percentages"`
+	Subscribe               bool     `db:"subscribe" json:"subscribe"`
+	Source      			string    `db:"source" json:"source"`
+	CreatedAt               time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt               time.Time `db:"updated_at" json:"updated_at"`
 }
