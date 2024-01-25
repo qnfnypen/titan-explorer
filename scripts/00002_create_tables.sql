@@ -10,6 +10,8 @@ CREATE TABLE subscription (
 `location` VARCHAR(128) NOT NULL DEFAULT '',
 `storage` VARCHAR(128) NOT NULL DEFAULT '',
 `calculation` VARCHAR(128) NOT NULL DEFAULT '',
+`bandwidth` VARCHAR(128) NOT NULL DEFAULT '',
+`join_testnet` int(3) not null default 0,
 `idle_resource_percentages`  VARCHAR(128) NOT NULL DEFAULT '',
 `subscribe` int(3) not null default 0,
 `source`  VARCHAR(128) NOT NULL DEFAULT '',

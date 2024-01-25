@@ -507,6 +507,8 @@ type Subscription struct {
 	Storage                 string    `db:"storage" json:"storage"`
 	Calculation             string    `db:"calculation" json:"calculation"`
 	IdleResourcePercentages string    `db:"idle_resource_percentages" json:"idle_resource_percentages"`
+	Bandwidth				string    `db:"bandwidth" json:"bandwidth"`
+	JoinTestnet				int       `db:"join_testnet" json:"join_testnet,string"`
 	Subscribe               int       `db:"subscribe" json:"subscribe,string"`
 	Source      			string    `db:"source" json:"source"`
 	CreatedAt               time.Time `db:"created_at" json:"created_at"`
