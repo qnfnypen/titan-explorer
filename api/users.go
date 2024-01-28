@@ -189,18 +189,29 @@ func GetNonceStringHandler(c *gin.Context) {
 		return
 	}
 
-	_, err := dao.GetUserByUsername(c.Request.Context(), username)
-	if err == sql.ErrNoRows {
-		c.JSON(http.StatusOK, respErrorCode(errors.UserNotFound, c))
-		return
-	}
-
+	nonce, err := generateNonceString(c.Request.Context(), getRedisNonceSignatureKey(username))
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
-	nonce, err := generateNonceString(c.Request.Context(), getRedisNonceSignatureKey(username))
+	_, err = dao.GetUserByUsername(c.Request.Context(), username)
+	if err == sql.ErrNoRows {
+		//c.JSON(http.StatusOK, respErrorCode(errors.UserNotFound, c))
+		//return
+		user := &model.User{
+			Username:     username,
+			CreatedAt:    time.Now(),
+			UpdatedAt:    time.Now(),
+			ReferralCode: random.GenerateRandomString(6),
+		}
+		err = dao.CreateUser(c.Request.Context(), user)
+		if err != nil {
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+	}
+
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
