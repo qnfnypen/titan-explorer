@@ -39,6 +39,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	apiV2.GET("/get_index_info", GetIndexInfoHandler)
 	apiV2.GET("/get_query_info", GetQueryInfoHandler)
 	apiV2.POST("/device", GetDeviceProfileHandler)
+	apiV2.POST("/device/binding", DeviceBindingHandler)
 
 	// index info all nodes info from device info
 	apiV2.GET("/get_nodes_info", GetNodesInfoHandler)
@@ -73,8 +74,8 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	apiV2.GET("/get_device_info_auth", GetDeviceInfoHandler)
 	apiV2.GET("/get_application_amount", GetApplicationAmountHandler)
 	apiV2.POST("/create_application", CreateApplicationHandler)
-	apiV2.GET("/device_binding", DeviceBindingHandler)
-	apiV2.GET("/device_unbinding", DeviceUnBindingHandler)
+	//apiV2.GET("/device_binding", DeviceBindingHandler)
+	//apiV2.GET("/device_unbinding", DeviceUnBindingHandler)
 	apiV2.GET("/get_user_device_profile", GetUserDeviceProfileHandler)
 	apiV2.GET("/get_device_active_info", GetDeviceActiveInfoHandler)
 	apiV2.POST("/wallet/bind", BindWalletHandler)
@@ -82,6 +83,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	apiV2.POST("/withdraw", WithdrawHandler)
 	apiV2.GET("/referral_list", GetReferralListHandler)
 	apiV2.GET("/withdraw_list", GetWithdrawListHandler)
+	apiV2.GET("/generate/signature", GenerateSignatureHandler)
 
 	// user
 	user := apiV1.Group("/user")

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
@@ -15,6 +16,7 @@ import (
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/go-redis/redis/v9"
 	"github.com/golang-module/carbon/v2"
+	util "github.com/ipfs/go-ipfs-util"
 	"net/http"
 	"strconv"
 	"strings"
@@ -823,4 +825,26 @@ func queryDailyIncome(ctx context.Context, nodeId string) interface{} {
 	}
 
 	return out
+}
+
+func GenerateSignatureHandler(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	username := claims[identityKey].(string)
+
+	message := fmt.Sprintf(`Signature for titan \n %s \n%s`, username, time.Now().Format(time.RFC3339Nano))
+	hash := util.Hash([]byte(message)).HexString()
+
+	if err := dao.AddSignature(c.Request.Context(), &model.Signature{
+		Message: message,
+		Hash:    hash,
+	}); err != nil {
+		log.Errorf("add signature: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"message": message,
+		"hash":    hash,
+	}))
 }

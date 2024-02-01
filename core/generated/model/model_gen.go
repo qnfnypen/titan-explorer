@@ -500,17 +500,28 @@ type Subscription struct {
 	ID                      int64     `db:"id" json:"id"`
 	Company                 string    `db:"company" json:"company"`
 	Name                    string    `db:"name" json:"name"`
-	Email                    string    `db:"email" json:"email"`
+	Email                   string    `db:"email" json:"email"`
 	Telegram                string    `db:"telegram" json:"mail"`
 	Wechat                  string    `db:"wechat" json:"wechat"`
 	Location                string    `db:"location" json:"location"`
 	Storage                 string    `db:"storage" json:"storage"`
 	Calculation             string    `db:"calculation" json:"calculation"`
 	IdleResourcePercentages string    `db:"idle_resource_percentages" json:"idle_resource_percentages"`
-	Bandwidth				string    `db:"bandwidth" json:"bandwidth"`
-	JoinTestnet				int       `db:"join_testnet" json:"join_testnet,string"`
+	Bandwidth               string    `db:"bandwidth" json:"bandwidth"`
+	JoinTestnet             int       `db:"join_testnet" json:"join_testnet,string"`
 	Subscribe               int       `db:"subscribe" json:"subscribe,string"`
-	Source      			string    `db:"source" json:"source"`
+	Source                  string    `db:"source" json:"source"`
 	CreatedAt               time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt               time.Time `db:"updated_at" json:"updated_at"`
+}
+
+type Signature struct {
+	ID        int64     `db:"id" json:"id"`
+	Username  string    `db:"username" json:"username"`
+	NodeId  string    	`db:"node_id" json:"node_id"`
+	Message   string    `db:"message" json:"message"`
+	Hash      string    `db:"hash" json:"hash"`
+	Signature  string   `db:"signature" json:"signature"`
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 }

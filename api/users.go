@@ -13,6 +13,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/random"
+	"github.com/gnasnik/titan-explorer/pkg/rsa"
 	"github.com/go-redis/redis/v9"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
@@ -290,6 +291,70 @@ func GetNumericVerifyCodeHandler(c *gin.Context) {
 }
 
 func DeviceBindingHandler(c *gin.Context) {
+	var params model.Signature
+
+	if err := c.BindJSON(&params); err != nil {
+		c.JSON(http.StatusBadRequest, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	if params.Signature == "" || params.NodeId == "" {
+		c.JSON(http.StatusBadRequest, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	sign, err := dao.GetSignatureByHash(c.Request.Context(), params.Hash)
+	if err == dao.ErrNoRow {
+		c.JSON(http.StatusBadRequest, respErrorCode(errors.InvalidSignature, c))
+		return
+	}
+
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	areaId := dao.GetAreaID(c.Request.Context(), sign.Username)
+	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+		return
+	}
+
+	pubKeyString, err := schedulerClient.GetNodePublicKey(c.Request.Context(), params.NodeId)
+	if err != nil {
+		log.Errorf("api get node public key: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	pubicKey, err := rsa.Pem2PublicKey([]byte(pubKeyString))
+	if err != nil {
+		log.Errorf("pem 2 publicKey: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	err = rsa.VerifySHA256Sign(pubicKey, []byte(params.Signature), []byte(params.Hash))
+	if err != nil {
+		log.Errorf("pem 2 publicKey: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	err = dao.UpdateSignature(c.Request.Context(), params.Signature, params.NodeId, params.Hash)
+	if err != nil {
+		log.Errorf("update signature: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(nil))
+
+}
+
+// DeviceBindingHandlerOld Deprecate using DeviceBindingHandler instead of
+func DeviceBindingHandlerOld(c *gin.Context) {
 	deviceInfo := &model.DeviceInfo{}
 	deviceInfo.DeviceID = c.Query("device_id")
 	deviceInfo.UserID = c.Query("user_id")

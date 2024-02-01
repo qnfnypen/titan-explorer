@@ -28,3 +28,9 @@ func GetSignatureByHash(ctx context.Context, hash string) (*model.Signature, err
 	}
 	return &out, nil
 }
+
+func UpdateSignature(ctx context.Context, hash, signature, nodeId string) error {
+	query := `UPDATE %s SET signature = ? and node_id = ? WHERE hash = ?`
+	_, err := DB.ExecContext(ctx, query, signature, nodeId, hash)
+	return err
+}

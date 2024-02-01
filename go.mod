@@ -1,6 +1,8 @@
 module github.com/gnasnik/titan-explorer
 
-go 1.18
+go 1.21
+
+toolchain go1.21.6
 
 require (
 	github.com/Filecoin-Titan/titan v0.0.0-20230414233209-f4fad7df425f
@@ -14,6 +16,7 @@ require (
 	github.com/golang-module/carbon/v2 v2.2.2
 	github.com/golang/geo v0.0.0-20230421003525-6adc56603217
 	github.com/ipfs/go-cid v0.4.1
+	github.com/ipfs/go-ipfs-util v0.0.2
 	github.com/ipfs/go-log/v2 v2.5.1
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/libp2p/go-libp2p v0.27.1
@@ -22,7 +25,7 @@ require (
 	github.com/multiformats/go-multihash v0.2.1
 	github.com/oschwald/geoip2-golang v1.7.0
 	github.com/pkg/errors v0.9.1
-	github.com/quic-go/quic-go v0.40.0
+	github.com/quic-go/quic-go v0.41.0
 	github.com/robfig/cron/v3 v3.0.0
 	github.com/spf13/viper v1.14.0
 	go.etcd.io/etcd/client/pkg/v3 v3.5.9
@@ -105,7 +108,6 @@ require (
 	github.com/google/pprof v0.0.0-20230405160723-4a4c7d95572b // indirect
 	github.com/holiman/uint256 v1.2.2 // indirect
 	github.com/ipfs/go-block-format v0.1.2 // indirect
-	github.com/ipfs/go-ipfs-util v0.0.2 // indirect
 	github.com/ipfs/go-ipld-cbor v0.0.6 // indirect
 	github.com/ipfs/go-ipld-format v0.4.0 // indirect
 	github.com/ipfs/go-log v1.0.5 // indirect
@@ -117,7 +119,6 @@ require (
 	github.com/oschwald/maxminddb-golang v1.9.0 // indirect
 	github.com/polydawn/refmt v0.89.0 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
-	github.com/quic-go/qtls-go1-20 v0.4.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/whyrusleeping/cbor-gen v0.0.0-20230126041949-52956bd4c9aa // indirect
 	go.etcd.io/etcd/api/v3 v3.5.9 // indirect
