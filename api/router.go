@@ -74,7 +74,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	apiV2.GET("/get_device_info_auth", GetDeviceInfoHandler)
 	apiV2.GET("/get_application_amount", GetApplicationAmountHandler)
 	apiV2.POST("/create_application", CreateApplicationHandler)
-	apiV2.GET("/device_binding", DeviceBindingHandlerOld)
+	//apiV2.GET("/device_binding", DeviceBindingHandlerOld)
 	apiV2.GET("/device_unbinding", DeviceUnBindingHandlerOld)
 	apiV2.GET("/get_user_device_profile", GetUserDeviceProfileHandler)
 	apiV2.GET("/get_device_active_info", GetDeviceActiveInfoHandler)

@@ -65,7 +65,11 @@ loop:
 	total += int64(len(resp.Data))
 	page++
 
-	var nodes []*model.DeviceInfo
+	var (
+		onlineNodes  []*model.DeviceInfo
+		offlineNodes []*model.DeviceInfo
+	)
+
 	for _, node := range resp.Data {
 		if node.NodeID == "" {
 			continue
@@ -78,25 +82,34 @@ loop:
 			if err != nil {
 				log.Errorf("update device status: %v", err)
 			}
+
+			offlineNodes = append(offlineNodes, nodeInfo)
+			continue
 		}
-		nodes = append(nodes, nodeInfo)
+
+		onlineNodes = append(onlineNodes, nodeInfo)
 	}
 
-	if len(nodes) < 1 {
+	if len(onlineNodes)+len(offlineNodes) < 1 {
 		log.Errorf("start to fetch all nodes: nodes length is 0")
 		return nil
 	}
 
-	log.Infof("handling %d/%d nodes", total, resp.Total)
+	log.Infof("handling %d/%d nodes, online: %d offline: %d", total, resp.Total, len(onlineNodes), len(offlineNodes))
 
 	n.Push(ctx, func() error {
-		e := dao.BulkUpsertDeviceInfo(ctx, nodes)
-		if e != nil {
-			log.Errorf("bulk upsert device info: %v", e)
+		err := dao.BulkUpsertDeviceInfo(ctx, onlineNodes)
+		if err != nil {
+			log.Errorf("bulk upsert device info: %v", err)
 		}
 
-		if e = addDeviceInfoHours(ctx, nodes); err != nil {
+		if err = addDeviceInfoHours(ctx, onlineNodes); err != nil {
 			log.Errorf("add device info hours: %v", err)
+		}
+
+		err = dao.BulkAddDeviceInfo(ctx, offlineNodes)
+		if err != nil {
+			log.Errorf("bulk add device info: %v", err)
 		}
 		return nil
 	})
