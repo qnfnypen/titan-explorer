@@ -310,13 +310,25 @@ func DeviceBindingHandler(c *gin.Context) {
 		return
 	}
 
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
 	if sign.Signature != "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.DeviceBound, c))
 		return
 	}
 
+	deviceInfo, err := dao.GetDeviceInfo(c.Request.Context(), params.NodeId)
 	if err != nil {
+		log.Errorf("get device info: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	if deviceInfo.UserID != "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.DeviceBound, c))
 		return
 	}
 
