@@ -271,7 +271,7 @@ func HandleMapInfo(infos []*model.DeviceInfo, lang model.Language) []map[string]
 		TranslateIPLocation(context.Background(), info, lang)
 
 		out = append(out, map[string]interface{}{
-			"name":     info.IpCity,
+			"name":     info.City,
 			"nodeType": info.NodeType,
 			"ip":       info.ExternalIp,
 			"value":    []float64{info.Latitude, info.Longitude},

@@ -295,6 +295,8 @@ func GetQueryInfoHandler(c *gin.Context) {
 	page, _ := strconv.Atoi(c.Query("page"))
 	order := c.Query("order")
 	orderField := c.Query("order_field")
+	lang := model.Language(c.GetHeader("Lang"))
+
 	option := dao.QueryOption{
 		Page:       page,
 		PageSize:   pageSize,
@@ -316,6 +318,10 @@ func GetQueryInfoHandler(c *gin.Context) {
 			"type":  "user_id",
 		}))
 		return
+	}
+
+	for i := 0; i < len(deviceInfos); i++ {
+		dao.TranslateIPLocation(c.Request.Context(), deviceInfos[i], lang)
 	}
 
 	detailList := dao.GetDeviceInfoById(context.Background(), info.UserID)
