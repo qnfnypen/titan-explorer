@@ -11,7 +11,7 @@ const tableNameSignature = "signature"
 
 func AddSignature(ctx context.Context, signature *model.Signature) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s (username, node_id, message, hash, signature, created_at, updated_at) VALUES (:username, :node_id, :message, :hash, :signature, now(), now());`, tableNameSignature),
+		`INSERT INTO %s (username, node_id, area_id, message, hash, signature, created_at, updated_at) VALUES (:username, :node_id, :area_id, :message, :hash, :signature, now(), now());`, tableNameSignature),
 		signature)
 	return err
 }
@@ -29,8 +29,8 @@ func GetSignatureByHash(ctx context.Context, hash string) (*model.Signature, err
 	return &out, nil
 }
 
-func UpdateSignature(ctx context.Context, hash, signature, nodeId string) error {
-	query := `UPDATE %s SET signature = ? and node_id = ? WHERE hash = ?`
-	_, err := DB.ExecContext(ctx, query, signature, nodeId, hash)
+func UpdateSignature(ctx context.Context, signature, nodeId, areaId, hash string) error {
+	query := fmt.Sprintf(`UPDATE %s SET signature = ?, node_id = ?, area_id = ?, updated_at = now() WHERE hash = ?`, tableNameSignature)
+	_, err := DB.ExecContext(ctx, query, signature, nodeId, areaId, hash)
 	return err
 }

@@ -322,10 +322,6 @@ func GetQueryInfoHandler(c *gin.Context) {
 		return
 	}
 
-	for i := 0; i < len(deviceInfos); i++ {
-		dao.TranslateIPLocation(c.Request.Context(), deviceInfos[i], lang)
-	}
-
 	detailList := dao.GetDeviceInfoById(context.Background(), info.UserID)
 	if detailList.DeviceID != "" {
 		deviceInfos = append(deviceInfos, &detailList)
@@ -336,6 +332,10 @@ func GetQueryInfoHandler(c *gin.Context) {
 			"type": "wrong key",
 		}))
 		return
+	}
+
+	for _, deviceInfo := range deviceInfos {
+		dao.TranslateIPLocation(c.Request.Context(), deviceInfo, lang)
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -678,7 +678,8 @@ func GetDeviceProfileHandler(c *gin.Context) {
 		return
 	}
 
-	response := make(map[string]interface{})
+	out := make(map[string]interface{})
+	out["since"] = time.Now().Unix()
 
 	lastUpdate, err := dao.GetCacheFullNodeInfo(c.Request.Context())
 	if err != nil {
@@ -688,8 +689,7 @@ func GetDeviceProfileHandler(c *gin.Context) {
 	if lastUpdate != nil && param.Since > 0 {
 		sinceT := time.Unix(param.Since, 0)
 		if lastUpdate.Time.Before(sinceT) {
-			response["since"] = time.Now().Unix()
-			c.JSON(http.StatusOK, respJSON(response))
+			c.JSON(http.StatusOK, respJSON(out))
 			return
 		}
 	}
@@ -705,8 +705,12 @@ func GetDeviceProfileHandler(c *gin.Context) {
 		return
 	}
 
+	response := make(map[string]interface{})
+
 	for _, key := range param.Keys {
 		switch key {
+		case "account":
+			out[key] = deviceInfo.UserID
 		case "income":
 			response[key] = map[string]interface{}{
 				"today": deviceInfo.TodayProfit,
@@ -730,14 +734,12 @@ func GetDeviceProfileHandler(c *gin.Context) {
 			log.Errorf("filter response: %v", err)
 		}
 
-		if filterResp != nil {
-			response = filterResp
+		for key, val := range filterResp {
+			out[key] = val
 		}
 	}
 
-	response["since"] = time.Now().Unix()
-
-	c.JSON(http.StatusOK, respJSON(response))
+	c.JSON(http.StatusOK, respJSON(out))
 }
 
 func filterResponse(ctx context.Context, nodeId string, response map[string]interface{}) (map[string]interface{}, error) {
@@ -835,8 +837,9 @@ func GenerateSignatureHandler(c *gin.Context) {
 	hash := util.Hash([]byte(message)).HexString()
 
 	if err := dao.AddSignature(c.Request.Context(), &model.Signature{
-		Message: message,
-		Hash:    hash,
+		Username: username,
+		Message:  message,
+		Hash:     hash,
 	}); err != nil {
 		log.Errorf("add signature: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))

@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	jwt "github.com/appleboy/gin-jwt/v2"
@@ -294,18 +295,23 @@ func DeviceBindingHandler(c *gin.Context) {
 	var params model.Signature
 
 	if err := c.BindJSON(&params); err != nil {
-		c.JSON(http.StatusBadRequest, respErrorCode(errors.InvalidParams, c))
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
 
 	if params.Signature == "" || params.NodeId == "" {
-		c.JSON(http.StatusBadRequest, respErrorCode(errors.InvalidParams, c))
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
 
 	sign, err := dao.GetSignatureByHash(c.Request.Context(), params.Hash)
 	if err == dao.ErrNoRow {
-		c.JSON(http.StatusBadRequest, respErrorCode(errors.InvalidSignature, c))
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidSignature, c))
+		return
+	}
+
+	if sign.Signature != "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.DeviceBound, c))
 		return
 	}
 
@@ -314,8 +320,11 @@ func DeviceBindingHandler(c *gin.Context) {
 		return
 	}
 
-	areaId := dao.GetAreaID(c.Request.Context(), sign.Username)
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	if params.AreaId == "" {
+		params.AreaId = dao.GetAreaID(c.Request.Context(), sign.Username)
+	}
+
+	schedulerClient, err := getSchedulerClient(c.Request.Context(), params.AreaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
 		return
@@ -335,14 +344,31 @@ func DeviceBindingHandler(c *gin.Context) {
 		return
 	}
 
-	err = rsa.VerifySHA256Sign(pubicKey, []byte(params.Signature), []byte(params.Hash))
+	signature, err := hex.DecodeString(params.Signature)
+	if err != nil {
+		log.Errorf("hex decode: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidSignature, c))
+		return
+	}
+
+	err = rsa.VerifySHA256Sign(pubicKey, signature, []byte(params.Hash))
 	if err != nil {
 		log.Errorf("pem 2 publicKey: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidSignature, c))
+		return
+	}
+
+	if err = dao.UpdateUserDeviceInfo(c.Request.Context(), &model.DeviceInfo{
+		UserID:     sign.Username,
+		DeviceID:   params.NodeId,
+		BindStatus: "binding",
+	}); err != nil {
+		log.Errorf("update device binding status: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
-	err = dao.UpdateSignature(c.Request.Context(), params.Signature, params.NodeId, params.Hash)
+	err = dao.UpdateSignature(c.Request.Context(), params.Signature, params.NodeId, params.AreaId, params.Hash)
 	if err != nil {
 		log.Errorf("update signature: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -408,48 +434,12 @@ func DeviceBindingHandlerOld(c *gin.Context) {
 		return
 	}
 
-	_, err = dao.GetRewardStatementByDeviceID(c.Request.Context(), deviceInfo.DeviceID)
-	if err != nil {
-		log.Errorf("get reward statement: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
-
-	referrer, err := dao.GetUsersReferrer(c.Request.Context(), deviceInfo.DeviceID)
-	if err != nil {
-		log.Errorf("get user referrer: %v", err)
-		c.JSON(http.StatusOK, respJSON(JsonObject{
-			"msg": "success",
-		}))
-	}
-
-	if referrer == nil {
-		c.JSON(http.StatusOK, respJSON(JsonObject{
-			"msg": "success",
-		}))
-	}
-
-	//rewardStatement := &model.RewardStatement{
-	//	FromUser:  referrer.Username,
-	//	Username:  deviceInfo.UserID,
-	//	DeviceId:  deviceInfo.DeviceID,
-	//	Amount:    10,
-	//	Event:     model.RewardEventBindDevice,
-	//	Status:    1,
-	//	CreatedAt: time.Now(),
-	//	UpdatedAt: time.Now(),
-	//}
-	//err = dao.UpdateUserReward(c.Request.Context(), rewardStatement)
-	//if err != nil {
-	//	log.Errorf("Update user reward: %v", err)
-	//}
-
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"msg": "success",
 	}))
 }
 
-func DeviceUnBindingHandler(c *gin.Context) {
+func DeviceUnBindingHandlerOld(c *gin.Context) {
 	deviceInfo := &model.DeviceInfo{}
 	deviceInfo.DeviceID = c.Query("device_id")
 	UserID := c.Query("user_id")

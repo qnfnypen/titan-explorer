@@ -519,6 +519,7 @@ type Signature struct {
 	ID        int64     `db:"id" json:"id"`
 	Username  string    `db:"username" json:"username"`
 	NodeId  string    	`db:"node_id" json:"node_id"`
+	AreaId   string     `db:"area_id" json:"area_id"`
 	Message   string    `db:"message" json:"message"`
 	Hash      string    `db:"hash" json:"hash"`
 	Signature  string   `db:"signature" json:"signature"`
