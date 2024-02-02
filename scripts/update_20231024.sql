@@ -24,3 +24,6 @@ ALTER TABLE users ADD COLUMN payout  BIGINT(20) NOT NULL DEFAULT 0 AFTER reward;
 ALTER TABLE users ADD COLUMN frozen_reward  BIGINT(20) NOT NULL DEFAULT 0 AFTER payout;
 
 ALTER TABLE users RENAME COLUMN address TO wallet_address;
+
+
+ALTER  TABLE  device_info ADD COLUMN available_profit FLOAT(32) NOT NULL DEFAULT 0 AFTER cumulative_profit;

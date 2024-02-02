@@ -392,7 +392,7 @@ func upsertDeviceInfoStatement() string {
 				)`, tableNameDeviceInfo,
 	)
 	updateStatement := ` ON DUPLICATE KEY UPDATE node_type = VALUES(node_type),  device_name = VALUES(device_name),active_status = VALUES(active_status),
-				system_version = VALUES(system_version), network_info = VALUES(network_info), cumulative_profit = VALUES(cumulative_profit),
+				system_version = VALUES(system_version), network_info = VALUES(network_info), cumulative_profit = VALUES(cumulative_profit), 
 				external_ip = VALUES(external_ip), internal_ip = VALUES(internal_ip), ip_location = VALUES(ip_location), ip_country = VALUES(ip_country), 
 				ip_province = VALUES(ip_province), ip_city = VALUES(ip_city),latitude = VALUES(latitude), longitude = VALUES(longitude), mac_location = VALUES(mac_location),
 				online_time = VALUES(online_time),cpu_usage = VALUES(cpu_usage), cpu_cores = VALUES(cpu_cores),  memory_usage = VALUES(memory_usage), memory = VALUES(memory),

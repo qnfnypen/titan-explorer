@@ -16,7 +16,7 @@ import (
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/go-redis/redis/v9"
 	"github.com/golang-module/carbon/v2"
-	util "github.com/ipfs/go-ipfs-util"
+	"github.com/google/uuid"
 	"net/http"
 	"strconv"
 	"strings"
@@ -362,7 +362,9 @@ func maskIPAddress(in []*model.DeviceInfo) []*model.DeviceInfo {
 
 func GetDeviceInfoHandler(c *gin.Context) {
 	info := &model.DeviceInfo{}
-	info.UserID = c.Query("user_id")
+	claims := jwt.ExtractClaims(c)
+	info.UserID = claims[identityKey].(string)
+
 	info.DeviceID = c.Query("device_id")
 	info.IpLocation = c.Query("ip_location")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
@@ -710,7 +712,7 @@ func GetDeviceProfileHandler(c *gin.Context) {
 	for _, key := range param.Keys {
 		switch key {
 		case "account":
-			out[key] = deviceInfo.UserID
+			out[key] = queryAccountInfo(c.Request.Context(), deviceInfo.DeviceID, deviceInfo.UserID)
 		case "income":
 			response[key] = map[string]interface{}{
 				"today": deviceInfo.TodayProfit,
@@ -778,6 +780,39 @@ func filterResponse(ctx context.Context, nodeId string, response map[string]inte
 	return out, nil
 }
 
+func queryAccountInfo(ctx context.Context, deviceId, userId string) interface{} {
+	account := struct {
+		UserId        string `json:"user_id"`
+		WalletAddress string `json:"wallet_address"`
+		Token         string `json:"token"`
+	}{}
+
+	if userId == "" {
+		return account
+	}
+
+	account.UserId = userId
+	user, err := dao.GetUserByUsername(ctx, userId)
+	if err != nil {
+		log.Errorf("get user %v", err)
+	}
+
+	if user != nil {
+		account.WalletAddress = user.WalletAddress
+	}
+
+	signature, err := dao.GetSignatureByNodeId(ctx, deviceId)
+	if err != nil {
+		log.Errorf("get signature: %v", err)
+	}
+
+	if signature != nil {
+		account.Token = signature.Hash
+	}
+
+	return account
+}
+
 func queryHourlyIncome(ctx context.Context, nodeId string) interface{} {
 	start := carbon.Now().StartOfDay().String()
 	option := dao.QueryOption{
@@ -833,13 +868,14 @@ func GenerateSignatureHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	username := claims[identityKey].(string)
 
-	message := fmt.Sprintf(`Signature for titan \n %s \n%s`, username, time.Now().Format(time.RFC3339Nano))
-	hash := util.Hash([]byte(message)).HexString()
+	//message := fmt.Sprintf(`Signature for titan \n %s \n%s`, username, time.Now().Format(time.RFC3339Nano))
+
+	hash := strings.ToUpper(uuid.NewString())
 
 	if err := dao.AddSignature(c.Request.Context(), &model.Signature{
 		Username: username,
-		Message:  message,
-		Hash:     hash,
+		//Message:  message,
+		Hash: hash,
 	}); err != nil {
 		log.Errorf("add signature: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -847,7 +883,34 @@ func GenerateSignatureHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"message": message,
-		"hash":    hash,
+		//"message": message,
+		"hash": hash,
+	}))
+}
+
+func QueryDeviceTokenHandler(c *gin.Context) {
+	token := c.Query("token")
+	if token == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	signature, err := dao.GetSignatureByHash(c.Request.Context(), token)
+	if err != nil {
+		log.Errorf("get signature: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	user, err := dao.GetUserByUsername(c.Request.Context(), signature.Username)
+	if err != nil {
+		log.Errorf("get user: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"user_id":        user.Username,
+		"wallet_address": user.WalletAddress,
 	}))
 }

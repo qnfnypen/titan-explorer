@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
@@ -48,7 +49,10 @@ func AuthAPIKeyMiddlewareFunc() gin.HandlerFunc {
 }
 
 func CreateNewSecretKeyHandler(c *gin.Context) {
-	username := c.Query("user_id")
+	claims := jwt.ExtractClaims(c)
+	username := claims[identityKey].(string)
+	//perms := c.Query("perm")
+
 	appKey := random.GenerateRandomString(18)
 	appSecret := fmt.Sprintf("ts-%s", random.GenerateRandomString(48))
 
