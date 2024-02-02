@@ -784,7 +784,7 @@ func queryAccountInfo(ctx context.Context, deviceId, userId string) interface{} 
 	account := struct {
 		UserId        string `json:"user_id"`
 		WalletAddress string `json:"wallet_address"`
-		Token         string `json:"token"`
+		Code          string `json:"code"`
 	}{}
 
 	if userId == "" {
@@ -807,7 +807,7 @@ func queryAccountInfo(ctx context.Context, deviceId, userId string) interface{} 
 	}
 
 	if signature != nil {
-		account.Token = signature.Hash
+		account.Code = signature.Hash
 	}
 
 	return account
@@ -888,8 +888,8 @@ func GenerateSignatureHandler(c *gin.Context) {
 	}))
 }
 
-func QueryDeviceTokenHandler(c *gin.Context) {
-	token := c.Query("token")
+func QueryDeviceCodeHandler(c *gin.Context) {
+	token := c.Query("code")
 	if token == "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
