@@ -889,13 +889,18 @@ func GenerateSignatureHandler(c *gin.Context) {
 }
 
 func QueryDeviceCodeHandler(c *gin.Context) {
-	token := c.Query("code")
-	if token == "" {
-		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+	code := c.Query("code")
+	if code == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidCode, c))
 		return
 	}
 
-	signature, err := dao.GetSignatureByHash(c.Request.Context(), token)
+	signature, err := dao.GetSignatureByHash(c.Request.Context(), code)
+	if err == dao.ErrNoRow {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidCode, c))
+		return
+	}
+
 	if err != nil {
 		log.Errorf("get signature: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))

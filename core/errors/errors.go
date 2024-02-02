@@ -35,6 +35,7 @@ const (
 	InvalidReferralCode
 	InsufficientBalance
 	DeviceBound
+	InvalidCode
 
 	Unknown     = -1
 	GenericCode = 1
@@ -87,6 +88,7 @@ var ErrMap = map[int]string{
 	InvalidReferralCode:                      "invalid referral code: 无效的邀请码",
 	InsufficientBalance:                      "insufficient balance: 余额不足",
 	DeviceBound:                              "device already bound: 设备已经绑定",
+	InvalidCode:                              "invalid code: 无效的绑定码",
 }
 
 type GenericError struct {
