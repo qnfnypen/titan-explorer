@@ -864,7 +864,7 @@ func queryDailyIncome(ctx context.Context, nodeId string) interface{} {
 	return out
 }
 
-func GenerateSignatureHandler(c *gin.Context) {
+func GenerateCodeHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	username := claims[identityKey].(string)
 
@@ -884,7 +884,7 @@ func GenerateSignatureHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		//"message": message,
-		"hash": hash,
+		"code": hash,
 	}))
 }
 

@@ -84,7 +84,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	apiV2.POST("/withdraw", WithdrawHandler)
 	apiV2.GET("/referral_list", GetReferralListHandler)
 	apiV2.GET("/withdraw_list", GetWithdrawListHandler)
-	apiV2.GET("/generate/signature", GenerateSignatureHandler)
+	apiV2.GET("/generate/code", GenerateCodeHandler)
 
 	// user
 	user := apiV1.Group("/user")
