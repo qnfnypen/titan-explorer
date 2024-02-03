@@ -731,14 +731,14 @@ func GetDeviceProfileHandler(c *gin.Context) {
 	}
 
 	if param.Since > 0 {
-		filterResp, err := filterResponse(c.Request.Context(), param.NodeID, response)
+		response, err = filterResponse(c.Request.Context(), param.NodeID, response)
 		if err != nil {
 			log.Errorf("filter response: %v", err)
 		}
+	}
 
-		for key, val := range filterResp {
-			out[key] = val
-		}
+	for key, val := range response {
+		out[key] = val
 	}
 
 	c.JSON(http.StatusOK, respJSON(out))
