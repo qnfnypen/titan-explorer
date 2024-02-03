@@ -362,9 +362,8 @@ func maskIPAddress(in []*model.DeviceInfo) []*model.DeviceInfo {
 
 func GetDeviceInfoHandler(c *gin.Context) {
 	info := &model.DeviceInfo{}
-	claims := jwt.ExtractClaims(c)
-	info.UserID = claims[identityKey].(string)
-
+	// no authentication, do not use jwt.ExtractClaims
+	info.UserID = c.Query("user_id")
 	info.DeviceID = c.Query("device_id")
 	info.IpLocation = c.Query("ip_location")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
