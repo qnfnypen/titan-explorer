@@ -170,6 +170,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	container.POST("/deployment/update", UpdateDeploymentHandler)
 	container.GET("/deployment/logs", GetDeploymentLogsHandler)
 	container.GET("/deployment/domains", GetDeploymentDomainHandler)
+	container.GET("/deployment/shell", GetDeploymentShellHandler)
 }
 
 func RegisterRouterWithAPIKey(router *gin.Engine) {

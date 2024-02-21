@@ -303,6 +303,47 @@ func GetDeploymentDomainHandler(c *gin.Context) {
 	}))
 }
 
+func GetDeploymentShellHandler(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	username := claims[identityKey].(string)
+
+	url := config.Cfg.ContainerManager.Addr
+	deploymentId := c.Query("id")
+
+	params := ctypes.GetDeploymentOption{
+		Owner:        username,
+		DeploymentID: ctypes.DeploymentID(deploymentId),
+	}
+
+	deployments, err := getDeploymentsJsonRPC(url, params)
+	if err != nil {
+		log.Errorf("get providers: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	if len(deployments) == 0 {
+		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+		return
+	}
+
+	if deployments[0].Owner != username {
+		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+		return
+	}
+
+	shell, err := getDeploymentShellJsonRPC(url, ctypes.DeploymentID(deploymentId))
+	if err != nil && !strings.Contains(err.Error(), "not found") {
+		log.Errorf("get shell: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"shell": shell,
+	}))
+}
+
 func getProvidersJsonRPC(url string, opt ctypes.GetProviderOption) ([]*ctypes.Provider, error) {
 	params, err := json.Marshal([]interface{}{opt})
 	if err != nil {
@@ -536,6 +577,38 @@ func getDeploymentDomainJsonRPC(url string, id ctypes.DeploymentID) ([]*ctypes.D
 	}
 
 	return domains, nil
+}
+
+func getDeploymentShellJsonRPC(url string, id ctypes.DeploymentID) (*ctypes.ShellEndpoint, error) {
+	params, err := json.Marshal([]interface{}{id})
+	if err != nil {
+		return nil, err
+	}
+
+	req := model.LotusRequest{
+		Jsonrpc: "2.0",
+		Method:  "titan.GetDeploymentShellEndpoint",
+		Params:  params,
+		ID:      1,
+	}
+
+	rsp, err := requestJsonRPC(url, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var endpoint ctypes.ShellEndpoint
+	b, err := json.Marshal(rsp.Result)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(b, &endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	return &endpoint, nil
 }
 
 func requestJsonRPC(url string, req model.LotusRequest) (*model.LotusResponse, error) {
