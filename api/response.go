@@ -15,6 +15,7 @@ func respJSON(v interface{}) gin.H {
 		"data": v,
 	}
 }
+
 func respErrorCode(code int, c *gin.Context) gin.H {
 	lang := c.GetHeader("Lang")
 
@@ -35,5 +36,13 @@ func respErrorCode(code int, c *gin.Context) gin.H {
 		"code": -1,
 		"err":  code,
 		"msg":  msg,
+	}
+}
+
+func respError(code int, err error) gin.H {
+	return gin.H{
+		"code": -1,
+		"err":  code,
+		"msg":  err.Error(),
 	}
 }

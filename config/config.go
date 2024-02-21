@@ -23,6 +23,7 @@ type Config struct {
 	AdminScheduler           AdminSchedulerConfig
 	StorageBackup            StorageBackupConfig
 	IpDataCloud              IpDataCloudConfig
+	ContainerManager         ContainerManagerEndpointConfig
 }
 
 type EmailConfig struct {
@@ -59,4 +60,9 @@ type StorageBackupConfig struct {
 type IpDataCloudConfig struct {
 	Url string
 	Key string
+}
+
+type ContainerManagerEndpointConfig struct {
+	Addr  string
+	Token string
 }

@@ -159,6 +159,17 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/rename_group", RenameGroupHandler)
 	storage.GET("/move_group_to_group", MoveGroupToGroupHandler)
 	storage.GET("/move_asset_to_group", MoveAssetToGroupHandler)
+
+	container := apiV1.Group("/container")
+	container.Use(authMiddleware.MiddlewareFunc())
+	container.GET("/providers", GetProvidersHandler)
+	container.GET("/deployments", GetDeploymentsHandler)
+	container.GET("/deployment/manifest", GetDeploymentManifestHandler)
+	container.POST("/deployment/create", CreateDeploymentHandler)
+	container.POST("/deployment/delete", DeleteDeploymentHandler)
+	container.POST("/deployment/update", UpdateDeploymentHandler)
+	container.GET("/deployment/logs", GetDeploymentLogsHandler)
+	container.GET("/deployment/domains", GetDeploymentDomainHandler)
 }
 
 func RegisterRouterWithAPIKey(router *gin.Engine) {

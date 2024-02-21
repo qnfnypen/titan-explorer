@@ -26,7 +26,7 @@ const (
 type login struct {
 	Username   string `form:"username" json:"username" binding:"required"`
 	Password   string `form:"password" json:"password" binding:"required"`
-	VerifyCode string `form:"verify_code" json:"verify_code" binding:"required"`
+	VerifyCode string `form:"verify_code" json:"verify_code"`
 }
 
 type loginResponse struct {
@@ -73,11 +73,19 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			})
 		},
 		Authenticator: func(c *gin.Context) (interface{}, error) {
-			loginParams := &login{
-				Username:   c.Query("username"),
-				VerifyCode: c.Query("verify_code"),
-				Password:   c.Query("password"),
+			var loginParams login
+			if err := c.BindJSON(&loginParams); err != nil {
+				return nil, err
 			}
+
+			if loginParams == (login{}) {
+				loginParams = login{
+					Username:   c.Query("username"),
+					VerifyCode: c.Query("verify_code"),
+					Password:   c.Query("password"),
+				}
+			}
+
 			signature := c.Query("sign")
 			walletAddress := c.Query("address")
 			if loginParams.Username == "" {
@@ -248,10 +256,10 @@ func AuthRequired(authMiddleware *jwt.GinJWTMiddleware) gin.HandlerFunc {
 
 func Cors() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		//c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		//c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
-		//c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-		//c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, jwtauthorization")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(200)
 			return
