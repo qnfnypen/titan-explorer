@@ -36,6 +36,7 @@ const (
 	InsufficientBalance
 	DeviceBound
 	InvalidCode
+	TimeoutCode
 
 	Unknown     = -1
 	GenericCode = 1
@@ -81,14 +82,15 @@ var ErrMap = map[int]string{
 	int(terrors.GroupNotExist):               "The group is not exist:分组不存在",
 	int(terrors.GroupLimit):                  "The group is limit:分组限制",
 	InvalidAPPKey:                            "invalid key:无效的key",
-	NoBearerToken:                            "Could not find bearer token in Authorization header: 找不到 Bearer token",
-	GetVCFrequently:                          "Please do not obtain verification codes frequently. Please wait for some time and try again.:请勿频繁获取验证码。请等待一段时间后再试。",
+	NoBearerToken:                            "No bearer token found in request: 请求未找到 Bearer token",
+	GetVCFrequently:                          "frequently request not allowed. please try again later.:请勿频繁获取验证码。请等待一段时间后再试。",
 	InvalidSignature:                         "invalid signature: 无效的签名",
 	WalletBound:                              "wallet bound: 已绑定钱包",
 	InvalidReferralCode:                      "invalid referral code: 无效的邀请码",
 	InsufficientBalance:                      "insufficient balance: 余额不足",
 	DeviceBound:                              "device already bound: 设备已经绑定",
 	InvalidCode:                              "invalid code: 无效的绑定码",
+	TimeoutCode:                              "request timeout, please try again later: 请求超时, 请稍后再试",
 }
 
 type GenericError struct {

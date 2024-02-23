@@ -13,11 +13,9 @@ import (
 	"github.com/gnasnik/titan-explorer/core/cleanup"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/statistics"
-	"github.com/gnasnik/titan-explorer/pkg/mail"
 	"github.com/go-redis/redis/v9"
 	"github.com/pkg/errors"
 	"net/http"
-	"strconv"
 	"strings"
 )
 
@@ -193,21 +191,21 @@ func applyAdminScheduler(url string, token string) {
 	schedulerAdmin = schedClient
 }
 
-func (s *Server) sendEmail(sendTo string, registrations []string) error {
-	subject := "[Application]: Your Device Info"
-	contentType := "text/html"
-	content := "<h1>Your Device ID ：</h1>\n"
-	for _, registration := range registrations {
-		content += registration + "<br>"
-	}
-	port, err := strconv.ParseInt(s.cfg.Email.SMTPPort, 10, 64)
-	message := mail.NewEmailMessage(s.cfg.Email.From, subject, contentType, content, "", []string{sendTo}, nil)
-	_, err = mail.NewEmailClient(s.cfg.Email.SMTPHost, s.cfg.Email.Username, s.cfg.Email.Password, int(port), message).SendMessage()
-	if err != nil {
-		return err
-	}
-	return nil
-}
+//func (s *Server) sendEmail(sendTo string, registrations []string) error {
+//	subject := "[Application]: Your Device Info"
+//	contentType := "text/html"
+//	content := "<h1>Your Device ID ：</h1>\n"
+//	for _, registration := range registrations {
+//		content += registration + "<br>"
+//	}
+//	port, err := strconv.ParseInt(s.cfg.Email.SMTPPort, 10, 64)
+//	message := mail.NewEmailMessage(s.cfg.Email.From, subject, contentType, content, "", []string{sendTo}, nil)
+//	_, err = mail.NewEmailClient(s.cfg.Email.SMTPHost, s.cfg.Email.Username, s.cfg.Email.Password, int(port), message).SendMessage()
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}
 
 func getSchedulerClient(ctx context.Context, areaId string) (api.Scheduler, error) {
 	schedulers, err := GetSchedulerConfigs(ctx, fmt.Sprintf("%s::%s", SchedulerConfigKeyPrefix, areaId))

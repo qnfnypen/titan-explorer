@@ -35,8 +35,12 @@ func sendEmail(sendTo string, vc, lang string) error {
 
 	contentType := "text/html"
 	port, err := strconv.ParseInt(config.Cfg.Email.SMTPPort, 10, 64)
+	if err != nil {
+		log.Errorf("parse port: %v", err)
+	}
 	message := mail.NewEmailMessage(config.Cfg.Email.From, emailSubject[lang], contentType, content, "", []string{sendTo}, nil)
-	_, err = mail.NewEmailClient(config.Cfg.Email.SMTPHost, config.Cfg.Email.Username, config.Cfg.Email.Password, int(port), message).SendMessage()
+	client := mail.NewEmailClient(config.Cfg.Email.SMTPHost, config.Cfg.Email.Username, config.Cfg.Email.Password, int(port), message)
+	_, err = client.SendMessage()
 	if err != nil {
 		return err
 	}

@@ -275,13 +275,18 @@ func GetNumericVerifyCodeHandler(c *gin.Context) {
 	}
 
 	verifyCode := random.GenerateRandomNumber(6)
-	if err = cacheVerifyCode(c.Request.Context(), key, verifyCode); err != nil {
+
+	if err = sendEmail(userInfo.Username, verifyCode, lang); err != nil {
+		log.Errorf("send email: %v", err)
+		if strings.Contains(err.Error(), "timed out") {
+			c.JSON(http.StatusOK, respErrorCode(errors.TimeoutCode, c))
+			return
+		}
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
-	if err = sendEmail(userInfo.Username, verifyCode, lang); err != nil {
-		log.Errorf("send email: %v", err)
+	if err = cacheVerifyCode(c.Request.Context(), key, verifyCode); err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}

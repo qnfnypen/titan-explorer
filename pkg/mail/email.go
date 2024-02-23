@@ -1,8 +1,9 @@
 package mail
 
 import (
-	"crypto/tls"
-	"gopkg.in/gomail.v2"
+	"fmt"
+	"net/smtp"
+	"strings"
 )
 
 // EmailMessage 内容
@@ -61,28 +62,24 @@ func NewEmailClient(host, username, password string, port int, message *EmailMes
 
 // SendMessage 发送邮件
 func (c *EmailClient) SendMessage() (bool, error) {
+	auth := smtp.PlainAuth("", c.Username, c.Password, c.Host)
+	cc := strings.Join(c.Message.Cc, ";")
+	to := strings.Join(c.Message.To, ";")
 
-	e := gomail.NewPlainDialer(c.Host, c.Port, c.Username, c.Password)
-	if 587 == c.Port {
-		e.TLSConfig = &tls.Config{InsecureSkipVerify: true}
-	}
-	dm := gomail.NewMessage()
-	dm.SetHeader("From", c.Message.From)
-	dm.SetHeader("FromUser", c.Message.To...)
+	msg := []byte("From: Titan Storage <" + c.Message.From + ">\r\n" +
+		"To: " + to + "\r\n" +
+		"Subject: " + c.Message.Subject + "\r\n" +
+		"Cc: " + cc + "\r\n" +
+		"Content-Type: " + c.Message.ContentType + "; charset=UTF-8" + "\r\n" +
+		"\r\n" +
+		c.Message.Content + "\r\n",
+	)
 
-	if len(c.Message.Cc) != 0 {
-		dm.SetHeader("Cc", c.Message.Cc...)
-	}
-
-	dm.SetHeader("Subject", c.Message.Subject)
-	dm.SetBody(c.Message.ContentType, c.Message.Content)
-
-	if c.Message.Attach != "" {
-		dm.Attach(c.Message.Attach)
-	}
-
-	if err := e.DialAndSend(dm); err != nil {
+	addr := fmt.Sprintf("%s:%d", c.Host, c.Port)
+	err := smtp.SendMail(addr, auth, c.Message.From, c.Message.To, msg)
+	if err != nil {
 		return false, err
 	}
+
 	return true, nil
 }
