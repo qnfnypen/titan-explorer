@@ -17,7 +17,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 )
 
 func GetProvidersHandler(c *gin.Context) {
@@ -97,70 +96,68 @@ func GetDeploymentsHandler(c *gin.Context) {
 		Size:  int(size),
 	}
 
-	deployments, err := getDeploymentsJsonRPC(url, params)
+	resp, err := getDeploymentsJsonRPC(url, params)
 	if err != nil {
-		log.Errorf("get providers: %v", err)
+		log.Errorf("get deployments: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
-	type result struct {
-		ID          string  `json:"id"`
-		Name        string  `json:"name"`
-		Image       string  `json:"image"`
-		State       string  `json:"state"`
-		Total       int     `json:"total"`
-		Ready       int     `json:"ready"`
-		Available   int     `json:"available"`
-		CPU         float64 `json:"cpu"`
-		GPU         float64 `json:"gpu"`
-		Memory      string  `json:"memory"`
-		Storage     string  `json:"storage"`
-		Provider    string  `json:"provider"`
-		Port        string  `json:"port"`
-		CreatedTime string  `json:"created_time"`
-	}
+	//type result struct {
+	//	ID          string  `json:"id"`
+	//	Name        string  `json:"name"`
+	//	Image       string  `json:"image"`
+	//	State       string  `json:"state"`
+	//	Total       int     `json:"total"`
+	//	Ready       int     `json:"ready"`
+	//	Available   int     `json:"available"`
+	//	CPU         float64 `json:"cpu"`
+	//	GPU         float64 `json:"gpu"`
+	//	Memory      string  `json:"memory"`
+	//	Storage     string  `json:"storage"`
+	//	Provider    string  `json:"provider"`
+	//	Port        string  `json:"port"`
+	//	CreatedTime string  `json:"created_time"`
+	//}
+	//
+	//out := make([]result, 0)
+	//
+	//for _, deployment := range resp.Deployments {
+	//	for _, service := range deployment.Services {
+	//		state := ctypes.DeploymentStateInActive
+	//		if service.Status.TotalReplicas == service.Status.ReadyReplicas {
+	//			state = ctypes.DeploymentStateActive
+	//		}
+	//
+	//		var exposePorts []string
+	//		for _, port := range service.Ports {
+	//			exposePorts = append(exposePorts, fmt.Sprintf("%d->%d", port.Port, port.ExposePort))
+	//		}
+	//
+	//		var storageSize int64
+	//		for _, storage := range service.Storage {
+	//			storageSize += storage.Quantity
+	//		}
+	//
+	//		out = append(out, result{
+	//			ID:          string(deployment.ID),
+	//			Name:        deployment.Name,
+	//			Image:       service.Image,
+	//			State:       ctypes.DeploymentStateString(state),
+	//			Total:       service.Status.TotalReplicas,
+	//			Ready:       service.Status.ReadyReplicas,
+	//			Available:   service.Status.AvailableReplicas,
+	//			CPU:         service.CPU,
+	//			Memory:      units.BytesSize(float64(service.Memory * units.MiB)),
+	//			Storage:     units.BytesSize(float64(storageSize * units.MiB)),
+	//			Provider:    string(deployment.ProviderID),
+	//			Port:        strings.Join(exposePorts, " "),
+	//			CreatedTime: deployment.CreatedAt.Format(time.DateTime),
+	//		})
+	//	}
+	//}
 
-	out := make([]result, 0)
-
-	for _, deployment := range deployments {
-		for _, service := range deployment.Services {
-			state := ctypes.DeploymentStateInActive
-			if service.Status.TotalReplicas == service.Status.ReadyReplicas {
-				state = ctypes.DeploymentStateActive
-			}
-
-			var exposePorts []string
-			for _, port := range service.Ports {
-				exposePorts = append(exposePorts, fmt.Sprintf("%d->%d", port.Port, port.ExposePort))
-			}
-
-			var storageSize int64
-			for _, storage := range service.Storage {
-				storageSize += storage.Quantity
-			}
-
-			out = append(out, result{
-				ID:          string(deployment.ID),
-				Name:        deployment.Name,
-				Image:       service.Image,
-				State:       ctypes.DeploymentStateString(state),
-				Total:       service.Status.TotalReplicas,
-				Ready:       service.Status.ReadyReplicas,
-				Available:   service.Status.AvailableReplicas,
-				CPU:         service.CPU,
-				Memory:      units.BytesSize(float64(service.Memory * units.MiB)),
-				Storage:     units.BytesSize(float64(storageSize * units.MiB)),
-				Provider:    string(deployment.ProviderID),
-				Port:        strings.Join(exposePorts, " "),
-				CreatedTime: deployment.CreatedAt.Format(time.DateTime),
-			})
-		}
-	}
-
-	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"deployments": out,
-	}))
+	c.JSON(http.StatusOK, respJSON(resp))
 }
 
 func GetDeploymentManifestHandler(c *gin.Context) {
@@ -175,7 +172,7 @@ func GetDeploymentManifestHandler(c *gin.Context) {
 		DeploymentID: ctypes.DeploymentID(deploymentId),
 	}
 
-	deployments, err := getDeploymentsJsonRPC(url, params)
+	resp, err := getDeploymentsJsonRPC(url, params)
 	if err != nil {
 		log.Errorf("get providers: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -183,7 +180,7 @@ func GetDeploymentManifestHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"deployment": deployments[0],
+		"deployment": resp.Deployments[0],
 	}))
 }
 
@@ -273,15 +270,60 @@ func GetDeploymentLogsHandler(c *gin.Context) {
 		ID:    ctypes.DeploymentID(deploymentId),
 	}
 
-	logs, err := getDeploymentLogsJsonRPC(url, params)
+	logs := make([]*ctypes.ServiceLog, 0)
+	slogs, err := getDeploymentLogsJsonRPC(url, params)
 	if err != nil {
 		log.Errorf("get logs: %v", err)
+		//c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		//return
+	}
+
+	logs = append(logs, slogs...)
+
+	if len(logs) == 0 {
+		events, err := getDeploymentEventsJsonRPC(url, params)
+		if err != nil {
+			log.Errorf("get event: %v", err)
+			//c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			//return
+		}
+		for _, event := range events {
+			l := &ctypes.ServiceLog{
+				ServiceName: event.ServiceName,
+			}
+			for _, e := range event.Events {
+				l.Logs = append(l.Logs, ctypes.Log(e))
+			}
+			logs = append(logs, l)
+		}
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"logs": logs,
+	}))
+}
+
+func GetDeploymentEventsHandler(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	username := claims[identityKey].(string)
+
+	url := config.Cfg.ContainerManager.Addr
+	deploymentId := c.Query("id")
+
+	params := ctypes.Deployment{
+		Owner: username,
+		ID:    ctypes.DeploymentID(deploymentId),
+	}
+
+	logs, err := getDeploymentEventsJsonRPC(url, params)
+	if err != nil {
+		log.Errorf("get events: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"logs": logs,
+		"events": logs,
 	}))
 }
 
@@ -315,19 +357,19 @@ func GetDeploymentShellHandler(c *gin.Context) {
 		DeploymentID: ctypes.DeploymentID(deploymentId),
 	}
 
-	deployments, err := getDeploymentsJsonRPC(url, params)
+	resp, err := getDeploymentsJsonRPC(url, params)
 	if err != nil {
 		log.Errorf("get providers: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
-	if len(deployments) == 0 {
+	if len(resp.Deployments) == 0 {
 		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 		return
 	}
 
-	if deployments[0].Owner != username {
+	if resp.Deployments[0].Owner != username {
 		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 		return
 	}
@@ -408,7 +450,7 @@ func getProviderStatisticJsonRPC(url string, id ctypes.ProviderID) (*ctypes.Reso
 	return &statistic, nil
 }
 
-func getDeploymentsJsonRPC(url string, opt ctypes.GetDeploymentOption) ([]*ctypes.Deployment, error) {
+func getDeploymentsJsonRPC(url string, opt ctypes.GetDeploymentOption) (*ctypes.GetDeploymentListResp, error) {
 	params, err := json.Marshal([]interface{}{opt})
 	if err != nil {
 		return nil, err
@@ -426,18 +468,18 @@ func getDeploymentsJsonRPC(url string, opt ctypes.GetDeploymentOption) ([]*ctype
 		return nil, err
 	}
 
-	var deployments []*ctypes.Deployment
+	var out ctypes.GetDeploymentListResp
 	b, err := json.Marshal(rsp.Result)
 	if err != nil {
 		return nil, err
 	}
 
-	err = json.Unmarshal(b, &deployments)
+	err = json.Unmarshal(b, &out)
 	if err != nil {
 		return nil, err
 	}
 
-	return deployments, nil
+	return &out, nil
 }
 
 func createDeploymentsJsonRPC(url string, deployment ctypes.Deployment) error {
@@ -545,6 +587,38 @@ func getDeploymentLogsJsonRPC(url string, deployment ctypes.Deployment) ([]*ctyp
 	}
 
 	return logs, nil
+}
+
+func getDeploymentEventsJsonRPC(url string, deployment ctypes.Deployment) ([]*ctypes.ServiceEvent, error) {
+	params, err := json.Marshal([]interface{}{deployment})
+	if err != nil {
+		return nil, err
+	}
+
+	req := model.LotusRequest{
+		Jsonrpc: "2.0",
+		Method:  "titan.GetEvents",
+		Params:  params,
+		ID:      1,
+	}
+
+	rsp, err := requestJsonRPC(url, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var event []*ctypes.ServiceEvent
+	b, err := json.Marshal(rsp.Result)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(b, &event)
+	if err != nil {
+		return nil, err
+	}
+
+	return event, nil
 }
 
 func getDeploymentDomainJsonRPC(url string, id ctypes.DeploymentID) ([]*ctypes.DeploymentDomain, error) {
