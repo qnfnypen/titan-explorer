@@ -66,7 +66,7 @@ func (c *EmailClient) SendMessage() (bool, error) {
 	cc := strings.Join(c.Message.Cc, ";")
 	to := strings.Join(c.Message.To, ";")
 
-	msg := []byte("From: Titan Storage <" + c.Message.From + ">\r\n" +
+	msg := []byte("From: " + c.Message.From + "\r\n" +
 		"To: " + to + "\r\n" +
 		"Subject: " + c.Message.Subject + "\r\n" +
 		"Cc: " + cc + "\r\n" +
