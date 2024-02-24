@@ -607,18 +607,19 @@ func GetDeviceDiagnosisHourHandler(c *gin.Context) {
 	//date := c.Query("date")
 	start := c.Query("from")
 	end := c.Query("to")
-	m := queryDeviceStatisticHourly(deviceID, start, end)
-	if len(m) < 1 {
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
+
+	data := make([]*dao.DeviceStatistics, 0)
+	data = queryDeviceStatisticHourly(deviceID, start, end)
+
 	deviceInfo, err := dao.GetDeviceInfoByID(c.Request.Context(), deviceID)
 	if err != nil {
+		log.Errorf("get device info: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"series_data":  m,
+		"series_data":  data,
 		"cpu_cores":    deviceInfo.CpuCores,
 		"cpu_usage":    fmt.Sprintf("%.2f", deviceInfo.CpuUsage),
 		"memory":       fmt.Sprintf("%.2f", deviceInfo.Memory/float64(10<<20)),
