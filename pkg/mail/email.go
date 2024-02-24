@@ -9,6 +9,7 @@ import (
 // EmailMessage 内容
 type EmailMessage struct {
 	From        string
+	Nickname    string
 	To          []string
 	Cc          []string
 	Subject     string
@@ -24,9 +25,10 @@ type EmailMessage struct {
 // attach: 附件
 // to: 收件人
 // cc: 抄送人
-func NewEmailMessage(from, subject, contentType, content, attach string, to, cc []string) *EmailMessage {
+func NewEmailMessage(from, nickname, subject, contentType, content, attach string, to, cc []string) *EmailMessage {
 	return &EmailMessage{
 		From:        from,
+		Nickname:    nickname,
 		Subject:     subject,
 		ContentType: contentType,
 		Content:     content,
@@ -65,8 +67,11 @@ func (c *EmailClient) SendMessage() (bool, error) {
 	auth := smtp.PlainAuth("", c.Username, c.Password, c.Host)
 	cc := strings.Join(c.Message.Cc, ";")
 	to := strings.Join(c.Message.To, ";")
-
-	msg := []byte("From: " + c.Message.From + "\r\n" +
+	if c.Message.Nickname == "" {
+		c.Message.Nickname = c.Message.From
+	}
+	from := fmt.Sprintf("%s <%s>", c.Message.Nickname, c.Message.From)
+	msg := []byte("From: " + from + "\r\n" +
 		"To: " + to + "\r\n" +
 		"Subject: " + c.Message.Subject + "\r\n" +
 		"Cc: " + cc + "\r\n" +

@@ -17,9 +17,9 @@ var contentCn string
 
 func sendEmail(sendTo string, vc, lang string) error {
 	emailSubject := map[string]string{
-		"":               "[Titan Storage] Your verification code",
-		model.LanguageEN: "[Titan Storage] Your verification code",
-		model.LanguageCN: "[Titan Storage] 您的验证码",
+		"":               "[Titan Network] Your verification code",
+		model.LanguageEN: "[Titan Network] Your verification code",
+		model.LanguageCN: "[Titan Network] 您的验证码",
 	}
 
 	content := contentEn
@@ -38,7 +38,7 @@ func sendEmail(sendTo string, vc, lang string) error {
 	if err != nil {
 		log.Errorf("parse port: %v", err)
 	}
-	message := mail.NewEmailMessage(config.Cfg.Email.From, emailSubject[lang], contentType, content, "", []string{sendTo}, nil)
+	message := mail.NewEmailMessage(config.Cfg.Email.From, config.Cfg.Email.Nickname, emailSubject[lang], contentType, content, "", []string{sendTo}, nil)
 	client := mail.NewEmailClient(config.Cfg.Email.SMTPHost, config.Cfg.Email.Username, config.Cfg.Email.Password, int(port), message)
 	_, err = client.SendMessage()
 	if err != nil {
