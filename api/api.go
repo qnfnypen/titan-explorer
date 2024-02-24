@@ -102,7 +102,7 @@ func (ec *EtcdClient) loadSchedulerConfigs() (map[string][]*types.SchedulerCfg, 
 func NewServer(cfg config.Config) (*Server, error) {
 	gin.SetMode(cfg.Mode)
 	router := gin.Default()
-	
+
 	//router.Use(Cors())
 
 	RegisterRouters(router, cfg)

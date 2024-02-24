@@ -98,7 +98,7 @@ type DeviceInfo struct {
 	UpdatedAt        time.Time `db:"updated_at" json:"updated_at"`
 	DeletedAt        time.Time `db:"deleted_at" json:"deleted_at"`
 	BoundAt          time.Time `db:"bound_at" json:"bound_at"`
-	UserID           string    `db:"user_id" json:"user_id"`
+	UserID           string    `db:"user_id" json:"-"`
 
 	NodeType        int64   `db:"node_type" json:"node_type"`
 	DeviceRank      int64   `db:"device_rank" json:"device_rank"`
