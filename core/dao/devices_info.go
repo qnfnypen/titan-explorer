@@ -616,7 +616,7 @@ func SetDeviceProfileFromCache(ctx context.Context, deviceId string, data map[st
 	if err != nil {
 		return err
 	}
-	_, err = RedisCache.Set(ctx, key, val, time.Minute*5).Result()
+	_, err = RedisCache.Set(ctx, key, val, time.Minute*60).Result()
 	return err
 }
 
