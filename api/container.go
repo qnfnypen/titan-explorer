@@ -189,7 +189,8 @@ func CreateDeploymentHandler(c *gin.Context) {
 	username := claims[identityKey].(string)
 
 	var deployment ctypes.Deployment
-	if err := c.BindJSON(&deployment); err != nil {
+	err := c.BindJSON(&deployment)
+	if err != nil {
 		log.Errorf("%v", err)
 		c.JSON(http.StatusBadRequest, respErrorCode(errors.InvalidParams, c))
 		return
@@ -197,7 +198,7 @@ func CreateDeploymentHandler(c *gin.Context) {
 
 	deployment.Owner = username
 	url := config.Cfg.ContainerManager.Addr
-	err := createDeploymentsJsonRPC(url, deployment)
+	err = createDeploymentsJsonRPC(url, deployment)
 	if err != nil {
 		if strings.Contains(err.Error(), "invalid") {
 			c.JSON(http.StatusOK, respError(errors.InvalidParams, err))
@@ -271,6 +272,24 @@ func GetDeploymentLogsHandler(c *gin.Context) {
 	}
 
 	logs := make([]*ctypes.ServiceLog, 0)
+
+	events, err := getDeploymentEventsJsonRPC(url, params)
+	if err != nil {
+		log.Errorf("get events: %v", err)
+		//c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		//return
+	}
+
+	for _, event := range events {
+		l := &ctypes.ServiceLog{
+			ServiceName: event.ServiceName,
+		}
+		for _, e := range event.Events {
+			l.Logs = append(l.Logs, ctypes.Log(e))
+		}
+		logs = append(logs, l)
+	}
+
 	slogs, err := getDeploymentLogsJsonRPC(url, params)
 	if err != nil {
 		log.Errorf("get logs: %v", err)
@@ -279,24 +298,6 @@ func GetDeploymentLogsHandler(c *gin.Context) {
 	}
 
 	logs = append(logs, slogs...)
-
-	if len(logs) == 0 {
-		events, err := getDeploymentEventsJsonRPC(url, params)
-		if err != nil {
-			log.Errorf("get event: %v", err)
-			//c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			//return
-		}
-		for _, event := range events {
-			l := &ctypes.ServiceLog{
-				ServiceName: event.ServiceName,
-			}
-			for _, e := range event.Events {
-				l.Logs = append(l.Logs, ctypes.Log(e))
-			}
-			logs = append(logs, l)
-		}
-	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"logs": logs,

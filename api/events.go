@@ -706,9 +706,9 @@ func GetMapByCidHandler(c *gin.Context) {
 		log.Errorf("GetAssetList err: %v", e)
 	}
 
-	mapList := dao.HandleMapInfo(assetList, lang)
+	mapList := dao.HandleMapInfo(maskIPAddress(assetList), lang)
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list":  maskIPAddress(assetList),
+		"list":  mapList,
 		"total": len(mapList),
 	}))
 }
