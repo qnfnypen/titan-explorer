@@ -38,6 +38,18 @@ const (
 	InvalidCode
 	TimeoutCode
 
+	InvalidMinerID = iota + 2000
+	InvalidAddress
+	GetLookupIDFailed
+	GetMinerInfoFailed
+	AddressNotMatch
+	GetMinerPowerFailed
+	MinerPowerIsZero
+	VerifySignatureFailed
+	SignatureError
+	MinerIDExists
+	ParseSignatureFailed
+
 	Unknown     = -1
 	GenericCode = 1
 )
@@ -91,6 +103,18 @@ var ErrMap = map[int]string{
 	DeviceBound:                              "device already bound: 设备已经绑定",
 	InvalidCode:                              "invalid code: 无效的绑定码",
 	TimeoutCode:                              "request timeout, please try again later: 请求超时, 请稍后再试",
+
+	InvalidMinerID:        "invalid miner id:miner id错误",
+	InvalidAddress:        "invalid owner/worker address: owner/worker 地址错误",
+	GetLookupIDFailed:     "get lookup id failed:获取 lookup id 失败",
+	GetMinerInfoFailed:    "get miner info failed:获取miner信息失败",
+	AddressNotMatch:       "miner id not match address:地址与miner id不匹配",
+	GetMinerPowerFailed:   "get miner power failed:获取miner算力失败",
+	MinerPowerIsZero:      "miner power is 0:miner 算力为0",
+	VerifySignatureFailed: "verify signature failed:验证签名失败",
+	SignatureError:        "signature error:签名错误",
+	MinerIDExists:         "miner id exists:miner id 已签名",
+	ParseSignatureFailed:  "parse signature failed: 解析签名结果失败",
 }
 
 type GenericError struct {

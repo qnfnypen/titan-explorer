@@ -172,6 +172,12 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	container.GET("/deployment/event", GetDeploymentEventsHandler)
 	container.GET("/deployment/domains", GetDeploymentDomainHandler)
 	container.GET("/deployment/shell", GetDeploymentShellHandler)
+
+	//signature
+	signature := apiV1.Group("/sign")
+	signature.GET("/info", getSignInfo)
+	signature.POST("/upload", setSignInfo)
+
 }
 
 func RegisterRouterWithAPIKey(router *gin.Engine) {

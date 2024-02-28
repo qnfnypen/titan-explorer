@@ -25,6 +25,22 @@ type (
 	minerInfo struct {
 		PeerId       *peer.ID
 		MultiAddress [][]byte
+		Owner        string
+		Worker       string
+	}
+
+	minerPower struct {
+		MinerPower struct {
+			RawBytePower    string
+			QualityAdjPower string
+		}
+
+		TotalPower struct {
+			RawBytePower    string
+			QualityAdjPower string
+		}
+
+		HasMinPower bool
 	}
 )
 
@@ -85,6 +101,106 @@ func StateMinerInfo(url string, minerId string) (*minerInfo, error) {
 	}
 
 	return &mi, nil
+}
+
+func StateMinerPower(url string, minerId string) (*minerPower, error) {
+	params, err := json.Marshal([]interface{}{minerId, nil})
+	if err != nil {
+		return nil, err
+	}
+
+	req := model.LotusRequest{
+		Jsonrpc: "2.0",
+		Method:  "Filecoin.StateMinerPower",
+		Params:  params,
+		ID:      1,
+	}
+
+	rsp, err := requestLotus(url, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var mi minerPower
+	b, err := json.Marshal(rsp.Result)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(b, &mi)
+	if err != nil {
+		return nil, err
+	}
+
+	return &mi, nil
+}
+
+func StateLookupID(url string, minerId string) (string, error) {
+	params, err := json.Marshal([]interface{}{minerId, nil})
+	if err != nil {
+		return "", err
+	}
+
+	req := model.LotusRequest{
+		Jsonrpc: "2.0",
+		Method:  "Filecoin.StateLookupID",
+		Params:  params,
+		ID:      1,
+	}
+
+	rsp, err := requestLotus(url, req)
+	if err != nil {
+		return "", err
+	}
+
+	var lookupID string
+	b, err := json.Marshal(rsp.Result)
+	if err != nil {
+		return "", err
+	}
+
+	err = json.Unmarshal(b, &lookupID)
+	if err != nil {
+		return "", err
+	}
+
+	return lookupID, nil
+}
+
+func WalletVerify(url string, addr string, message string, signType byte, singData []byte) (bool, error) {
+	params, err := json.Marshal([]interface{}{
+		addr,
+		message,
+		map[string]interface{}{"Type": signType, "Data": singData}})
+
+	if err != nil {
+		return false, err
+	}
+
+	req := model.LotusRequest{
+		Jsonrpc: "2.0",
+		Method:  "Filecoin.StateLookupID",
+		Params:  params,
+		ID:      1,
+	}
+
+	rsp, err := requestLotus(url, req)
+	if err != nil {
+		return false, err
+	}
+
+	var result bool
+	b, err := json.Marshal(rsp.Result)
+	if err != nil {
+		return false, err
+	}
+
+	err = json.Unmarshal(b, &result)
+	if err != nil {
+		return false, err
+	}
+
+	return result, nil
 }
 
 func requestLotus(url string, req model.LotusRequest) (*model.LotusResponse, error) {
