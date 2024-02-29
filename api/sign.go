@@ -122,7 +122,7 @@ func checkSign(message string, hexSignedMsg string, addr string) int {
 		return errors.ParseSignatureFailed
 	}
 
-	verify, err := filecoin.WalletVerify(config.Cfg.FilecoinRPCServerAddress, addr, message, signedMsg[0], signedMsg[1:])
+	verify, err := filecoin.WalletVerify(config.Cfg.FilecoinRPCServerAddress, addr, []byte(message), signedMsg[0], signedMsg[1:])
 	if err != nil {
 		return errors.VerifySignatureFailed
 	}

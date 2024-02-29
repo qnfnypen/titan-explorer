@@ -167,7 +167,7 @@ func StateLookupID(url string, minerId string) (string, error) {
 	return lookupID, nil
 }
 
-func WalletVerify(url string, addr string, message string, signType byte, singData []byte) (bool, error) {
+func WalletVerify(url string, addr string, message []byte, signType byte, singData []byte) (bool, error) {
 	params, err := json.Marshal([]interface{}{
 		addr,
 		message,
@@ -179,7 +179,7 @@ func WalletVerify(url string, addr string, message string, signType byte, singDa
 
 	req := model.LotusRequest{
 		Jsonrpc: "2.0",
-		Method:  "Filecoin.StateLookupID",
+		Method:  "Filecoin.WalletVerify",
 		Params:  params,
 		ID:      1,
 	}
