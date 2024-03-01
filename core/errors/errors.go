@@ -44,6 +44,7 @@ const (
 	GetMinerInfoFailed
 	AddressNotMatch
 	GetMinerPowerFailed
+	ParseMinerPowerFailed
 	MinerPowerIsZero
 	VerifySignatureFailed
 	SignatureError
@@ -111,6 +112,7 @@ var ErrMap = map[int]string{
 	GetMinerInfoFailed:    "get miner info failed:获取miner信息失败",
 	AddressNotMatch:       "miner id not match address:地址与miner id不匹配",
 	GetMinerPowerFailed:   "get miner power failed:获取miner算力失败",
+	ParseMinerPowerFailed: "parse miner power failed:解析 miner 算力失败",
 	MinerPowerIsZero:      "miner power is 0:miner 算力为0",
 	VerifySignatureFailed: "verify signature failed:验证签名失败",
 	SignatureError:        "signature error:签名错误",

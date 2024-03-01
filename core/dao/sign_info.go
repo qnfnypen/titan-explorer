@@ -12,7 +12,7 @@ func GetInfoByMinerID(minerID string) (model.SignInfo, error) {
 }
 
 func ReplaceSignInfo(info *model.SignInfo) error {
-	_, err := DB.NamedExec("REPLACE INTO sign_info (miner_id, address, date, signed_msg) VALUES (:miner_id, :address, :date, :signed_msg)", info)
+	_, err := DB.NamedExec("REPLACE INTO sign_info (miner_id, address, date, signed_msg, miner_power) VALUES (:miner_id, :address, :date, :signed_msg, :miner_power)", info)
 
 	return err
 }

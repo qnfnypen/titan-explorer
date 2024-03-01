@@ -13,6 +13,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/filecoin"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/sirupsen/logrus"
+	"math/big"
 	"net/http"
 	"time"
 )
@@ -43,8 +44,30 @@ func getCommand(ctx *gin.Context) {
 		return
 	}
 
+	power, err := filecoin.StateMinerPower(config.Cfg.FilecoinRPCServerAddress, info.MinerID)
+	if err != nil {
+		logrus.Error(err)
+
+		ctx.JSON(http.StatusOK, respErrorCode(errors.GetMinerPowerFailed, ctx))
+
+		return
+	}
+
+	qualityAdjPower := big.NewInt(0)
+	_, success := qualityAdjPower.SetString(power.MinerPower.QualityAdjPower, 10)
+	if !success {
+		ctx.JSON(http.StatusOK, respErrorCode(errors.GetMinerPowerFailed, ctx))
+	}
+
+	if qualityAdjPower.Cmp(big.NewInt(0)) == 0 {
+		ctx.JSON(http.StatusOK, respErrorCode(errors.MinerPowerIsZero, ctx))
+
+		return
+	}
+
 	info.SignedMsg = ""
 	info.Date = time.Now().Unix()
+	info.MinerPower = formatBytes(qualityAdjPower)
 
 	if err = dao.ReplaceSignInfo(&info); err != nil {
 		ctx.JSON(http.StatusOK, respErrorCode(int(terrors.DatabaseErr), ctx))
@@ -90,7 +113,7 @@ func setSignInfo(ctx *gin.Context) {
 		return
 	}
 
-	infoTmp, err := dao.GetInfoByMinerID(info.MinerID)
+	tmp, err := dao.GetInfoByMinerID(info.MinerID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			ctx.JSON(http.StatusOK, respErrorCode(errors.Unregistered, ctx))
@@ -102,13 +125,15 @@ func setSignInfo(ctx *gin.Context) {
 		return
 	}
 
-	msg := buildMessage(info.MinerID, infoTmp.Date)
-	if code := checkSign(msg, info.SignedMsg, infoTmp.Address); code != 0 {
+	msg := buildMessage(info.MinerID, tmp.Date)
+	if code := checkSign(msg, info.SignedMsg, tmp.Address); code != 0 {
 		ctx.JSON(http.StatusOK, respErrorCode(code, ctx))
 
 		return
 	}
 
+	tmp.SignedMsg = info.SignedMsg
+	info = tmp
 	if err = dao.ReplaceSignInfo(&info); err != nil {
 		ctx.JSON(http.StatusOK, respErrorCode(int(terrors.DatabaseErr), ctx))
 
@@ -118,16 +143,6 @@ func setSignInfo(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, respJSON(JsonObject{
 		"msg": "success",
 	}))
-}
-
-func ValidateBasic(s *model.SignInfo) int {
-	if code := checkAddress(s.MinerID, s.Address); code != 0 {
-		return code
-	}
-
-	message := buildMessage(s.MinerID, s.Date)
-
-	return checkSign(message, s.SignedMsg, s.Address)
 }
 
 func checkAddress(minerIDStr, addrStr string) int {
@@ -145,20 +160,21 @@ func checkAddress(minerIDStr, addrStr string) int {
 		return errors.GetMinerInfoFailed
 	}
 
-	if minerInfo.Owner != lookupID && minerInfo.Worker != lookupID {
+	if minerInfo.Owner != lookupID && minerInfo.Worker != lookupID && !checkIsControl(minerInfo.ControlAddresses, lookupID) {
 		return errors.AddressNotMatch
 	}
 
-	power, err := filecoin.StateMinerPower(config.Cfg.FilecoinRPCServerAddress, minerIDStr)
-	if err != nil {
-		logrus.Error(err)
+	return 0
+}
 
-		return errors.GetMinerPowerFailed
-	} else if power.TotalPower.RawBytePower == "" {
-		return errors.MinerPowerIsZero
+func checkIsControl(controlAddresses []string, addr string) bool {
+	for i := range controlAddresses {
+		if controlAddresses[i] == addr {
+			return true
+		}
 	}
 
-	return 0
+	return false
 }
 
 func buildMessage(minerID string, date int64) string {
@@ -202,4 +218,48 @@ func checkSign(message string, hexSignedMsg string, addr string) int {
 	}
 
 	return 0
+}
+
+func formatBytes(bytes *big.Int) string {
+	base := big.NewInt(1)
+
+	var (
+		KB = big.NewInt(0).Set(base.Lsh(base, 10))
+		MB = big.NewInt(0).Set(base.Lsh(base, 10))
+		GB = big.NewInt(0).Set(base.Lsh(base, 10))
+		TB = big.NewInt(0).Set(base.Lsh(base, 10))
+		PB = big.NewInt(0).Set(base.Lsh(base, 10))
+	)
+
+	switch {
+	case bytes.Cmp(PB) >= 0:
+		{
+			tmp := bytes.Div(bytes, TB).Int64()
+			return fmt.Sprintf("%.2fPB", float64(tmp)/1024.0)
+		}
+	case bytes.Cmp(TB) >= 0:
+		{
+			tmp := bytes.Div(bytes, GB).Int64()
+			return fmt.Sprintf("%.2fTB", float64(tmp)/1024.0)
+		}
+	case bytes.Cmp(GB) >= 0:
+		{
+			tmp := bytes.Div(bytes, MB).Int64()
+			return fmt.Sprintf("%.2fGB", float64(tmp)/1024.0)
+		}
+	case bytes.Cmp(MB) >= 0:
+		{
+			tmp := bytes.Div(bytes, KB).Int64()
+			return fmt.Sprintf("%.2fMB", float64(tmp)/1024.0)
+		}
+	case bytes.Cmp(KB) >= 0:
+		{
+			tmp := bytes.Int64()
+			return fmt.Sprintf("%.2fKB", float64(tmp)/1024.0)
+		}
+	default:
+		{
+			return fmt.Sprintf("%dB", bytes.Int64())
+		}
+	}
 }

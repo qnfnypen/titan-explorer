@@ -23,10 +23,11 @@ type (
 	}
 
 	minerInfo struct {
-		PeerId       *peer.ID
-		MultiAddress [][]byte
-		Owner        string
-		Worker       string
+		PeerId           *peer.ID
+		MultiAddress     [][]byte
+		Owner            string
+		Worker           string
+		ControlAddresses []string
 	}
 
 	minerPower struct {
