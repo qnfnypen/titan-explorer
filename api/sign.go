@@ -82,6 +82,7 @@ func getCommand(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, respJSON(JsonObject{
 		"msg":  "success",
 		"info": cmd,
+		"message": msg,
 	}))
 }
 
