@@ -1,8 +1,11 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"github.com/Filecoin-Titan/titan/api/terrors"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
@@ -11,14 +14,58 @@ import (
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/sirupsen/logrus"
 	"net/http"
-	"strings"
 	"time"
 )
+
+func getCommand(ctx *gin.Context) {
+	var info model.SignInfo
+
+	if err := ctx.Bind(&info); err != nil {
+		ctx.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, ctx))
+
+		return
+	}
+
+	infoTmp, err := dao.GetInfoByMinerID(info.MinerID)
+	if err != nil && err != sql.ErrNoRows {
+		ctx.JSON(http.StatusOK, respErrorCode(int(terrors.DatabaseErr), ctx))
+
+		return
+	} else if infoTmp.SignedMsg != "" {
+		ctx.JSON(http.StatusOK, respErrorCode(errors.MinerIDExists, ctx))
+
+		return
+	}
+
+	if code := checkAddress(info.MinerID, info.Address); code != 0 {
+		ctx.JSON(http.StatusOK, respErrorCode(code, ctx))
+
+		return
+	}
+
+	info.SignedMsg = ""
+	info.Date = time.Now().Unix()
+
+	if err = dao.ReplaceSignInfo(&info); err != nil {
+		ctx.JSON(http.StatusOK, respErrorCode(int(terrors.DatabaseErr), ctx))
+
+		return
+	}
+
+	msg := buildMessage(info.MinerID, info.Date)
+
+	cmd := generateCommand(info.Address, msg)
+
+	ctx.JSON(http.StatusOK, respJSON(JsonObject{
+		"msg":  "success",
+		"info": cmd,
+	}))
+}
 
 func getSignInfo(ctx *gin.Context) {
 	info, err := dao.GetAllSignInfo()
 	if err != nil {
-		ctx.JSON(http.StatusOK, respErrorCode(errors.InternalServer, ctx))
+		ctx.JSON(http.StatusOK, respErrorCode(int(terrors.DatabaseErr), ctx))
 		return
 	}
 
@@ -43,20 +90,27 @@ func setSignInfo(ctx *gin.Context) {
 		return
 	}
 
-	if code := ValidateBasic(&info); code != 0 {
+	infoTmp, err := dao.GetInfoByMinerID(info.MinerID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusOK, respErrorCode(errors.Unregistered, ctx))
+
+		} else {
+			ctx.JSON(http.StatusOK, respErrorCode(int(terrors.DatabaseErr), ctx))
+		}
+
+		return
+	}
+
+	msg := buildMessage(info.MinerID, infoTmp.Date)
+	if code := checkSign(msg, info.SignedMsg, infoTmp.Address); code != 0 {
 		ctx.JSON(http.StatusOK, respErrorCode(code, ctx))
 
 		return
 	}
 
-	if err := dao.InsertSignInfo(&info); err != nil {
-		if err != nil {
-			if strings.Contains(err.Error(), "Duplicate entry") {
-				ctx.JSON(http.StatusOK, respErrorCode(errors.MinerIDExists, ctx))
-			} else {
-				ctx.JSON(http.StatusOK, respErrorCode(errors.InternalServer, ctx))
-			}
-		}
+	if err = dao.ReplaceSignInfo(&info); err != nil {
+		ctx.JSON(http.StatusOK, respErrorCode(int(terrors.DatabaseErr), ctx))
 
 		return
 	}
@@ -116,7 +170,19 @@ func buildMessage(minerID string, date int64) string {
 	return message
 }
 
+func generateCommand(addr string, message string) string {
+	hexMessage := hex.EncodeToString([]byte(message))
+
+	command := fmt.Sprintf("lotus wallet sign %s %s", addr, hexMessage)
+
+	return command
+}
+
 func checkSign(message string, hexSignedMsg string, addr string) int {
+	if len(hexSignedMsg) < 2 {
+		return errors.ParseSignatureFailed
+	}
+
 	signedMsg, err := hex.DecodeString(hexSignedMsg)
 	if err != nil {
 		return errors.ParseSignatureFailed

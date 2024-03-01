@@ -49,6 +49,7 @@ const (
 	SignatureError
 	MinerIDExists
 	ParseSignatureFailed
+	Unregistered
 
 	Unknown     = -1
 	GenericCode = 1
@@ -115,6 +116,7 @@ var ErrMap = map[int]string{
 	SignatureError:        "signature error:签名错误",
 	MinerIDExists:         "miner id exists:miner id 已签名",
 	ParseSignatureFailed:  "parse signature failed: 解析签名结果失败",
+	Unregistered:          "unregistered:未注册",
 }
 
 type GenericError struct {

@@ -177,6 +177,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	signature := apiV1.Group("/sign")
 	signature.GET("/info", getSignInfo)
 	signature.POST("/upload", setSignInfo)
+	signature.POST("/command", getCommand)
 
 }
 
