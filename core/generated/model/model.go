@@ -77,9 +77,10 @@ type InviteFrensRecord struct {
 }
 
 type SignInfo struct {
-	MinerID    string `json:"miner_id" db:"miner_id"`
-	Address    string `json:"address" db:"address"`
-	Date       int64  `json:"date" db:"date"`
-	SignedMsg  string `json:"signed_msg" db:"signed_msg"`
-	MinerPower string `json:"miner_power" db:"miner_power"`
+	MinerID      string `json:"miner_id" db:"miner_id"`
+	Address      string `json:"address" db:"address"`
+	Date         int64  `json:"date" db:"date"`
+	SignedMsg    string `json:"signed_msg" db:"signed_msg"`
+	MinerPower   string `json:"miner_power" db:"miner_power"`
+	MinerBalance string `json:"miner_balance" db:"miner_balance"`
 }

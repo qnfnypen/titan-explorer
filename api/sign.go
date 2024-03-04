@@ -18,6 +18,46 @@ import (
 	"time"
 )
 
+func getSummaryInfo(ctx *gin.Context) {
+	info, err := dao.GetAllSignInfo()
+	if err != nil {
+		ctx.JSON(http.StatusOK, respErrorCode(int(terrors.DatabaseErr), ctx))
+		return
+	}
+
+	totalPower := big.NewInt(0)
+	totalBalance := big.NewInt(0)
+
+	for i := range info {
+		tmpPower := big.NewInt(0)
+		_, success := tmpPower.SetString(info[i].MinerPower, 10)
+		if !success {
+			ctx.JSON(http.StatusOK, respErrorCode(errors.ParseMinerPowerFailed, ctx))
+
+			return
+		}
+		totalPower.Add(totalPower, tmpPower)
+
+		tmpBalance := big.NewInt(0)
+		_, success = tmpBalance.SetString(info[i].MinerBalance, 10)
+		if !success {
+			ctx.JSON(http.StatusOK, respErrorCode(errors.ParseMinerPowerFailed, ctx))
+
+			return
+		}
+		totalBalance.Add(totalBalance, tmpBalance)
+	}
+
+	ctx.JSON(http.StatusOK, respJSON(JsonObject{
+		"msg": "success",
+		"info": map[string]interface{}{
+			"num":         len(info),
+			"total_power": formatBytes(totalPower),
+			"total_fil":   filecoin.GetReadablyBalance(totalBalance),
+		},
+	}))
+}
+
 func getCommand(ctx *gin.Context) {
 	var info model.SignInfo
 
@@ -56,7 +96,9 @@ func getCommand(ctx *gin.Context) {
 	qualityAdjPower := big.NewInt(0)
 	_, success := qualityAdjPower.SetString(power.MinerPower.QualityAdjPower, 10)
 	if !success {
-		ctx.JSON(http.StatusOK, respErrorCode(errors.GetMinerPowerFailed, ctx))
+		ctx.JSON(http.StatusOK, respErrorCode(errors.ParseMinerPowerFailed, ctx))
+
+		return
 	}
 
 	if qualityAdjPower.Cmp(big.NewInt(0)) == 0 {
@@ -65,9 +107,17 @@ func getCommand(ctx *gin.Context) {
 		return
 	}
 
+	minerBalance, err := filecoin.WalletBalance(config.Cfg.FilecoinRPCServerAddress, info.MinerID)
+	if err != nil {
+		ctx.JSON(http.StatusOK, respErrorCode(errors.GetMinerBalanceFailed, ctx))
+
+		return
+	}
+
 	info.SignedMsg = ""
 	info.Date = time.Now().Unix()
-	info.MinerPower = formatBytes(qualityAdjPower)
+	info.MinerPower = power.MinerPower.QualityAdjPower
+	info.MinerBalance = minerBalance
 
 	if err = dao.ReplaceSignInfo(&info); err != nil {
 		ctx.JSON(http.StatusOK, respErrorCode(int(terrors.DatabaseErr), ctx))
@@ -80,8 +130,8 @@ func getCommand(ctx *gin.Context) {
 	cmd := generateCommand(info.Address, msg)
 
 	ctx.JSON(http.StatusOK, respJSON(JsonObject{
-		"msg":  "success",
-		"info": cmd,
+		"msg":     "success",
+		"info":    cmd,
 		"message": msg,
 	}))
 }
@@ -91,6 +141,14 @@ func getSignInfo(ctx *gin.Context) {
 	if err != nil {
 		ctx.JSON(http.StatusOK, respErrorCode(int(terrors.DatabaseErr), ctx))
 		return
+	}
+
+	for i := range info {
+		qualityAdjPower := big.NewInt(0)
+		_, _ = qualityAdjPower.SetString(info[i].MinerPower, 10)
+		info[i].MinerPower = formatBytes(qualityAdjPower)
+
+		info[i].MinerBalance = ""
 	}
 
 	var result string
