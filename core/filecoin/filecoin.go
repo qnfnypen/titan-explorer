@@ -7,7 +7,9 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"golang.org/x/xerrors"
 	"io/ioutil"
+	"math/big"
 	"net/http"
+	"strconv"
 )
 
 const (
@@ -204,6 +206,38 @@ func WalletVerify(url string, addr string, message []byte, signType byte, singDa
 	return result, nil
 }
 
+func WalletBalance(url string, minerId string) (string, error) {
+	params, err := json.Marshal([]interface{}{minerId})
+	if err != nil {
+		return "", err
+	}
+
+	req := model.LotusRequest{
+		Jsonrpc: "2.0",
+		Method:  "Filecoin.WalletBalance",
+		Params:  params,
+		ID:      1,
+	}
+
+	rsp, err := requestLotus(url, req)
+	if err != nil {
+		return "", err
+	}
+
+	var balance string
+	b, err := json.Marshal(rsp.Result)
+	if err != nil {
+		return "", err
+	}
+
+	err = json.Unmarshal(b, &balance)
+	if err != nil {
+		return "", err
+	}
+
+	return balance, nil
+}
+
 func requestLotus(url string, req model.LotusRequest) (*model.LotusResponse, error) {
 	jsonData, err := json.Marshal(req)
 	if err != nil {
@@ -241,4 +275,13 @@ func GetTimestampByHeight(height int64) int64 {
 	}
 
 	return FilecoinMainnetResetTimestamp + FilecoinMainnetEpochDurationSeconds*height
+}
+
+func GetReadablyBalance(balance *big.Int) float64 {
+	result, err := strconv.ParseFloat(balance.String(), 64)
+	if err != nil {
+		return 0
+	}
+
+	return result / 1000_00000_00000_00000.0
 }
