@@ -17,10 +17,8 @@ type Config struct {
 	RedisAddr                string
 	RedisPassword            string
 	FilecoinRPCServerAddress string
-	Locator                  LocatorConfig
 	Statistic                StatisticsConfig
 	Email                    EmailConfig
-	AdminScheduler           AdminSchedulerConfig
 	StorageBackup            StorageBackupConfig
 	IpDataCloud              IpDataCloudConfig
 	ContainerManager         ContainerManagerEndpointConfig
@@ -33,12 +31,6 @@ type EmailConfig struct {
 	SMTPPort string
 	Username string
 	Password string
-}
-
-type LocatorConfig struct {
-	Address       string
-	Token         string
-	AreaWhiteList []string
 }
 
 type StatisticsConfig struct {

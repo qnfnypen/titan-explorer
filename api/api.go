@@ -19,7 +19,7 @@ import (
 	"strings"
 )
 
-var schedulerAdmin api.Scheduler
+//var schedulerAdmin api.Scheduler
 
 var schedulerApi api.Scheduler
 
@@ -119,9 +119,9 @@ func NewServer(cfg config.Config) (*Server, error) {
 		return nil, err
 	}
 
-	if cfg.AdminScheduler.Enable {
-		applyAdminScheduler(cfg.AdminScheduler.Address, cfg.AdminScheduler.Token)
-	}
+	//if cfg.AdminScheduler.Enable {
+	//	applyAdminScheduler(cfg.AdminScheduler.Address, cfg.AdminScheduler.Token)
+	//}
 	s := &Server{
 		cfg:        cfg,
 		router:     router,
@@ -181,15 +181,15 @@ func FetchSchedulersFromEtcd(etcdClient *EtcdClient) ([]*statistics.Scheduler, e
 	return out, nil
 }
 
-func applyAdminScheduler(url string, token string) {
-	headers := http.Header{}
-	headers.Add("Authorization", "Bearer "+token)
-	schedClient, _, err := client.NewScheduler(context.Background(), url, headers)
-	if err != nil {
-		log.Errorf("create scheduler rpc client: %v", err)
-	}
-	schedulerAdmin = schedClient
-}
+//func applyAdminScheduler(url string, token string) {
+//	headers := http.Header{}
+//	headers.Add("Authorization", "Bearer "+token)
+//	schedClient, _, err := client.NewScheduler(context.Background(), url, headers)
+//	if err != nil {
+//		log.Errorf("create scheduler rpc client: %v", err)
+//	}
+//	schedulerAdmin = schedClient
+//}
 
 //func (s *Server) sendEmail(sendTo string, registrations []string) error {
 //	subject := "[Application]: Your Device Info"
