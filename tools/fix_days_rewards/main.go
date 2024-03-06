@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+var startEpoch = carbon.CreateFromDate(2024, 02, 28)
+
 func main() {
 	viper.AddConfigPath(".")
 	viper.SetConfigName("config")
@@ -34,12 +36,11 @@ func main() {
 	devices, _ := getDeviceIds(ctx)
 
 	for _, device := range devices {
-		// carbon.Tomorrow().StartOfDay().Carbon2Time()
-		for startTime := carbon.CreateFromDate(2024, 03, 01); startTime.Carbon2Time().Before(carbon.CreateFromDate(2024, 03, 06).Carbon2Time()); startTime = startTime.AddDay() {
+		for startTime := startEpoch; startTime.Carbon2Time().Before(carbon.CreateFromDate(2024, 03, 06).Carbon2Time()); startTime = startTime.AddDay() {
 			starT := startTime.StartOfDay()
 			endT := startTime.EndOfDay()
 
-			UpdateDailyIncome(ctx, device.DeviceID, starT, endT)
+			updateDailyIncome(ctx, device.DeviceID, starT, endT)
 		}
 	}
 
@@ -47,7 +48,7 @@ func main() {
 }
 
 func getDeviceIds(ctx context.Context) ([]*model.DeviceInfo, error) {
-	query := fmt.Sprintf(`select device_id, cumulative_profit from device_info where month_profit <> cumulative_profit`)
+	query := fmt.Sprintf(`select device_id, cumulative_profit from device_info`)
 
 	var out []*model.DeviceInfo
 	if err := dao.DB.SelectContext(ctx, &out, query); err != nil {
@@ -79,10 +80,10 @@ func queryIncome(ctx context.Context, deviceId string, start, end carbon.Carbon)
 }
 
 func queryDaily(ctx context.Context, deviceId string, time string) (*model.DeviceInfoDaily, error) {
-	qury := fmt.Sprintf(`select * from device_info_daily  where device_id = '%s' and DATE_FORMAT(time, '%%Y-%%m-%%d') = '%s'`, deviceId, time)
+	query := fmt.Sprintf(`select * from device_info_daily  where device_id = '%s' and DATE_FORMAT(time, '%%Y-%%m-%%d') = '%s'`, deviceId, time)
 
 	var out model.DeviceInfoDaily
-	err := dao.DB.GetContext(ctx, &out, qury)
+	err := dao.DB.GetContext(ctx, &out, query)
 
 	if err != nil {
 		return nil, err
@@ -91,14 +92,13 @@ func queryDaily(ctx context.Context, deviceId string, time string) (*model.Devic
 	return &out, nil
 }
 
-func UpdateDailyIncome(ctx context.Context, deviceId string, start, end carbon.Carbon) {
+func updateDailyIncome(ctx context.Context, deviceId string, start, end carbon.Carbon) {
 	todayIncome, err := queryIncome(ctx, deviceId, start, end)
 	if err != nil {
 		fmt.Printf("queryIncome: %v %s %v %v\n", err, deviceId, start, end)
 		return
 	}
 
-	startEpoch := carbon.CreateFromDate(2024, 03, 01)
 	ends := start.SubDay()
 	beforeDayIncome, err := queryIncome(ctx, deviceId, startEpoch, ends)
 	if err != nil {
@@ -106,14 +106,13 @@ func UpdateDailyIncome(ctx context.Context, deviceId string, start, end carbon.C
 		return
 	}
 
-	//fmt.Println("time: ", start, "income: ", todayIncome, "before", beforeDayIncome)
-
 	sub := todayIncome - beforeDayIncome
 	dateTime := start.Carbon2Time().Format(time.DateOnly)
 
+	//fmt.Println("deviceID: ", deviceId, "time: ", start, "income: ", todayIncome, "before", beforeDayIncome, "sub", sub)
+
 	dayIncome, err := queryDaily(ctx, deviceId, dateTime)
 	if err != nil {
-		// fmt.Println("queryDaily err: ", err, "device", deviceId, "time", dateTime)
 		return
 	}
 
