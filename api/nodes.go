@@ -293,8 +293,7 @@ func queryDeviceStatisticHourly(deviceID, startTime, endTime string) []*dao.Devi
 }
 
 func GetQueryInfoHandler(c *gin.Context) {
-	info := &model.DeviceInfo{}
-	info.UserID = c.Query("key")
+	key := c.Query("key")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 	order := c.Query("order")
@@ -308,7 +307,7 @@ func GetQueryInfoHandler(c *gin.Context) {
 		OrderField: orderField,
 	}
 
-	deviceInfos, total, err := dao.GetDeviceInfoListByKey(c.Request.Context(), info, option)
+	deviceInfos, total, err := dao.GetDeviceInfoListByKey(c.Request.Context(), &model.DeviceInfo{UserID: key}, option)
 	if err != nil {
 		log.Errorf("get device by user id info list: %v", err)
 	}
@@ -322,20 +321,22 @@ func GetQueryInfoHandler(c *gin.Context) {
 		return
 	}
 
-	detailList := dao.GetDeviceInfoById(context.Background(), info.UserID)
-	if detailList.DeviceID != "" {
-		deviceInfos = append(deviceInfos, &detailList)
+	deviceInfo := dao.GetDeviceInfoById(context.Background(), key)
+	if deviceInfo.DeviceID != "" {
+		deviceInfos = append(deviceInfos, &deviceInfo)
+	} else {
+		device, err := getDeviceInfoFromSchedulerAndInsert(c.Request.Context(), key)
+		if err != nil {
+			c.JSON(http.StatusOK, respJSON(JsonObject{
+				"type": "wrong key",
+			}))
+			return
+		}
+		deviceInfo = *device
 	}
 
-	if len(deviceInfos) == 0 {
-		c.JSON(http.StatusOK, respJSON(JsonObject{
-			"type": "wrong key",
-		}))
-		return
-	}
-
-	for _, deviceInfo := range deviceInfos {
-		dao.TranslateIPLocation(c.Request.Context(), deviceInfo, lang)
+	for _, device := range deviceInfos {
+		dao.TranslateIPLocation(c.Request.Context(), device, lang)
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -669,6 +670,27 @@ func GetDiskDaysHandler(c *gin.Context) {
 	}))
 }
 
+func getDeviceInfoFromSchedulerAndInsert(ctx context.Context, nodeId string) (*model.DeviceInfo, error) {
+	device, err := getNodeInfoFromScheduler(ctx, nodeId)
+	if err != nil {
+		log.Errorf("getNodeInfoFromScheduler %v", err)
+		return nil, err
+	}
+
+	fn, err := dao.GetCacheFullNodeInfo(ctx)
+	if err == nil && fn != nil {
+		device.DeviceRank = int64(fn.TotalNodeCount) + 1
+	}
+
+	err = dao.BulkAddDeviceInfo(ctx, []*model.DeviceInfo{device})
+	if err != nil {
+		log.Errorf("BulkAddDeviceInfo %v", err)
+		return nil, err
+	}
+
+	return device, nil
+}
+
 func getNodeInfoFromScheduler(ctx context.Context, id string) (*model.DeviceInfo, error) {
 	keyPrefix := fmt.Sprintf("%s::%s", SchedulerConfigKeyPrefix, "*")
 	result, err := dao.RedisCache.Keys(ctx, keyPrefix).Result()
@@ -736,20 +758,13 @@ func GetDeviceProfileHandler(c *gin.Context) {
 
 	deviceInfo, err := dao.GetDeviceInfo(c.Request.Context(), param.NodeID)
 	if err == dao.ErrNoRow {
-
-		device, err := getNodeInfoFromScheduler(c.Request.Context(), param.NodeID)
+		device, err := getDeviceInfoFromSchedulerAndInsert(c.Request.Context(), param.NodeID)
 		if err != nil {
-			log.Errorf("getNodeInfoFromScheduler %v", err)
 			c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
 			return
 		}
 
 		deviceInfo = device
-		deviceInfo.DeviceRank = 999
-		err = dao.BulkAddDeviceInfo(c.Request.Context(), []*model.DeviceInfo{deviceInfo})
-		if err != nil {
-			log.Errorf("BulkAddDeviceInfo %v", err)
-		}
 	}
 
 	if deviceInfo == nil {
