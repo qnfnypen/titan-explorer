@@ -19,6 +19,9 @@ import (
 )
 
 func getSummaryInfo(ctx *gin.Context) {
+	lang := ctx.GetHeader("Lang")
+	ctx.Header("Lang", lang)
+
 	info, err := dao.GetAllSignInfo()
 	if err != nil {
 		ctx.JSON(http.StatusOK, respErrorCode(int(terrors.DatabaseErr), ctx))
@@ -59,6 +62,9 @@ func getSummaryInfo(ctx *gin.Context) {
 }
 
 func getCommand(ctx *gin.Context) {
+	lang := ctx.GetHeader("Lang")
+	ctx.Header("Lang", lang)
+
 	var info model.SignInfo
 
 	if err := ctx.Bind(&info); err != nil {
@@ -137,6 +143,9 @@ func getCommand(ctx *gin.Context) {
 }
 
 func getSignInfo(ctx *gin.Context) {
+	lang := ctx.GetHeader("Lang")
+	ctx.Header("Lang", lang)
+
 	info, err := dao.GetAllSignInfo()
 	if err != nil {
 		ctx.JSON(http.StatusOK, respErrorCode(int(terrors.DatabaseErr), ctx))
@@ -164,6 +173,9 @@ func getSignInfo(ctx *gin.Context) {
 }
 
 func setSignInfo(ctx *gin.Context) {
+	lang := ctx.GetHeader("Lang")
+	ctx.Header("Lang", lang)
+
 	var info model.SignInfo
 
 	if err := ctx.Bind(&info); err != nil {
