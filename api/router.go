@@ -1,9 +1,11 @@
 package api
 
 import (
+	"bytes"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/config"
 	logging "github.com/ipfs/go-log/v2"
+	"io"
 )
 
 var log = logging.Logger("api")
@@ -11,6 +13,18 @@ var log = logging.Logger("api")
 func RegisterRouters(route *gin.Engine, cfg config.Config) {
 	RegisterRouterWithJWT(route, cfg)
 	RegisterRouterWithAPIKey(route)
+}
+
+func RequestLoggerMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var buf bytes.Buffer
+		tee := io.TeeReader(c.Request.Body, &buf)
+		body, _ := io.ReadAll(tee)
+		c.Request.Body = io.NopCloser(&buf)
+		log.Debug(string(body))
+		//log.Debug(c.Request.Header)
+		c.Next()
+	}
 }
 
 func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {

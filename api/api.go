@@ -105,6 +105,9 @@ func NewServer(cfg config.Config) (*Server, error) {
 
 	//router.Use(Cors())
 
+	// logging request body
+	router.Use(RequestLoggerMiddleware())
+
 	RegisterRouters(router, cfg)
 
 	etcdClient, err := NewEtcdClient([]string{cfg.EtcdAddress})
