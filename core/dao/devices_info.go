@@ -37,7 +37,7 @@ func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option Query
 		where += ` AND active_status = ?`
 		args = append(args, cond.ActiveStatus)
 	}
-	if cond.UserID != "" {
+	if cond.UserID != "" || option.NotBound == "1" {
 		where += ` AND user_id = ?`
 		args = append(args, cond.UserID)
 	}

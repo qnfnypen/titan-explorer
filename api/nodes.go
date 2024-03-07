@@ -237,18 +237,14 @@ func queryDeviceStatisticsDaily(deviceID, startTime, endTime string) []*dao.Devi
 	return list
 }
 
-func queryDeviceDailyByUserId(userId, startTime, endTime string) []*dao.DeviceStatistics {
-	option := dao.QueryOption{
-		StartTime: startTime,
-		EndTime:   endTime,
-	}
-	if startTime == "" {
+func queryDeviceDailyByUserId(userId string, option dao.QueryOption) []*dao.DeviceStatistics {
+	if option.StartTime == "" {
 		option.StartTime = carbon.Now().SubDays(14).StartOfDay().String()
 	}
-	if endTime == "" {
+	if option.EndTime == "" {
 		option.EndTime = carbon.Now().EndOfDay().String()
 	} else {
-		end, _ := time.Parse(formatter.TimeFormatDateOnly, endTime)
+		end, _ := time.Parse(formatter.TimeFormatDateOnly, option.EndTime)
 		end = end.Add(24 * time.Hour).Add(-time.Second)
 		option.EndTime = end.Format(formatter.TimeFormatDatetime)
 	}
@@ -373,6 +369,7 @@ func GetDeviceInfoHandler(c *gin.Context) {
 	orderField := c.Query("order_field")
 	nodeTypeStr := c.Query("node_type")
 	lang := model.Language(c.GetHeader("Lang"))
+	notBound := c.Query("not_bound")
 
 	if nodeTypeStr != "" {
 		nodeType, _ := strconv.ParseInt(nodeTypeStr, 10, 64)
@@ -398,6 +395,7 @@ func GetDeviceInfoHandler(c *gin.Context) {
 		PageSize:   pageSize,
 		Order:      order,
 		OrderField: orderField,
+		NotBound:   notBound,
 	}
 
 	deviceInfos, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
@@ -535,15 +533,16 @@ func GetNodesInfoHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list":  handleNodesRank(&list),
+		"list":  handleNodesRank(&list, option),
 		"total": total,
 	}))
 }
 
-func handleNodesRank(nodes *[]model.NodesInfo) *[]model.NodesInfo {
+func handleNodesRank(nodes *[]model.NodesInfo, opt dao.QueryOption) *[]model.NodesInfo {
 	var nodesRank []model.NodesInfo
+	offset := (opt.Page - 1) * opt.PageSize
 	for i, info := range *nodes {
-		rank := strconv.Itoa(i + 1)
+		rank := strconv.Itoa(i + 1 + offset)
 		info.Rank = rank
 		nodesRank = append(nodesRank, info)
 	}
@@ -599,7 +598,14 @@ func GetDeviceDiagnosisDailyByUserIdHandler(c *gin.Context) {
 	from := c.Query("from")
 	to := c.Query("to")
 	userId := c.Query("user_id")
-	m := queryDeviceDailyByUserId(userId, from, to)
+	notBound := c.Query("not_bound")
+	option := dao.QueryOption{
+		StartTime: from,
+		EndTime:   to,
+		NotBound:  notBound,
+	}
+
+	m := queryDeviceDailyByUserId(userId, option)
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"series_data": m,
 	}))

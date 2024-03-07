@@ -196,7 +196,7 @@ func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, op
 func GetNodesInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*DeviceStatistics, error) {
 	var args []interface{}
 	where := `WHERE 1=1`
-	if cond.UserID != "" {
+	if cond.UserID != "" || option.NotBound == "1" {
 		where += ` AND user_id = ?`
 		args = append(args, cond.UserID)
 	}

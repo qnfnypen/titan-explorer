@@ -68,6 +68,7 @@ type QueryOption struct {
 	StartTime  string         `json:"start_time"`
 	EndTime    string         `json:"end_time" `
 	UserID     string         `json:"user_id"`
+	NotBound   string         `json:"not_bound"`
 	Lang       model.Language `json:"-"`
 }
 
