@@ -22,6 +22,7 @@ type Config struct {
 	StorageBackup            StorageBackupConfig
 	IpDataCloud              IpDataCloudConfig
 	ContainerManager         ContainerManagerEndpointConfig
+	Epoch                    EpochConfig
 }
 
 type EmailConfig struct {
@@ -57,5 +58,9 @@ type IpDataCloudConfig struct {
 
 type ContainerManagerEndpointConfig struct {
 	Addr  string
+	Token string
+}
+
+type EpochConfig struct {
 	Token string
 }

@@ -754,11 +754,13 @@ func GetDeviceProfileHandler(c *gin.Context) {
 		log.Errorf("get last update info: %v", err)
 	}
 
+	dataChanged := true
 	if lastUpdate != nil && param.Since > 0 {
 		sinceT := time.Unix(param.Since, 0)
 		if lastUpdate.Time.Before(sinceT) {
-			c.JSON(http.StatusOK, respJSON(out))
-			return
+			//c.JSON(http.StatusOK, respJSON(out))
+			//return
+			dataChanged = false
 		}
 	}
 
@@ -786,7 +788,7 @@ func GetDeviceProfileHandler(c *gin.Context) {
 			out[key] = struct {
 				Token string `json:"token"`
 			}{
-				Token: "TTN0",
+				Token: config.Cfg.Epoch.Token,
 			}
 		case "info":
 			out[key] = struct {
@@ -799,11 +801,17 @@ func GetDeviceProfileHandler(c *gin.Context) {
 		case "account":
 			out[key] = queryAccountInfo(c.Request.Context(), deviceInfo.DeviceID, deviceInfo.UserID)
 		case "income":
+			if !dataChanged {
+				continue
+			}
 			response[key] = map[string]interface{}{
 				"today": deviceInfo.TodayProfit,
 				"total": deviceInfo.CumulativeProfit,
 			}
 		case "month_incomes":
+			if !dataChanged {
+				continue
+			}
 			response[key] = queryDailyIncome(c.Request.Context(), param.NodeID)
 		}
 	}
