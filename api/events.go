@@ -53,13 +53,13 @@ func GetValidationListHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	var validationEvents []*model.ValidationEvent
-	for _, blockInfo := range resp.ValidationResultInfos {
-		validationEvents = append(validationEvents, toValidationEvent(blockInfo))
-	}
+	//var validationEvents []*model.ValidationEvent
+	//for _, blockInfo := range resp.ValidationResultInfos {
+	//	validationEvents = append(validationEvents, toValidationEvent(blockInfo))
+	//}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list":  validationEvents,
+		"list":  resp.ValidationResultInfos,
 		"total": resp.Total,
 	}))
 	return
