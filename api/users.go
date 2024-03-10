@@ -759,6 +759,21 @@ func UnBindWalletHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(nil))
 }
 
+func maskEmail(email string) string {
+	words := strings.Split(email, ".")
+	if len(words) < 1 {
+		return email[:3] + "****"
+	}
+
+	prefix, suffix := words[0], words[1]
+
+	if len(prefix) > 5 {
+		return prefix[:3] + "****" + prefix[len(prefix)-2:] + "." + suffix
+	}
+
+	return prefix[:3] + "****" + "." + suffix
+}
+
 func GetReferralListHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	username := claims[identityKey].(string)
@@ -780,6 +795,10 @@ func GetReferralListHandler(c *gin.Context) {
 		log.Errorf("get referral list: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
+	}
+
+	for _, refer := range referList {
+		refer.Email = maskEmail(refer.Email)
 	}
 
 	totalReward, err := dao.GetUserReferralReward(c.Request.Context(), username)
