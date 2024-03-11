@@ -33,6 +33,7 @@ ALTER TABLE full_node_info ADD COLUMN  cpu_cores bigint(20) NOT NULL DEFAULT 0 A
 ALTER  TABLE  device_info ADD COLUMN income_incr FLOAT(32) NOT NULL DEFAULT 0 AFTER retrieval_count;
 
 
+
 ALTER TABLE users MODIFY reward FLOAT(32);
 ALTER TABLE users MODIFY payout FLOAT(32);
 ALTER TABLE users MODIFY frozen_reward FLOAT(32);

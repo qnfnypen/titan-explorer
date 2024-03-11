@@ -58,6 +58,15 @@ func UpdateUserReward(ctx context.Context, user *model.User) error {
 	return nil
 }
 
+func UpdateUserReferralReward(ctx context.Context, user *model.User) error {
+	updateRewardQuery := fmt.Sprintf("update %s set referral_reward = ? where username = ?", tableNameUser)
+	_, err := DB.ExecContext(ctx, updateRewardQuery, user.RefereralReward, user.Username)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func insertOrUpdateRewardStatement(ctx context.Context, tx *sqlx.Tx, statement *model.RewardStatement) error {
 	getQuery := fmt.Sprintf(`select * from %s where username = ? and event =? and created_at >= ? limit 1`, tableNameRewardStatement)
 

@@ -280,11 +280,14 @@ func SumUserDeviceReward(ctx context.Context) error {
 		return err
 	}
 
-	rewardInUser := make(map[string]*model.User)
-	//for _, u := range sumReward {
-	//	rewardInUser[u.Username] = u
-	//}
+	for _, user := range sumReward {
+		err = dao.UpdateUserReward(ctx, user)
+		if err != nil {
+			log.Errorf("UpdateUserReward: %v", err)
+		}
+	}
 
+	rewardInUser := make(map[string]*model.User)
 	for _, user := range sumReward {
 		referer, err := dao.GetUsersReferrer(ctx, user.Username)
 		if errors.Is(err, dao.ErrNoRow) {
@@ -299,21 +302,14 @@ func SumUserDeviceReward(ctx context.Context) error {
 		referralReward := user.Reward * 0.05
 		_, ok := rewardInUser[referer.Username]
 		if !ok {
-			refer, err := dao.GetUserByUsername(ctx, referer.Username)
-			if err != nil {
-				log.Errorf("refferal not exist, userid: %s", referer.Username)
-				continue
-			}
-			refer.RefereralReward = referralReward
-			rewardInUser[referer.Username] = refer
-			continue
+			rewardInUser[referer.Username] = &model.User{Username: referer.Username}
 		}
 
 		rewardInUser[referer.Username].RefereralReward += referralReward
 	}
 
 	for _, user := range rewardInUser {
-		err = dao.UpdateUserReward(ctx, user)
+		err = dao.UpdateUserReferralReward(ctx, user)
 		if err != nil {
 			log.Errorf("UpdateUserReward: %v", err)
 		}
