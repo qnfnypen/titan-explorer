@@ -15,7 +15,7 @@ const (
 	tableNameRewardWithdraw  = "withdraw_record"
 )
 
-func UpdateUserReward(ctx context.Context, statement *model.RewardStatement) error {
+func UpdateUserRewardOld(ctx context.Context, statement *model.RewardStatement) error {
 	tx, err := DB.Beginx()
 	if err != nil {
 		return err
@@ -47,6 +47,15 @@ func UpdateUserReward(ctx context.Context, statement *model.RewardStatement) err
 	}
 
 	return tx.Commit()
+}
+
+func UpdateUserReward(ctx context.Context, user *model.User) error {
+	updateRewardQuery := fmt.Sprintf("update %s set reward = ?, referral_reward = ?, device_count = ? where username = ?", tableNameUser)
+	_, err := DB.ExecContext(ctx, updateRewardQuery, user.Reward, user.RefereralReward, user.DeviceCount, user.Username)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func insertOrUpdateRewardStatement(ctx context.Context, tx *sqlx.Tx, statement *model.RewardStatement) error {
@@ -109,7 +118,43 @@ func GetRewardStatementByDeviceID(ctx context.Context, deviceId string) (*model.
 	return &out, nil
 }
 
-func GetReferralList(ctx context.Context, username string, events []model.RewardEvent, option QueryOption) (int64, []*model.InviteFrensRecord, error) {
+func GetReferralList(ctx context.Context, username string, option QueryOption) (int64, []*model.InviteFrensRecord, error) {
+	var out []*model.InviteFrensRecord
+
+	limit := option.PageSize
+	offset := option.Page
+	if option.PageSize <= 0 {
+		limit = 50
+	}
+	if option.Page > 0 {
+		offset = limit * (option.Page - 1)
+	}
+
+	var total int64
+
+	countQuery := `select count(1) from users where referrer in (select referral_code from users where username = ?);`
+	countQueryIn, countQueryParams, err := sqlx.In(countQuery, username)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	err = DB.GetContext(ctx, &total, countQueryIn, countQueryParams...)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	query := `select username as email, device_count as bound_count, (reward * 0.05) as reward, created_at as time from users where referrer in (select referral_code from users where username = ?) order by created_at desc LIMIT ? OFFSET ?;`
+
+	err = DB.SelectContext(ctx, &out, query, username, limit, offset)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return total, out, nil
+
+}
+
+func GetReferralListOld(ctx context.Context, username string, events []model.RewardEvent, option QueryOption) (int64, []*model.InviteFrensRecord, error) {
 	var out []*model.InviteFrensRecord
 
 	limit := option.PageSize
@@ -152,17 +197,17 @@ func GetReferralList(ctx context.Context, username string, events []model.Reward
 	return total, out, nil
 }
 
-func GetUserReferralReward(ctx context.Context, username string) (int64, error) {
-	var total int64
-	query := fmt.Sprintf(`select ifnull(sum(amount),0) from %s where event in ("invite_frens", "bind_device") and username = ?`, tableNameRewardStatement)
-
-	err := DB.GetContext(ctx, &total, query, username)
-	if err != nil {
-		return 0, err
-	}
-
-	return total, nil
-}
+//func GetUserReferralReward(ctx context.Context, username string) (int64, error) {
+//	var total int64
+//	query := fmt.Sprintf(`select ifnull(sum(amount),0) from %s where event in ("invite_frens", "bind_device") and username = ?`, tableNameRewardStatement)
+//
+//	err := DB.GetContext(ctx, &total, query, username)
+//	if err != nil {
+//		return 0, err
+//	}
+//
+//	return total, nil
+//}
 
 func AddWithdrawRequest(ctx context.Context, withdraw *model.Withdraw) error {
 	tx, err := DB.Beginx()

@@ -72,7 +72,7 @@ type InviteFrensRecord struct {
 	Email      string    `db:"email" json:"email"`
 	Status     int       `db:"status" json:"status"`
 	BoundCount int       `db:"bound_count" json:"bound_count"`
-	Reward     int       `db:"reward" json:"reward"`
+	Reward     float64   `db:"reward" json:"reward"`
 	Time       time.Time `db:"time" json:"time"`
 }
 

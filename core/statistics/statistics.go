@@ -63,6 +63,7 @@ func (s *Statistic) Run() {
 	if s.cfg.Disable {
 		return
 	}
+
 	s.cron.AddFunc(s.cfg.Crontab, s.Once("FETCHER", s.runFetchers))
 	s.cron.Start()
 	s.handleJobs()

@@ -651,3 +651,14 @@ func GetDeviceProfileFromCache(ctx context.Context, deviceId string) (map[string
 
 	return out, nil
 }
+
+func GetSumUserDeviceReward(ctx context.Context) ([]*model.User, error) {
+	var users []*model.User
+	query := fmt.Sprintf(`select user_id as username, sum(cumulative_profit) as reward, count(device_id) as device_count from device_info  where user_id <>'' GROUP BY user_id;`)
+	err := DB.SelectContext(ctx, &users, query)
+	if err != nil {
+		log.Errorf("GetSumUserDeviceReward %v", err)
+		return nil, err
+	}
+	return users, nil
+}

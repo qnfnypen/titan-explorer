@@ -31,3 +31,10 @@ ALTER TABLE full_node_info ADD COLUMN  ip_count bigint(20) NOT NULL DEFAULT 0 AF
 ALTER TABLE full_node_info ADD COLUMN  cpu_cores bigint(20) NOT NULL DEFAULT 0 AFTER memory;
 
 ALTER  TABLE  device_info ADD COLUMN income_incr FLOAT(32) NOT NULL DEFAULT 0 AFTER retrieval_count;
+
+
+ALTER TABLE users MODIFY reward FLOAT(32);
+ALTER TABLE users MODIFY payout FLOAT(32);
+ALTER TABLE users MODIFY frozen_reward FLOAT(32);
+ALTER TABLE users ADD COLUMN referral_reward FLOAT(32) NOT NULL DEFAULT 0 AFTER reward;
+ALTER TABLE users ADD COLUMN device_count bigint(20) NOT NULL DEFAULT 0 AFTER referral_reward;

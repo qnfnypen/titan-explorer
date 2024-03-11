@@ -305,9 +305,11 @@ type User struct {
 	ProjectId       int64     `db:"project_id"`
 	Referrer        string    `db:"referrer" json:"referrer"`
 	ReferralCode    string    `db:"referral_code" json:"referral_code"`
-	Reward          int64     `db:"reward" json:"reward"`
-	Payout          int64     `db:"payout" json:"payout"`
-	FrozenReward    int64     `db:"frozen_reward" json:"frozen_reward"`
+	Reward          float64    `db:"reward" json:"reward"`
+	RefereralReward  float64   `db:"referral_reward" json:"referral_reward"`
+	Payout          float64     `db:"payout" json:"payout"`
+	FrozenReward    float64     `db:"frozen_reward" json:"frozen_reward"`
+	DeviceCount     int64   `db:"device_count" json:"device_count"`
 	CreatedAt       time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt       time.Time `db:"updated_at" json:"updated_at"`
 	DeletedAt       time.Time `db:"deleted_at" json:"deleted_at"`

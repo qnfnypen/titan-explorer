@@ -51,7 +51,7 @@ func GetUserInfoHandler(c *gin.Context) {
 	}
 
 	if counter != nil {
-		user.Reward = int64(counter.CumulativeProfit)
+		user.Reward = counter.CumulativeProfit
 	}
 
 	c.JSON(http.StatusOK, respJSON(user))
@@ -82,14 +82,14 @@ func UserRegister(c *gin.Context) {
 		return
 	}
 
-	var referrer *model.User
-	if userInfo.Referrer != "" {
-		referrer, err = dao.GetUserByRefCode(c.Request.Context(), userInfo.Referrer)
-		if err != nil {
-			c.JSON(http.StatusOK, respErrorCode(errors.InvalidReferralCode, c))
-			return
-		}
-	}
+	//var referrer *model.User
+	//if userInfo.Referrer != "" {
+	//	referrer, err = dao.GetUserByRefCode(c.Request.Context(), userInfo.Referrer)
+	//	if err != nil {
+	//		c.JSON(http.StatusOK, respErrorCode(errors.InvalidReferralCode, c))
+	//		return
+	//	}
+	//}
 
 	passHash, err := bcrypt.GenerateFromPassword([]byte(passwd), bcrypt.DefaultCost)
 	if err != nil {
@@ -121,21 +121,21 @@ func UserRegister(c *gin.Context) {
 		return
 	}
 
-	if referrer != nil {
-		rewardStatement := &model.RewardStatement{
-			Username:  referrer.Username,
-			FromUser:  userInfo.Username,
-			Amount:    0,
-			Event:     model.RewardEventInviteFrens,
-			Status:    1,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		}
-		err := dao.UpdateUserReward(c.Request.Context(), rewardStatement)
-		if err != nil {
-			log.Errorf("Update user reward: %v", err)
-		}
-	}
+	//if referrer != nil {
+	//	rewardStatement := &model.RewardStatement{
+	//		Username:  referrer.Username,
+	//		FromUser:  userInfo.Username,
+	//		Amount:    0,
+	//		Event:     model.RewardEventInviteFrens,
+	//		Status:    1,
+	//		CreatedAt: time.Now(),
+	//		UpdatedAt: time.Now(),
+	//	}
+	//	err := dao.UpdateUserReward(c.Request.Context(), rewardStatement)
+	//	if err != nil {
+	//		log.Errorf("Update user reward: %v", err)
+	//	}
+	//}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"msg": "success",
@@ -789,29 +789,37 @@ func GetReferralListHandler(c *gin.Context) {
 		OrderField: orderField,
 	}
 
-	event := []model.RewardEvent{model.RewardEventInviteFrens, model.RewardEventBindDevice}
-	total, referList, err := dao.GetReferralList(c.Request.Context(), username, event, option)
+	total, referList, err := dao.GetReferralList(c.Request.Context(), username, option)
 	if err != nil {
 		log.Errorf("get referral list: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
+	var userIds []string
 	for _, refer := range referList {
+		userIds = append(userIds, refer.Email)
 		refer.Email = maskEmail(refer.Email)
 	}
 
-	totalReward, err := dao.GetUserReferralReward(c.Request.Context(), username)
+	user, err := dao.GetUserByUsername(c.Request.Context(), username)
 	if err != nil {
-		log.Errorf("get user referral reward: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		log.Errorf("get user: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.UserNotFound, c))
 		return
 	}
+
+	//totalReward, err := dao.GetUserReferralReward(c.Request.Context(), username)
+	//if err != nil {
+	//	log.Errorf("get user referral reward: %v", err)
+	//	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	//	return
+	//}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"list":         referList,
 		"total":        total,
-		"total_reward": totalReward,
+		"total_reward": user.RefereralReward,
 	}))
 }
 
@@ -842,7 +850,7 @@ func WithdrawHandler(c *gin.Context) {
 		return
 	}
 
-	if user.Reward < params.Amount {
+	if user.Reward < float64(params.Amount) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InsufficientBalance, c))
 		return
 	}

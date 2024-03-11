@@ -234,6 +234,11 @@ func SumDeviceInfoProfit() error {
 		log.Errorf("bulk update devices: %v", err)
 	}
 
+	if err := SumUserDeviceReward(context.Background()); err != nil {
+		log.Errorf("sum user device rewards: %v", err)
+		return err
+	}
+
 	return nil
 }
 
@@ -261,6 +266,60 @@ func updateDeviceInfoForTimeRange(updatedDevices map[string]*model.DeviceInfo, s
 			}
 		}
 	}
+}
+
+func SumUserDeviceReward(ctx context.Context) error {
+	log.Info("start to sum user device reward")
+	start := time.Now()
+	defer func() {
+		log.Infof("sum sum user device reward done, cost: %v", time.Since(start))
+	}()
+
+	sumReward, err := dao.GetSumUserDeviceReward(ctx)
+	if err != nil {
+		return err
+	}
+
+	rewardInUser := make(map[string]*model.User)
+	//for _, u := range sumReward {
+	//	rewardInUser[u.Username] = u
+	//}
+
+	for _, user := range sumReward {
+		referer, err := dao.GetUsersReferrer(ctx, user.Username)
+		if errors.Is(err, dao.ErrNoRow) {
+			continue
+		}
+
+		if err != nil {
+			log.Errorf("get user referer: %v", err)
+			continue
+		}
+
+		referralReward := user.Reward * 0.05
+		_, ok := rewardInUser[referer.Username]
+		if !ok {
+			refer, err := dao.GetUserByUsername(ctx, referer.Username)
+			if err != nil {
+				log.Errorf("refferal not exist, userid: %s", referer.Username)
+				continue
+			}
+			refer.RefereralReward = referralReward
+			rewardInUser[referer.Username] = refer
+			continue
+		}
+
+		rewardInUser[referer.Username].RefereralReward += referralReward
+	}
+
+	for _, user := range rewardInUser {
+		err = dao.UpdateUserReward(ctx, user)
+		if err != nil {
+			log.Errorf("UpdateUserReward: %v", err)
+		}
+	}
+
+	return nil
 }
 
 func SumAllNodes() error {
@@ -366,7 +425,7 @@ func (s *Statistic) ClaimUserEarning() error {
 	}
 
 	for userId, reward := range userRewards {
-		err := dao.UpdateUserReward(s.ctx, &model.RewardStatement{
+		err := dao.UpdateUserRewardOld(s.ctx, &model.RewardStatement{
 			Username:  userId,
 			FromUser:  userId,
 			Amount:    reward,
@@ -390,7 +449,7 @@ func (s *Statistic) ClaimUserEarning() error {
 		}
 
 		// referral rewards
-		err = dao.UpdateUserReward(s.ctx, &model.RewardStatement{
+		err = dao.UpdateUserRewardOld(s.ctx, &model.RewardStatement{
 			Username:  referer.Username,
 			FromUser:  userId,
 			Amount:    reward * 10 / 100,
