@@ -27,6 +27,8 @@ type login struct {
 	Username   string `form:"username" json:"username" binding:"required"`
 	Password   string `form:"password" json:"password" binding:"required"`
 	VerifyCode string `form:"verify_code" json:"verify_code"`
+	Sign       string `form:"sign" json:"sign"`
+	Address    string `form:"address" json:"address"`
 }
 
 type loginResponse struct {
@@ -73,18 +75,24 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			})
 		},
 		Authenticator: func(c *gin.Context) (interface{}, error) {
-			loginParams := login{
-				Username:   c.Query("username"),
-				VerifyCode: c.Query("verify_code"),
-				Password:   c.Query("password"),
+			//loginParams := login{
+			//	Username:   c.Query("username"),
+			//	VerifyCode: c.Query("verify_code"),
+			//	Password:   c.Query("password"),
+			//}
+			//
+			//signature := c.Query("sign")
+			//walletAddress := c.Query("address")
+
+			var loginParams login
+			if err := c.BindJSON(&loginParams); err != nil {
+				return "", fmt.Errorf("invalid input params")
 			}
 
-			signature := c.Query("sign")
-			walletAddress := c.Query("address")
 			if loginParams.Username == "" {
 				return "", jwt.ErrMissingLoginValues
 			}
-			if loginParams.VerifyCode == "" && loginParams.Password == "" && signature == "" {
+			if loginParams.VerifyCode == "" && loginParams.Password == "" && loginParams.Sign == "" {
 				return "", jwt.ErrMissingLoginValues
 			}
 
@@ -132,8 +140,8 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 
 			}()
 
-			if signature != "" {
-				return loginBySignature(c, loginParams.Username, walletAddress, signature)
+			if loginParams.Sign != "" {
+				return loginBySignature(c, loginParams.Username, loginParams.Address, loginParams.Sign)
 			}
 
 			if loginParams.VerifyCode != "" {
