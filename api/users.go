@@ -57,17 +57,30 @@ func GetUserInfoHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(user))
 }
 
+type registerParams struct {
+	Username   string `json:"username"`
+	Referrer   string `json:"referrer"`
+	VerifyCode string `json:"verify_code"`
+	Password   string `json:"password"`
+}
+
 func UserRegister(c *gin.Context) {
+	var params registerParams
+	if err := c.BindJSON(&params); err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
 	userInfo := &model.User{
-		Username:     c.Query("username"),
-		UserEmail:    c.Query("username"),
-		Referrer:     c.Query("referrer"),
+		Username:     params.Username,
+		UserEmail:    params.Username,
+		Referrer:     params.Referrer,
 		ReferralCode: random.GenerateRandomString(6),
 		CreatedAt:    time.Now(),
 	}
 
-	verifyCode := c.Query("verify_code")
-	passwd := c.Query("password")
+	verifyCode := params.VerifyCode
+	passwd := params.Password
 	if userInfo.Username == "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
@@ -142,12 +155,23 @@ func UserRegister(c *gin.Context) {
 	}))
 }
 
-func PasswordRest(c *gin.Context) {
-	username := c.Query("username")
-	verifyCode := c.Query("verify_code")
-	passwd := c.Query("password")
+type resetParams struct {
+	Username   string `json:"username"`
+	VerifyCode string `json:"verify_code"`
+	Password   string `json:"password"`
+}
 
-	_, err := dao.GetUserByUsername(c.Request.Context(), username)
+func PasswordRest(c *gin.Context) {
+	//username := c.Query("username")
+	//verifyCode := c.Query("verify_code")
+	//passwd := c.Query("password")
+	var params resetParams
+	if err := c.BindJSON(&params); err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	_, err := dao.GetUserByUsername(c.Request.Context(), params.Username)
 	if err == sql.ErrNoRows {
 		c.JSON(http.StatusOK, respErrorCode(errors.NameNotExists, c))
 		return
@@ -157,13 +181,13 @@ func PasswordRest(c *gin.Context) {
 		return
 	}
 
-	passHash, err := bcrypt.GenerateFromPassword([]byte(passwd), bcrypt.DefaultCost)
+	passHash, err := bcrypt.GenerateFromPassword([]byte(params.Password), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.PassWordNotAllowed, c))
 		return
 	}
 
-	nonce, err := getNonceFromCache(c.Request.Context(), username, NonceStringTypeReset)
+	nonce, err := getNonceFromCache(c.Request.Context(), params.Username, NonceStringTypeReset)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.Unknown, c))
 		return
@@ -174,17 +198,17 @@ func PasswordRest(c *gin.Context) {
 		return
 	}
 
-	if verifyCode == "" {
+	if params.VerifyCode == "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidVerifyCode, c))
 		return
 	}
 
-	if nonce != verifyCode && os.Getenv("TEST_ENV_VERIFY_CODE") != verifyCode {
+	if nonce != params.VerifyCode && os.Getenv("TEST_ENV_VERIFY_CODE") != params.VerifyCode {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidVerifyCode, c))
 		return
 	}
 
-	err = dao.ResetPassword(c.Request.Context(), string(passHash), username)
+	err = dao.ResetPassword(c.Request.Context(), string(passHash), params.Username)
 	if err != nil {
 		log.Errorf("update user : %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
