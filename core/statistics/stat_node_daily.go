@@ -280,15 +280,14 @@ func SumUserDeviceReward(ctx context.Context) error {
 		return err
 	}
 
+	rewardInUser := make(map[string]*model.User)
+
 	for _, user := range sumReward {
 		err = dao.UpdateUserReward(ctx, user)
 		if err != nil {
 			log.Errorf("UpdateUserReward: %v", err)
 		}
-	}
 
-	rewardInUser := make(map[string]*model.User)
-	for _, user := range sumReward {
 		referer, err := dao.GetUsersReferrer(ctx, user.Username)
 		if errors.Is(err, dao.ErrNoRow) {
 			continue

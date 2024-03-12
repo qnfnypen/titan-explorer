@@ -50,8 +50,8 @@ func UpdateUserRewardOld(ctx context.Context, statement *model.RewardStatement) 
 }
 
 func UpdateUserReward(ctx context.Context, user *model.User) error {
-	updateRewardQuery := fmt.Sprintf("update %s set reward = ?, referral_reward = ?, device_count = ? where username = ?", tableNameUser)
-	_, err := DB.ExecContext(ctx, updateRewardQuery, user.Reward, user.RefereralReward, user.DeviceCount, user.Username)
+	updateRewardQuery := fmt.Sprintf("update %s set reward = ?, device_count = ? where username = ?", tableNameUser)
+	_, err := DB.ExecContext(ctx, updateRewardQuery, user.Reward, user.DeviceCount, user.Username)
 	if err != nil {
 		return err
 	}
