@@ -21,16 +21,20 @@ func GetCacheListHandler(c *gin.Context) {
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 
-	//device, err := dao.GetDeviceInfo(c.Request.Context(), nodeId)
-	//if err != nil {
-	//	log.Errorf("get device info: %v", err)
-	//	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-	//	return
-	//}
-	//
+	deviceInfo, err := dao.GetDeviceInfoByID(c.Request.Context(), nodeId)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
+		return
+	}
+
+	schedulerClient, err := getSchedulerClient(c.Request.Context(), deviceInfo.AreaID)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+		return
+	}
 
 	// todo: get scheduler from area id
-	resp, err := schedulerApi.GetReplicaEventsForNode(c.Request.Context(), nodeId, pageSize, (page-1)*pageSize)
+	resp, err := schedulerClient.GetReplicaEventsForNode(c.Request.Context(), nodeId, pageSize, (page-1)*pageSize)
 	if err != nil {
 		log.Errorf("api GetReplicaEventsForNode: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -47,7 +51,20 @@ func GetValidationListHandler(c *gin.Context) {
 	nodeId := c.Query("device_id")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
-	resp, err := schedulerApi.GetValidationResults(c.Request.Context(), nodeId, pageSize, (page-1)*pageSize)
+
+	deviceInfo, err := dao.GetDeviceInfoByID(c.Request.Context(), nodeId)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
+		return
+	}
+
+	schedulerClient, err := getSchedulerClient(c.Request.Context(), deviceInfo.AreaID)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+		return
+	}
+
+	resp, err := schedulerClient.GetValidationResults(c.Request.Context(), nodeId, pageSize, (page-1)*pageSize)
 	if err != nil {
 		log.Errorf("api GetValidationResults: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -775,12 +792,25 @@ func GetRetrievalListHandler(c *gin.Context) {
 	nodeId := c.Query("device_id")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
-	resp, err := schedulerApi.GetRetrieveEventRecords(c.Request.Context(), nodeId, pageSize, (page-1)*pageSize)
+
+	deviceInfo, err := dao.GetDeviceInfoByID(c.Request.Context(), nodeId)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
+		return
+	}
+
+	schedulerClient, err := getSchedulerClient(c.Request.Context(), deviceInfo.IpLocation)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+		return
+	}
+	resp, err := schedulerClient.GetRetrieveEventRecords(c.Request.Context(), nodeId, pageSize, (page-1)*pageSize)
 	if err != nil {
 		log.Errorf("api GetRetrieveEventRecords: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"list":  resp.RetrieveEventInfos,
 		"total": resp.Total,

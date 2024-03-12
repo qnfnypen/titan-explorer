@@ -727,7 +727,7 @@ func getNodeInfoFromScheduler(ctx context.Context, id string) (*model.DeviceInfo
 			return nil, err
 		}
 
-		return statistics.ToDeviceInfo(ctx, nodeInfo), nil
+		return statistics.ToDeviceInfo(ctx, nodeInfo, scheduler.AreaID), nil
 	}
 
 	return nil, fmt.Errorf("node %s not found", id)

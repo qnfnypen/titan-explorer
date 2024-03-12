@@ -47,10 +47,10 @@ func newNodeFetcher() Fetcher {
 
 // Fetch fetches information about all nodes
 func (n *NodeFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
-	log.Info("start fetching all nodes")
+	log.Infof("start fetching all nodes from scheduler: %s", scheduler.AreaId)
 	start := time.Now()
 	defer func() {
-		log.Infof("fetch all nodes done, cost: %v", time.Since(start))
+		log.Infof("fetch all nodes done from scheduler: %s, cost: %v", scheduler.AreaId, time.Since(start))
 	}()
 
 	var total int64
@@ -77,7 +77,7 @@ loop:
 			continue
 		}
 
-		nodeInfo := ToDeviceInfo(ctx, node)
+		nodeInfo := ToDeviceInfo(ctx, node, scheduler.AreaId)
 		if nodeInfo.DeviceStatus == DeviceStatusOffline {
 			// just update device status
 			err = dao.UpdateDeviceStatus(ctx, nodeInfo)
@@ -254,7 +254,7 @@ func calculateDailyInfo(ctx context.Context, start, end string) ([]map[string]st
 	return dataList, nil
 }
 
-func ToDeviceInfo(ctx context.Context, node types.NodeInfo) *model.DeviceInfo {
+func ToDeviceInfo(ctx context.Context, node types.NodeInfo, areaId string) *model.DeviceInfo {
 	deviceInfo := model.DeviceInfo{
 		DeviceID:         node.NodeID,
 		DeviceName:       node.NodeName,
@@ -283,6 +283,7 @@ func ToDeviceInfo(ctx context.Context, node types.NodeInfo) *model.DeviceInfo {
 		UpdatedAt:        node.LastSeen,
 		BoundAt:          node.FirstTime,
 		IncomeIncr:       node.IncomeIncr,
+		AreaID:           areaId,
 	}
 
 	switch node.Status {

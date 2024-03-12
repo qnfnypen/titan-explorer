@@ -132,6 +132,7 @@ type DeviceInfo struct {
 	AvailableProfit float64 `db:"available_profit" json:"available_profit"`
 	DeactivateTime  int64   `db:"deactivate_time" json:"deactivate_time"`
 	IncomeIncr      float64 `db:"income_incr" json:"income_incr"`
+	AreaID         string   `db:"area_id" json:"area_id"`
 
 	Location
 }

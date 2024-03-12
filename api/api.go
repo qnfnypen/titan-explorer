@@ -21,7 +21,7 @@ import (
 
 //var schedulerAdmin api.Scheduler
 
-var schedulerApi api.Scheduler
+//var schedulerApi api.Scheduler
 
 //var SchedulerConfigs map[string][]*types.SchedulerCfg
 
@@ -175,7 +175,7 @@ func FetchSchedulersFromEtcd(etcdClient *EtcdClient) ([]*statistics.Scheduler, e
 				AreaId: key,
 				Closer: closeScheduler,
 			})
-			schedulerApi = clientInit
+			//schedulerApi = clientInit
 		}
 	}
 
