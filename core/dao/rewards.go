@@ -190,7 +190,7 @@ func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, op
 		return nil, err
 	}
 
-	return handleDailyList(result, option.StartTime, option.EndTime), err
+	return handleDailyListOld(result), err
 }
 
 func GetNodesInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*DeviceStatistics, error) {
@@ -242,6 +242,42 @@ func handleDailyList(deviceStat []*DeviceStatistics, start, end string) []*Devic
 		out = append(out, &DeviceStatistics{
 			Date: dateKey(st.Carbon2Time()),
 		})
+	}
+
+	return out
+
+}
+
+func handleDailyListOld(deviceStat []*DeviceStatistics) []*DeviceStatistics {
+	now := time.Now()
+	startTime, endTime := now, now
+	oneDay := 24 * time.Hour
+	deviceInDate := make(map[string]*DeviceStatistics)
+
+	for _, data := range deviceStat {
+		t, _ := time.Parse(time.DateOnly, data.Date)
+
+		if t.Before(startTime) {
+			startTime = t
+		}
+
+		if t.After(endTime) {
+			endTime = t
+		}
+
+		deviceInDate[data.Date] = data
+	}
+
+	var out []*DeviceStatistics
+	for startTime.Before(endTime) || startTime.Equal(endTime) {
+		key := startTime.Format(formatter.TimeFormatDateOnly)
+		val, ok := deviceInDate[key]
+		if !ok {
+			val = &DeviceStatistics{}
+		}
+		val.Date = startTime.Format(formatter.TimeFormatMD)
+		out = append(out, val)
+		startTime = startTime.Add(oneDay)
 	}
 
 	return out
