@@ -245,9 +245,7 @@ func queryDeviceDailyByUserId(userId string, option dao.QueryOption) []*dao.Devi
 	if option.EndTime == "" {
 		option.EndTime = carbon.Now().EndOfDay().String()
 	} else {
-		end, _ := time.Parse(formatter.TimeFormatDateOnly, option.EndTime)
-		end = end.Add(24 * time.Hour).Add(-time.Second)
-		option.EndTime = end.Format(formatter.TimeFormatDatetime)
+		option.EndTime = carbon.Parse(option.EndTime).EndOfDay().String()
 	}
 	condition := &model.DeviceInfoDaily{
 		UserID: userId,
@@ -759,8 +757,6 @@ func GetDeviceProfileHandler(c *gin.Context) {
 	if lastUpdate != nil && param.Since > 0 {
 		sinceT := time.Unix(param.Since, 0)
 		if lastUpdate.Time.Before(sinceT) {
-			//c.JSON(http.StatusOK, respJSON(out))
-			//return
 			dataChanged = false
 		}
 	}
@@ -930,6 +926,7 @@ func queryDailyIncome(ctx context.Context, nodeId string) interface{} {
 
 	option := dao.QueryOption{
 		StartTime: start,
+		EndTime:   carbon.Now().String(),
 	}
 
 	condition := &model.DeviceInfoDaily{
