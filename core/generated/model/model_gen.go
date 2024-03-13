@@ -310,6 +310,7 @@ type User struct {
 	RefereralReward  float64   `db:"referral_reward" json:"referral_reward"`
 	Payout          float64     `db:"payout" json:"payout"`
 	FrozenReward    float64     `db:"frozen_reward" json:"frozen_reward"`
+	ClosedTestReward float64   `db:"closed_test_reward" json:"closed_test_reward"`
 	DeviceCount     int64   `db:"device_count" json:"device_count"`
 	CreatedAt       time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt       time.Time `db:"updated_at" json:"updated_at"`

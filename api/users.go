@@ -43,6 +43,7 @@ func GetUserInfoHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.UserNotFound, c))
 		return
 	}
+
 	counter, err := dao.CountUserDeviceInfo(c.Request.Context(), username)
 	if err != nil {
 		//c.JSON(http.StatusOK, respErrorCode(errors.UserNotFound, c))
