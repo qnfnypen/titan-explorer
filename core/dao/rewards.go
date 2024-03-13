@@ -185,12 +185,12 @@ func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, op
 	var result []*DeviceStatistics
 	err := DB.SelectContext(ctx, &result, fmt.Sprintf(
 		`SELECT DATE_FORMAT(time, '%%Y-%%m-%%d') as date, nat_ratio, disk_usage,disk_space,bandwidth_up,bandwidth_down, latency, pkg_loss_ratio, income, online_time, upstream_traffic, 
-    	downstream_traffic, retrieval_count,block_count FROM %s %s`, tableNameDeviceInfoDaily, where), args...)
+    	downstream_traffic, retrieval_count, block_count FROM %s %s`, tableNameDeviceInfoDaily, where), args...)
 	if err != nil {
 		return nil, err
 	}
 
-	return handleDailyList(result), err
+	return handleDailyList(result, option.StartTime, option.EndTime), err
 }
 
 func GetNodesInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*DeviceStatistics, error) {
@@ -218,39 +218,30 @@ func GetNodesInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, opt
 		return nil, err
 	}
 
-	return handleDailyList(result), err
+	return handleDailyList(result, option.StartTime, option.EndTime), err
 }
 
-func handleDailyList(deviceStat []*DeviceStatistics) []*DeviceStatistics {
-	now := time.Now()
-	startTime, endTime := now, now
-	oneDay := 24 * time.Hour
+func dateKey(t time.Time) string {
+	return t.Format(formatter.TimeFormatMD)
+}
+
+func handleDailyList(deviceStat []*DeviceStatistics, start, end string) []*DeviceStatistics {
+	startTime, endTime := carbon.Parse(start), carbon.Parse(end)
 	deviceInDate := make(map[string]*DeviceStatistics)
 
 	for _, data := range deviceStat {
-		t, _ := time.Parse(time.DateOnly, data.Date)
-
-		if t.Before(startTime) {
-			startTime = t
-		}
-
-		if t.After(endTime) {
-			endTime = t
-		}
-
-		deviceInDate[data.Date] = data
+		deviceInDate[dateKey(carbon.Parse(data.Date).Carbon2Time())] = data
 	}
 
 	var out []*DeviceStatistics
-	for startTime.Before(endTime) || startTime.Equal(endTime) {
-		key := startTime.Format(formatter.TimeFormatDateOnly)
-		val, ok := deviceInDate[key]
-		if !ok {
-			val = &DeviceStatistics{}
+	for st := startTime.StartOfDay(); st.Lte(endTime.StartOfDay()); st = st.AddDay() {
+		if val, ok := deviceInDate[dateKey(st.Carbon2Time())]; ok {
+			out = append(out, val)
+			continue
 		}
-		val.Date = startTime.Format(formatter.TimeFormatMD)
-		out = append(out, val)
-		startTime = startTime.Add(oneDay)
+		out = append(out, &DeviceStatistics{
+			Date: dateKey(st.Carbon2Time()),
+		})
 	}
 
 	return out

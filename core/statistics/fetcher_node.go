@@ -2,7 +2,6 @@ package statistics
 
 import (
 	"context"
-	"fmt"
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/gnasnik/titan-explorer/core/geo"
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
@@ -77,7 +76,7 @@ loop:
 			continue
 		}
 
-		nodeInfo := ToDeviceInfo(ctx, node, scheduler.AreaId)
+		nodeInfo := ToDeviceInfo(node, scheduler.AreaId)
 		if nodeInfo.DeviceStatus == DeviceStatusOffline {
 			// just update device status
 			err = dao.UpdateDeviceStatus(ctx, nodeInfo)
@@ -179,6 +178,7 @@ func sumDailyReward(ctx context.Context, sumTime time.Time, devices []*model.Dev
 		deviceInfo.UploadTraffic = deviceInfo.UploadTraffic - ud.UpstreamTraffic
 		deviceInfo.DownloadTraffic = deviceInfo.DownloadTraffic - ud.DownstreamTraffic
 		deviceInfo.RetrievalCount = deviceInfo.RetrievalCount - ud.RetrievalCount
+		deviceInfo.CacheCount = deviceInfo.CacheCount - ud.BlockCount
 
 		updatedDevices = append(updatedDevices, deviceInfoToDailyInfo(deviceInfo))
 	}
@@ -213,46 +213,11 @@ func deviceInfoToDailyInfo(deviceInfo *model.DeviceInfo) *model.DeviceInfoDaily 
 		UpstreamTraffic:   deviceInfo.UploadTraffic,
 		DownstreamTraffic: deviceInfo.DownloadTraffic,
 		RetrievalCount:    deviceInfo.RetrievalCount,
-		BlockCount:        0,
+		BlockCount:        deviceInfo.CacheCount,
 	}
 }
 
-func calculateDailyInfo(ctx context.Context, start, end string) ([]map[string]string, error) {
-	where := fmt.Sprintf("where 1=1", start, end)
-	if start != "" {
-		where += fmt.Sprintf(" and time>='%s'", start)
-	}
-	if end != "" {
-		where += fmt.Sprintf(" and time <'%s'", end)
-	}
-
-	//where := fmt.Sprintf("where time>='%s' and time<='%s'", start, end)
-	var total int64
-	err := dao.DB.GetContext(ctx, &total, fmt.Sprintf(`SELECT count(*) FROM %s %s`, "device_info_hour", where))
-	if err != nil {
-		return nil, err
-	}
-
-	sqlClause := fmt.Sprintf(`select i.user_id, i.device_id, date_format(i.time, '%%Y-%%m-%%d') as date,
-			i.nat_ratio, i.disk_usage, i.disk_space,i.latency, i.pkg_loss_ratio, i.bandwidth_up, i.bandwidth_down,
-			max(i.hour_income) as hour_income,
-			max(i.online_time) as online_time,
-			max(i.upstream_traffic) as upstream_traffic,
-			max(i.downstream_traffic) as downstream_traffic,
-			max(i.retrieval_count) as retrieval_count,
-			max(i.block_count) as block_count
-			from (select * from device_info_hour %s order by id desc limit %d) i
-			group by device_id`, where, total)
-
-	dataList, err := dao.GetQueryDataList(sqlClause)
-	if err != nil {
-		return nil, errs.Wrap(err, "get query data list")
-	}
-
-	return dataList, nil
-}
-
-func ToDeviceInfo(ctx context.Context, node types.NodeInfo, areaId string) *model.DeviceInfo {
+func ToDeviceInfo(node types.NodeInfo, areaId string) *model.DeviceInfo {
 	deviceInfo := model.DeviceInfo{
 		DeviceID:         node.NodeID,
 		DeviceName:       node.NodeName,

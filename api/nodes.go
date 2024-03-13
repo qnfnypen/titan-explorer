@@ -214,16 +214,17 @@ func queryDeviceStatisticsDaily(deviceID, startTime, endTime string) []*dao.Devi
 		StartTime: startTime,
 		EndTime:   endTime,
 	}
+
 	if startTime == "" {
 		option.StartTime = carbon.Now().SubDays(14).StartOfDay().String()
 	}
+
 	if endTime == "" {
 		option.EndTime = carbon.Now().EndOfDay().String()
 	} else {
-		end, _ := time.Parse(formatter.TimeFormatDateOnly, endTime)
-		end = end.Add(24 * time.Hour).Add(-time.Second)
-		option.EndTime = end.Format(formatter.TimeFormatDatetime)
+		option.EndTime = carbon.Parse(endTime).EndOfDay().String()
 	}
+
 	condition := &model.DeviceInfoDaily{
 		DeviceID: deviceID,
 	}
@@ -727,7 +728,7 @@ func getNodeInfoFromScheduler(ctx context.Context, id string) (*model.DeviceInfo
 			return nil, err
 		}
 
-		return statistics.ToDeviceInfo(ctx, nodeInfo, scheduler.AreaID), nil
+		return statistics.ToDeviceInfo(nodeInfo, scheduler.AreaID), nil
 	}
 
 	return nil, fmt.Errorf("node %s not found", id)
