@@ -151,8 +151,6 @@ loop:
 }
 
 func sumDailyReward(ctx context.Context, sumTime time.Time, devices []*model.DeviceInfo) error {
-	// query before today value
-	start := carbon.Parse("2024-03-01").String()
 	end := carbon.Yesterday().EndOfDay().String()
 
 	var deviceIds []string
@@ -160,8 +158,8 @@ func sumDailyReward(ctx context.Context, sumTime time.Time, devices []*model.Dev
 		deviceIds = append(deviceIds, device.DeviceID)
 	}
 
-	// query before today device reward
-	maxDeviceInfos, err := dao.QueryMaxDeviceDailyInfo(ctx, deviceIds, start, end)
+	// query before SumDeviceDailyBeforeDate device reward
+	maxDeviceInfos, err := dao.SumDeviceDailyBeforeDate(ctx, deviceIds, end)
 	if err != nil {
 		log.Errorf("QueryMaxDeviceDailyInfo: %v", err)
 		return err
