@@ -149,6 +149,10 @@ func ListStorageStats(c *gin.Context) {
 
 	var summary model.StorageSummary
 	stats, err := dao.CountStorageStats(c.Request.Context())
+	if err == sql.ErrNoRows {
+		return
+	}
+
 	if err != nil {
 		log.Errorf("CountStorageStats: %v", err)
 	}

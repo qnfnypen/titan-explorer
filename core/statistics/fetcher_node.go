@@ -67,8 +67,9 @@ loop:
 	page++
 
 	var (
-		onlineNodes  []*model.DeviceInfo
-		offlineNodes []*model.DeviceInfo
+		onlineNodes      []*model.DeviceInfo
+		offlineNodes     []*model.DeviceInfo
+		offlineDeviceIds []string
 	)
 
 	for _, node := range resp.Data {
@@ -78,12 +79,7 @@ loop:
 
 		nodeInfo := ToDeviceInfo(node, scheduler.AreaId)
 		if nodeInfo.DeviceStatus == DeviceStatusOffline {
-			// just update device status
-			err = dao.UpdateDeviceStatus(ctx, nodeInfo)
-			if err != nil {
-				log.Errorf("update device status: %v", err)
-			}
-
+			offlineDeviceIds = append(offlineDeviceIds, nodeInfo.DeviceID)
 			offlineNodes = append(offlineNodes, nodeInfo)
 			continue
 		}
@@ -112,6 +108,11 @@ loop:
 		}
 
 		if len(offlineNodes) > 0 {
+			err = dao.UpdateDeviceStatus(ctx, offlineDeviceIds, DeviceStatusOffline, DeviceStatusCodeOffline)
+			if err != nil {
+				log.Errorf("update device status: %v", err)
+			}
+
 			err = dao.BulkAddDeviceInfo(ctx, offlineNodes)
 			if err != nil {
 				log.Errorf("bulk add device info: %v", err)

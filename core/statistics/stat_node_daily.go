@@ -2,6 +2,7 @@ package statistics
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/config"
@@ -332,7 +333,7 @@ func SumAllNodes() error {
 	fullNodeInfo.CreatedAt = time.Now()
 
 	stats, err := dao.CountStorageStats(ctx)
-	if err != nil {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.Errorf("CountStorageStats: %v", err)
 	}
 	if stats != nil {

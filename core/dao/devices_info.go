@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
+	"github.com/jmoiron/sqlx"
 	"strings"
 	"time"
 )
@@ -333,10 +334,13 @@ func UpdateDeviceName(ctx context.Context, deviceInfo *model.DeviceInfo) error {
 	return err
 }
 
-func UpdateDeviceStatus(ctx context.Context, deviceInfo *model.DeviceInfo) error {
-	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`UPDATE %s SET updated_at = now(),device_status = :device_status, device_status_code = :device_status_code WHERE device_id = :device_id`, tableNameDeviceInfo),
-		deviceInfo)
+func UpdateDeviceStatus(ctx context.Context, offlineDeviceIds []string, status string, code int) error {
+	query := fmt.Sprintf(`UPDATE %s SET updated_at = now(), device_status = '%s', device_status_code = %d WHERE device_id in (?)`, tableNameDeviceInfo, status, code)
+	queryIn, args, err := sqlx.In(query, offlineDeviceIds)
+	if err != nil {
+		return err
+	}
+	_, err = DB.ExecContext(ctx, queryIn, args...)
 	return err
 }
 
