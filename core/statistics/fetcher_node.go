@@ -157,10 +157,9 @@ func sumDailyReward(ctx context.Context, sumTime time.Time, devices []*model.Dev
 		deviceIds = append(deviceIds, device.DeviceID)
 	}
 
-	// query before SumDeviceDailyBeforeDate device reward
 	maxDeviceInfos, err := dao.SumDeviceDailyBeforeDate(ctx, deviceIds, end)
 	if err != nil {
-		log.Errorf("QueryMaxDeviceDailyInfo: %v", err)
+		log.Errorf("SumDeviceDailyBeforeDate: %v", err)
 		return err
 	}
 
@@ -182,8 +181,6 @@ func sumDailyReward(ctx context.Context, sumTime time.Time, devices []*model.Dev
 
 		updatedDevices = append(updatedDevices, deviceInfoToDailyInfo(deviceInfo))
 	}
-
-	// update cumulative profit
 
 	err = dao.BulkUpsertDeviceInfoDaily(context.Background(), updatedDevices)
 	if err != nil {
