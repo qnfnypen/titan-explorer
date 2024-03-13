@@ -229,7 +229,7 @@ func queryDeviceStatisticsDaily(deviceID, startTime, endTime string) []*dao.Devi
 		DeviceID: deviceID,
 	}
 
-	list, err := dao.GetDeviceInfoDailyList(context.Background(), condition, option)
+	list, err := dao.GetDeviceInfoDailyListAppendDays(context.Background(), condition, option)
 	if err != nil {
 		log.Errorf("database GetDeviceInfoDailyList: %v", err)
 		return nil

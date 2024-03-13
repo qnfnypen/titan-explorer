@@ -144,26 +144,53 @@ func GetDeviceInfoHourList(ctx context.Context, cond *model.DeviceInfoHour, opti
 	return append24HoursData(out), err
 }
 
-func GetDeviceInfoDailyHourListOld(ctx context.Context, cond *model.DeviceInfoHour, option QueryOption) ([]*DeviceStatistics, error) {
-	sqlClause := fmt.Sprintf(`select date_format(time, '%%Y-%%m-%%d %%H') as date, avg(nat_ratio) as nat_ratio, 
-	avg(disk_usage) as disk_usage,avg(disk_space) as disk_space,avg(bandwidth_up) as bandwidth_up,avg(bandwidth_down) as bandwidth_down, avg(latency) as latency, avg(pkg_loss_ratio) as pkg_loss_ratio, 
-	if( (max(online_time) - min(online_time)) > 60,60,(max(online_time) - min(online_time))) as online_time,
-	max(hour_income) - min(hour_income) as income,
-	max(upstream_traffic) - min(upstream_traffic) as upstream_traffic, 
-	max(downstream_traffic) - min(downstream_traffic) as downstream_traffic,
-	max(block_count) - min(block_count) as block_count,
-	max(retrieval_count) - min(retrieval_count) as retrieval_count
-	from %s where device_id='%s' and time>='%s' and time<='%s' group by date order by date`, tableNameDeviceInfoHour, cond.DeviceID, option.StartTime, option.EndTime)
-	var out []*DeviceStatistics
-	err := DB.SelectContext(ctx, &out, sqlClause)
+//func GetDeviceInfoDailyHourListOld(ctx context.Context, cond *model.DeviceInfoHour, option QueryOption) ([]*DeviceStatistics, error) {
+//	sqlClause := fmt.Sprintf(`select date_format(time, '%%Y-%%m-%%d %%H') as date, avg(nat_ratio) as nat_ratio,
+//	avg(disk_usage) as disk_usage,avg(disk_space) as disk_space,avg(bandwidth_up) as bandwidth_up,avg(bandwidth_down) as bandwidth_down, avg(latency) as latency, avg(pkg_loss_ratio) as pkg_loss_ratio,
+//	if( (max(online_time) - min(online_time)) > 60,60,(max(online_time) - min(online_time))) as online_time,
+//	max(hour_income) - min(hour_income) as income,
+//	max(upstream_traffic) - min(upstream_traffic) as upstream_traffic,
+//	max(downstream_traffic) - min(downstream_traffic) as downstream_traffic,
+//	max(block_count) - min(block_count) as block_count,
+//	max(retrieval_count) - min(retrieval_count) as retrieval_count
+//	from %s where device_id='%s' and time>='%s' and time<='%s' group by date order by date`, tableNameDeviceInfoHour, cond.DeviceID, option.StartTime, option.EndTime)
+//	var out []*DeviceStatistics
+//	err := DB.SelectContext(ctx, &out, sqlClause)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	if len(out) > 0 {
+//		return append24HoursData(out), err
+//	}
+//	return out, err
+//}
+
+func GetDeviceInfoDailyListAppendDays(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*DeviceStatistics, error) {
+	var args []interface{}
+	where := `WHERE 1=1`
+	if cond.DeviceID != "" {
+		where += ` AND device_id = ?`
+		args = append(args, cond.DeviceID)
+	}
+	if option.StartTime != "" {
+		where += ` AND time >= ?`
+		args = append(args, option.StartTime)
+	}
+	if option.EndTime != "" {
+		where += ` AND time <= ?`
+		args = append(args, option.EndTime)
+	}
+
+	var result []*DeviceStatistics
+	err := DB.SelectContext(ctx, &result, fmt.Sprintf(
+		`SELECT DATE_FORMAT(time, '%%Y-%%m-%%d') as date, nat_ratio, disk_usage,disk_space,bandwidth_up,bandwidth_down, latency, pkg_loss_ratio, income, online_time, upstream_traffic, 
+    	downstream_traffic, retrieval_count, block_count FROM %s %s`, tableNameDeviceInfoDaily, where), args...)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(out) > 0 {
-		return append24HoursData(out), err
-	}
-	return out, err
+	return handleDailyList(result, option.StartTime, option.EndTime), err
 }
 
 func GetDeviceInfoDailyList(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*DeviceStatistics, error) {

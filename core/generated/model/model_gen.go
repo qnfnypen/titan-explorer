@@ -94,7 +94,7 @@ type DeviceInfo struct {
 	UploadTraffic    float64   `db:"upload_traffic" json:"upload_traffic"`
 	CacheCount       int64     `db:"cache_count" json:"cache_count"`
 	RetrievalCount   int64     `db:"retrieval_count" json:"retrieval_count"`
-	NATType   		 string    `db:"nat_type" json:"nat_type"`
+	NATType          string    `db:"nat_type" json:"nat_type"`
 	CreatedAt        time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt        time.Time `db:"updated_at" json:"updated_at"`
 	DeletedAt        time.Time `db:"deleted_at" json:"deleted_at"`
@@ -132,7 +132,7 @@ type DeviceInfo struct {
 	AvailableProfit float64 `db:"available_profit" json:"available_profit"`
 	DeactivateTime  int64   `db:"deactivate_time" json:"deactivate_time"`
 	IncomeIncr      float64 `db:"income_incr" json:"income_incr"`
-	AreaID         string   `db:"area_id" json:"area_id"`
+	AreaID          string  `db:"area_id" json:"area_id"`
 
 	Location
 }
@@ -221,9 +221,9 @@ type FullNodeInfo struct {
 	FHigh                    int64     `db:"f_high" json:"f_high"`
 	TNextElectionHigh        int64     `db:"t_next_election_high" json:"t_next_election_high"`
 	Time                     time.Time `db:"time" json:"time"`
-	CPUCores            	 int64     `db:"cpu_cores" json:"cpu_cores"`
-	Memory  				 int64     `db:"memory" json:"memory"`
-	IPCount       			 int64     `db:"ip_count" json:"ip_count"`
+	CPUCores                 int64     `db:"cpu_cores" json:"cpu_cores"`
+	Memory                   int64     `db:"memory" json:"memory"`
+	IPCount                  int64     `db:"ip_count" json:"ip_count"`
 	CreatedAt                time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt                time.Time `db:"updated_at" json:"updated_at"`
 }
@@ -294,27 +294,27 @@ type SystemInfo struct {
 }
 
 type User struct {
-	ID              int64     `db:"id" json:"id"`
-	Uuid            string    `db:"uuid" json:"uuid"`
-	Avatar          string    `db:"avatar" json:"avatar"`
-	Username        string    `db:"username" json:"username"`
-	PassHash        string    `db:"pass_hash" json:"-"`
-	UserEmail       string    `db:"user_email" json:"user_email"`
-	WalletAddress   string    `db:"wallet_address" json:"wallet_address"`
-	Role            int32     `db:"role" json:"role"`
-	AllocateStorage int       `db:"allocate_storage" json:"allocate_storage"`
-	ProjectId       int64     `db:"project_id"`
-	Referrer        string    `db:"referrer" json:"referrer"`
-	ReferralCode    string    `db:"referral_code" json:"referral_code"`
-	Reward          float64    `db:"reward" json:"reward"`
+	ID               int64     `db:"id" json:"id"`
+	Uuid             string    `db:"uuid" json:"uuid"`
+	Avatar           string    `db:"avatar" json:"avatar"`
+	Username         string    `db:"username" json:"username"`
+	PassHash         string    `db:"pass_hash" json:"-"`
+	UserEmail        string    `db:"user_email" json:"user_email"`
+	WalletAddress    string    `db:"wallet_address" json:"wallet_address"`
+	Role             int32     `db:"role" json:"role"`
+	AllocateStorage  int       `db:"allocate_storage" json:"allocate_storage"`
+	ProjectId        int64     `db:"project_id"`
+	Referrer         string    `db:"referrer" json:"referrer"`
+	ReferralCode     string    `db:"referral_code" json:"referral_code"`
+	Reward           float64   `db:"reward" json:"reward"`
 	RefereralReward  float64   `db:"referral_reward" json:"referral_reward"`
-	Payout          float64     `db:"payout" json:"payout"`
-	FrozenReward    float64     `db:"frozen_reward" json:"frozen_reward"`
+	Payout           float64   `db:"payout" json:"payout"`
+	FrozenReward     float64   `db:"frozen_reward" json:"frozen_reward"`
 	ClosedTestReward float64   `db:"closed_test_reward" json:"closed_test_reward"`
-	DeviceCount     int64   `db:"device_count" json:"device_count"`
-	CreatedAt       time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt       time.Time `db:"updated_at" json:"updated_at"`
-	DeletedAt       time.Time `db:"deleted_at" json:"deleted_at"`
+	DeviceCount      int64     `db:"device_count" json:"device_count"`
+	CreatedAt        time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt        time.Time `db:"updated_at" json:"updated_at"`
+	DeletedAt        time.Time `db:"deleted_at" json:"deleted_at"`
 }
 
 type Link struct {
@@ -531,11 +531,11 @@ type Subscription struct {
 type Signature struct {
 	ID        int64     `db:"id" json:"id"`
 	Username  string    `db:"username" json:"username"`
-	NodeId  string    	`db:"node_id" json:"node_id"`
-	AreaId   string     `db:"area_id" json:"area_id"`
+	NodeId    string    `db:"node_id" json:"node_id"`
+	AreaId    string    `db:"area_id" json:"area_id"`
 	Message   string    `db:"message" json:"message"`
 	Hash      string    `db:"hash" json:"hash"`
-	Signature  string   `db:"signature" json:"signature"`
+	Signature string    `db:"signature" json:"signature"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 }
