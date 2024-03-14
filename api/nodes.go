@@ -321,7 +321,7 @@ func GetQueryInfoHandler(c *gin.Context) {
 	if deviceInfo.DeviceID != "" {
 		deviceInfos = append(deviceInfos, &deviceInfo)
 	} else {
-		device, err := getDeviceInfoFromSchedulerAndInsert(c.Request.Context(), key)
+		device, err := getDeviceInfoFromSchedulerAndInsert(c.Request.Context(), key, "")
 		if err != nil {
 			c.JSON(http.StatusOK, respJSON(JsonObject{
 				"type": "wrong key",
@@ -676,8 +676,8 @@ func GetDiskDaysHandler(c *gin.Context) {
 	}))
 }
 
-func getDeviceInfoFromSchedulerAndInsert(ctx context.Context, nodeId string) (*model.DeviceInfo, error) {
-	device, err := getNodeInfoFromScheduler(ctx, nodeId)
+func getDeviceInfoFromSchedulerAndInsert(ctx context.Context, nodeId string, areaId string) (*model.DeviceInfo, error) {
+	device, err := getNodeInfoFromScheduler(ctx, nodeId, areaId)
 	if err != nil {
 		log.Errorf("getNodeInfoFromScheduler %v", err)
 		return nil, err
@@ -697,7 +697,22 @@ func getDeviceInfoFromSchedulerAndInsert(ctx context.Context, nodeId string) (*m
 	return device, nil
 }
 
-func getNodeInfoFromScheduler(ctx context.Context, id string) (*model.DeviceInfo, error) {
+func getNodeInfoFromScheduler(ctx context.Context, id string, areaId string) (*model.DeviceInfo, error) {
+	if areaId != "" {
+		schedulerClient, err := getSchedulerClient(ctx, areaId)
+		if err != nil {
+			return nil, err
+		}
+
+		nodeInfo, err := schedulerClient.GetNodeInfo(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+
+		return statistics.ToDeviceInfo(nodeInfo, areaId), nil
+
+	}
+
 	keyPrefix := fmt.Sprintf("%s::%s", SchedulerConfigKeyPrefix, "*")
 	result, err := dao.RedisCache.Keys(ctx, keyPrefix).Result()
 	if err != nil {
@@ -714,23 +729,25 @@ func getNodeInfoFromScheduler(ctx context.Context, id string) (*model.DeviceInfo
 	}
 
 	for _, scheduler := range configs {
-		SchedulerURL := strings.Replace(scheduler.SchedulerURL, "https", "http", 1)
+		//SchedulerURL := strings.Replace(scheduler.SchedulerURL, "https", "http", 1)
 		headers := http.Header{}
 		headers.Add("Authorization", "Bearer "+scheduler.AccessToken)
-		schedulerClient, _, err := client.NewScheduler(ctx, SchedulerURL, headers)
+		schedulerClient, _, err := client.NewScheduler(ctx, scheduler.SchedulerURL, headers)
 		if err != nil {
 			log.Errorf("create scheduler rpc client: %v", err)
 			return nil, err
 		}
+
+		areaId = scheduler.AreaID
 		nodeInfo, err := schedulerClient.GetNodeInfo(ctx, id)
 		if err != nil {
-			return nil, err
+			continue
 		}
 
-		return statistics.ToDeviceInfo(nodeInfo, scheduler.AreaID), nil
+		return statistics.ToDeviceInfo(nodeInfo, areaId), nil
 	}
 
-	return nil, fmt.Errorf("node %s not found", id)
+	return nil, fmt.Errorf("device not found")
 }
 
 func GetDeviceProfileHandler(c *gin.Context) {
@@ -764,7 +781,7 @@ func GetDeviceProfileHandler(c *gin.Context) {
 
 	deviceInfo, err := dao.GetDeviceInfo(c.Request.Context(), param.NodeID)
 	if err == dao.ErrNoRow {
-		device, err := getDeviceInfoFromSchedulerAndInsert(c.Request.Context(), param.NodeID)
+		device, err := getDeviceInfoFromSchedulerAndInsert(c.Request.Context(), param.NodeID, "")
 		if err != nil {
 			c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
 			return

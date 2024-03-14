@@ -358,7 +358,7 @@ func DeviceBindingHandler(c *gin.Context) {
 
 	deviceInfo, err := dao.GetDeviceInfo(c.Request.Context(), params.NodeId)
 	if err == dao.ErrNoRow {
-		device, err := getDeviceInfoFromSchedulerAndInsert(c.Request.Context(), params.NodeId)
+		device, err := getDeviceInfoFromSchedulerAndInsert(c.Request.Context(), params.NodeId, params.AreaId)
 		if err != nil {
 			c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
 			return
