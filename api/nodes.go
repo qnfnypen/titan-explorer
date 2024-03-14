@@ -127,10 +127,12 @@ func GetUserDeviceProfileHandler(c *gin.Context) {
 	}
 
 	if option.StartTime == "" {
-		option.StartTime = time.Now().AddDate(0, 0, -6).Format(formatter.TimeFormatDateOnly)
+		option.StartTime = carbon.Now().SubDays(6).StartOfDay().String()
 	}
 	if option.EndTime == "" {
-		option.EndTime = time.Now().Format(formatter.TimeFormatDateOnly)
+		option.EndTime = carbon.Now().EndOfDay().String()
+	} else {
+		option.EndTime = carbon.Parse(option.EndTime).EndOfDay().String()
 	}
 
 	userDeviceProfile, err := dao.CountUserDeviceInfo(c.Request.Context(), info.UserID)
@@ -186,14 +188,13 @@ func GetUserDevicesCountHandler(c *gin.Context) {
 }
 
 func toDeviceStatistic(start, end string, data map[string]map[string]interface{}) []*dao.DeviceStatistics {
-	startTime, _ := time.Parse(formatter.TimeFormatDateOnly, start)
-	endTime, _ := time.Parse(formatter.TimeFormatDateOnly, end)
-	var oneDay = 24 * time.Hour
+	startTime := carbon.Parse(start)
+	endTime := carbon.Parse(end)
+
 	var out []*dao.DeviceStatistics
-	for startTime.Before(endTime) || startTime.Equal(endTime) {
-		key := startTime.Format(formatter.TimeFormatDateOnly)
-		startTime = startTime.Add(oneDay)
-		val, ok := data[key]
+	for st := startTime; st.Lte(endTime); st = st.AddDay() {
+		key := st.Carbon2Time().Format(formatter.TimeFormatDateOnly)
+		_, ok := data[key]
 		if !ok {
 			out = append(out, &dao.DeviceStatistics{
 				Date: key,
@@ -202,7 +203,7 @@ func toDeviceStatistic(start, end string, data map[string]map[string]interface{}
 		}
 		out = append(out, &dao.DeviceStatistics{
 			Date:   key,
-			Income: val["income"].(float64),
+			Income: data[key]["income"].(float64),
 		})
 	}
 
