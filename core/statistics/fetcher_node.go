@@ -57,11 +57,13 @@ func (n *NodeFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
 
 loop:
 	offset := (page - 1) * size
+	reqStart := time.Now()
 	resp, err := scheduler.Api.GetNodeList(ctx, offset, size)
 	if err != nil {
-		log.Errorf("api ListNodes: %v", err)
+		log.Errorf("api GetNodeList: %v", err)
 		return nil
 	}
+	log.Infof("request GetNodeList cost: %v", time.Since(reqStart))
 
 	total += int64(len(resp.Data))
 	page++
@@ -151,6 +153,12 @@ loop:
 }
 
 func sumDailyReward(ctx context.Context, sumTime time.Time, devices []*model.DeviceInfo) error {
+	log.Infof("start sum daily reward")
+	start := time.Now()
+	defer func() {
+		log.Infof("sum daily reward cost: %v", time.Since(start))
+	}()
+
 	end := carbon.Yesterday().EndOfDay().String()
 
 	var deviceIds []string
