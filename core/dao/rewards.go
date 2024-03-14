@@ -130,6 +130,9 @@ func GetDeviceInfoHourList(ctx context.Context, cond *model.DeviceInfoHour, opti
 		for _, ds := range out {
 			tmp := *ds
 			ds.OnlineTime -= firstOneInRange.OnlineTime
+			if ds.OnlineTime > 60 {
+				ds.OnlineTime = 60
+			}
 			ds.Income -= firstOneInRange.Income
 			ds.UpstreamTraffic -= firstOneInRange.UpstreamTraffic
 			ds.DownstreamTraffic -= firstOneInRange.DownstreamTraffic
