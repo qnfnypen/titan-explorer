@@ -478,7 +478,7 @@ func RankDeviceInfo(ctx context.Context) error {
 	tx := DB.MustBegin()
 	defer tx.Rollback()
 	tx.MustExec("SET @r=0;")
-	queryStatement := fmt.Sprintf(`UPDATE %s SET device_rank= @r:= (@r+1) ORDER BY device_status DESC, node_type DESC;`, tableNameDeviceInfo)
+	queryStatement := fmt.Sprintf(`UPDATE %s SET device_rank= @r:= (@r+1) ORDER BY device_status DESC, node_type DESC, cumulative_profit DESC;`, tableNameDeviceInfo)
 	_, err := tx.ExecContext(ctx, queryStatement)
 	if err != nil {
 		return err
