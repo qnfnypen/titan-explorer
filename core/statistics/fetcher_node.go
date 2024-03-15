@@ -69,9 +69,8 @@ loop:
 	page++
 
 	var (
-		onlineNodes      []*model.DeviceInfo
-		offlineNodes     []*model.DeviceInfo
-		offlineDeviceIds []string
+		onlineNodes  []*model.DeviceInfo
+		offlineNodes []*model.DeviceInfo
 	)
 
 	for _, node := range resp.Data {
@@ -81,7 +80,6 @@ loop:
 
 		nodeInfo := ToDeviceInfo(node, scheduler.AreaId)
 		if nodeInfo.DeviceStatus == DeviceStatusOffline {
-			offlineDeviceIds = append(offlineDeviceIds, nodeInfo.DeviceID)
 			offlineNodes = append(offlineNodes, nodeInfo)
 			continue
 		}
@@ -110,12 +108,7 @@ loop:
 		}
 
 		if len(offlineNodes) > 0 {
-			err = dao.UpdateDeviceStatus(ctx, offlineDeviceIds, DeviceStatusOffline, DeviceStatusCodeOffline)
-			if err != nil {
-				log.Errorf("update device status: %v", err)
-			}
-
-			err = dao.BulkAddDeviceInfo(ctx, offlineNodes)
+			err = dao.BulkInsertOrUpdateDeviceStatus(ctx, offlineNodes)
 			if err != nil {
 				log.Errorf("bulk add device info: %v", err)
 			}
@@ -282,7 +275,7 @@ func applyLocationInfo(deviceInfo *model.DeviceInfo) {
 	//err := GetIpLocation(context.Background(), deviceInfo.ExternalIp, &loc, model.LanguageCN, model.LanguageEN)
 	loc, err := geo.GetIpLocation(context.Background(), deviceInfo.ExternalIp, model.LanguageEN)
 	if err != nil || loc == nil {
-		log.Errorf("%v", err)
+		log.Errorf("get ip location %v", err)
 		applyLocationFromLocalGEODB(deviceInfo)
 		return
 	}
