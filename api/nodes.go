@@ -550,35 +550,29 @@ func handleNodesRank(nodes *[]model.NodesInfo, opt dao.QueryOption) *[]model.Nod
 }
 
 func GetMapInfoHandler(c *gin.Context) {
-	info := &model.DeviceInfo{}
-	info.UserID = c.Query("user_id")
-	info.DeviceID = c.Query("device_id")
-	info.DeviceStatus = c.Query("device_status")
-	pageSize, _ := strconv.Atoi("page_size")
-	page, _ := strconv.Atoi("page")
-	order := c.Query("order")
-	orderField := c.Query("order_field")
 	lang := model.Language(c.GetHeader("Lang"))
-	nodeType, _ := strconv.ParseInt(c.Query("node_type"), 10, 64)
-	info.NodeType = nodeType
-	info.ActiveStatus = 1
-	option := dao.QueryOption{
-		Page:       page,
-		PageSize:   pageSize,
-		Order:      order,
-		OrderField: orderField,
+	mapInfo, err := dao.GetMapInfoFromCache(c.Request.Context(), lang)
+	if err == nil {
+		c.JSON(http.StatusOK, respJSON(JsonObject{
+			"list": mapInfo,
+		}))
+		return
 	}
 
-	deviceInfos, total, err := dao.GetDeviceInfoList(c.Request.Context(), info, option)
+	mapInfo, err = dao.GetDeviceMapInfo(c.Request.Context(), lang)
 	if err != nil {
-		log.Errorf("GetMapInfoHandler GetDeviceInfoList: %v", err)
+		log.Errorf("GetDeviceMapInfo: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
+	err = dao.CacheMapInfo(c.Request.Context(), mapInfo, lang)
+	if err != nil {
+		log.Errorf("cache mapinfo: %v", err)
+	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list":  dao.HandleMapInfo(deviceInfos, lang),
-		"total": total,
+		"list": mapInfo,
 	}))
 }
 

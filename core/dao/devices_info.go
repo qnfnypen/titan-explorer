@@ -23,6 +23,89 @@ type ActiveInfoOut struct {
 	Secret       string `db:"secret" json:"secret"`
 }
 
+type MapInfo struct {
+	Name     string    `json:"name"`
+	NodeType string    `json:"nodeType"`
+	Ip       string    `json:"ip"`
+	Value    []float64 `json:"value"`
+}
+
+func CacheMapInfo(ctx context.Context, mapInfo []*MapInfo, lang model.Language) error {
+	key := fmt.Sprintf("TITAN::MAPINFO::%s", lang)
+
+	data, err := json.Marshal(mapInfo)
+	if err != nil {
+		return err
+	}
+
+	expiration := time.Minute * 5
+	_, err = RedisCache.Set(ctx, key, data, expiration).Result()
+	if err != nil {
+		log.Errorf("set chain head: %v", err)
+	}
+
+	return nil
+}
+
+func GetMapInfoFromCache(ctx context.Context, lang model.Language) ([]*MapInfo, error) {
+	key := fmt.Sprintf("TITAN::MAPINFO::%s", lang)
+	result, err := RedisCache.Get(ctx, key).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	var out []*MapInfo
+	err = json.Unmarshal([]byte(result), &out)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+func GetDeviceMapInfo(ctx context.Context, lang model.Language) ([]*MapInfo, error) {
+	location := "location_en"
+	if lang == model.LanguageCN {
+		location = "location_cn"
+	}
+
+	query := fmt.Sprintf(`select IFNULL(lc.city, lc.country) as name, CONCAT(
+    SUBSTRING_INDEX(d.external_ip, '.', 1), 
+    '.xxx.xxx.', 
+    SUBSTRING_INDEX(SUBSTRING_INDEX(d.external_ip, '.', -2), '.', 1), 
+    '.', 
+    SUBSTRING_INDEX(d.external_ip, '.', -1)
+  ) AS ip , d.node_type, d.longitude, d.latitude from device_info d  left join %s lc on d.external_ip = lc.ip  where device_status_code = 1 limit 3000 `, location)
+
+	rows, err := DB.QueryxContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var out []*MapInfo
+	for rows.Next() {
+		var (
+			name, nodeType, ip string
+			lat, long          float64
+		)
+
+		if err := rows.Scan(&name, &ip, &nodeType, &long, &lat); err != nil {
+			continue
+		}
+
+		out = append(out, &MapInfo{
+			Name:     name,
+			NodeType: nodeType,
+			Ip:       ip,
+			Value:    []float64{long, lat},
+		})
+	}
+
+	return out, nil
+}
+
 func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option QueryOption) ([]*model.DeviceInfo, int64, error) {
 	var args []interface{}
 	where := `WHERE device_id <> ''`
