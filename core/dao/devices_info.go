@@ -57,6 +57,8 @@ func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option Query
 
 	if option.Order != "" && option.OrderField != "" {
 		where += fmt.Sprintf(` ORDER BY %s %s`, option.OrderField, option.Order)
+	} else {
+		where += fmt.Sprintf(` ORDER BY device_rank`)
 	}
 
 	limit := option.PageSize
@@ -78,7 +80,7 @@ func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option Query
 		return nil, 0, err
 	}
 	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT * FROM %s %s ORDER BY device_rank LIMIT %d OFFSET %d`, tableNameDeviceInfo, where, limit, offset,
+		`SELECT * FROM %s %s LIMIT %d OFFSET %d`, tableNameDeviceInfo, where, limit, offset,
 	), args...)
 	if err != nil {
 		return nil, 0, err
