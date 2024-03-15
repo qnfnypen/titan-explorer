@@ -72,8 +72,6 @@ func GetDeviceMapInfo(ctx context.Context, lang model.Language) ([]*MapInfo, err
 	query := fmt.Sprintf(`select IFNULL(lc.city, lc.country) as name, CONCAT(
     SUBSTRING_INDEX(d.external_ip, '.', 1), 
     '.xxx.xxx.', 
-    SUBSTRING_INDEX(SUBSTRING_INDEX(d.external_ip, '.', -2), '.', 1), 
-    '.', 
     SUBSTRING_INDEX(d.external_ip, '.', -1)
   ) AS ip , d.node_type, d.longitude, d.latitude from device_info d  left join %s lc on d.external_ip = lc.ip  where device_status_code = 1 limit 3000 `, location)
 
@@ -99,7 +97,7 @@ func GetDeviceMapInfo(ctx context.Context, lang model.Language) ([]*MapInfo, err
 			Name:     name,
 			NodeType: nodeType,
 			Ip:       ip,
-			Value:    []float64{long, lat},
+			Value:    []float64{lat, long},
 		})
 	}
 
