@@ -6,10 +6,8 @@ import (
 	"github.com/gnasnik/titan-explorer/core/geo"
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/golang-module/carbon/v2"
-	"github.com/oschwald/geoip2-golang"
 	errs "github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
-	"net"
 	"strconv"
 	"time"
 
@@ -276,7 +274,7 @@ func applyLocationInfo(deviceInfo *model.DeviceInfo) {
 	loc, err := geo.GetIpLocation(context.Background(), deviceInfo.ExternalIp, model.LanguageEN)
 	if err != nil || loc == nil {
 		log.Errorf("get ip location %v", err)
-		applyLocationFromLocalGEODB(deviceInfo)
+		// applyLocationFromLocalGEODB(deviceInfo)
 		return
 	}
 
@@ -289,42 +287,43 @@ func applyLocationInfo(deviceInfo *model.DeviceInfo) {
 	deviceInfo.Latitude, _ = strconv.ParseFloat(loc.Latitude, 64)
 }
 
-func applyLocationFromLocalGEODB(deviceInfo *model.DeviceInfo) {
-	db, err := geoip2.Open("city.mmdb")
-	if err != nil {
-		log.Errorf("open city.mmdb: %v", err)
-		return
-	}
-	defer db.Close()
-
-	// If you are using strings that may be invalid, check that ip is not nil
-	if deviceInfo.ExternalIp == "" {
-		return
-	}
-
-	ip := net.ParseIP(deviceInfo.ExternalIp)
-	record, err := db.City(ip)
-	if err != nil {
-		log.Errorf("query ip %s: %v", deviceInfo.ExternalIp, err)
-		return
-	}
-
-	if len(record.Subdivisions) > 0 {
-		deviceInfo.IpProvince = record.Subdivisions[0].Names["en"]
-	}
-
-	continent := record.Continent.Names["en"]
-	deviceInfo.IpCountry = record.Country.Names["en"]
-	deviceInfo.IpCity = record.City.Names["en"]
-	deviceInfo.IpLocation = continent + "-" + deviceInfo.IpCountry + "-" + deviceInfo.IpProvince
-	if deviceInfo.IpCity != "" {
-		deviceInfo.IpLocation += "-" + deviceInfo.IpCity
-	}
-
-	deviceInfo.Longitude = record.Location.Longitude
-	deviceInfo.Latitude = record.Location.Latitude
-
-	return
-}
+//
+//func applyLocationFromLocalGEODB(deviceInfo *model.DeviceInfo) {
+//	db, err := geoip2.Open("city.mmdb")
+//	if err != nil {
+//		log.Errorf("open city.mmdb: %v", err)
+//		return
+//	}
+//	defer db.Close()
+//
+//	// If you are using strings that may be invalid, check that ip is not nil
+//	if deviceInfo.ExternalIp == "" {
+//		return
+//	}
+//
+//	ip := net.ParseIP(deviceInfo.ExternalIp)
+//	record, err := db.City(ip)
+//	if err != nil {
+//		log.Errorf("query ip %s: %v", deviceInfo.ExternalIp, err)
+//		return
+//	}
+//
+//	if len(record.Subdivisions) > 0 {
+//		deviceInfo.IpProvince = record.Subdivisions[0].Names["en"]
+//	}
+//
+//	continent := record.Continent.Names["en"]
+//	deviceInfo.IpCountry = record.Country.Names["en"]
+//	deviceInfo.IpCity = record.City.Names["en"]
+//	deviceInfo.IpLocation = continent + "-" + deviceInfo.IpCountry + "-" + deviceInfo.IpProvince
+//	if deviceInfo.IpCity != "" {
+//		deviceInfo.IpLocation += "-" + deviceInfo.IpCity
+//	}
+//
+//	deviceInfo.Longitude = record.Location.Longitude
+//	deviceInfo.Latitude = record.Location.Latitude
+//
+//	return
+//}
 
 var _ Fetcher = &NodeFetcher{}
