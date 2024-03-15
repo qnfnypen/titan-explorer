@@ -18,8 +18,8 @@ var (
 	GEOLocationKeyPrefix = "TITAN::GEO"
 )
 
-func CacheIPLocation(ctx context.Context, location *model.Location) error {
-	key := fmt.Sprintf("%s::%s", GEOLocationKeyPrefix, location.Ip)
+func CacheIPLocation(ctx context.Context, location *model.Location, lang model.Language) error {
+	key := fmt.Sprintf("%s::%s::%s", GEOLocationKeyPrefix, lang, location.Ip)
 	bytes, err := json.Marshal(location)
 	if err != nil {
 		return err
@@ -28,8 +28,8 @@ func CacheIPLocation(ctx context.Context, location *model.Location) error {
 	return err
 }
 
-func GetCacheLocation(ctx context.Context, ip string) (*model.Location, error) {
-	key := fmt.Sprintf("%s::%s", GEOLocationKeyPrefix, ip)
+func GetCacheLocation(ctx context.Context, ip string, lang model.Language) (*model.Location, error) {
+	key := fmt.Sprintf("%s::%s::%s", GEOLocationKeyPrefix, lang, ip)
 	out := &model.Location{}
 	bytes, err := dao.RedisCache.Get(ctx, key).Bytes()
 	if err != nil && err != redis.Nil {
@@ -44,32 +44,21 @@ func GetCacheLocation(ctx context.Context, ip string) (*model.Location, error) {
 
 func GetIpLocation(ctx context.Context, ip string, languages ...model.Language) (*model.Location, error) {
 	//  get location from redis
-	location, err := GetCacheLocation(ctx, ip)
+	location, err := GetCacheLocation(ctx, ip, model.LanguageEN)
 	if err == nil && location != nil {
 		return location, nil
 	}
 
-	defer func() {
-		if location == nil {
-			return
-		}
-
-		err = CacheIPLocation(ctx, location)
-		if err != nil {
-			log.Errorf("cache ip location: %v", err)
-		}
-	}()
-
 	// get info from databases
-	var locationdb model.Location
-	err = dao.GetLocationInfoByIp(ctx, ip, &locationdb, model.LanguageEN)
+	var locationDb model.Location
+	err = dao.GetLocationInfoByIp(ctx, ip, &locationDb, model.LanguageEN)
 	if err != nil {
 		log.Errorf("get location by ip: %v", err)
 		return nil, err
 	}
 
-	if locationdb != (model.Location{}) {
-		return &locationdb, nil
+	if locationDb != (model.Location{}) {
+		return &locationDb, nil
 	}
 
 	// get location from ip data cloud api
@@ -90,6 +79,11 @@ func GetIpLocation(ctx context.Context, ip string, languages ...model.Language) 
 		}
 		if err := dao.UpsertLocationInfo(ctx, loc, l); err != nil {
 			continue
+		}
+
+		err = CacheIPLocation(ctx, loc, l)
+		if err != nil {
+			log.Errorf("cache ip location: %v", err)
 		}
 
 		if lang == l {
