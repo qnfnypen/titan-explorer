@@ -64,7 +64,7 @@ func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option Query
 	limit := option.PageSize
 	offset := option.Page
 	if option.PageSize <= 0 {
-		limit = 500
+		limit = 3000
 	}
 	if option.Page > 0 {
 		offset = limit * (option.Page - 1)
