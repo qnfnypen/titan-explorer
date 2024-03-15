@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"database/sql"
+	"fmt"
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/core/geo"
 	"github.com/gnasnik/titan-explorer/pkg/iptool"
 	"github.com/spf13/viper"
 	"log"
@@ -29,41 +30,61 @@ func main() {
 		log.Fatalf("initital: %v\n", err)
 	}
 
-	var locations []*model.Location
-	if err := dao.DB.SelectContext(context.Background(), &locations, `SELECT * FROM location_cn `); err != nil {
+	var ips []string
+	if err := dao.DB.SelectContext(context.Background(), &ips, `select distinct external_ip from device_info where external_ip <> ''`); err != nil {
 		log.Fatal(err)
 	}
 
-	log.Printf("Preparing to parse %d locations\n", len(locations))
+	log.Printf("Preparing to parse %d locations\n", len(ips))
 
-	var la model.Location
+	updateStatement := `update device_info set ip_location = ?, ip_country = ?, ip_province = ?, ip_city = ?, longitude = ?, latitude = ?, updated_at = now() where external_ip = ?`
+	
 	ctx := context.Background()
-	for i, location := range locations {
-		log.Printf("Parse IP location %d/%d\n", i+1, len(locations))
+	for _, ip := range ips {
+		log.Println("query ip: ", ip)
 
-		err := dao.DB.Get(&la, `SELECT * FROM location_en where ip = ?`, location.Ip)
-		if err == nil {
-			log.Printf("ip %s exist\n", location.Ip)
-			continue
-		}
-
-		if err != sql.ErrNoRows {
-			log.Println(err)
-			continue
-		}
-
-		loc, err := iptool.IPDataCloudGetLocation(ctx, cfg.IpDataCloud.Url, location.Ip, cfg.IpDataCloud.Key, model.LanguageEN)
+		locEn, err := iptool.IPDataCloudGetLocation(ctx, cfg.IpDataCloud.Url, ip, cfg.IpDataCloud.Key, model.LanguageEN)
 		if err != nil {
-			log.Println(err)
+			log.Println("get location cn: ", err)
 			continue
 		}
 
-		err = dao.UpsertLocationInfo(ctx, loc, model.LanguageEN)
+		fmt.Println("ip: =>", dao.ContactIPLocation(*locEn, model.LanguageEN))
+
+		err = dao.UpsertLocationInfo(ctx, locEn, model.LanguageEN)
 		if err != nil {
-			log.Println(err)
+			log.Println("update location en: ", err)
 		}
 
-		time.Sleep(100 * time.Millisecond)
+		_, err = dao.DB.ExecContext(ctx, updateStatement, dao.ContactIPLocation(*locEn, model.LanguageEN), locEn.Country, locEn.Province, locEn.City, locEn.Longitude, locEn.Latitude, ip)
+		if err != nil {
+			log.Println("update deviceInfo err ip: ", ip, " err", err)
+			continue
+		}
+
+		err = geo.CacheIPLocation(ctx, locEn, model.LanguageEN)
+		if err != nil {
+			log.Println("cache en", err)
+		}
+
+		locCn, err := iptool.IPDataCloudGetLocation(ctx, cfg.IpDataCloud.Url, ip, cfg.IpDataCloud.Key, model.LanguageCN)
+		if err != nil {
+			log.Println("get location cn: ", err)
+			continue
+		}
+
+		err = dao.UpsertLocationInfo(ctx, locCn, model.LanguageCN)
+		if err != nil {
+			log.Println("update location cn: ", err)
+		}
+
+		err = geo.CacheIPLocation(ctx, locCn, model.LanguageCN)
+		if err != nil {
+			log.Println("cache cn:", err)
+		}
+
+		log.Println("update ", ip, "success")
+		time.Sleep(10 * time.Millisecond)
 	}
 
 	log.Println("Success")
