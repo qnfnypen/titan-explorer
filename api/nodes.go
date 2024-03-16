@@ -925,29 +925,6 @@ func queryAccountInfo(ctx context.Context, deviceId, userId string) interface{} 
 	return account
 }
 
-func queryHourlyIncome(ctx context.Context, nodeId string) interface{} {
-	start := carbon.Now().StartOfDay().String()
-	option := dao.QueryOption{
-		StartTime: start,
-	}
-
-	list, err := dao.GetDeviceHourlyIncome(context.Background(), nodeId, option)
-	if err != nil {
-		log.Errorf("database GetDeviceInfoHourList: %v", err)
-		return nil
-	}
-
-	out := make([]interface{}, 0)
-	for _, item := range list {
-		out = append(out, map[string]interface{}{
-			"k": fmt.Sprintf("%s:00", strings.TrimLeft(item.Date, " ")),
-			"v": item.Income,
-		})
-	}
-
-	return out
-}
-
 func queryDailyIncome(ctx context.Context, nodeId string) interface{} {
 	start := carbon.Now().SubDays(30).String()
 
@@ -1030,5 +1007,18 @@ func QueryDeviceCodeHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"user_id":        user.Username,
 		"wallet_address": user.WalletAddress,
+	}))
+}
+
+func GetDeviceDistributionHandler(c *gin.Context) {
+	list, err := dao.GetDeviceDistribution(c.Request.Context())
+	if err != nil {
+		log.Errorf("get device distribution: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"distribution": list,
 	}))
 }

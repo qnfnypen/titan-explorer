@@ -55,6 +55,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	apiV2.POST("/device", GetDeviceProfileHandler)
 	apiV2.POST("/device/binding", DeviceBindingHandler)
 	apiV2.GET("/device/query_code", QueryDeviceCodeHandler)
+	apiV2.GET("/device/distribution", GetDeviceDistributionHandler)
 
 	// index info all nodes info from device info
 	apiV2.GET("/get_nodes_info", GetNodesInfoHandler)

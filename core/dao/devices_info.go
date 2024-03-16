@@ -74,11 +74,11 @@ func GetDeviceMapInfo(ctx context.Context, lang model.Language, deviceId string)
 		where = fmt.Sprintf(" and device_id = '%s'", deviceId)
 	}
 
-	query := fmt.Sprintf(`select IFNULL(lc.city, lc.country) as name, CONCAT(
+	query := fmt.Sprintf(`select IF(lc.city <> '', lc.city, lc.country) as name, CONCAT(
     SUBSTRING_INDEX(d.external_ip, '.', 1), 
     '.xxx.xxx.', 
     SUBSTRING_INDEX(d.external_ip, '.', -1)
-  ) AS ip , d.node_type, d.longitude, d.latitude from device_info d  left join %s lc on d.external_ip = lc.ip  where device_status_code = 1 %s limit 3000 `, location, where)
+  ) AS ip , d.node_type, d.longitude, d.latitude from device_info d  left join %s lc on d.external_ip = lc.ip  where device_status_code = 1 %s `, location, where)
 
 	rows, err := DB.QueryxContext(ctx, query)
 	if err != nil {
@@ -107,6 +107,13 @@ func GetDeviceMapInfo(ctx context.Context, lang model.Language, deviceId string)
 	}
 
 	return out, nil
+}
+
+func GetDeviceDistribution(ctx context.Context) ([]*model.DeviceDistribution, error) {
+	query := `select ip_country as country, count(device_id) as count from device_info where device_status_code = 1 group by ip_country order by count desc limit 10;`
+	var out []*model.DeviceDistribution
+	err := DB.SelectContext(ctx, &out, query)
+	return out, err
 }
 
 func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option QueryOption) ([]*model.DeviceInfo, int64, error) {

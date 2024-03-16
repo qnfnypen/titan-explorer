@@ -84,3 +84,8 @@ type SignInfo struct {
 	MinerPower   string `json:"miner_power" db:"miner_power"`
 	MinerBalance string `json:"miner_balance" db:"miner_balance"`
 }
+
+type DeviceDistribution struct {
+	Country string `json:"country" db:"country"`
+	Count   int    `json:"count" db:"count"`
+}
