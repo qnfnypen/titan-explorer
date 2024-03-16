@@ -109,8 +109,12 @@ func GetDeviceMapInfo(ctx context.Context, lang model.Language, deviceId string)
 	return out, nil
 }
 
-func GetDeviceDistribution(ctx context.Context) ([]*model.DeviceDistribution, error) {
-	query := `select ip_country as country, count(device_id) as count from device_info where device_status_code = 1 group by ip_country order by count desc limit 10;`
+func GetDeviceDistribution(ctx context.Context, lang model.Language) ([]*model.DeviceDistribution, error) {
+	table := "location_en"
+	if lang != "" {
+		table = fmt.Sprintf("location_%s", lang)
+	}
+	query := fmt.Sprintf(`select l.country as country, count(d.device_id) as count from device_info d left join %s l on d.external_ip = l.ip where device_status_code = 1 group by d.ip_country order by count desc limit 10;`, table)
 	var out []*model.DeviceDistribution
 	err := DB.SelectContext(ctx, &out, query)
 	return out, err

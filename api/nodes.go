@@ -1011,7 +1011,8 @@ func QueryDeviceCodeHandler(c *gin.Context) {
 }
 
 func GetDeviceDistributionHandler(c *gin.Context) {
-	list, err := dao.GetDeviceDistribution(c.Request.Context())
+	lang := model.Language(c.GetHeader("Lang"))
+	list, err := dao.GetDeviceDistribution(c.Request.Context(), lang)
 	if err != nil {
 		log.Errorf("get device distribution: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
