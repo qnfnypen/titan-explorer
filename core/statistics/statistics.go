@@ -2,11 +2,13 @@ package statistics
 
 import (
 	"fmt"
+	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/bsm/redislock"
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/robfig/cron/v3"
+	"go.etcd.io/etcd/api/v3/mvccpb"
 	"golang.org/x/net/context"
 	"sync"
 	"time"
@@ -32,30 +34,47 @@ type Statistic struct {
 	cron       *cron.Cron
 	locker     *redislock.Client
 	fetchers   []Fetcher
+	slk        sync.Mutex
 	schedulers []*Scheduler
+	etcdClient *EtcdClient
 }
 
 // New creates a new Statistic instance.
-func New(cfg config.StatisticsConfig, scheduler []*Scheduler) *Statistic {
+func New(cfg config.StatisticsConfig, client *EtcdClient) *Statistic {
 	c := cron.New(
 		cron.WithSeconds(),
 		cron.WithLocation(time.Local),
 	)
 
+	schedulers, err := FetchSchedulersFromEtcd(client)
+	if err != nil {
+		log.Fatalf("fetch scheduler from etcd Failed: %v", err)
+	}
+
 	s := &Statistic{
 		ctx:        context.Background(),
 		cron:       c,
 		cfg:        cfg,
-		schedulers: scheduler,
+		schedulers: schedulers,
 		locker:     redislock.New(dao.RedisCache),
 		fetchers:   make([]Fetcher, 0),
+		etcdClient: client,
 	}
+
+	go s.watchEtcdSchedulerConfig()
 
 	for _, fetcher := range FetcherRegistry {
 		s.fetchers = append(s.fetchers, fetcher())
 	}
 
 	return s
+}
+
+func (s *Statistic) UpdateSchedulers(schedulers []*Scheduler) {
+	s.slk.Lock()
+	defer s.slk.Unlock()
+
+	s.schedulers = schedulers
 }
 
 // Run starts the cron jobs for statistics.
@@ -89,6 +108,7 @@ func (s *Statistic) handleJobs() {
 func (s *Statistic) runFetchers() error {
 	var wg sync.WaitGroup
 	wg.Add(len(s.schedulers))
+	s.slk.Lock()
 	for _, scheduler := range s.schedulers {
 		go func(scheduler *Scheduler) {
 			defer wg.Done()
@@ -100,6 +120,7 @@ func (s *Statistic) runFetchers() error {
 			}
 		}(scheduler)
 	}
+	s.slk.Unlock()
 	wg.Wait()
 
 	//s.asyncExecute([]func() error{
@@ -156,4 +177,30 @@ func (s *Statistic) asyncExecute(jobs []func() error) {
 		}(job)
 	}
 	wg.Wait()
+}
+
+func (s *Statistic) watchEtcdSchedulerConfig() {
+	watchChan := s.etcdClient.cli.WatchServers(context.Background(), types.NodeScheduler.String())
+	for {
+		resp, ok := <-watchChan
+		if !ok {
+			log.Errorf("close watch chan")
+			return
+		}
+
+		for _, event := range resp.Events {
+			switch event.Type {
+			case mvccpb.DELETE, mvccpb.PUT:
+				log.Infof("Etcd scheduler config changed")
+				schedulers, err := FetchSchedulersFromEtcd(s.etcdClient)
+				if err != nil {
+					log.Errorf("FetchSchedulersFromEtcd: %v", err)
+					continue
+				}
+
+				s.UpdateSchedulers(schedulers)
+				log.Infof("Updated scheduler from etcd")
+			}
+		}
+	}
 }

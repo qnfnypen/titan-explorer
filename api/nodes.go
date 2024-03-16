@@ -730,7 +730,7 @@ func getNodeInfoFromScheduler(ctx context.Context, id string, areaId string) (*m
 
 	var configs []*types.SchedulerCfg
 	for _, key := range result {
-		schedulers, err := GetSchedulerConfigs(ctx, key)
+		schedulers, err := statistics.GetSchedulerConfigs(ctx, key)
 		if err != nil {
 			return nil, err
 		}
