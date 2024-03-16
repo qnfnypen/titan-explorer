@@ -551,6 +551,21 @@ func handleNodesRank(nodes *[]model.NodesInfo, opt dao.QueryOption) *[]model.Nod
 
 func GetMapInfoHandler(c *gin.Context) {
 	lang := model.Language(c.GetHeader("Lang"))
+	deviceId := c.Query("device_id")
+
+	if deviceId != "" {
+		mapInfo, err := dao.GetDeviceMapInfo(c.Request.Context(), lang, deviceId)
+		if err != nil {
+			log.Errorf("GetDeviceMapInfo: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+		c.JSON(http.StatusOK, respJSON(JsonObject{
+			"list": mapInfo,
+		}))
+		return
+	}
+
 	mapInfo, err := dao.GetMapInfoFromCache(c.Request.Context(), lang)
 	if err == nil {
 		c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -559,7 +574,7 @@ func GetMapInfoHandler(c *gin.Context) {
 		return
 	}
 
-	mapInfo, err = dao.GetDeviceMapInfo(c.Request.Context(), lang)
+	mapInfo, err = dao.GetDeviceMapInfo(c.Request.Context(), lang, deviceId)
 	if err != nil {
 		log.Errorf("GetDeviceMapInfo: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))

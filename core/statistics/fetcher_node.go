@@ -58,10 +58,10 @@ loop:
 	reqStart := time.Now()
 	resp, err := scheduler.Api.GetNodeList(ctx, offset, size)
 	if err != nil {
-		log.Errorf("api GetNodeList: %v", err)
+		log.Errorf("api GetNodeList from %s: %v", scheduler.AreaId, err)
 		return nil
 	}
-	log.Infof("request GetNodeList cost: %v", time.Since(reqStart))
+	log.Infof("request GetNodeList from %s cost: %v", scheduler.AreaId, time.Since(reqStart))
 
 	total += int64(len(resp.Data))
 	page++

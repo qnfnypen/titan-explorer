@@ -63,17 +63,22 @@ func GetMapInfoFromCache(ctx context.Context, lang model.Language) ([]*MapInfo, 
 	return out, nil
 }
 
-func GetDeviceMapInfo(ctx context.Context, lang model.Language) ([]*MapInfo, error) {
+func GetDeviceMapInfo(ctx context.Context, lang model.Language, deviceId string) ([]*MapInfo, error) {
 	location := "location_en"
 	if lang == model.LanguageCN {
 		location = "location_cn"
+	}
+
+	var where string
+	if deviceId != "" {
+		where = fmt.Sprintf(" and device_id = '%s'", deviceId)
 	}
 
 	query := fmt.Sprintf(`select IFNULL(lc.city, lc.country) as name, CONCAT(
     SUBSTRING_INDEX(d.external_ip, '.', 1), 
     '.xxx.xxx.', 
     SUBSTRING_INDEX(d.external_ip, '.', -1)
-  ) AS ip , d.node_type, d.longitude, d.latitude from device_info d  left join %s lc on d.external_ip = lc.ip  where device_status_code = 1 limit 3000 `, location)
+  ) AS ip , d.node_type, d.longitude, d.latitude from device_info d  left join %s lc on d.external_ip = lc.ip  where device_status_code = 1 %s limit 3000 `, location, where)
 
 	rows, err := DB.QueryxContext(ctx, query)
 	if err != nil {
