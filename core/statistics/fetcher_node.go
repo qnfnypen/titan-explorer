@@ -125,7 +125,7 @@ loop:
 
 		eg.Go(SumDeviceInfoProfit)
 		eg.Go(SumAllNodes)
-		eg.Go(UpdateDeviceRank)
+		//eg.Go(UpdateDeviceRank)
 
 		if err := eg.Wait(); err != nil {
 			log.Errorf("sumary job: %v", err)
