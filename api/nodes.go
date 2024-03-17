@@ -60,29 +60,32 @@ func GetAllAreasFromCache(ctx context.Context) ([]string, error) {
 }
 
 func GetAllAreas(c *gin.Context) {
-
-	areas, err := GetAllAreasFromCache(c.Request.Context())
-	if err == nil {
-		c.JSON(http.StatusOK, respJSON(JsonObject{
-			"areas": areas,
-		}))
-		return
-	}
-
-	areas, err = dao.GetAllAreaFromDeviceInfo(c.Request.Context())
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
-
-	err = CacheAllAreas(c.Request.Context(), areas)
-	if err != nil {
-		log.Errorf("cache areas: %v", err)
-	}
-
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"areas": areas,
+		"areas": []string{},
 	}))
+	//
+	//areas, err := GetAllAreasFromCache(c.Request.Context())
+	//if err == nil {
+	//	c.JSON(http.StatusOK, respJSON(JsonObject{
+	//		"areas": areas,
+	//	}))
+	//	return
+	//}
+	//
+	//areas, err = dao.GetAllAreaFromDeviceInfo(c.Request.Context())
+	//if err != nil {
+	//	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	//	return
+	//}
+	//
+	//err = CacheAllAreas(c.Request.Context(), areas)
+	//if err != nil {
+	//	log.Errorf("cache areas: %v", err)
+	//}
+	//
+	//c.JSON(http.StatusOK, respJSON(JsonObject{
+	//	"areas": areas,
+	//}))
 }
 
 var (

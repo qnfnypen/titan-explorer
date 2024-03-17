@@ -78,7 +78,7 @@ func GetDeviceMapInfo(ctx context.Context, lang model.Language, deviceId string)
     SUBSTRING_INDEX(d.external_ip, '.', 1), 
     '.xxx.xxx.', 
     SUBSTRING_INDEX(d.external_ip, '.', -1)
-  ) AS ip , d.node_type, d.longitude, d.latitude from device_info d  left join %s lc on d.external_ip = lc.ip  where device_status_code = 1 %s `, location, where)
+  ) AS ip , d.node_type, d.longitude, d.latitude from device_info d  left join %s lc on d.external_ip = lc.ip  where device_status_code = 1 %s limit 10000`, location, where)
 
 	rows, err := DB.QueryxContext(ctx, query)
 	if err != nil {
