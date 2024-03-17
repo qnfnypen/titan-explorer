@@ -463,13 +463,15 @@ func GetDeviceInfoHandler(c *gin.Context) {
 	//	return
 	//}
 
-	for _, deviceInfo := range deviceInfos {
+	offset := (option.Page - 1) * option.PageSize
+	for i, deviceInfo := range deviceInfos {
 		//createAssetRsp, err := schedulerClient.GetNodeInfo(c.Request.Context(), deviceIfo.DeviceID)
 		//if err != nil {
 		//	log.Errorf("api GetNodeInfo: %v", err)
 		//}
 		//deviceIfo.DeactivateTime = createAssetRsp.DeactivateTime
 		//dao.HandleMapList(ctx, deviceIfo)
+		deviceInfo.DeviceRank = int64(i + 1 + offset)
 		dao.TranslateIPLocation(c.Request.Context(), deviceInfo, lang)
 	}
 
