@@ -1060,16 +1060,63 @@ func QueryDeviceCodeHandler(c *gin.Context) {
 	}))
 }
 
+func CacheDeviceDistribution(ctx context.Context, info []*model.DeviceDistribution, lang model.Language) error {
+	key := fmt.Sprintf("TITAN::DISTRIBUTION::%s", lang)
+
+	data, err := json.Marshal(info)
+	if err != nil {
+		return err
+	}
+
+	expiration := time.Minute * 5
+	_, err = dao.RedisCache.Set(ctx, key, data, expiration).Result()
+	if err != nil {
+		log.Errorf("set areas info: %v", err)
+	}
+
+	return nil
+}
+
+func GetDeviceDistributionFromCache(ctx context.Context, lang model.Language) ([]*model.DeviceDistribution, error) {
+	key := fmt.Sprintf("TITAN::DISTRIBUTION::%s", lang)
+	result, err := dao.RedisCache.Get(ctx, key).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	var out []*model.DeviceDistribution
+	err = json.Unmarshal([]byte(result), &out)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
 func GetDeviceDistributionHandler(c *gin.Context) {
 	lang := model.Language(c.GetHeader("Lang"))
-	list, err := dao.GetDeviceDistribution(c.Request.Context(), lang)
+
+	distribution, err := GetDeviceDistributionFromCache(c.Request.Context(), lang)
+	if err == nil {
+		c.JSON(http.StatusOK, respJSON(JsonObject{
+			"distribution": distribution,
+		}))
+		return
+	}
+
+	distribution, err = dao.GetDeviceDistribution(c.Request.Context(), lang)
 	if err != nil {
 		log.Errorf("get device distribution: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
+	err = CacheDeviceDistribution(c.Request.Context(), distribution, lang)
+	if err != nil {
+		log.Errorf("cache distribution: %v", err)
+	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"distribution": list,
+		"distribution": distribution,
 	}))
 }
