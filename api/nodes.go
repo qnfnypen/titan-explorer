@@ -26,11 +26,58 @@ import (
 	"time"
 )
 
+func CacheAllAreas(ctx context.Context, info []string) error {
+	key := fmt.Sprintf("TITAN::AREAS")
+
+	data, err := json.Marshal(info)
+	if err != nil {
+		return err
+	}
+
+	expiration := time.Minute * 5
+	_, err = dao.RedisCache.Set(ctx, key, data, expiration).Result()
+	if err != nil {
+		log.Errorf("set areas info: %v", err)
+	}
+
+	return nil
+}
+
+func GetAllAreasFromCache(ctx context.Context) ([]string, error) {
+	key := fmt.Sprintf("TITAN::AREAS")
+	result, err := dao.RedisCache.Get(ctx, key).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	var out []string
+	err = json.Unmarshal([]byte(result), &out)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
 func GetAllAreas(c *gin.Context) {
-	areas, err := dao.GetAllAreaFromDeviceInfo(c.Request.Context())
+
+	areas, err := GetAllAreasFromCache(c.Request.Context())
+	if err == nil {
+		c.JSON(http.StatusOK, respJSON(JsonObject{
+			"areas": areas,
+		}))
+		return
+	}
+
+	areas, err = dao.GetAllAreaFromDeviceInfo(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
+	}
+
+	err = CacheAllAreas(c.Request.Context(), areas)
+	if err != nil {
+		log.Errorf("cache areas: %v", err)
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
