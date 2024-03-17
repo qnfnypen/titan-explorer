@@ -123,12 +123,12 @@ func (s *Statistic) runFetchers() error {
 	s.slk.Unlock()
 	wg.Wait()
 
-	//s.asyncExecute([]func() error{
-	//	s.SumDeviceInfoProfit,
-	//	s.SumAllNodes,
-	//	s.UpdateDeviceRank,
-	//	//s.ClaimUserEarning,
-	//})
+	s.asyncExecute([]func() error{
+		//s.SumDeviceInfoProfit,
+		SumAllNodes,
+		//s.UpdateDeviceRank,
+		//s.ClaimUserEarning,
+	})
 
 	return nil
 }

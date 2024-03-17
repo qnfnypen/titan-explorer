@@ -124,7 +124,7 @@ loop:
 		var eg errgroup.Group
 
 		eg.Go(SumDeviceInfoProfit)
-		eg.Go(SumAllNodes)
+		//eg.Go(SumAllNodes)
 		//eg.Go(UpdateDeviceRank)
 
 		if err := eg.Wait(); err != nil {
