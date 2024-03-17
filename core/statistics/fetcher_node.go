@@ -15,7 +15,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 )
 
-const maxPageSize = 500
+const maxPageSize = 1000
 
 const (
 	DeviceStatusOffline  = "offline"
@@ -86,23 +86,22 @@ loop:
 	}
 
 	if len(onlineNodes)+len(offlineNodes) < 1 {
-		log.Errorf("start to fetch all nodes: nodes length is 0")
+		log.Errorf("start to fetch %s all nodes: nodes length is 0", scheduler.AreaId)
 		return nil
 	}
 
-	log.Infof("handling %d/%d nodes, online: %d offline: %d", total, resp.Total, len(onlineNodes), len(offlineNodes))
+	log.Infof("handling %s %d/%d nodes, online: %d offline: %d", scheduler.AreaId, total, resp.Total, len(onlineNodes), len(offlineNodes))
 
 	n.Push(ctx, func() error {
 		if len(onlineNodes) > 0 {
 			err := dao.BulkUpsertDeviceInfo(ctx, onlineNodes)
 			if err != nil {
-				log.Errorf("bulk upsert device info: %v", err)
+				log.Errorf("%s bulk upsert device info: %v", scheduler.AreaId, err)
 			}
 
 			if err = addDeviceInfoHours(ctx, onlineNodes); err != nil {
 				log.Errorf("add device info hours: %v", err)
 			}
-
 		}
 
 		if len(offlineNodes) > 0 {
