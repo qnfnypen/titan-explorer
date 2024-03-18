@@ -209,13 +209,18 @@ func SumDeviceInfoProfit() error {
 	updateDeviceInfoForTimeRange(updatedDevices, carbon.Now().SubDays(29), carbon.Now(), "MonthProfit")
 	updateDeviceInfoForTimeRange(updatedDevices, carbon.Now(), carbon.Now(), "TodayProfit", "TodayOnlineTime")
 
-	deviceInfos := make([]*model.DeviceInfo, 0, len(updatedDevices))
+	var count int
+	deviceInfos := make([]*model.DeviceInfo, 0)
 	for _, deviceInfo := range updatedDevices {
 		deviceInfos = append(deviceInfos, deviceInfo)
-	}
 
-	if err := dao.BulkUpdateDeviceInfo(context.Background(), deviceInfos); err != nil {
-		log.Errorf("bulk update devices: %v", err)
+		count++
+		if len(deviceInfos) == 1000 || count == len(updatedDevices) {
+			if err := dao.BulkUpdateDeviceInfo(context.Background(), deviceInfos); err != nil {
+				log.Errorf("bulk update devices: %v", err)
+			}
+			deviceInfos = make([]*model.DeviceInfo, 0)
+		}
 	}
 
 	if err := SumUserDeviceReward(context.Background()); err != nil {

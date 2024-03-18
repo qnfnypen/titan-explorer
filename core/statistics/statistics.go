@@ -19,6 +19,8 @@ var log = logging.Logger("statistics")
 const LockerTTL = 30 * time.Second
 const statisticLockerKeyPrefix = "TITAN::STATISTIC"
 
+var SumDevicesInterval = time.Second * 5
+
 // FetcherRegistry to keep track of registered fetchers
 var FetcherRegistry []func() Fetcher
 
@@ -125,13 +127,6 @@ func (s *Statistic) runFetchers() error {
 	}
 	s.slk.Unlock()
 	wg.Wait()
-
-	//s.asyncExecute([]func() error{
-	//	SumDeviceInfoProfit,
-	//	SumAllNodes,
-	//	//s.UpdateDeviceRank,
-	//	//s.ClaimUserEarning,
-	//})
 
 	return nil
 }

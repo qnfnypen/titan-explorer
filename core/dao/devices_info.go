@@ -503,7 +503,7 @@ func BulkUpdateDeviceInfo(ctx context.Context, deviceInfos []*model.DeviceInfo) 
 				)`, tableNameDeviceInfo,
 	)
 	updateStatement := ` ON DUPLICATE KEY UPDATE today_online_time = VALUES(today_online_time), today_profit = VALUES(today_profit), yesterday_profit = VALUES(yesterday_profit),seven_days_profit = VALUES(seven_days_profit),
-month_profit = VALUES(month_profit),today_online_time = VALUES(today_online_time), updated_at = now()`
+month_profit = VALUES(month_profit), updated_at = now()`
 	_, err := DB.NamedExecContext(ctx, insertStatement+updateStatement, deviceInfos)
 	return err
 	//for _, device := range deviceInfos {

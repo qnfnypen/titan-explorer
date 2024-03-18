@@ -123,7 +123,6 @@ loop:
 	}
 
 	n.Push(ctx, func() error {
-
 		go func() {
 			st := time.Now()
 			log.Infof("handler summary device and nodes")
@@ -139,14 +138,8 @@ loop:
 			}
 		}()
 
-		return err
+		return nil
 	})
-
-	// add inactive node records for statistics
-	//e := dao.GenerateInactiveNodeRecords(context.Background(), start)
-	//if e != nil {
-	//	log.Errorf("generate inactive node records: %v", e)
-	//}
 
 	return nil
 }
