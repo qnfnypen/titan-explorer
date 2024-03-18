@@ -1,28 +1,34 @@
 Mode = "debug"
 ApiListen = ":8080"
-DatabaseURL = "root:example@tcp(localhost:3306)/example?charset=utf8mb4&parseTime=True&loc=Local"
+DatabaseURL = "root:password@tcp(localhost:3306)/titan_explorer?charset=utf8mb4&parseTime=True&loc=Local"
 SecretKey = "test"
 RedisAddr = "127.0.0.1:6379"
 RedisPassword = ""
-
-[AdminScheduler]
-    Enable = true
-    Address = ""
-    Token = ""
-
-[Locator]
-    Address = ""
-    Token = ""
+EtcdAddress="127.0.0.1:2379"
+FilecoinRPCServerAddress = "http://api.node.glif.io/rpc/v0"
 
 [Statistic]
     Disable = false
-    Crontab = "0 */5 * * * *"
+    StartTime = "2024-03-08 00:00:00"
+    EndTime = "2024-03-08 11:50:00"
+    Crontab = "0 */1 * * * *"
+
 
 [Email]
-    Name = "titan"
-    SMTPHost = "smtp.qq.com"
+    From = "TitanNetwork@titannet.io"
+    Nickname = "Titan Network"
+    SMTPHost = "smtp.gmail.com"
     SMTPPort = "587"
-    Username = "titan@gmail.com"
-    Password = "test"
+    Username = "anqi@titannet.io"
+    Password = "app passowrd"
 
+[IpDataCloud]
+    Url = "https://api.ipdatacloud.com/v2/query"
+    Key = "ip data cloud key"
 
+[ContainerManager]
+    Addr = "http://127.0.0.1:6123/rpc/v0"
+    Token = ""
+
+[Epoch]
+    Token = "TTN1"
