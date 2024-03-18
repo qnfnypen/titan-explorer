@@ -29,7 +29,7 @@ type BaseFetcher struct {
 
 // newBaseFetcher creates a new BaseFetcher instance.
 func newBaseFetcher() BaseFetcher {
-	return BaseFetcher{jobQueue: make(chan Job, 1)}
+	return BaseFetcher{jobQueue: make(chan Job, 100)}
 }
 
 // Push adds a job to the job queue, respecting the context.
