@@ -7,7 +7,6 @@ import (
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/golang-module/carbon/v2"
 	errs "github.com/pkg/errors"
-	"golang.org/x/sync/errgroup"
 	"strconv"
 	"time"
 
@@ -103,11 +102,10 @@ loop:
 				log.Errorf("%s bulk upsert device info: %v", scheduler.AreaId, err)
 			}
 
-			go func() {
-				if err = addDeviceInfoHours(ctx, onlineNodes); err != nil {
-					log.Errorf("add device info hours: %v", err)
-				}
-			}()
+			if err = addDeviceInfoHours(ctx, onlineNodes); err != nil {
+				log.Errorf("add device info hours: %v", err)
+			}
+
 		}
 
 		if len(offlineNodes) > 0 {
@@ -124,18 +122,22 @@ loop:
 		goto loop
 	}
 
-	// finally summary the data
 	n.Push(ctx, func() error {
 
-		var eg errgroup.Group
+		go func() {
+			st := time.Now()
+			log.Infof("handler summary device and nodes")
+			defer func() {
+				log.Infof("handler summary device and nodes done, cost: %v", time.Since(st))
+			}()
 
-		eg.Go(SumDeviceInfoProfit)
-		eg.Go(SumAllNodes)
-		//eg.Go(UpdateDeviceRank)
-
-		if err := eg.Wait(); err != nil {
-			log.Errorf("sumary job: %v", err)
-		}
+			if err := SumDeviceInfoProfit(); err != nil {
+				log.Errorf("sum device info profit: %v", err)
+			}
+			if err := SumAllNodes(); err != nil {
+				log.Errorf("sum all node: %v", err)
+			}
+		}()
 
 		return err
 	})
