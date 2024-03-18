@@ -94,6 +94,9 @@ func (s *Statistic) handleJobs() {
 			for {
 				select {
 				case job := <-f.GetJobQueue():
+					if f.Name() == "node" {
+						log.Infof("unhanding nodes jobqueue count: %d", len(f.GetJobQueue()))
+					}
 					if err := job(); err != nil {
 						log.Errorf("run job: %v", err)
 					}
@@ -124,8 +127,8 @@ func (s *Statistic) runFetchers() error {
 	wg.Wait()
 
 	//s.asyncExecute([]func() error{
-	//	//s.SumDeviceInfoProfit,
-	//	//SumAllNodes,
+	//	SumDeviceInfoProfit,
+	//	SumAllNodes,
 	//	//s.UpdateDeviceRank,
 	//	//s.ClaimUserEarning,
 	//})

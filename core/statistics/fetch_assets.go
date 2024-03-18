@@ -32,6 +32,10 @@ func newAssertFetcher() Fetcher {
 	return &AssertFetcher{BaseFetcher: newBaseFetcher()}
 }
 
+func (n AssertFetcher) Name() string {
+	return "assets"
+}
+
 // Fetch fetches asset information.
 func (a AssertFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
 	log.Info("Start to fetch assert info")

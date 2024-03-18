@@ -21,6 +21,10 @@ func newSystemInfoFetcher() Fetcher {
 	return &SystemInfoFetcher{BaseFetcher: newBaseFetcher()}
 }
 
+func (n SystemInfoFetcher) Name() string {
+	return "system_info"
+}
+
 func (s *SystemInfoFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
 	log.Info("start to fetch full node asset count info")
 	start := time.Now()

@@ -22,6 +22,10 @@ func newStorageFetcher() Fetcher {
 
 var _ Fetcher = &StorageFetcher{}
 
+func (n StorageFetcher) Name() string {
+	return "storage"
+}
+
 // Fetch fetches storage information and processes the data.
 func (c *StorageFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
 	log.Info("start fetching storage info")

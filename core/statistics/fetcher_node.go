@@ -42,6 +42,10 @@ func newNodeFetcher() Fetcher {
 	return &NodeFetcher{BaseFetcher: newBaseFetcher()}
 }
 
+func (n NodeFetcher) Name() string {
+	return "node"
+}
+
 // Fetch fetches information about all nodes
 func (n *NodeFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
 	log.Infof("start fetching all nodes from scheduler: %s", scheduler.AreaId)
@@ -99,9 +103,11 @@ loop:
 				log.Errorf("%s bulk upsert device info: %v", scheduler.AreaId, err)
 			}
 
-			if err = addDeviceInfoHours(ctx, onlineNodes); err != nil {
-				log.Errorf("add device info hours: %v", err)
-			}
+			go func() {
+				if err = addDeviceInfoHours(ctx, onlineNodes); err != nil {
+					log.Errorf("add device info hours: %v", err)
+				}
+			}()
 		}
 
 		if len(offlineNodes) > 0 {
@@ -120,6 +126,7 @@ loop:
 
 	// finally summary the data
 	n.Push(ctx, func() error {
+
 		var eg errgroup.Group
 
 		eg.Go(SumDeviceInfoProfit)
@@ -285,44 +292,5 @@ func applyLocationInfo(deviceInfo *model.DeviceInfo) {
 	deviceInfo.Longitude, _ = strconv.ParseFloat(loc.Longitude, 64)
 	deviceInfo.Latitude, _ = strconv.ParseFloat(loc.Latitude, 64)
 }
-
-//
-//func applyLocationFromLocalGEODB(deviceInfo *model.DeviceInfo) {
-//	db, err := geoip2.Open("city.mmdb")
-//	if err != nil {
-//		log.Errorf("open city.mmdb: %v", err)
-//		return
-//	}
-//	defer db.Close()
-//
-//	// If you are using strings that may be invalid, check that ip is not nil
-//	if deviceInfo.ExternalIp == "" {
-//		return
-//	}
-//
-//	ip := net.ParseIP(deviceInfo.ExternalIp)
-//	record, err := db.City(ip)
-//	if err != nil {
-//		log.Errorf("query ip %s: %v", deviceInfo.ExternalIp, err)
-//		return
-//	}
-//
-//	if len(record.Subdivisions) > 0 {
-//		deviceInfo.IpProvince = record.Subdivisions[0].Names["en"]
-//	}
-//
-//	continent := record.Continent.Names["en"]
-//	deviceInfo.IpCountry = record.Country.Names["en"]
-//	deviceInfo.IpCity = record.City.Names["en"]
-//	deviceInfo.IpLocation = continent + "-" + deviceInfo.IpCountry + "-" + deviceInfo.IpProvince
-//	if deviceInfo.IpCity != "" {
-//		deviceInfo.IpLocation += "-" + deviceInfo.IpCity
-//	}
-//
-//	deviceInfo.Longitude = record.Location.Longitude
-//	deviceInfo.Latitude = record.Location.Latitude
-//
-//	return
-//}
 
 var _ Fetcher = &NodeFetcher{}
