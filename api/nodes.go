@@ -408,8 +408,10 @@ func maskIPAddress(in []*model.DeviceInfo) []*model.DeviceInfo {
 }
 
 func GetDeviceInfoHandler(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	username, auth := claims[identityKey].(string)
+
 	info := &model.DeviceInfo{}
-	// no authentication, do not use jwt.ExtractClaims
 	info.UserID = c.Query("user_id")
 	info.DeviceID = c.Query("device_id")
 	info.IpLocation = c.Query("ip_location")
@@ -420,6 +422,10 @@ func GetDeviceInfoHandler(c *gin.Context) {
 	nodeTypeStr := c.Query("node_type")
 	lang := model.Language(c.GetHeader("Lang"))
 	notBound := c.Query("not_bound")
+
+	if auth {
+		info.UserID = username
+	}
 
 	if nodeTypeStr != "" {
 		nodeType, _ := strconv.ParseInt(nodeTypeStr, 10, 64)
@@ -455,28 +461,18 @@ func GetDeviceInfoHandler(c *gin.Context) {
 		return
 	}
 
-	//areaId := dao.GetAreaID(c.Request.Context(), info.UserID)
-	//schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	//if err != nil {
-	//	log.Errorf("no scheder found")
-	//	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-	//	return
-	//}
-
 	offset := (option.Page - 1) * option.PageSize
 	for i, deviceInfo := range deviceInfos {
-		//createAssetRsp, err := schedulerClient.GetNodeInfo(c.Request.Context(), deviceIfo.DeviceID)
-		//if err != nil {
-		//	log.Errorf("api GetNodeInfo: %v", err)
-		//}
-		//deviceIfo.DeactivateTime = createAssetRsp.DeactivateTime
-		//dao.HandleMapList(ctx, deviceIfo)
 		deviceInfo.DeviceRank = int64(i + 1 + offset)
 		dao.TranslateIPLocation(c.Request.Context(), deviceInfo, lang)
 	}
 
+	if !auth {
+		maskIPAddress(deviceInfos)
+	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list":  maskIPAddress(deviceInfos),
+		"list":  deviceInfos,
 		"total": total,
 	}))
 }
