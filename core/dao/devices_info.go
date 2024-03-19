@@ -571,7 +571,7 @@ func SumFullNodeInfoFromDeviceInfo(ctx context.Context) (*model.FullNodeInfo, er
 			 SUM(IF(node_type = 2 AND device_status_code = 1, 1, 0)) AS online_candidate_count, 
 			 SUM(IF(node_type = 3 AND device_status_code = 1, 1, 0)) AS online_validator_count, 
        SUM(IF(node_type = 2, 1, 0)) AS candidate_count,
-			 SUM(cache_count) as t_upstream_file_count,
+			 ROUND(SUM(cache_count),0) as t_upstream_file_count,
        count(device_status = 'online' or null) as online_node_count,
        SUM(IF(node_type = 3, 1, 0)) AS validator_count, 
 			 ROUND(count(device_status = 'online' or null)/count( device_id )*100,2) AS t_node_online_ratio,
@@ -579,8 +579,8 @@ func SumFullNodeInfoFromDeviceInfo(ctx context.Context) (*model.FullNodeInfo, er
 			 ROUND(SUM( disk_usage*disk_space/100),4) AS storage_used, 
        ROUND(SUM(bandwidth_up),2) AS total_upstream_bandwidth, 
 			 ROUND(SUM(bandwidth_down),2) AS total_downstream_bandwidth,
-			 SUM(cpu_cores) as cpu_cores,
-			 SUM(memory) as memory,
+			 ROUND(SUM(cpu_cores),0) as cpu_cores,
+			 ROUND(SUM(memory),0) as memory,
 			 COUNT(distinct external_ip) as ip_count
 		FROM %s where active_status = 1;`, tableNameDeviceInfo)
 
