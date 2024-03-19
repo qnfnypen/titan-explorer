@@ -88,6 +88,8 @@ func GetDeviceMapInfo(ctx context.Context, lang model.Language, deviceId string)
 	defer rows.Close()
 
 	var out []*MapInfo
+	duplicateIPs := make(map[string]struct{})
+
 	for rows.Next() {
 		var (
 			name, nodeType, ip string
@@ -97,6 +99,13 @@ func GetDeviceMapInfo(ctx context.Context, lang model.Language, deviceId string)
 		if err := rows.Scan(&name, &ip, &nodeType, &long, &lat); err != nil {
 			continue
 		}
+
+		_, ok := duplicateIPs[ip]
+		if ok {
+			continue
+		}
+
+		duplicateIPs[ip] = struct{}{}
 
 		out = append(out, &MapInfo{
 			Name:     name,
