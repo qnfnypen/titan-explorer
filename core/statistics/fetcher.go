@@ -7,10 +7,10 @@ import (
 
 // Fetcher is an interface for fetching and processing data.
 type Fetcher interface {
-	Name() string
 	Fetch(ctx context.Context, scheduler *Scheduler) error
 	Push(ctx context.Context, job Job)
 	GetJobQueue() chan Job
+	Finalize() error
 }
 
 type Scheduler struct {

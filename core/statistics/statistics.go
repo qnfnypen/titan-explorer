@@ -10,6 +10,7 @@ import (
 	"github.com/robfig/cron/v3"
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	"golang.org/x/net/context"
+	"reflect"
 	"sync"
 	"time"
 )
@@ -96,11 +97,17 @@ func (s *Statistic) handleJobs() {
 			for {
 				select {
 				case job := <-f.GetJobQueue():
-					if f.Name() == "node" {
-						log.Infof("unhanding nodes jobqueue count: %d", len(f.GetJobQueue()))
-					}
+					t := reflect.TypeOf(f)
+					log.Infof("%v jobqueue count: %d", t, len(f.GetJobQueue()))
 					if err := job(); err != nil {
 						log.Errorf("run job: %v", err)
+					}
+
+					if len(f.GetJobQueue()) == 0 {
+						err := f.Finalize()
+						if err != nil {
+							log.Errorf("handle finalize: %v", err)
+						}
 					}
 				case <-s.ctx.Done():
 					return

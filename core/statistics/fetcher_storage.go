@@ -22,10 +22,6 @@ func newStorageFetcher() Fetcher {
 
 var _ Fetcher = &StorageFetcher{}
 
-func (n StorageFetcher) Name() string {
-	return "storage"
-}
-
 // Fetch fetches storage information and processes the data.
 func (c *StorageFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
 	log.Info("start fetching storage info")
@@ -70,5 +66,9 @@ func (c *StorageFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error 
 		log.Errorf("failed to create user info hour: %v", err)
 	}
 
+	return nil
+}
+
+func (c *StorageFetcher) Finalize() error {
 	return nil
 }

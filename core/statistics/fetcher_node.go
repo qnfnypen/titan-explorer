@@ -41,10 +41,6 @@ func newNodeFetcher() Fetcher {
 	return &NodeFetcher{BaseFetcher: newBaseFetcher()}
 }
 
-func (n NodeFetcher) Name() string {
-	return "node"
-}
-
 // Fetch fetches information about all nodes
 func (n *NodeFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
 	log.Infof("start fetching all nodes from scheduler: %s", scheduler.AreaId)
@@ -122,25 +118,22 @@ loop:
 		goto loop
 	}
 
-	n.Push(ctx, func() error {
-		go func() {
-			st := time.Now()
-			log.Infof("handler summary device and nodes")
-			defer func() {
-				log.Infof("handler summary device and nodes done, cost: %v", time.Since(st))
-			}()
+	return nil
+}
 
-			if err := SumDeviceInfoProfit(); err != nil {
-				log.Errorf("sum device info profit: %v", err)
-			}
-			if err := SumAllNodes(); err != nil {
-				log.Errorf("sum all node: %v", err)
-			}
-		}()
+func (n NodeFetcher) Finalize() error {
+	st := time.Now()
+	log.Infof("finialize start")
+	defer func() {
+		log.Infof("finialize done, cost: %v", time.Since(st))
+	}()
 
-		return nil
-	})
-
+	if err := SumDeviceInfoProfit(); err != nil {
+		log.Errorf("sum device info profit: %v", err)
+	}
+	if err := SumAllNodes(); err != nil {
+		log.Errorf("sum all node: %v", err)
+	}
 	return nil
 }
 
@@ -192,7 +185,6 @@ func sumDailyReward(ctx context.Context, sumTime time.Time, devices []*model.Dev
 }
 
 func deviceInfoToDailyInfo(deviceInfo *model.DeviceInfo) *model.DeviceInfoDaily {
-
 	return &model.DeviceInfoDaily{
 		CreatedAt:         time.Now(),
 		UpdatedAt:         time.Now(),
