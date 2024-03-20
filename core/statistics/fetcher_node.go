@@ -42,6 +42,16 @@ func newNodeFetcher() Fetcher {
 }
 
 // Fetch fetches information about all nodes
+// 流程如下:
+// 1. 遍历拉取节点的数据, 每次上限为 1000 个(调度器那边设置上限也是1000)
+// 2. 区分在线和离线的节点, 创建一个任务, 任务步骤:
+// 2.1 更新 device_info表, 使用的是 INSERT INTO ... ON DUPLICATE KEY UPDATE ... , 在线的需要更新多个字段, 离线的只更新在线状态为离线
+// 2.2 写入 device_info_hour 表, 每次拉取都会记录到这个表, 5分钟一条记录
+// 2.3 统计每个节点当天的 收益,在线等数据, 并写到 device_info_daily 表, 唯一主键为 device_id  和 time, 每个节点每天增加一条记录
+// 3. 把任务 Push 到队列等待执行
+// 4. Finalize 任务, 执行以下统计
+// 4.1 统计每个节点的每日收益,昨日收益,七天收益和月收益等, 更新到 device_info 表
+// 4.2 统计所有节点的总收益,总内存和总的存储等总览页面数据的统计
 func (n *NodeFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
 	log.Infof("start fetching all nodes from scheduler: %s", scheduler.AreaId)
 	start := time.Now()
@@ -137,6 +147,7 @@ func (n NodeFetcher) Finalize() error {
 	return nil
 }
 
+// sumDailyReward 写入或更新 device_info_daily表
 func sumDailyReward(ctx context.Context, sumTime time.Time, devices []*model.DeviceInfo) error {
 	log.Infof("start sum daily reward")
 	start := time.Now()
@@ -257,6 +268,7 @@ func ToDeviceInfo(node types.NodeInfo, areaId string) *model.DeviceInfo {
 	return &deviceInfo
 }
 
+// applyLocationInfo 获取节点的 ip 位置信息
 func applyLocationInfo(deviceInfo *model.DeviceInfo) {
 	if deviceInfo.ExternalIp == "" {
 		return

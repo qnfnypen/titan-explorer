@@ -69,6 +69,8 @@ func (s *Server) Close() {
 	s.statistic.Stop()
 }
 
+// getSchedulerClient 获取调度器的 rpc 客户端实例, titan 节点是有区域区分的,不同的节点会连接不同区域的调度器,当需要查询该节点的数据时,需要连接对应的调度器
+// areaId 区域Id在同步的节点的时候会写入到 device_info表,可以查询节点的信息,获得对应的区域ID,如果没有传区域ID,那么会遍历所有的调度器,可能会有性能问题.
 func getSchedulerClient(ctx context.Context, areaId string) (api.Scheduler, error) {
 	schedulers, err := statistics.GetSchedulerConfigs(ctx, fmt.Sprintf("%s::%s", SchedulerConfigKeyPrefix, areaId))
 	if err == redis.Nil && areaId != DefaultAreaId {

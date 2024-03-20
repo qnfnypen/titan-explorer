@@ -14,6 +14,7 @@ import (
 	"time"
 )
 
+// addDeviceInfoHours 写入 device_info_hour 表
 func addDeviceInfoHours(ctx context.Context, deviceInfo []*model.DeviceInfo) error {
 	log.Info("start to fetch device info hours")
 	start := time.Now()
@@ -196,11 +197,6 @@ func SumDeviceInfoProfit() error {
 	defer func() {
 		log.Infof("sum device info profit done, cost: %v", time.Since(start))
 	}()
-
-	//if err := s.SumDeviceInfoDaily(); err != nil {
-	//	log.Errorf("sum device info daily: %v", err)
-	//	return err
-	//}
 
 	updatedDevices := make(map[string]*model.DeviceInfo)
 

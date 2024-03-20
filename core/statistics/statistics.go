@@ -49,6 +49,7 @@ func New(cfg config.StatisticsConfig, client *EtcdClient) *Statistic {
 		cron.WithLocation(time.Local),
 	)
 
+	// 从 Etcd 上获取所有调度器的配置
 	schedulers, err := FetchSchedulersFromEtcd(client)
 	if err != nil {
 		log.Fatalf("fetch scheduler from etcd Failed: %v", err)
@@ -64,8 +65,10 @@ func New(cfg config.StatisticsConfig, client *EtcdClient) *Statistic {
 		etcdClient: client,
 	}
 
+	//  监听 Etcd 的变化，更新调度器
 	go s.watchEtcdSchedulerConfig()
 
+	// 加载注册的数据拉取任务
 	for _, fetcher := range FetcherRegistry {
 		s.fetchers = append(s.fetchers, fetcher())
 	}
@@ -91,6 +94,7 @@ func (s *Statistic) Run() {
 	s.handleJobs()
 }
 
+// handleJobs Fetcher的任务队列，对于第个不同类型的数据下载,都开一个协程处理,使用队列是避免并行写入数据库,获取不到锁写入失败的问题
 func (s *Statistic) handleJobs() {
 	for _, fetcher := range s.fetchers {
 		go func(f Fetcher) {
@@ -103,6 +107,7 @@ func (s *Statistic) handleJobs() {
 						log.Errorf("run job: %v", err)
 					}
 
+					// 当执行完所有的任务之后,调用 Finalize, 主要用于拉取节点数据完成之后的整个节点数据重新统计
 					if len(f.GetJobQueue()) == 0 {
 						err := f.Finalize()
 						if err != nil {
@@ -117,6 +122,7 @@ func (s *Statistic) handleJobs() {
 	}
 }
 
+// runFetchers 遍历所有的调度器,每个调度器开一个协程,并行处理任务
 func (s *Statistic) runFetchers() error {
 	var wg sync.WaitGroup
 	wg.Add(len(s.schedulers))
@@ -149,6 +155,7 @@ func (s *Statistic) Stop() {
 	}
 }
 
+// Once 使用 redis 分布式锁, 当部署多个服务时,保证只有一个服务进行数据拉取和统计,避免重复执行任务,获得锁的服务会执行任务,获取不到锁的则跳过.
 func (s *Statistic) Once(key string, fn func() error) func() {
 	return func() {
 		dKey := fmt.Sprintf("%s::%s", statisticLockerKeyPrefix, key)
@@ -170,20 +177,7 @@ func (s *Statistic) Once(key string, fn func() error) func() {
 	}
 }
 
-func (s *Statistic) asyncExecute(jobs []func() error) {
-	var wg sync.WaitGroup
-	wg.Add(len(jobs))
-	for _, job := range jobs {
-		go func(job func() error) {
-			defer wg.Done()
-			if err := job(); err != nil {
-				log.Errorf("handling job: %v", err)
-			}
-		}(job)
-	}
-	wg.Wait()
-}
-
+// watchEtcdSchedulerConfig 监听 Etcd 中调度器的增加和减少变化
 func (s *Statistic) watchEtcdSchedulerConfig() {
 	watchChan := s.etcdClient.cli.WatchServers(context.Background(), types.NodeScheduler.String())
 	for {
