@@ -74,11 +74,11 @@ func GetDeviceMapInfo(ctx context.Context, lang model.Language, deviceId string)
 		where = fmt.Sprintf(" and device_id = '%s'", deviceId)
 	}
 
-	query := fmt.Sprintf(`select IF(lc.city <> '', lc.city, lc.country) as name, CONCAT(
-    SUBSTRING_INDEX(d.external_ip, '.', 1), 
+	query := fmt.Sprintf(`select t.name, CONCAT(
+    SUBSTRING_INDEX(t.external_ip, '.', 1), 
     '.xxx.xxx.', 
-    SUBSTRING_INDEX(d.external_ip, '.', -1)
-  ) AS ip , d.node_type, d.longitude, d.latitude from device_info d  left join %s lc on d.external_ip = lc.ip  where device_status_code = 1 %s limit 100000`, location, where)
+    SUBSTRING_INDEX(t.external_ip, '.', -1)
+  ) AS ip, t.node_type, t.longitude, t.latitude from  (select IF(lc.city <> '', lc.city, lc.country) as name, external_ip , d.node_type, d.longitude, d.latitude from device_info d  left join %s lc on d.external_ip = lc.ip  where device_status_code = 1 %s) t  group by t.external_ip`, location, where)
 
 	rows, err := DB.QueryxContext(ctx, query)
 	if err != nil {
@@ -88,7 +88,6 @@ func GetDeviceMapInfo(ctx context.Context, lang model.Language, deviceId string)
 	defer rows.Close()
 
 	var out []*MapInfo
-	duplicateIPs := make(map[string]struct{})
 
 	for rows.Next() {
 		var (
@@ -99,13 +98,6 @@ func GetDeviceMapInfo(ctx context.Context, lang model.Language, deviceId string)
 		if err := rows.Scan(&name, &ip, &nodeType, &long, &lat); err != nil {
 			continue
 		}
-
-		_, ok := duplicateIPs[ip]
-		if ok {
-			continue
-		}
-
-		duplicateIPs[ip] = struct{}{}
 
 		out = append(out, &MapInfo{
 			Name:     name,
