@@ -224,6 +224,8 @@ func ToDeviceInfo(node types.NodeInfo, areaId string) *model.DeviceInfo {
 		DeviceName:       node.NodeName,
 		DiskSpace:        formatter.ToFixed(node.DiskSpace, 2),
 		DiskUsage:        formatter.ToFixed(node.DiskUsage, 2),
+		TitanDiskSpace:   formatter.ToFixed(node.AvailableDiskSpace, 2),
+		TitanDiskUsage:   formatter.ToFixed(node.TitanDiskUsage, 2),
 		ActiveStatus:     1,
 		OnlineTime:       float64(node.OnlineDuration),
 		BandwidthUp:      float64(node.BandwidthUp),

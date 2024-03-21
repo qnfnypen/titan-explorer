@@ -133,6 +133,8 @@ type DeviceInfo struct {
 	DeactivateTime  int64   `db:"deactivate_time" json:"deactivate_time"`
 	IncomeIncr      float64 `db:"income_incr" json:"income_incr"`
 	AreaID          string  `db:"area_id" json:"area_id"`
+	TitanDiskSpace  float64 `db:"titan_disk_space" json:"titan_disk_space"`
+	TitanDiskUsage float64 `db:"titan_disk_usage" json:"titan_disk_usage"`
 
 	Location
 }
@@ -209,6 +211,8 @@ type FullNodeInfo struct {
 	OnlineEdgeCount          int32     `db:"online_edge_count" json:"online_edge_count"`
 	TotalStorage             float64   `db:"total_storage" json:"total_storage"`
 	StorageUsed              float64   `db:"storage_used" json:"storage_used"`
+	TitanDiskSpace 			 float64   `db:"titan_disk_space" json:"titan_disk_space"`
+	TitanDiskUsage     		 float64   `db:"titan_disk_usage" json:"titan_disk_usage"`
 	StorageLeft              float64   `db:"storage_left" json:"storage_left"`
 	TotalUpstreamBandwidth   float64   `db:"total_upstream_bandwidth" json:"total_upstream_bandwidth"`
 	TotalDownstreamBandwidth float64   `db:"total_downstream_bandwidth" json:"total_downstream_bandwidth"`
