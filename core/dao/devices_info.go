@@ -562,9 +562,9 @@ func SumFullNodeInfoFromDeviceInfo(ctx context.Context) (*model.FullNodeInfo, er
 			 ROUND(SUM( titan_disk_space),2) AS titan_disk_space, 
 			 ROUND(SUM( titan_disk_usage),2) AS titan_disk_usage, 
        ROUND(SUM(bandwidth_up),2) AS total_upstream_bandwidth, 
-			 ROUND(SUM(bandwidth_down),2) AS total_downstream_bandwidth,
-			 ROUND(SUM(cpu_cores),0) as cpu_cores,
-			 ROUND(SUM(memory),0) as memory,
+			 ROUND(SUM(if(device_status_code = 1, bandwidth_down, 0)),2) AS total_downstream_bandwidth,
+			 ROUND(SUM(if(device_status_code = 1, cpu_cores, 0)),0) as cpu_cores,
+			 ROUND(SUM(if(device_status_code = 1, memory, 0)),0) as memory,
 			 COUNT(distinct external_ip) as ip_count
 		FROM %s where active_status = 1;`, tableNameDeviceInfo)
 
