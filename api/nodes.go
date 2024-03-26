@@ -155,9 +155,13 @@ func setChainHead(ctx context.Context, val interface{}) error {
 func GetIndexInfoHandler(c *gin.Context) {
 	fullNodeInfo, err := dao.GetCacheFullNodeInfo(c.Request.Context())
 	if err != nil {
-		log.Errorf("database GetCacheFullNodeInfo: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
+		list, _, err := dao.GetFullNodeInfoList(c.Request.Context(), &model.FullNodeInfo{}, dao.QueryOption{Page: 1, PageSize: 1})
+		if err != nil {
+			log.Errorf("get full node info list: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+			return
+		}
+		fullNodeInfo = list[0]
 	}
 	c.JSON(http.StatusOK, respJSON(fullNodeInfo))
 }
