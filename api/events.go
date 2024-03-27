@@ -82,6 +82,42 @@ func GetValidationListHandler(c *gin.Context) {
 	return
 }
 
+func GetReplicaListHandler(c *gin.Context) {
+	nodeId := c.Query("device_id")
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+	page, _ := strconv.Atoi(c.Query("page"))
+	queryStatus := c.Query("status")
+
+	var status []types.ReplicaStatus
+	for _, s := range strings.Split(queryStatus, ",") {
+		statusVal, _ := strconv.ParseInt(s, 10, 64)
+		status = append(status, types.ReplicaStatus(statusVal))
+	}
+
+	deviceInfo, err := dao.GetDeviceInfoByID(c.Request.Context(), nodeId)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
+		return
+	}
+
+	schedulerClient, err := getSchedulerClient(c.Request.Context(), deviceInfo.AreaID)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+		return
+	}
+
+	resp, err := schedulerClient.GetReplicasForNode(c.Request.Context(), nodeId, pageSize, (page-1)*pageSize, status)
+	if err != nil {
+		log.Errorf("api GetReplicaEventsForNode: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list":  resp.NodeReplicaInfos,
+		"total": resp.Total,
+	}))
+}
+
 func GetAllocateStorageHandler(c *gin.Context) {
 	userId := c.Query("user_id")
 	if userId == "" {
