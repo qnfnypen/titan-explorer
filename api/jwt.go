@@ -160,8 +160,8 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 				message = "Session expired"
 			}
 
-			c.JSON(200, gin.H{
-				"code":    code,
+			c.JSON(http.StatusOK, gin.H{
+				"code":    401,
 				"msg":     message,
 				"success": false,
 			})
