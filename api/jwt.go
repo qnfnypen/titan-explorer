@@ -24,8 +24,8 @@ const (
 )
 
 type login struct {
-	Username   string `form:"username" json:"username" binding:"required"`
-	Password   string `form:"password" json:"password" binding:"required"`
+	Username   string `form:"username" json:"username"`
+	Password   string `form:"password" json:"password"`
 	VerifyCode string `form:"verify_code" json:"verify_code"`
 	Sign       string `form:"sign" json:"sign"`
 	Address    string `form:"address" json:"address"`
