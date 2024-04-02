@@ -53,6 +53,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	apiV2.GET("/get_index_info", GetIndexInfoHandler)
 	apiV2.GET("/get_query_info", GetQueryInfoHandler)
 	apiV2.GET("/releases", GetReleasesHandler)
+	apiV2.GET("/app_version", GetAppVersionHandler)
 	apiV2.POST("/device", GetDeviceProfileHandler)
 	apiV2.POST("/device/binding", DeviceBindingHandler)
 	apiV2.GET("/device/query_code", QueryDeviceCodeHandler)
@@ -209,4 +210,8 @@ func RegisterRouterWithAPIKey(router *gin.Engine) {
 	storage.POST("/add_fil_storage", CreateFilStorageHandler)
 	storage.GET("/backup_assets", GetBackupAssetsHandler)
 	storage.POST("/backup_result", BackupResultHandler)
+
+	app := authV1.Group("/app")
+	app.Use(AuthAPIKeyMiddlewareFunc())
+	app.POST("/new_version", CreateAppVersionHandler)
 }

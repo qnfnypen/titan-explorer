@@ -89,3 +89,16 @@ type DeviceDistribution struct {
 	Country string `json:"country" db:"country"`
 	Count   int    `json:"count" db:"count"`
 }
+
+type AppVersion struct {
+	ID          int64     `db:"id" json:"-"`
+	Version     string    `db:"version" json:"version"`
+	MinVersion  string    `db:"min_version" json:"min_version"`
+	Description string    `db:"description" json:"description"`
+	Url         string    `db:"url" json:"url"`
+	Size        int64     `db:"size" json:"size"`
+	Platform    string    `db:"platform" json:"platform"`
+	Lang        string    `db:"lang" json:"lang"`
+	CreatedAt   time.Time `db:"created_at" json:"-"`
+	UpdatedAt   time.Time `db:"updated_at" json:"-"`
+}

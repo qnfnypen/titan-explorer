@@ -23,7 +23,7 @@ require (
 	github.com/ipfs/go-log/v2 v2.5.1
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/libp2p/go-libp2p v0.31.1
-	github.com/mssola/user_agent v0.5.3
+	github.com/mssola/user_agent v0.6.0
 	github.com/multiformats/go-multiaddr v0.12.1
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/oschwald/geoip2-golang v1.7.0
