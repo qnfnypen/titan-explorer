@@ -20,7 +20,8 @@ func GetStorageHourHandler(c *gin.Context) {
 	start := c.Query("from")
 	end := c.Query("to")
 	startTime := time.Now()
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))

@@ -71,7 +71,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	apiV2.GET("/get_diagnosis_hours", GetDeviceDiagnosisHourHandler)
 	apiV2.GET("/get_cache_hours", GetCacheHourHandler)
 	apiV2.GET("/get_cache_days", GetCacheDaysHandler)
-	apiV2.GET("/get_applications", GetApplicationsHandler)
+	//apiV2.GET("/get_applications", GetApplicationsHandler)
 	apiV2.GET("/get_storage_stats", ListStorageStats)
 
 	// node daily count
@@ -91,8 +91,8 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	apiV2.Use(authMiddleware.MiddlewareFunc())
 	apiV2.Use(AuthRequired(authMiddleware))
 	apiV2.GET("/get_device_info_auth", GetDeviceInfoHandler)
-	apiV2.GET("/get_application_amount", GetApplicationAmountHandler)
-	apiV2.POST("/create_application", CreateApplicationHandler)
+	//apiV2.GET("/get_application_amount", GetApplicationAmountHandler)
+	//apiV2.POST("/create_application", CreateApplicationHandler)
 	//apiV2.GET("/device_binding", DeviceBindingHandlerOld)
 	apiV2.GET("/device_unbinding", DeviceUnBindingHandlerOld)
 	apiV2.GET("/get_user_device_profile", GetUserDeviceProfileHandler)

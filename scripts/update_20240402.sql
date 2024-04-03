@@ -3,7 +3,7 @@ CREATE TABLE app_version(
 `id` bigint(20) NOT NULL AUTO_INCREMENT,
 `version`  VARCHAR(128) NOT NULL DEFAULT '',
 `min_version` VARCHAR(128) NOT NULL DEFAULT '',
-`description` TEXT NOT NULL DEFAULT '',
+`description` TEXT NOT NULL,
 `url` VARCHAR(128) NOT NULL DEFAULT '',
 `platform`  VARCHAR(64) NOT NULL DEFAULT '',
 `size` bigint(20) NOT NULL DEFAULT 0,

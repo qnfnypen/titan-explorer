@@ -23,6 +23,7 @@ type Config struct {
 	IpDataCloud              IpDataCloudConfig
 	ContainerManager         ContainerManagerEndpointConfig
 	Epoch                    EpochConfig
+	SpecifyCandidate         SpecifyCandidateConfig
 }
 
 type EmailConfig struct {
@@ -63,4 +64,10 @@ type ContainerManagerEndpointConfig struct {
 
 type EpochConfig struct {
 	Token string
+}
+
+type SpecifyCandidateConfig struct {
+	Disable bool
+	AreaId  string
+	NodeId  string
 }

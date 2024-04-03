@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/gnasnik/titan-explorer/config"
 	"net/http"
 	"strconv"
 	"strings"
@@ -15,6 +16,12 @@ import (
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 )
+
+// GetDefaultTitanCandidateEntrypointInfo  specify candidate to upload file in testnet, only for storage api
+func GetDefaultTitanCandidateEntrypointInfo() (string, string) {
+	cfg := config.Cfg.SpecifyCandidate
+	return cfg.AreaId, cfg.NodeId
+}
 
 func GetCacheListHandler(c *gin.Context) {
 	nodeId := c.Query("device_id")
@@ -118,6 +125,12 @@ func GetReplicaListHandler(c *gin.Context) {
 	}))
 }
 
+//	     _______________  ____  ___   ____________   ___    ____  ____
+//		/ ___/_  __/ __ \/ __ \/   | / ____/ ____/  /   |  / __ \/  _/
+//		\__ \ / / / / / / /_/ / /| |/ / __/ __/    / /| | / /_/ // /
+//     ___/ // / / /_/ / _, _/ ___ / /_/ / /___   / ___ |/ ____// /
+//	  /____//_/  \____/_/ |_/_/  |_\____/_____/  /_/  |_/_/   /___/
+
 func GetAllocateStorageHandler(c *gin.Context) {
 	userId := c.Query("user_id")
 	if userId == "" {
@@ -133,7 +146,7 @@ func GetAllocateStorageHandler(c *gin.Context) {
 		_ = dao.CreateUser(c.Request.Context(), &userInfo)
 	}
 
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -154,7 +167,7 @@ func GetAllocateStorageHandler(c *gin.Context) {
 
 func GetStorageSizeHandler(c *gin.Context) {
 	userId := c.Query("user_id")
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -186,7 +199,7 @@ func GetStorageSizeHandler(c *gin.Context) {
 
 func GetUserVipInfoHandler(c *gin.Context) {
 	userId := c.Query("user_id")
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -206,7 +219,7 @@ func GetUserVipInfoHandler(c *gin.Context) {
 
 func GetUserAccessTokenHandler(c *gin.Context) {
 	UserId := c.Query("user_id")
-	areaId := dao.GetAreaID(c.Request.Context(), UserId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -225,7 +238,7 @@ func GetUserAccessTokenHandler(c *gin.Context) {
 
 func CreateAssetHandler(c *gin.Context) {
 	userId := c.Query("user_id")
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, nodeId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -238,28 +251,28 @@ func CreateAssetHandler(c *gin.Context) {
 		return
 	}
 
-	nodeIPInfos, err := schedulerClient.GetCandidateIPs(c.Request.Context())
-	if err != nil {
-		log.Warnf("get candidate ips error %s", err.Error())
-	}
+	//nodeIPInfos, err := schedulerClient.GetCandidateIPs(c.Request.Context())
+	//if err != nil {
+	//	log.Warnf("get candidate ips error %s", err.Error())
+	//}
+	//
+	//var nearestNode string
+	//if len(nodeIPInfos) > 0 {
+	//	nodeMap := make(map[string]string)
+	//	ips := make([]string, 0, len(nodeIPInfos))
+	//	for _, nodeIPInfo := range nodeIPInfos {
+	//		ips = append(ips, nodeIPInfo.IP)
+	//		nodeMap[nodeIPInfo.IP] = nodeIPInfo.NodeID
+	//	}
+	//
+	//	if ip, err := GetUserNearestIP(c.Request.Context(), c.ClientIP(), ips, NewIPCoordinate()); err == nil {
+	//		nearestNode = nodeMap[ip]
+	//	} else {
+	//		log.Warnf("GetUserNearestIP error %s", err.Error())
+	//	}
+	//}
 
-	var nearestNode string
-	if len(nodeIPInfos) > 0 {
-		nodeMap := make(map[string]string)
-		ips := make([]string, 0, len(nodeIPInfos))
-		for _, nodeIPInfo := range nodeIPInfos {
-			ips = append(ips, nodeIPInfo.IP)
-			nodeMap[nodeIPInfo.IP] = nodeIPInfo.NodeID
-		}
-
-		if ip, err := GetUserNearestIP(c.Request.Context(), c.ClientIP(), ips, NewIPCoordinate()); err == nil {
-			nearestNode = nodeMap[ip]
-		} else {
-			log.Warnf("GetUserNearestIP error %s", err.Error())
-		}
-	}
-
-	log.Debugf("CreateAssetHandler clientIP:%s, areaId:%s, nearestNode:%s\n", c.ClientIP(), areaId, nearestNode)
+	log.Debugf("CreateAssetHandler clientIP:%s, areaId:%s, nearestNode:%s\n", c.ClientIP(), areaId, nodeId)
 
 	var createAssetReq types.CreateAssetReq
 	createAssetReq.AssetName = c.Query("asset_name")
@@ -268,7 +281,7 @@ func CreateAssetHandler(c *gin.Context) {
 	createAssetReq.AssetType = c.Query("asset_type")
 	createAssetReq.AssetSize = formatter.Str2Int64(c.Query("asset_size"))
 	createAssetReq.GroupID, _ = strconv.Atoi(c.Query("group_id"))
-	createAssetReq.NodeID = nearestNode
+	createAssetReq.NodeID = nodeId
 
 	if err := dao.AddAssets(c.Request.Context(), []*model.Asset{
 		{
@@ -314,7 +327,7 @@ func CreateKeyHandler(c *gin.Context) {
 		acl = append(acl, types.UserAccessControl(perm))
 	}
 
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -338,7 +351,7 @@ func CreateKeyHandler(c *gin.Context) {
 func DeleteKeyHandler(c *gin.Context) {
 	userId := c.Query("user_id")
 	keyName := c.Query("key_name")
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -358,7 +371,7 @@ func DeleteKeyHandler(c *gin.Context) {
 func DeleteAssetHandler(c *gin.Context) {
 	UserId := c.Query("user_id")
 	cid := c.Query("asset_cid")
-	areaId := dao.GetAreaID(c.Request.Context(), UserId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -379,7 +392,7 @@ func DeleteAssetHandler(c *gin.Context) {
 func ShareAssetsHandler(c *gin.Context) {
 	userId := c.Query("user_id")
 	cid := c.Query("asset_cid")
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -451,7 +464,7 @@ func GetShareLinkHandler(c *gin.Context) {
 func UpdateShareStatusHandler(c *gin.Context) {
 	userId := c.Query("user_id")
 	cid := c.Query("cid")
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -481,7 +494,7 @@ func GetAssetListHandler(c *gin.Context) {
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -520,7 +533,7 @@ func GetAssetListHandler(c *gin.Context) {
 func GetAssetAllListHandler(c *gin.Context) {
 	userId := c.Query("user_id")
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -551,7 +564,7 @@ loop:
 func GetAssetStatusHandler(c *gin.Context) {
 	userId := c.Query("username")
 	cid := c.Query("cid")
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -575,7 +588,7 @@ func GetAssetCountHandler(c *gin.Context) {
 	page, _ := strconv.Atoi(c.Query("page"))
 	pageSize = 100
 	page = 1
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -620,10 +633,10 @@ func GetAssetCountHandler(c *gin.Context) {
 }
 
 func GetCarFileCountHandler(c *gin.Context) {
-	userId := c.Query("user_id")
+	//userId := c.Query("user_id")
 	cid := c.Query("cid")
 	lang := model.Language(c.GetHeader("Lang"))
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -676,10 +689,10 @@ func GetCarFileCountHandler(c *gin.Context) {
 }
 
 func GetLocationHandler(c *gin.Context) {
-	userId := c.Query("user_id")
+	//userId := c.Query("user_id")
 	cid := c.Query("cid")
 	lang := model.Language(c.GetHeader("Lang"))
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -728,10 +741,10 @@ func GetLocationHandler(c *gin.Context) {
 }
 
 func GetMapByCidHandler(c *gin.Context) {
-	userId := c.Query("user_id")
+	//userId := c.Query("user_id")
 	cid := c.Query("cid")
 	lang := model.Language(c.GetHeader("Lang"))
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -766,9 +779,9 @@ func GetMapByCidHandler(c *gin.Context) {
 }
 
 func GetAssetInfoHandler(c *gin.Context) {
-	userId := c.Query("user_id")
+	//userId := c.Query("user_id")
 	cid := c.Query("cid")
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -799,7 +812,7 @@ func GetAssetInfoHandler(c *gin.Context) {
 
 func GetKeyListHandler(c *gin.Context) {
 	userId := c.Query("user_id")
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -889,7 +902,7 @@ func GetAPIKeyPermsHandler(c *gin.Context) {
 	userId := c.Query("user_id")
 	keyName := c.Query("key_name")
 
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -914,7 +927,7 @@ func CreateGroupHandler(c *gin.Context) {
 	userId := c.Query("user_id")
 	name := c.Query("name")
 	parent, _ := strconv.Atoi(c.Query("parent"))
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -942,7 +955,7 @@ func GetGroupsHandler(c *gin.Context) {
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -974,7 +987,7 @@ func GetAssetGroupListHandler(c *gin.Context) {
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 	parentId, _ := strconv.Atoi(c.Query("parent"))
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -1022,7 +1035,7 @@ func DeleteGroupHandler(c *gin.Context) {
 	userId := c.Query("user_id")
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
 
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -1048,7 +1061,7 @@ func RenameGroupHandler(c *gin.Context) {
 	newName := c.Query("new_name")
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
 
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -1074,7 +1087,7 @@ func MoveGroupToGroupHandler(c *gin.Context) {
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
 	targetGroupId, _ := strconv.Atoi(c.Query("target_group_id"))
 
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -1100,7 +1113,7 @@ func MoveAssetToGroupHandler(c *gin.Context) {
 	assetCid := c.Query("asset_cid")
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
 
-	areaId := dao.GetAreaID(c.Request.Context(), userId)
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))

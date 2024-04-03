@@ -377,9 +377,9 @@ func DeviceBindingHandler(c *gin.Context) {
 		return
 	}
 
-	if params.AreaId == "" {
-		params.AreaId = dao.GetAreaID(c.Request.Context(), sign.Username)
-	}
+	//if params.AreaId == "" {
+	//	params.AreaId = dao.GetAreaID(c.Request.Context(), sign.Username)
+	//}
 
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), params.AreaId)
 	if err != nil {
@@ -444,66 +444,6 @@ func DeviceBindingHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, respJSON(nil))
 
-}
-
-// DeviceBindingHandlerOld Deprecate using DeviceBindingHandler instead of
-func DeviceBindingHandlerOld(c *gin.Context) {
-	deviceInfo := &model.DeviceInfo{}
-	deviceInfo.DeviceID = c.Query("device_id")
-	deviceInfo.UserID = c.Query("user_id")
-	deviceInfo.BindStatus = c.Query("band_status")
-
-	old, err := dao.GetDeviceInfoByID(c.Request.Context(), deviceInfo.DeviceID)
-	if err != nil {
-		log.Errorf("get user device: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
-	if old != nil && old.UserID != "" && old.BindStatus == deviceInfo.BindStatus {
-		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
-		return
-	}
-	if deviceInfo.UserID != "" {
-		areaId := dao.GetAreaID(c.Request.Context(), deviceInfo.UserID)
-		schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-		if err != nil {
-			c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-			return
-		}
-		if deviceInfo.BindStatus == "binding" {
-			deviceInfo.ActiveStatus = 1
-			err = schedulerClient.UndoNodeDeactivation(c.Request.Context(), deviceInfo.DeviceID)
-			if err != nil {
-				log.Errorf("api UndoNodeDeactivation: %v", err)
-				c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-				return
-			}
-		}
-		if deviceInfo.BindStatus == "unbinding" {
-			deviceInfo.ActiveStatus = 2
-			err = schedulerClient.DeactivateNode(c.Request.Context(), deviceInfo.DeviceID, 24)
-			if err != nil {
-				log.Errorf("api DeactivateNode: %v", err)
-				c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-				return
-			}
-		}
-	}
-
-	if old != nil && old.BoundAt.IsZero() {
-		deviceInfo.BoundAt = time.Now()
-	}
-
-	err = dao.UpdateUserDeviceInfo(c.Request.Context(), deviceInfo)
-	if err != nil {
-		log.Errorf("update user device: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
-
-	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"msg": "success",
-	}))
 }
 
 func DeviceUnBindingHandlerOld(c *gin.Context) {
