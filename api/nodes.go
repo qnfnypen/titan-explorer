@@ -814,6 +814,7 @@ func getNodeInfoFromScheduler(ctx context.Context, id string, areaId string) (*m
 func GetDeviceProfileHandler(c *gin.Context) {
 	type getEarningReq struct {
 		NodeID string   `json:"node_id"`
+		AreaID string   `json:"area_id"`
 		Keys   []string `json:"keys"`
 		Since  int64    `json:"since"`
 	}
@@ -842,7 +843,7 @@ func GetDeviceProfileHandler(c *gin.Context) {
 
 	deviceInfo, err := dao.GetDeviceInfo(c.Request.Context(), param.NodeID)
 	if err == dao.ErrNoRow {
-		device, err := getDeviceInfoFromSchedulerAndInsert(c.Request.Context(), param.NodeID, "")
+		device, err := getDeviceInfoFromSchedulerAndInsert(c.Request.Context(), param.NodeID, param.AreaID)
 		if err != nil {
 			c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
 			return
