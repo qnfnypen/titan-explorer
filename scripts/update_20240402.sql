@@ -12,3 +12,7 @@ CREATE TABLE app_version(
 `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
 PRIMARY KEY (`id`)
 )ENGINE = INNODB CHARSET = utf8mb4;
+
+
+ALTER TABLE `titan_explorer`.`device_info`
+    ADD INDEX `idx_user_id`(`user_id`) USING BTREE;

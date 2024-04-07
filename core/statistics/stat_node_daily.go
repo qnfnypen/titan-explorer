@@ -26,15 +26,15 @@ func addDeviceInfoHours(ctx context.Context, deviceInfo []*model.DeviceInfo) err
 
 	for _, device := range deviceInfo {
 		var deviceInfoHour model.DeviceInfoHour
-		if device.UserID == "" {
-			deviceOrdinaryInfo, err := dao.GetDeviceInfo(ctx, device.DeviceID)
-			if err != nil {
-				log.Errorf("get device info: %v", err)
-				continue
-			}
-			device.UserID = deviceOrdinaryInfo.UserID
-			deviceInfoHour.UserID = deviceOrdinaryInfo.UserID
-		}
+		//if device.UserID == "" {
+		//	deviceOrdinaryInfo, err := dao.GetDeviceInfo(ctx, device.DeviceID)
+		//	if err != nil {
+		//		log.Errorf("get device info: %v", err)
+		//		continue
+		//	}
+		//	device.UserID = deviceOrdinaryInfo.UserID
+		//	deviceInfoHour.UserID = deviceOrdinaryInfo.UserID
+		//}
 
 		deviceInfoHour.RetrievalCount = device.RetrievalCount
 		deviceInfoHour.BlockCount = device.CacheCount
@@ -219,11 +219,6 @@ func SumDeviceInfoProfit() error {
 		}
 	}
 
-	if err := SumUserDeviceReward(context.Background()); err != nil {
-		log.Errorf("sum user device rewards: %v", err)
-		return err
-	}
-
 	return nil
 }
 
@@ -358,89 +353,6 @@ func SumAllNodes() error {
 	if err = dao.UpsertFullNodeInfo(ctx, fullNodeInfo); err != nil {
 		log.Errorf("upsert full node: %v", err)
 		return err
-	}
-
-	return nil
-}
-
-func UpdateDeviceRank() error {
-	log.Info("start to rank device info")
-	start := time.Now()
-	defer func() {
-		log.Infof("rank device info done, cost: %v", time.Since(start))
-	}()
-
-	ctx := context.Background()
-	if err := dao.RankDeviceInfo(ctx); err != nil {
-		log.Errorf("ranking device info: %v", err)
-		return err
-	}
-	return nil
-}
-
-func (s *Statistic) UpdateDeviceLocation() error {
-	log.Info("start to update device location info")
-	start := time.Now()
-	defer func() {
-		log.Infof("update device location done, cost: %v", time.Since(start))
-	}()
-	if err := dao.RankDeviceInfo(s.ctx); err != nil {
-		log.Errorf("ranking device info: %v", err)
-		return err
-	}
-	return nil
-}
-
-func (s *Statistic) ClaimUserEarning() error {
-	log.Info("start to claim user earning")
-	start := time.Now()
-	defer func() {
-		log.Infof("claim user earning done, cost: %v", time.Since(start))
-	}()
-
-	userRewards, err := dao.SumUserDeviceReward(s.ctx)
-	if err != nil {
-		log.Errorf("sum user rewards: %v", err)
-		return err
-	}
-
-	for userId, reward := range userRewards {
-		err := dao.UpdateUserRewardOld(s.ctx, &model.RewardStatement{
-			Username:  userId,
-			FromUser:  userId,
-			Amount:    reward,
-			Event:     model.RewardEventEarning,
-			Status:    1,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		})
-		if err != nil {
-			log.Errorf("update user reward: %v", err)
-		}
-
-		referer, err := dao.GetUsersReferrer(s.ctx, userId)
-		if errors.Is(err, dao.ErrNoRow) {
-			continue
-		}
-
-		if err != nil {
-			log.Errorf("get user referer: %v", err)
-			continue
-		}
-
-		// referral rewards
-		err = dao.UpdateUserRewardOld(s.ctx, &model.RewardStatement{
-			Username:  referer.Username,
-			FromUser:  userId,
-			Amount:    reward * 10 / 100,
-			Event:     model.RewardEventReferrals,
-			Status:    1,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		})
-		if err != nil {
-			log.Errorf("update user reward: %v", err)
-		}
 	}
 
 	return nil

@@ -141,6 +141,11 @@ func (n NodeFetcher) Finalize() error {
 	if err := SumDeviceInfoProfit(); err != nil {
 		log.Errorf("sum device info profit: %v", err)
 	}
+
+	if err := SumUserDeviceReward(context.Background()); err != nil {
+		log.Errorf("sum user device reward: %v", err)
+	}
+
 	if err := SumAllNodes(); err != nil {
 		log.Errorf("sum all node: %v", err)
 	}

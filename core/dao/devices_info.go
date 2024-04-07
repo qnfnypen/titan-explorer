@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
-	"github.com/jmoiron/sqlx"
 	"strings"
 	"time"
 )
@@ -414,13 +413,6 @@ func UpdateDownloadCount(ctx context.Context, deviceInfo *model.DeviceInfo) erro
 	return err
 }
 
-func UpdateValidateCount(ctx context.Context, deviceInfo *model.DeviceInfo) error {
-	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`UPDATE %s SET total_upload = :total_upload,updated_at = now() WHERE device_id = :device_id`, tableNameDeviceInfo),
-		deviceInfo)
-	return err
-}
-
 func UpdateTotalDownload(ctx context.Context, deviceInfo *model.DeviceInfo) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
 		`UPDATE %s SET total_download = :total_download, updated_at = now() WHERE device_id = :device_id`, tableNameDeviceInfo),
@@ -432,16 +424,6 @@ func UpdateDeviceName(ctx context.Context, deviceInfo *model.DeviceInfo) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
 		`UPDATE %s SET updated_at = now(),device_name = :device_name WHERE device_id = :device_id`, tableNameDeviceInfo),
 		deviceInfo)
-	return err
-}
-
-func UpdateDeviceStatus(ctx context.Context, offlineDeviceIds []string, status string, code int) error {
-	query := fmt.Sprintf(`UPDATE %s SET updated_at = now(), device_status = '%s', device_status_code = %d WHERE device_id in (?)`, tableNameDeviceInfo, status, code)
-	queryIn, args, err := sqlx.In(query, offlineDeviceIds)
-	if err != nil {
-		return err
-	}
-	_, err = DB.ExecContext(ctx, queryIn, args...)
 	return err
 }
 
@@ -536,16 +518,6 @@ func upsertDeviceInfoStatement() string {
 	return insertStatement + updateStatement
 }
 
-func GetAllAreaFromDeviceInfo(ctx context.Context) ([]string, error) {
-	queryStatement := fmt.Sprintf(`SELECT ip_location FROM %s GROUP BY ip_location;`, tableNameDeviceInfo)
-	var out []string
-	err := DB.SelectContext(ctx, &out, queryStatement)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func SumFullNodeInfoFromDeviceInfo(ctx context.Context) (*model.FullNodeInfo, error) {
 	queryStatement := fmt.Sprintf(`
 	SELECT count( device_id ) AS total_node_count ,  
@@ -602,52 +574,6 @@ count(IF(device_status = 'abnormal', 1, NULL)) as abnormal_num, COALESCE(sum(ban
 	}
 
 	return &out, nil
-}
-
-func RankDeviceInfo(ctx context.Context) error {
-	tx := DB.MustBegin()
-	defer tx.Rollback()
-	tx.MustExec("SET @r=0;")
-	queryStatement := fmt.Sprintf(`UPDATE %s SET device_rank= @r:= (@r+1) ORDER BY device_status DESC, node_type DESC, cumulative_profit DESC;`, tableNameDeviceInfo)
-	_, err := tx.ExecContext(ctx, queryStatement)
-	if err != nil {
-		return err
-	}
-	return tx.Commit()
-}
-
-func GenerateInactiveNodeRecords(ctx context.Context, t time.Time) error {
-	var inactiveNodeIds []model.DeviceInfo
-	query := fmt.Sprintf("SELECT * FROM %s where active_status = 1 and updated_at < ?", tableNameDeviceInfo)
-	err := DB.SelectContext(ctx, &inactiveNodeIds, query, t)
-	if err != nil {
-		return err
-	}
-
-	var inactiveNodes []*model.DeviceInfoHour
-	insertRecordStatement := fmt.Sprintf("SELECT * FROM %s WHERE  device_id = ? ORDER BY time DESC limit 1", tableNameDeviceInfoHour)
-	for _, deviceInfo := range inactiveNodeIds {
-		newDIH := model.DeviceInfoHour{}
-		err = DB.Get(&newDIH, insertRecordStatement, deviceInfo.DeviceID)
-		if err != nil {
-			log.Errorf("get inactive node last record,%s: %v", deviceInfo.DeviceID, err)
-			continue
-		}
-		newDIH.CreatedAt = time.Now()
-		newDIH.UpdatedAt = time.Now()
-		newDIH.Time = t
-		newDIH.OnlineTime = deviceInfo.OnlineTime
-		newDIH.DiskUsage = deviceInfo.DiskUsage
-		newDIH.DiskSpace = deviceInfo.DiskSpace
-		newDIH.BlockCount = deviceInfo.CacheCount
-		newDIH.RetrievalCount = deviceInfo.RetrievalCount
-		newDIH.UserID = deviceInfo.UserID
-		newDIH.UpstreamTraffic = deviceInfo.UploadTraffic
-		newDIH.DownstreamTraffic = deviceInfo.DownloadTraffic
-		inactiveNodes = append(inactiveNodes, &newDIH)
-	}
-
-	return BulkUpsertDeviceInfoHours(ctx, inactiveNodes)
 }
 
 func GetDeviceInfo(ctx context.Context, deviceId string) (*model.DeviceInfo, error) {
