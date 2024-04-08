@@ -191,7 +191,7 @@ func (s *Statistic) buildDailyInfos(dataList []map[string]string) ([]*model.Devi
 	return dailyInfos, nil
 }
 
-func SumDeviceInfoProfit() error {
+func (n *NodeFetcher) SumDeviceInfoProfit() error {
 	log.Info("start to sum device info profit")
 	start := time.Now()
 	defer func() {
@@ -208,9 +208,15 @@ func SumDeviceInfoProfit() error {
 	var count int
 	deviceInfos := make([]*model.DeviceInfo, 0)
 	for _, deviceInfo := range updatedDevices {
+		count++
+
+		online, ok := n.nodeState.Load(deviceInfo.DeviceID)
+		if ok && !online.(bool) {
+			continue
+		}
+
 		deviceInfos = append(deviceInfos, deviceInfo)
 
-		count++
 		if len(deviceInfos) == 1000 || count == len(updatedDevices) {
 			if err := dao.BulkUpdateDeviceInfo(context.Background(), deviceInfos); err != nil {
 				log.Errorf("bulk update devices: %v", err)
