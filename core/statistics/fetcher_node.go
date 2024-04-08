@@ -8,7 +8,6 @@ import (
 	"github.com/golang-module/carbon/v2"
 	errs "github.com/pkg/errors"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/gnasnik/titan-explorer/core/dao"
@@ -30,7 +29,6 @@ const (
 // NodeFetcher handles fetching information about all nodes
 type NodeFetcher struct {
 	BaseFetcher
-	nodeState sync.Map
 }
 
 func init() {
@@ -89,17 +87,10 @@ loop:
 
 		nodeInfo := ToDeviceInfo(node, scheduler.AreaId)
 		if nodeInfo.DeviceStatus == DeviceStatusOffline {
-			online, ok := n.nodeState.Load(nodeInfo.DeviceID)
-			if ok && !online.(bool) {
-				continue
-			}
-
-			n.nodeState.Store(nodeInfo.DeviceID, false)
 			offlineNodes = append(offlineNodes, nodeInfo)
 			continue
 		}
 
-		n.nodeState.Store(nodeInfo.DeviceID, true)
 		onlineNodes = append(onlineNodes, nodeInfo)
 	}
 

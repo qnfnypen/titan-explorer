@@ -210,11 +210,6 @@ func (n *NodeFetcher) SumDeviceInfoProfit() error {
 	for _, deviceInfo := range updatedDevices {
 		count++
 
-		online, ok := n.nodeState.Load(deviceInfo.DeviceID)
-		if ok && !online.(bool) {
-			continue
-		}
-
 		deviceInfos = append(deviceInfos, deviceInfo)
 
 		if len(deviceInfos) == 1000 || count == len(updatedDevices) {
