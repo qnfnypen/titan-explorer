@@ -101,7 +101,7 @@ func GetLatestDeviceStat(ctx context.Context, deviceId string, start string) (De
 		query2 := fmt.Sprintf(`select 
     	hour_income as income, 
     	upstream_traffic, downstream_traffic, block_count, retrieval_count, 
-    	online_time from device_info_hour where device_id = '%s' order by time limit 1`, deviceId, start)
+    	online_time from device_info_hour where device_id = '%s' order by time limit 1`, deviceId)
 
 		err = DB.GetContext(ctx, &ds, query2)
 		if err == sql.ErrNoRows {
