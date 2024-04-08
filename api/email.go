@@ -6,6 +6,8 @@ import (
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/mail"
+	"github.com/pkg/errors"
+	"math/rand"
 	"strconv"
 )
 
@@ -34,12 +36,22 @@ func sendEmail(sendTo string, vc, lang string) error {
 	content = fmt.Sprintf(content, verificationBtn)
 
 	contentType := "text/html"
-	port, err := strconv.ParseInt(config.Cfg.Email.SMTPPort, 10, 64)
+
+	var mailCfg config.EmailConfig
+	if len(config.Cfg.Emails) > 0 {
+		mailCfg = config.Cfg.Emails[rand.Intn(len(config.Cfg.Emails))]
+	} else {
+		log.Errorf("email config not set")
+		return errors.Errorf("email config not set")
+	}
+
+	port, err := strconv.ParseInt(mailCfg.SMTPPort, 10, 64)
 	if err != nil {
 		log.Errorf("parse port: %v", err)
 	}
-	message := mail.NewEmailMessage(config.Cfg.Email.From, config.Cfg.Email.Nickname, emailSubject[lang], contentType, content, "", []string{sendTo}, nil)
-	client := mail.NewEmailClient(config.Cfg.Email.SMTPHost, config.Cfg.Email.Username, config.Cfg.Email.Password, int(port), message)
+
+	message := mail.NewEmailMessage(mailCfg.From, mailCfg.Nickname, emailSubject[lang], contentType, content, "", []string{sendTo}, nil)
+	client := mail.NewEmailClient(mailCfg.SMTPHost, mailCfg.Username, mailCfg.Password, int(port), message)
 	_, err = client.SendMessage()
 	if err != nil {
 		return err

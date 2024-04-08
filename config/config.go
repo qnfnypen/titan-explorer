@@ -18,7 +18,7 @@ type Config struct {
 	RedisPassword            string
 	FilecoinRPCServerAddress string
 	Statistic                StatisticsConfig
-	Email                    EmailConfig
+	Emails                   []EmailConfig
 	StorageBackup            StorageBackupConfig
 	IpDataCloud              IpDataCloudConfig
 	ContainerManager         ContainerManagerEndpointConfig
