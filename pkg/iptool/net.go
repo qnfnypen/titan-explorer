@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strings"
 )
 
 var privateIPNets = []string{
@@ -30,12 +31,24 @@ func IsPrivateIP(ip net.IP) bool {
 }
 
 func GetClientIP(r *http.Request) string {
-	reqIP := r.Header.Get("X-Real-IP")
-	if reqIP == "" {
-		h, _, _ := net.SplitHostPort(r.RemoteAddr)
-		reqIP = h
+	ip := strings.TrimSpace(strings.Split(r.Header.Get("X-Original-Forwarded-For"), ",")[0])
+	if ip != "" {
+		return ip
 	}
-	return reqIP
+
+	ip = strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-For"), ",")[0])
+	if ip != "" {
+		return ip
+	}
+
+	ip = r.Header.Get("X-Real-IP")
+	if ip != "" {
+		return ip
+	}
+
+	ip, _, _ = net.SplitHostPort(r.RemoteAddr)
+
+	return ip
 }
 
 func GetLocationByIP(ip string) string {
