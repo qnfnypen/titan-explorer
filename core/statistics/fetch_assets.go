@@ -134,6 +134,11 @@ Loop:
 func toAssets(in []*types.ReplicaEventInfo) ([]*model.Asset, error) {
 	var out []*model.Asset
 	for _, r := range in {
+		
+		if r.Source == types.AssetSourceAWS || r.Source == types.AssetSourceMinio {
+			continue
+		}
+
 		out = append(out, &model.Asset{
 			NodeID:     r.NodeID,
 			Event:      int64(r.Event),
