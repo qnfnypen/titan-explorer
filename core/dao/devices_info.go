@@ -119,7 +119,7 @@ func GetDeviceDistribution(ctx context.Context, lang model.Language) ([]*model.D
 	if lang != "" {
 		table = fmt.Sprintf("location_%s", lang)
 	}
-	query := fmt.Sprintf(`select l.country as country, count(d.device_id) as count from device_info d left join %s l on d.external_ip = l.ip where device_status_code = 1 group by d.ip_country order by count desc limit 10;`, table)
+	query := fmt.Sprintf(`select IFNULL(l.country, '') as country, count(d.device_id) as count from device_info d left join %s l on d.external_ip = l.ip where device_status_code = 1 group by d.ip_country order by count desc limit 10;`, table)
 	var out []*model.DeviceDistribution
 	err := DB.SelectContext(ctx, &out, query)
 	return out, err
