@@ -26,15 +26,11 @@ func addDeviceInfoHours(ctx context.Context, deviceInfo []*model.DeviceInfo) err
 
 	for _, device := range deviceInfo {
 		var deviceInfoHour model.DeviceInfoHour
-		//if device.UserID == "" {
-		//	deviceOrdinaryInfo, err := dao.GetDeviceInfo(ctx, device.DeviceID)
-		//	if err != nil {
-		//		log.Errorf("get device info: %v", err)
-		//		continue
-		//	}
-		//	device.UserID = deviceOrdinaryInfo.UserID
-		//	deviceInfoHour.UserID = deviceOrdinaryInfo.UserID
-		//}
+		if device.UserID == "" {
+			userId := getDeviceUserId(ctx, device.DeviceID)
+			device.UserID = userId
+			deviceInfoHour.UserID = userId
+		}
 
 		deviceInfoHour.RetrievalCount = device.RetrievalCount
 		deviceInfoHour.BlockCount = device.CacheCount
@@ -78,6 +74,26 @@ func addDeviceInfoHours(ctx context.Context, deviceInfo []*model.DeviceInfo) err
 	}
 
 	return nil
+}
+
+func getDeviceUserId(ctx context.Context, deviceId string) string {
+	userId, err := dao.GetDeviceUserIdFromCache(ctx, deviceId)
+	if err == nil && userId != "" {
+		return userId
+	}
+
+	deviceOrdinaryInfo, err := dao.GetDeviceInfo(ctx, deviceId)
+	if err != nil {
+		log.Errorf("get device info: %v", err)
+		return ""
+	}
+
+	err = dao.SetDeviceUserIdToCache(ctx, deviceId, deviceOrdinaryInfo.UserID)
+	if err != nil {
+		log.Errorf("set device user to cahce: %v", err)
+	}
+
+	return deviceOrdinaryInfo.UserID
 }
 
 func QueryDataByDate(DateFrom, DateTo string) []map[string]string {

@@ -580,6 +580,23 @@ count(IF(device_status = 'abnormal', 1, NULL)) as abnormal_num, COALESCE(sum(ban
 	return &out, nil
 }
 
+func GetDeviceUserIdFromCache(ctx context.Context, deviceId string) (string, error) {
+	key := fmt.Sprintf("TITAN::DEVICEUSERS")
+	return RedisCache.HGet(ctx, key, deviceId).Result()
+}
+
+func SetDeviceUserIdToCache(ctx context.Context, deviceId, userId string) error {
+	key := fmt.Sprintf("TITAN::DEVICEUSERS")
+	_, err := RedisCache.HSet(ctx, key, deviceId, userId).Result()
+	return err
+}
+
+func SetMultipleDeviceUserIdToCache(ctx context.Context, keyVal map[string]string) error {
+	key := fmt.Sprintf("TITAN::DEVICEUSERS")
+	_, err := RedisCache.HSet(ctx, key, keyVal).Result()
+	return err
+}
+
 func GetDeviceInfo(ctx context.Context, deviceId string) (*model.DeviceInfo, error) {
 	var deviceInfo model.DeviceInfo
 	query := fmt.Sprintf("SELECT * FROM %s where device_id = '%s'", tableNameDeviceInfo, deviceId)
@@ -593,6 +610,11 @@ func GetDeviceInfo(ctx context.Context, deviceId string) (*model.DeviceInfo, err
 		return nil, err
 	}
 	return &deviceInfo, nil
+}
+
+func UpdateDeviceInfoDailyUser(ctx context.Context, deviceId, userId string) error {
+	_, err := DB.ExecContext(context.Background(), "update device_info_daily set user_id = ? where device_id = ? and user_id = ''", userId, deviceId)
+	return err
 }
 
 func GetDeviceInfoById(ctx context.Context, deviceId string) model.DeviceInfo {
