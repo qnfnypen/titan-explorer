@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"fmt"
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
@@ -193,9 +194,13 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 
 func loginByPassword(c *gin.Context, username, password string) (interface{}, error) {
 	user, err := dao.GetUserByUsername(c.Request.Context(), username)
+	if err == sql.ErrNoRows {
+		return nil, errors.NewErrorCode(errors.UserNotFound, c)
+	}
+
 	if err != nil {
 		log.Errorf("get user by username: %v", err)
-		return nil, errors.NewErrorCode(errors.UserNotFound, c)
+		return nil, errors.NewErrorCode(errors.InternalServer, c)
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PassHash), []byte(password)); err != nil {
@@ -233,9 +238,13 @@ func loginByVerifyCode(c *gin.Context, username, inputCode string) (interface{},
 		return nil, errors.NewErrorCode(errors.VerifyCodeExpired, c)
 	}
 	user, err := dao.GetUserByUsername(c.Request.Context(), username)
+	if err == sql.ErrNoRows {
+		return nil, errors.NewErrorCode(errors.UserNotFound, c)
+	}
+
 	if err != nil {
 		log.Errorf("get user by username: %v", err)
-		return nil, errors.NewErrorCode(errors.UserNotFound, c)
+		return nil, errors.NewErrorCode(errors.InternalServer, c)
 	}
 	if code != inputCode {
 		return nil, errors.NewErrorCode(errors.InvalidVerifyCode, c)
