@@ -303,7 +303,7 @@ func GetDeviceInfoListByKey(ctx context.Context, cond *model.DeviceInfo, option 
 }
 
 func TranslateIPLocation(ctx context.Context, info *model.DeviceInfo, lang model.Language) {
-	if lang == model.LanguageEN {
+	if lang == model.LanguageEN || lang == "" {
 		return
 	}
 
