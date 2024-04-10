@@ -84,7 +84,7 @@ func getDeviceUserId(ctx context.Context, deviceId string) string {
 
 	deviceOrdinaryInfo, err := dao.GetDeviceInfo(ctx, deviceId)
 	if err != nil {
-		log.Errorf("get device info: %v", err)
+		log.Errorf("set device info: %v", err)
 		return ""
 	}
 
@@ -267,7 +267,7 @@ func updateDeviceInfoForTimeRange(updatedDevices map[string]*model.DeviceInfo, s
 	}
 }
 
-func SumUserDeviceReward(ctx context.Context) error {
+func SumUserDeviceReward2(ctx context.Context) error {
 	log.Info("start to sum user device reward")
 	start := time.Now()
 	defer func() {
@@ -279,42 +279,91 @@ func SumUserDeviceReward(ctx context.Context) error {
 		return err
 	}
 
-	rewardInUser := make(map[string]*model.User)
+	referralRewards, err := dao.SumUserReferralReward2(ctx)
+	if err != nil {
+		return err
+	}
 
+	var count int
+	users := make([]*model.User, 0)
 	for _, user := range sumReward {
-		err = dao.UpdateUserReward(ctx, user)
-		if err != nil {
-			log.Errorf("UpdateUserReward: %v", err)
+
+		if rw, ok := referralRewards[user.Username]; ok {
+			user.RefereralReward = rw
 		}
 
-		referer, err := dao.GetUsersReferrer(ctx, user.Username)
-		if errors.Is(err, dao.ErrNoRow) {
-			continue
-		}
+		count++
+		users = append(users, user)
 
-		if err != nil {
-			log.Errorf("get user referer: %v", err)
-			continue
-		}
-
-		referralReward := user.Reward * 0.05
-		_, ok := rewardInUser[referer.Username]
-		if !ok {
-			rewardInUser[referer.Username] = &model.User{Username: referer.Username}
-		}
-
-		rewardInUser[referer.Username].RefereralReward += referralReward
-	}
-
-	for _, user := range rewardInUser {
-		err = dao.UpdateUserReferralReward(ctx, user)
-		if err != nil {
-			log.Errorf("UpdateUserReward: %v", err)
+		if len(users) == 1000 || count == len(sumReward) {
+			if err := dao.BulkUpdateUserReward(context.Background(), users); err != nil {
+				log.Errorf("bulk update devices: %v", err)
+			}
+			users = make([]*model.User, 0)
 		}
 	}
+
+	//for _, user := range sumReward {
+	//	if rw, ok := referralRewards[user.Username]; ok {
+	//		user.RefereralReward = rw
+	//	}
+	//	err = dao.UpdateUserReferralReward2(ctx, user)
+	//	if err != nil {
+	//		log.Errorf("UpdateUserReward: %v", err)
+	//	}
+	//}
 
 	return nil
 }
+
+//func SumUserDeviceReward(ctx context.Context) error {
+//	log.Info("start to sum user device reward")
+//	start := time.Now()
+//	defer func() {
+//		log.Infof("sum sum user device reward done, cost: %v", time.Since(start))
+//	}()
+//
+//	sumReward, err := dao.GetSumUserDeviceReward(ctx)
+//	if err != nil {
+//		return err
+//	}
+//
+//	rewardInUser := make(map[string]*model.User)
+//
+//	for _, user := range sumReward {
+//		err = dao.UpdateUserReward(ctx, user)
+//		if err != nil {
+//			log.Errorf("UpdateUserReward: %v", err)
+//		}
+//
+//		referer, err := dao.GetUsersReferrer(ctx, user.Username)
+//		if errors.Is(err, dao.ErrNoRow) {
+//			continue
+//		}
+//
+//		if err != nil {
+//			log.Errorf("get user referer: %v", err)
+//			continue
+//		}
+//
+//		referralReward := user.Reward * 0.05
+//		_, ok := rewardInUser[referer.Username]
+//		if !ok {
+//			rewardInUser[referer.Username] = &model.User{Username: referer.Username}
+//		}
+//
+//		rewardInUser[referer.Username].RefereralReward += referralReward
+//	}
+//
+//	for _, user := range rewardInUser {
+//		err = dao.UpdateUserReferralReward(ctx, user)
+//		if err != nil {
+//			log.Errorf("UpdateUserReward: %v", err)
+//		}
+//	}
+//
+//	return nil
+//}
 
 func SumAllNodes() error {
 	log.Info("start to sum all nodes")

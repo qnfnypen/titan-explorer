@@ -309,6 +309,7 @@ type User struct {
 	AllocateStorage  int       `db:"allocate_storage" json:"allocate_storage"`
 	ProjectId        int64     `db:"project_id"`
 	Referrer         string    `db:"referrer" json:"referrer"`
+	ReferrerUserId   string    `db:"referrer_user_id" json:"-"`
 	ReferralCode     string    `db:"referral_code" json:"referral_code"`
 	Reward           float64   `db:"reward" json:"reward"`
 	RefereralReward  float64   `db:"referral_reward" json:"referral_reward"`
@@ -317,8 +318,8 @@ type User struct {
 	ClosedTestReward float64   `db:"closed_test_reward" json:"closed_test_reward"`
 	DeviceCount      int64     `db:"device_count" json:"device_count"`
 	CreatedAt        time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt        time.Time `db:"updated_at" json:"updated_at"`
-	DeletedAt        time.Time `db:"deleted_at" json:"deleted_at"`
+	UpdatedAt        time.Time `db:"updated_at" json:"-"`
+	DeletedAt        time.Time `db:"deleted_at" json:"-"`
 }
 
 type Link struct {

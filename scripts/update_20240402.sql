@@ -16,3 +16,8 @@ PRIMARY KEY (`id`)
 
 ALTER TABLE `titan_explorer`.`device_info`
     ADD INDEX `idx_user_id`(`user_id`) USING BTREE;
+
+ALTER  TABLE  device_info ADD COLUMN cpu_info VARCHAR(128) NOT NULL DEFAULT '' AFTER cpu_cores;
+ALTER  TABLE  device_info ADD COLUMN last_seen DATETIME(3) NOT NULL DEFAULT 0;
+
+ALTER TABLE users ADD COLUMN referrer_user_id VARCHAR(64) NOT NULL DEFAULT '' AFTER referrer;

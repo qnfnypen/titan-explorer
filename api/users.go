@@ -97,13 +97,14 @@ func UserRegister(c *gin.Context) {
 	}
 
 	//var referrer *model.User
-	//if userInfo.Referrer != "" {
-	//	referrer, err = dao.GetUserByRefCode(c.Request.Context(), userInfo.Referrer)
-	//	if err != nil {
-	//		c.JSON(http.StatusOK, respErrorCode(errors.InvalidReferralCode, c))
-	//		return
-	//	}
-	//}
+	if userInfo.Referrer != "" {
+		referrer, err := dao.GetUserByRefCode(c.Request.Context(), userInfo.Referrer)
+		if err != nil {
+			c.JSON(http.StatusOK, respErrorCode(errors.InvalidReferralCode, c))
+			return
+		}
+		userInfo.ReferrerUserId = referrer.Username
+	}
 
 	passHash, err := bcrypt.GenerateFromPassword([]byte(passwd), bcrypt.DefaultCost)
 	if err != nil {

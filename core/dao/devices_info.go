@@ -581,12 +581,12 @@ count(IF(device_status = 'abnormal', 1, NULL)) as abnormal_num, COALESCE(sum(ban
 }
 
 func GetDeviceUserIdFromCache(ctx context.Context, deviceId string) (string, error) {
-	key := fmt.Sprintf("TITAN::DEVICEUSERS")
+	key := "TITAN::DEVICEUSERS"
 	return RedisCache.HGet(ctx, key, deviceId).Result()
 }
 
 func SetDeviceUserIdToCache(ctx context.Context, deviceId, userId string) error {
-	key := fmt.Sprintf("TITAN::DEVICEUSERS")
+	key := "TITAN::DEVICEUSERS"
 	_, err := RedisCache.HSet(ctx, key, deviceId, userId).Result()
 	return err
 }
@@ -738,6 +738,19 @@ func GetDeviceProfileFromCache(ctx context.Context, deviceId string) (map[string
 	return out, nil
 }
 
+func SumUserReferralReward(ctx context.Context) ([]*model.User, error) {
+	query := `select  u.referrer_user_id as username , sum(d.cumulative_profit)* 0.05 as referral_reward  from device_info d 
+            inner join users u on d.user_id = u.username  and u.referrer_user_id <> '' group by u.referrer_user_id order by reward desc `
+
+	var users []*model.User
+	err := DB.SelectContext(ctx, &users, query)
+	if err != nil {
+		log.Errorf("SumUserReferralReward %v", err)
+		return nil, err
+	}
+	return users, nil
+}
+
 func GetSumUserDeviceReward(ctx context.Context) ([]*model.User, error) {
 	var users []*model.User
 	query := fmt.Sprintf(`select user_id as username, sum(cumulative_profit) as reward, count(device_id) as device_count from device_info  where user_id <>'' GROUP BY user_id;`)
@@ -747,4 +760,32 @@ func GetSumUserDeviceReward(ctx context.Context) ([]*model.User, error) {
 		return nil, err
 	}
 	return users, nil
+}
+
+func SumUserReferralReward2(ctx context.Context) (map[string]float64, error) {
+	out := make(map[string]float64)
+
+	query := `select referrer_user_id, sum(reward) * 0.05 as referral_reward from users where referrer_user_id <> '' group by referrer_user_id`
+	rows, err := DB.QueryxContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var (
+		userid         string
+		referralReward float64
+	)
+
+	for rows.Next() {
+		err = rows.Scan(&userid, &referralReward)
+		if err != nil {
+			log.Errorf("scan %v", err)
+			continue
+		}
+
+		out[userid] = referralReward
+	}
+
+	return out, nil
 }

@@ -12,8 +12,8 @@ const tableNameUser = "users"
 
 func CreateUser(ctx context.Context, user *model.User) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s (uuid, username, pass_hash, user_email, wallet_address, role, referrer, referral_code, created_at)
-			VALUES (:uuid, :username, :pass_hash, :user_email, :wallet_address, :role, :referrer, :referral_code, :created_at);`, tableNameUser,
+		`INSERT INTO %s (uuid, username, pass_hash, user_email, wallet_address, role, referrer, referral_code, referrer_user_id, created_at)
+			VALUES (:uuid, :username, :pass_hash, :user_email, :wallet_address, :role, :referrer, :referral_code, :referrer_user_id, :created_at);`, tableNameUser,
 	), user)
 	return err
 }
