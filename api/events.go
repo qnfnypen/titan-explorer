@@ -39,6 +39,11 @@ func GetCacheListHandler(c *gin.Context) {
 		return
 	}
 
+	if deviceInfo == nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
+		return
+	}
+
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), deviceInfo.AreaID)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -66,6 +71,11 @@ func GetValidationListHandler(c *gin.Context) {
 
 	deviceInfo, err := dao.GetDeviceInfoByID(c.Request.Context(), nodeId)
 	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
+		return
+	}
+
+	if deviceInfo == nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
 		return
 	}
@@ -113,6 +123,11 @@ func GetReplicaListHandler(c *gin.Context) {
 
 	deviceInfo, err := dao.GetDeviceInfoByID(c.Request.Context(), nodeId)
 	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
+		return
+	}
+
+	if deviceInfo == nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
 		return
 	}
@@ -859,6 +874,11 @@ func GetRetrievalListHandler(c *gin.Context) {
 
 	deviceInfo, err := dao.GetDeviceInfoByID(c.Request.Context(), nodeId)
 	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
+		return
+	}
+
+	if deviceInfo == nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
 		return
 	}

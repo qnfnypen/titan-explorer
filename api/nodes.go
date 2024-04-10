@@ -704,6 +704,11 @@ func GetDeviceDiagnosisHourHandler(c *gin.Context) {
 		return
 	}
 
+	if deviceInfo == nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
+		return
+	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"series_data":  data,
 		"cpu_cores":    deviceInfo.CpuCores,
