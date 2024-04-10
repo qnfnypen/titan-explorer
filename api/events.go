@@ -28,6 +28,11 @@ func GetCacheListHandler(c *gin.Context) {
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 
+	if nodeId == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
 	deviceInfo, err := dao.GetDeviceInfoByID(c.Request.Context(), nodeId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
@@ -94,6 +99,11 @@ func GetReplicaListHandler(c *gin.Context) {
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 	queryStatus := c.Query("status")
+
+	if nodeId == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
 
 	var status []types.ReplicaStatus
 	for _, s := range strings.Split(queryStatus, ",") {
@@ -842,6 +852,11 @@ func GetRetrievalListHandler(c *gin.Context) {
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 
+	if nodeId == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
 	deviceInfo, err := dao.GetDeviceInfoByID(c.Request.Context(), nodeId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
@@ -882,6 +897,12 @@ func GetCacheHourHandler(c *gin.Context) {
 	deviceID := c.Query("device_id")
 	start := c.Query("from")
 	end := c.Query("to")
+
+	if deviceID == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
 	dataHour := dao.QueryCacheHour(deviceID, start, end)
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"series_data": dataHour,
@@ -892,6 +913,12 @@ func GetCacheDaysHandler(c *gin.Context) {
 	deviceID := c.Query("device_id")
 	start := c.Query("from")
 	end := c.Query("to")
+
+	if deviceID == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
 	dataDaily := dao.QueryCacheDaily(deviceID, start, end)
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"series_data": dataDaily,

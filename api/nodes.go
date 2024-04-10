@@ -649,6 +649,12 @@ func GetDeviceDiagnosisDailyByDeviceIdHandler(c *gin.Context) {
 	from := c.Query("from")
 	to := c.Query("to")
 	deviceID := c.Query("device_id")
+
+	if deviceID == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
 	m := queryDeviceStatisticsDaily(deviceID, from, to)
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"series_data": m,
@@ -660,6 +666,12 @@ func GetDeviceDiagnosisDailyByUserIdHandler(c *gin.Context) {
 	to := c.Query("to")
 	userId := c.Query("user_id")
 	notBound := c.Query("not_bound")
+
+	if userId == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
 	option := dao.QueryOption{
 		StartTime: from,
 		EndTime:   to,
@@ -674,9 +686,13 @@ func GetDeviceDiagnosisDailyByUserIdHandler(c *gin.Context) {
 
 func GetDeviceDiagnosisHourHandler(c *gin.Context) {
 	deviceID := c.Query("device_id")
-	//date := c.Query("date")
 	start := c.Query("from")
 	end := c.Query("to")
+
+	if deviceID == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
 
 	data := make([]*dao.DeviceStatistics, 0)
 	data = queryDeviceStatisticHourly(deviceID, start, end)
@@ -707,6 +723,12 @@ func GetDeviceInfoDailyHandler(c *gin.Context) {
 	cond.DeviceID = c.Query("device_id")
 	pageSize, _ := strconv.Atoi("page_size")
 	page, _ := strconv.Atoi("page")
+
+	if cond.DeviceID == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
 	option := dao.QueryOption{
 		Page:       page,
 		PageSize:   pageSize,
