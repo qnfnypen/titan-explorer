@@ -15,48 +15,16 @@ import (
 )
 
 // addDeviceInfoHours 写入 device_info_hour 表
-func addDeviceInfoHours(ctx context.Context, deviceInfo []*model.DeviceInfo) error {
+func addDeviceInfoHours(ctx context.Context, upsertDevice []*model.DeviceInfoHour) error {
 	log.Info("start to fetch device info hours")
 	start := time.Now()
 	defer func() {
 		log.Infof("fetch device info hours done, cost: %v", time.Since(start))
 	}()
 
-	var upsertDevice []*model.DeviceInfoHour
-
-	for _, device := range deviceInfo {
-		var deviceInfoHour model.DeviceInfoHour
-		if device.UserID == "" {
-			userId := getDeviceUserId(ctx, device.DeviceID)
-			device.UserID = userId
-			deviceInfoHour.UserID = userId
-		}
-
-		deviceInfoHour.RetrievalCount = device.RetrievalCount
-		deviceInfoHour.BlockCount = device.CacheCount
-		deviceInfoHour.DeviceID = device.DeviceID
-		deviceInfoHour.Time = start
-		deviceInfoHour.DiskUsage = device.DiskUsage
-		deviceInfoHour.DiskSpace = device.DiskSpace
-		deviceInfoHour.HourIncome = device.CumulativeProfit
-		deviceInfoHour.BandwidthUp = device.BandwidthUp
-		deviceInfoHour.BandwidthDown = device.BandwidthDown
-		deviceInfoHour.UpstreamTraffic = device.UploadTraffic
-		deviceInfoHour.DownstreamTraffic = device.DownloadTraffic
-		deviceInfoHour.OnlineTime = device.OnlineTime
-		deviceInfoHour.CreatedAt = time.Now()
-		deviceInfoHour.UpdatedAt = time.Now()
-
-		upsertDevice = append(upsertDevice, &deviceInfoHour)
-	}
-
 	err := dao.BulkUpsertDeviceInfoHours(ctx, upsertDevice)
 	if err != nil {
 		log.Errorf("bulk upsert device info: %v", err)
-	}
-
-	if err := sumDailyReward(ctx, start, deviceInfo); err != nil {
-		log.Errorf("add device info daily reward: %v", err)
 	}
 
 	if start.Minute() != 0 {

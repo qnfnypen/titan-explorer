@@ -76,8 +76,9 @@ loop:
 	page++
 
 	var (
-		onlineNodes  []*model.DeviceInfo
-		offlineNodes []*model.DeviceInfo
+		onlineNodes     []*model.DeviceInfo
+		offlineNodes    []*model.DeviceInfo
+		deviceInfoHours []*model.DeviceInfoHour
 	)
 
 	for _, node := range resp.Data {
@@ -91,6 +92,7 @@ loop:
 			continue
 		}
 
+		deviceInfoHours = append(deviceInfoHours, ToDeviceInfoHour(nodeInfo, start))
 		onlineNodes = append(onlineNodes, nodeInfo)
 	}
 
@@ -108,10 +110,13 @@ loop:
 				log.Errorf("%s bulk upsert device info: %v", scheduler.AreaId, err)
 			}
 
-			if err = addDeviceInfoHours(ctx, onlineNodes); err != nil {
+			if err = addDeviceInfoHours(ctx, deviceInfoHours); err != nil {
 				log.Errorf("add device info hours: %v", err)
 			}
 
+			if err := sumDailyReward(ctx, start, onlineNodes); err != nil {
+				log.Errorf("add device info daily reward: %v", err)
+			}
 		}
 
 		if len(offlineNodes) > 0 {
@@ -220,6 +225,28 @@ func deviceInfoToDailyInfo(deviceInfo *model.DeviceInfo) *model.DeviceInfoDaily 
 		DownstreamTraffic: deviceInfo.DownloadTraffic,
 		RetrievalCount:    deviceInfo.RetrievalCount,
 		BlockCount:        deviceInfo.CacheCount,
+	}
+}
+
+func ToDeviceInfoHour(device *model.DeviceInfo, t time.Time) *model.DeviceInfoHour {
+	userId := getDeviceUserId(context.Background(), device.DeviceID)
+	device.UserID = userId
+	return &model.DeviceInfoHour{
+		UserID:            userId,
+		RetrievalCount:    device.RetrievalCount,
+		BlockCount:        device.CacheCount,
+		DeviceID:          device.DeviceID,
+		Time:              t,
+		DiskUsage:         device.DiskUsage,
+		DiskSpace:         device.DiskSpace,
+		HourIncome:        device.CumulativeProfit,
+		BandwidthUp:       device.BandwidthUp,
+		BandwidthDown:     device.BandwidthDown,
+		UpstreamTraffic:   device.UploadTraffic,
+		DownstreamTraffic: device.DownloadTraffic,
+		OnlineTime:        device.OnlineTime,
+		CreatedAt:         time.Now(),
+		UpdatedAt:         time.Now(),
 	}
 }
 
