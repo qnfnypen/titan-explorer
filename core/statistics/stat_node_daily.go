@@ -45,11 +45,6 @@ func addDeviceInfoHours(ctx context.Context, upsertDevice []*model.DeviceInfoHou
 }
 
 func getDeviceUserId(ctx context.Context, deviceId string) string {
-	userId, err := dao.GetDeviceUserIdFromCache(ctx, deviceId)
-	if err == nil && userId != "" {
-		return userId
-	}
-
 	deviceOrdinaryInfo, err := dao.GetDeviceInfo(ctx, deviceId)
 	if err != nil {
 		log.Errorf("set device info: %v", err)

@@ -59,6 +59,11 @@ func (n *NodeFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
 		log.Infof("fetch all nodes done from scheduler: %s, cost: %v", scheduler.AreaId, time.Since(start))
 	}()
 
+	userInDevice, err := dao.GetAllDeviceUserIdFromCache(ctx)
+	if err != nil {
+		log.Errorf("get all device user id from cache: %v", err)
+	}
+
 	var total int64
 	page, size := 1, maxPageSize
 
@@ -92,6 +97,12 @@ loop:
 			continue
 		}
 
+		userId, ok := userInDevice[nodeInfo.DeviceID]
+		if !ok || userId == "" {
+			userId = getDeviceUserId(ctx, nodeInfo.DeviceID)
+		}
+
+		nodeInfo.UserID = userId
 		deviceInfoHours = append(deviceInfoHours, ToDeviceInfoHour(nodeInfo, start))
 		onlineNodes = append(onlineNodes, nodeInfo)
 	}
@@ -229,10 +240,8 @@ func deviceInfoToDailyInfo(deviceInfo *model.DeviceInfo) *model.DeviceInfoDaily 
 }
 
 func ToDeviceInfoHour(device *model.DeviceInfo, t time.Time) *model.DeviceInfoHour {
-	userId := getDeviceUserId(context.Background(), device.DeviceID)
-	device.UserID = userId
 	return &model.DeviceInfoHour{
-		UserID:            userId,
+		UserID:            device.UserID,
 		RetrievalCount:    device.RetrievalCount,
 		BlockCount:        device.CacheCount,
 		DeviceID:          device.DeviceID,

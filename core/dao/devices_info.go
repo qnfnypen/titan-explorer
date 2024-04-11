@@ -591,6 +591,11 @@ func SetDeviceUserIdToCache(ctx context.Context, deviceId, userId string) error 
 	return err
 }
 
+func GetAllDeviceUserIdFromCache(ctx context.Context) (map[string]string, error) {
+	key := "TITAN::DEVICEUSERS"
+	return RedisCache.HGetAll(ctx, key).Result()
+}
+
 func SetMultipleDeviceUserIdToCache(ctx context.Context, keyVal map[string]string) error {
 	key := fmt.Sprintf("TITAN::DEVICEUSERS")
 	_, err := RedisCache.HSet(ctx, key, keyVal).Result()
