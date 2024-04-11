@@ -167,12 +167,18 @@ func GetIndexInfoHandler(c *gin.Context) {
 }
 
 func GetUserDeviceProfileHandler(c *gin.Context) {
-	info := &model.DeviceInfo{}
-	info.UserID = c.Query("user_id")
-	info.DeviceID = c.Query("device_id")
-	info.DeviceStatus = c.Query("device_status")
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
+
+	info := &model.DeviceInfo{
+		UserID:       userId,
+		DeviceID:     c.Query("device_id"),
+		DeviceStatus: c.Query("device_status"),
+	}
+
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
+
 	option := dao.QueryOption{
 		Page:      page,
 		PageSize:  pageSize,
@@ -195,6 +201,7 @@ func GetUserDeviceProfileHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 		return
 	}
+
 	m, err := dao.GetUserIncome(info, option)
 	if err != nil {
 		log.Errorf("database GetUserIncome: %v", err)
