@@ -49,6 +49,7 @@ func Init(cfg *config.Config) error {
 	client := redis.NewClient(&redis.Options{
 		Addr:     cfg.RedisAddr,
 		Password: cfg.RedisPassword,
+		PoolSize: 100,
 	})
 	_, err = client.Ping(context.Background()).Result()
 	if err != nil {
