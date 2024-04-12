@@ -394,6 +394,7 @@ func GetQueryInfoHandler(c *gin.Context) {
 
 	for _, device := range deviceInfos {
 		dao.TranslateIPLocation(c.Request.Context(), device, lang)
+		maskLocation(device, lang)
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -476,6 +477,7 @@ func GetDeviceInfoHandler(c *gin.Context) {
 	for i, deviceInfo := range deviceInfos {
 		deviceInfo.DeviceRank = int64(i + 1 + offset)
 		dao.TranslateIPLocation(c.Request.Context(), deviceInfo, lang)
+		maskLocation(deviceInfo, lang)
 	}
 
 	if !auth {
@@ -486,6 +488,31 @@ func GetDeviceInfoHandler(c *gin.Context) {
 		"list":  deviceInfos,
 		"total": total,
 	}))
+}
+
+func maskLocation(d *model.DeviceInfo, lang model.Language) {
+	var unknown string
+	switch lang {
+	case model.LanguageCN:
+		unknown = "未知"
+	default:
+		unknown = "Unknown"
+	}
+
+	cf := func(in string) string {
+		if in == "" {
+			return unknown
+		}
+		return in
+	}
+
+	if d.IpCountry == "China" || d.IpCountry == "中国" {
+		d.Country = cf("")
+		d.Province = cf("")
+		d.City = cf("")
+		d.IpLocation = fmt.Sprintf("%s-%s-%s-%s", cf(d.Continent), cf(""), cf(""), cf(""))
+	}
+
 }
 
 //func handleNodeList(ctx *gin.Context, userId string, devicesInfo []*model.DeviceInfo) []*model.DeviceInfo {
@@ -1146,6 +1173,16 @@ func GetDeviceDistributionHandler(c *gin.Context) {
 		log.Errorf("get device distribution: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
+	}
+
+	for i, distr := range distribution {
+		if distr.Country == "China" {
+			distribution[i].Country = "Unknown"
+		}
+
+		if distr.Country == "中国" {
+			distribution[i].Country = "未知"
+		}
 	}
 
 	err = CacheDeviceDistribution(c.Request.Context(), distribution, lang)
