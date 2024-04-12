@@ -619,12 +619,23 @@ func GetAssetCountHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
 		return
 	}
+
 	createAssetRsp, err := schedulerClient.ListAssets(c.Request.Context(), userId, pageSize, (page-1)*pageSize, groupId)
 	if err != nil {
 		log.Errorf("api ListAssets: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+
+	if createAssetRsp.Total == 0 {
+		c.JSON(http.StatusOK, respJSON(JsonObject{
+			"area_count":      0,
+			"candidate_count": 0,
+			"edge_count":      0,
+		}))
+		return
+	}
+
 	var deviceIds []string
 	deviceExists := make(map[string]int)
 	var candidateCount int64
@@ -646,6 +657,7 @@ func GetAssetCountHandler(c *gin.Context) {
 			}
 		}
 	}
+
 	countArea, e := dao.GetAreaCount(c.Request.Context(), deviceIds)
 	if e != nil {
 		log.Errorf("GetAssetList err: %v", e)
