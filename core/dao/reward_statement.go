@@ -51,7 +51,7 @@ func UpdateUserRewardOld(ctx context.Context, statement *model.RewardStatement) 
 
 func BulkUpdateUserReward(ctx context.Context, users []*model.User) error {
 	query := `INSERT INTO users (username, reward, referral_reward, updated_at) VALUES (:username, :reward, :referral_reward, :updated_at) ON DUPLICATE KEY UPDATE reward = VALUES(reward), 
-         referral_reward = VALUES(referral_reward), updated_at  = now()`
+         referral_reward = VALUES(referral_reward), device_count = VALUES(device_count), updated_at  = now()`
 	_, err := DB.NamedExecContext(ctx, query, users)
 	return err
 }
