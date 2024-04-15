@@ -273,6 +273,7 @@ func ToDeviceInfo(node types.NodeInfo, areaId string) *model.DeviceInfo {
 		BandwidthDown:    float64(node.BandwidthDown),
 		CpuUsage:         formatter.ToFixed(node.CPUUsage, 2),
 		CpuCores:         int64(node.CPUCores),
+		CpuInfo:          node.CPUInfo,
 		Memory:           node.Memory,
 		MemoryUsage:      formatter.ToFixed(node.MemoryUsage, 2),
 		UploadTraffic:    float64(node.UploadTraffic),
@@ -281,6 +282,7 @@ func ToDeviceInfo(node types.NodeInfo, areaId string) *model.DeviceInfo {
 		InternalIp:       node.InternalIP,
 		IoSystem:         node.IoSystem,
 		SystemVersion:    node.SystemVersion,
+		MacLocation:      node.MacLocation,
 		DiskType:         node.DiskType,
 		CumulativeProfit: node.Profit,
 		NodeType:         int64(node.Type),
@@ -291,6 +293,7 @@ func ToDeviceInfo(node types.NodeInfo, areaId string) *model.DeviceInfo {
 		BoundAt:          node.FirstTime,
 		IncomeIncr:       node.IncomeIncr,
 		AreaID:           areaId,
+		LastSeen:         node.LastSeen,
 	}
 
 	switch node.Status {

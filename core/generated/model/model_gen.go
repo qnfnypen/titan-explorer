@@ -100,6 +100,7 @@ type DeviceInfo struct {
 	DeletedAt        time.Time `db:"deleted_at" json:"deleted_at"`
 	BoundAt          time.Time `db:"bound_at" json:"bound_at"`
 	UserID           string    `db:"user_id" json:"-"`
+	LastSeen         time.Time  `db:"last_seen" json:"last_seen"`
 
 	NodeType        int64   `db:"node_type" json:"node_type"`
 	DeviceRank      int64   `db:"device_rank" json:"device_rank"`
@@ -117,6 +118,7 @@ type DeviceInfo struct {
 	MacLocation     string  `db:"mac_location" json:"mac_location"`
 	CpuUsage        float64 `db:"cpu_usage" json:"cpu_usage"`
 	CpuCores        int64   `db:"cpu_cores" json:"cpu_cores"`
+	CpuInfo 		string  `db:"cpu_info" json:"cpu_info"`
 	MemoryUsage     float64 `db:"memory_usage" json:"memory_usage"`
 	Memory          float64 `db:"memory" json:"memory"`
 	DiskSpace       float64 `db:"disk_space" json:"disk_space"`

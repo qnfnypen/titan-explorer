@@ -1,0 +1,2 @@
+ALTER  TABLE  device_info ADD COLUMN cpu_info VARCHAR(128) NOT NULL DEFAULT '' AFTER cpu_cores;
+ALTER  TABLE  device_info ADD COLUMN last_seen DATETIME(3) NOT NULL DEFAULT 0;
