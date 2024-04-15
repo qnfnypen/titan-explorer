@@ -15,72 +15,11 @@ const (
 	tableNameRewardWithdraw  = "withdraw_record"
 )
 
-func UpdateUserRewardOld(ctx context.Context, statement *model.RewardStatement) error {
-	tx, err := DB.Beginx()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	if statement.Event == model.RewardEventEarning || statement.Event == model.RewardEventReferrals {
-		err = insertOrUpdateRewardStatement(ctx, tx, statement)
-		if err != nil {
-			return err
-		}
-		return tx.Commit()
-	}
-
-	updateRewardQuery := fmt.Sprintf("update %s set reward = reward + ? where username = ?", tableNameUser)
-
-	_, err = tx.ExecContext(ctx, updateRewardQuery, statement.Amount, statement.FromUser)
-	if err != nil {
-		return err
-	}
-
-	query := fmt.Sprintf(
-		`INSERT INTO %s (username, from_user, amount, event, status, device_id, created_at, updated_at)
-			VALUES (:username, :from_user, :amount, :event, :status, :device_id, :created_at, :updated_at);`, tableNameRewardStatement)
-
-	_, err = tx.NamedExecContext(ctx, query, statement)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
-}
-
 func BulkUpdateUserReward(ctx context.Context, users []*model.User) error {
 	query := `INSERT INTO users (username, reward, referral_reward, device_count, updated_at) VALUES (:username, :reward, :referral_reward, :device_count, :updated_at) ON DUPLICATE KEY UPDATE reward = VALUES(reward), 
          referral_reward = VALUES(referral_reward), device_count = VALUES(device_count), updated_at  = now()`
 	_, err := DB.NamedExecContext(ctx, query, users)
 	return err
-}
-
-func UpdateUserReferralReward2(ctx context.Context, user *model.User) error {
-	updateRewardQuery := fmt.Sprintf("update %s set reward  =?, referral_reward = ? where username = ?", tableNameUser)
-	_, err := DB.ExecContext(ctx, updateRewardQuery, user.Reward, user.RefereralReward, user.Username)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func UpdateUserReward(ctx context.Context, user *model.User) error {
-	updateRewardQuery := fmt.Sprintf("update %s set reward = ?, device_count = ? where username = ?", tableNameUser)
-	_, err := DB.ExecContext(ctx, updateRewardQuery, user.Reward, user.DeviceCount, user.Username)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func UpdateUserReferralReward(ctx context.Context, user *model.User) error {
-	updateRewardQuery := fmt.Sprintf("update %s set referral_reward = ? where username = ?", tableNameUser)
-	_, err := DB.ExecContext(ctx, updateRewardQuery, user.RefereralReward, user.Username)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func insertOrUpdateRewardStatement(ctx context.Context, tx *sqlx.Tx, statement *model.RewardStatement) error {

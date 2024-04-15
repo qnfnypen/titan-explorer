@@ -158,7 +158,7 @@ func (n *NodeFetcher) Finalize() error {
 		log.Errorf("sum device info profit: %v", err)
 	}
 
-	if err := SumUserDeviceReward2(context.Background()); err != nil {
+	if err := SumUserDeviceReward(context.Background()); err != nil {
 		log.Errorf("sum user device reward: %v", err)
 	}
 
