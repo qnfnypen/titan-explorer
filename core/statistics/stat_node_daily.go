@@ -14,8 +14,8 @@ import (
 	"time"
 )
 
-// addDeviceInfoHours 写入 device_info_hour 表
-func addDeviceInfoHours(ctx context.Context, upsertDevice []*model.DeviceInfoHour) error {
+// AddDeviceInfoHours 写入 device_info_hour 表
+func AddDeviceInfoHours(ctx context.Context, upsertDevice []*model.DeviceInfoHour) error {
 	log.Info("start to fetch device info hours")
 	start := time.Now()
 	defer func() {
@@ -44,7 +44,7 @@ func addDeviceInfoHours(ctx context.Context, upsertDevice []*model.DeviceInfoHou
 	return nil
 }
 
-func getDeviceUserId(ctx context.Context, deviceId string) string {
+func GetDeviceUserId(ctx context.Context, deviceId string) string {
 	deviceOrdinaryInfo, err := dao.GetDeviceInfo(ctx, deviceId)
 	if err != nil {
 		log.Errorf("set device info: %v", err)

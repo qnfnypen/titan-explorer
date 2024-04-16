@@ -99,7 +99,7 @@ loop:
 
 		userId, ok := userInDevice[nodeInfo.DeviceID]
 		if !ok || userId == "" {
-			userId = getDeviceUserId(ctx, nodeInfo.DeviceID)
+			userId = GetDeviceUserId(ctx, nodeInfo.DeviceID)
 		}
 
 		nodeInfo.UserID = userId
@@ -121,11 +121,11 @@ loop:
 				log.Errorf("%s bulk upsert device info: %v", scheduler.AreaId, err)
 			}
 
-			if err = addDeviceInfoHours(ctx, deviceInfoHours); err != nil {
+			if err = AddDeviceInfoHours(ctx, deviceInfoHours); err != nil {
 				log.Errorf("add device info hours: %v", err)
 			}
 
-			if err := sumDailyReward(ctx, start, onlineNodes); err != nil {
+			if err := SumDailyReward(ctx, start, onlineNodes); err != nil {
 				log.Errorf("add device info daily reward: %v", err)
 			}
 		}
@@ -168,8 +168,8 @@ func (n *NodeFetcher) Finalize() error {
 	return nil
 }
 
-// sumDailyReward 写入或更新 device_info_daily表
-func sumDailyReward(ctx context.Context, sumTime time.Time, devices []*model.DeviceInfo) error {
+// SumDailyReward 写入或更新 device_info_daily表
+func SumDailyReward(ctx context.Context, sumTime time.Time, devices []*model.DeviceInfo) error {
 	log.Infof("start sum daily reward")
 	start := time.Now()
 	defer func() {
