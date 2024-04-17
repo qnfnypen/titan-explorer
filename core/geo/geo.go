@@ -77,7 +77,9 @@ func GetIpLocation(ctx context.Context, ip string, languages ...model.Language) 
 			log.Errorf("ip data cloud get location: %v", err)
 			continue
 		}
+
 		if err := dao.UpsertLocationInfo(ctx, loc, l); err != nil {
+			log.Errorf("add location: %v", err)
 			continue
 		}
 

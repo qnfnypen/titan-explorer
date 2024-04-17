@@ -5,10 +5,10 @@ import (
 	"fmt"
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
-	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/core/geo"
 	"github.com/gnasnik/titan-explorer/core/oplog"
 	"github.com/gnasnik/titan-explorer/pkg/iptool"
 	"github.com/mssola/user_agent"
@@ -284,20 +284,16 @@ func Cors() gin.HandlerFunc {
 }
 
 func GetLocation(ctx context.Context, ipAddr string) (*model.Location, error) {
-	var location model.Location
+	//var location model.Location
 
-	err := dao.GetLocationInfoByIp(ctx, ipAddr, &location, model.LanguageEN)
-	if err != nil {
-		log.Errorf("get location by ip: %v", err)
-	}
-
-	if location == (model.Location{}) {
-		return &location, nil
-	}
-
-	loc, err := iptool.IPDataCloudGetLocation(ctx, config.Cfg.IpDataCloud.Url, ipAddr, config.Cfg.IpDataCloud.Key, model.LanguageEN)
-	if err != nil {
-		log.Errorf("get ip location from iptable cloud: %v", err)
+	//err := dao.GetLocationInfoByIp(ctx, ipAddr, &location, model.LanguageEN)
+	//if err != nil {
+	//	log.Errorf("get location by ip: %v", err)
+	//}
+	loc, err := geo.GetIpLocation(ctx, ipAddr, model.LanguageEN)
+	if err != nil || loc == nil {
+		log.Errorf("get ip location %v", err)
+		// applyLocationFromLocalGEODB(deviceInfo)
 	}
 
 	return loc, nil

@@ -33,6 +33,10 @@ func IPDataCloudGetLocation(ctx context.Context, url, ip, key, lang string) (*mo
 		return nil, err
 	}
 
+	if result.Code != http.StatusOK {
+		return nil, errors.New(result.Msg)
+	}
+
 	correction(&result)
 
 	return &result.Data.Location, nil
