@@ -10,7 +10,6 @@ import (
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/google/go-github/v60/github"
-	"github.com/mssola/user_agent"
 	"net/http"
 	"strings"
 	"time"
@@ -115,19 +114,14 @@ func GetReleaseFromCache(ctx context.Context) ([]*Release, error) {
 }
 
 func GetAppVersionHandler(c *gin.Context) {
+	platform := c.Query("platform")
 	lang := model.Language(c.GetHeader("Lang"))
 	if lang == "" {
 		lang = model.LanguageEN
 	}
 
-	userAgent := c.GetHeader("User-Agent")
-
-	ua := user_agent.New(userAgent)
-	os := ua.OS()
-
-	platform := "android"
-	if strings.Contains(os, "iPhone") {
-		platform = "ios"
+	if platform == "" {
+		platform = "android"
 	}
 
 	appVer, err := dao.GetLatestAppVersion(c.Request.Context(), platform, lang)
