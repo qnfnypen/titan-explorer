@@ -640,6 +640,15 @@ func GetDeviceInfoById(ctx context.Context, deviceId string) model.DeviceInfo {
 	return deviceInfo
 }
 
+func CountIPDevices(ctx context.Context, ip string) (int64, error) {
+	var count int64
+	err := DB.GetContext(ctx, &count, `select count(1) from device_info where external_ip = ? and device_status_code = 1`, ip)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 func GetNodesInfo(ctx context.Context, option QueryOption) (int64, []model.NodesInfo, error) {
 	where := `WHERE device_id <> '' AND active_status = 1`
 	if option.Order != "" && option.OrderField != "" {

@@ -349,6 +349,18 @@ func queryDeviceStatisticHourly(deviceID, startTime, endTime string) []*dao.Devi
 	return list
 }
 
+type DeviceRewardRule struct {
+	NatRule       []Rule `json:"nat_rule"`
+	NodeCountRule []Rule `json:"node_count_rule"`
+	BandwidthRule []Rule `json:"bandwidth_rule"`
+}
+
+type Rule struct {
+	Name    string  `json:"name"`
+	Score   float64 `json:"score"`
+	Current bool    `json:"current"`
+}
+
 func GetQueryInfoHandler(c *gin.Context) {
 	key := c.Query("key")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
@@ -397,11 +409,64 @@ func GetQueryInfoHandler(c *gin.Context) {
 		maskLocation(device, lang)
 	}
 
+	ipDeviceCounts, err := dao.CountIPDevices(c.Request.Context(), deviceInfo.ExternalIp)
+	if err != nil {
+		log.Errorf("get count ip device: %v", err)
+	}
+
+	rule := DeviceRewardRule{
+		NatRule:       getNatRule(deviceInfo.NATType, lang),
+		NodeCountRule: getNodeCountRule(ipDeviceCounts),
+		BandwidthRule: getBandwidth(deviceInfo.BandwidthUp),
+	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"list":  maskIPAddress(deviceInfos),
+		"rule":  rule,
 		"total": total,
 		"type":  "node_id",
 	}))
+
+}
+
+func getBandwidth(bandwidthUp float64) []Rule {
+	defaultRule := []Rule{
+		{Name: "<5Mbps", Score: 0.8, Current: bandwidthUp < 5_000_000},
+		{Name: "5Mbps<=X<30Mbps", Score: 1, Current: bandwidthUp > 5_00_00 && bandwidthUp < 30_000_000},
+		{Name: "30Mbps<=X", Score: 1.2, Current: bandwidthUp > 30_000_000},
+	}
+
+	return defaultRule
+}
+
+func getNodeCountRule(count int64) []Rule {
+	return []Rule{
+		{Name: "5", Score: 0.2, Current: count >= 5},
+		{Name: "4", Score: 0.25, Current: count == 4},
+		{Name: "3", Score: 0.33, Current: count == 3},
+		{Name: "2", Score: 0.5, Current: count == 2},
+		{Name: "1", Score: 1.1, Current: count == 1},
+	}
+}
+
+func getNatRule(natType string, lang model.Language) []Rule {
+	if lang == model.LanguageEN {
+		return []Rule{
+			{Name: "NAT4", Score: 0.8, Current: "SymmetricNAT" == natType},
+			{Name: "NAT3", Score: 1.1, Current: "PortRestrictedNAT" == natType},
+			{Name: "NAT2", Score: 1.3, Current: "RestrictedNAT" == natType},
+			{Name: "NAT1", Score: 1.5, Current: "FullConeNAT" == natType},
+			{Name: "PublicIP", Score: 2, Current: "NoNat" == natType},
+		}
+	}
+
+	return []Rule{
+		{Name: "NAT4", Score: 0.8, Current: "SymmetricNAT" == natType},
+		{Name: "NAT3", Score: 1.1, Current: "PortRestrictedNAT" == natType},
+		{Name: "NAT2", Score: 1.3, Current: "RestrictedNAT" == natType},
+		{Name: "NAT1", Score: 1.5, Current: "FullConeNAT" == natType},
+		{Name: "公网IP", Score: 2, Current: "NoNat" == natType},
+	}
 
 }
 
