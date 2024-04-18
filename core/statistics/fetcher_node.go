@@ -8,6 +8,7 @@ import (
 	"github.com/golang-module/carbon/v2"
 	errs "github.com/pkg/errors"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gnasnik/titan-explorer/core/dao"
@@ -294,6 +295,7 @@ func ToDeviceInfo(node types.NodeInfo, areaId string) *model.DeviceInfo {
 		IncomeIncr:       node.IncomeIncr,
 		AreaID:           areaId,
 		LastSeen:         node.LastSeen,
+		IsMobile:         isMobile(node.SystemVersion, node.CPUInfo),
 	}
 
 	switch node.Status {
@@ -312,6 +314,14 @@ func ToDeviceInfo(node types.NodeInfo, areaId string) *model.DeviceInfo {
 	applyLocationInfo(&deviceInfo)
 
 	return &deviceInfo
+}
+
+func isMobile(systemVersion string, cpuInfo string) int64 {
+	notAllowedCPU := strings.Contains(cpuInfo, "Intel") || strings.Contains(cpuInfo, "AMD") || strings.Contains(cpuInfo, "Apple")
+	if systemVersion == "0.1.16+api1.0.0" && !notAllowedCPU {
+		return 1
+	}
+	return 0
 }
 
 // applyLocationInfo 获取节点的 ip 位置信息

@@ -459,13 +459,13 @@ func BulkUpsertDeviceInfo(ctx context.Context, deviceInfos []*model.DeviceInfo) 
 func BulkInsertOrUpdateDeviceStatus(ctx context.Context, deviceInfos []*model.DeviceInfo) error {
 	statement := fmt.Sprintf(
 		`INSERT INTO %s (
-                	device_id, node_type, device_name, user_id, system_version,  active_status,network_info, external_ip, internal_ip, ip_location,
+                	device_id, node_type, device_name, user_id, system_version,  active_status,network_info, external_ip, internal_ip, ip_location, is_mobile,
                 	ip_country, ip_province, ip_city, latitude, longitude, mac_location, cpu_usage, memory_usage, cpu_cores, memory, disk_usage, disk_space,
                 	device_status, device_status_code, io_system, online_time, today_online_time, today_profit, yesterday_profit, seven_days_profit, month_profit, area_id,
                 	cumulative_profit, bandwidth_up, bandwidth_down,download_traffic,upload_traffic, created_at, updated_at, bound_at,cache_count,retrieval_count, nat_type, income_incr
                 	)
 				VALUES (
-					:device_id, :node_type, :device_name, :user_id,  :system_version, :active_status,:network_info, :external_ip, :internal_ip, :ip_location,
+					:device_id, :node_type, :device_name, :user_id,  :system_version, :active_status,:network_info, :external_ip, :internal_ip, :ip_location, :is_mobile,
 					:ip_country, :ip_province, :ip_city, :latitude, :longitude, :mac_location,:cpu_usage, :memory_usage, :cpu_cores, :memory, :disk_usage, :disk_space,
 					:device_status, :device_status_code, :io_system, :online_time, :today_online_time, :today_profit,:yesterday_profit, :seven_days_profit, :month_profit, :area_id,
 					:cumulative_profit, :bandwidth_up, :bandwidth_down,:download_traffic,:upload_traffic, now(), now(),:bound_at,:cache_count,:retrieval_count, :nat_type, :income_incr
@@ -499,20 +499,20 @@ month_profit = VALUES(month_profit), updated_at = now()`
 func upsertDeviceInfoStatement() string {
 	insertStatement := fmt.Sprintf(
 		`INSERT INTO %s (
-                	device_id, node_type, device_name, user_id, system_version,  active_status,network_info, external_ip, internal_ip, ip_location, last_seen,
+                	device_id, node_type, device_name, user_id, system_version,  active_status,network_info, external_ip, internal_ip, ip_location, last_seen, is_mobile,
                 	ip_country, ip_province, ip_city, latitude, longitude, mac_location, cpu_usage, cpu_cores, cpu_info, memory_usage, memory, disk_usage, disk_space, titan_disk_space, titan_disk_usage,
                 	device_status, device_status_code, io_system, online_time, today_online_time, today_profit, yesterday_profit, seven_days_profit, month_profit, area_id,
                 	cumulative_profit, bandwidth_up, bandwidth_down,download_traffic,upload_traffic, created_at, updated_at, bound_at,cache_count,retrieval_count, nat_type, income_incr
                 	)
 				VALUES (
-					:device_id, :node_type, :device_name, :user_id,  :system_version, :active_status,:network_info, :external_ip, :internal_ip, :ip_location, :last_seen,
+					:device_id, :node_type, :device_name, :user_id,  :system_version, :active_status,:network_info, :external_ip, :internal_ip, :ip_location, :last_seen, :is_mobile,
 					:ip_country, :ip_province, :ip_city, :latitude, :longitude, :mac_location,:cpu_usage, :cpu_cores, :cpu_info, :memory_usage, :memory, :disk_usage, :disk_space, :titan_disk_space, :titan_disk_usage,
 					:device_status, :device_status_code, :io_system, :online_time, :today_online_time, :today_profit,:yesterday_profit, :seven_days_profit, :month_profit, :area_id,
 					:cumulative_profit, :bandwidth_up, :bandwidth_down,:download_traffic,:upload_traffic, now(), now(),:bound_at,:cache_count,:retrieval_count, :nat_type, :income_incr
 				)`, tableNameDeviceInfo,
 	)
 	updateStatement := ` ON DUPLICATE KEY UPDATE node_type = VALUES(node_type), active_status = VALUES(active_status),
-				system_version = VALUES(system_version), network_info = VALUES(network_info), cumulative_profit = VALUES(cumulative_profit),  last_seen = VALUES(last_seen),
+				system_version = VALUES(system_version), network_info = VALUES(network_info), cumulative_profit = VALUES(cumulative_profit),  last_seen = VALUES(last_seen), is_mobile = VALUES(is_mobile),
 				external_ip = VALUES(external_ip), internal_ip = VALUES(internal_ip), ip_location = VALUES(ip_location), ip_country = VALUES(ip_country), 
 				ip_province = VALUES(ip_province), ip_city = VALUES(ip_city),latitude = VALUES(latitude), longitude = VALUES(longitude), mac_location = VALUES(mac_location), area_id = VALUES(area_id),
 				online_time = VALUES(online_time),cpu_usage = VALUES(cpu_usage), cpu_cores = VALUES(cpu_cores), cpu_info = VALUES(cpu_info), memory_usage = VALUES(memory_usage), memory = VALUES(memory), nat_type = VALUES(nat_type), income_incr = VALUES(income_incr),

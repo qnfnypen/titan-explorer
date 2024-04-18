@@ -100,7 +100,8 @@ type DeviceInfo struct {
 	DeletedAt        time.Time `db:"deleted_at" json:"deleted_at"`
 	BoundAt          time.Time `db:"bound_at" json:"bound_at"`
 	UserID           string    `db:"user_id" json:"-"`
-	LastSeen         time.Time  `db:"last_seen" json:"last_seen"`
+	LastSeen         time.Time `db:"last_seen" json:"last_seen"`
+	IsMobile         int64     `db:"is_mobile" json:"is_mobile"`
 
 	NodeType        int64   `db:"node_type" json:"node_type"`
 	DeviceRank      int64   `db:"device_rank" json:"device_rank"`
@@ -118,7 +119,7 @@ type DeviceInfo struct {
 	MacLocation     string  `db:"mac_location" json:"mac_location"`
 	CpuUsage        float64 `db:"cpu_usage" json:"cpu_usage"`
 	CpuCores        int64   `db:"cpu_cores" json:"cpu_cores"`
-	CpuInfo 		string  `db:"cpu_info" json:"cpu_info"`
+	CpuInfo         string  `db:"cpu_info" json:"cpu_info"`
 	MemoryUsage     float64 `db:"memory_usage" json:"memory_usage"`
 	Memory          float64 `db:"memory" json:"memory"`
 	DiskSpace       float64 `db:"disk_space" json:"disk_space"`
@@ -136,7 +137,7 @@ type DeviceInfo struct {
 	IncomeIncr      float64 `db:"income_incr" json:"income_incr"`
 	AreaID          string  `db:"area_id" json:"area_id"`
 	TitanDiskSpace  float64 `db:"titan_disk_space" json:"titan_disk_space"`
-	TitanDiskUsage float64 `db:"titan_disk_usage" json:"titan_disk_usage"`
+	TitanDiskUsage  float64 `db:"titan_disk_usage" json:"titan_disk_usage"`
 
 	Location
 }
@@ -213,8 +214,8 @@ type FullNodeInfo struct {
 	OnlineEdgeCount          int32     `db:"online_edge_count" json:"online_edge_count"`
 	TotalStorage             float64   `db:"total_storage" json:"total_storage"`
 	StorageUsed              float64   `db:"storage_used" json:"storage_used"`
-	TitanDiskSpace 			 float64   `db:"titan_disk_space" json:"titan_disk_space"`
-	TitanDiskUsage     		 float64   `db:"titan_disk_usage" json:"titan_disk_usage"`
+	TitanDiskSpace           float64   `db:"titan_disk_space" json:"titan_disk_space"`
+	TitanDiskUsage           float64   `db:"titan_disk_usage" json:"titan_disk_usage"`
 	StorageLeft              float64   `db:"storage_left" json:"storage_left"`
 	TotalUpstreamBandwidth   float64   `db:"total_upstream_bandwidth" json:"total_upstream_bandwidth"`
 	TotalDownstreamBandwidth float64   `db:"total_downstream_bandwidth" json:"total_downstream_bandwidth"`
@@ -300,28 +301,30 @@ type SystemInfo struct {
 }
 
 type User struct {
-	ID               int64     `db:"id" json:"id"`
-	Uuid             string    `db:"uuid" json:"uuid"`
-	Avatar           string    `db:"avatar" json:"avatar"`
-	Username         string    `db:"username" json:"username"`
-	PassHash         string    `db:"pass_hash" json:"-"`
-	UserEmail        string    `db:"user_email" json:"user_email"`
-	WalletAddress    string    `db:"wallet_address" json:"wallet_address"`
-	Role             int32     `db:"role" json:"role"`
-	AllocateStorage  int       `db:"allocate_storage" json:"allocate_storage"`
-	ProjectId        int64     `db:"project_id"`
-	Referrer         string    `db:"referrer" json:"referrer"`
-	ReferrerUserId   string    `db:"referrer_user_id" json:"-"`
-	ReferralCode     string    `db:"referral_code" json:"referral_code"`
-	Reward           float64   `db:"reward" json:"reward"`
-	RefereralReward  float64   `db:"referral_reward" json:"referral_reward"`
-	Payout           float64   `db:"payout" json:"payout"`
-	FrozenReward     float64   `db:"frozen_reward" json:"frozen_reward"`
-	ClosedTestReward float64   `db:"closed_test_reward" json:"closed_test_reward"`
-	DeviceCount      int64     `db:"device_count" json:"device_count"`
-	CreatedAt        time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt        time.Time `db:"updated_at" json:"-"`
-	DeletedAt        time.Time `db:"deleted_at" json:"-"`
+	ID                  int64     `db:"id" json:"id"`
+	Uuid                string    `db:"uuid" json:"uuid"`
+	Avatar              string    `db:"avatar" json:"avatar"`
+	Username            string    `db:"username" json:"username"`
+	PassHash            string    `db:"pass_hash" json:"-"`
+	UserEmail           string    `db:"user_email" json:"user_email"`
+	WalletAddress       string    `db:"wallet_address" json:"wallet_address"`
+	Role                int32     `db:"role" json:"role"`
+	AllocateStorage     int       `db:"allocate_storage" json:"allocate_storage"`
+	ProjectId           int64     `db:"project_id"`
+	Referrer            string    `db:"referrer" json:"referrer"`
+	ReferrerUserId      string    `db:"referrer_user_id" json:"-"`
+	ReferralCode        string    `db:"referral_code" json:"referral_code"`
+	Reward              float64   `db:"reward" json:"reward"`
+	RefereralReward     float64   `db:"referral_reward" json:"referral_reward"`
+	Payout              float64   `db:"payout" json:"payout"`
+	FrozenReward        float64   `db:"frozen_reward" json:"frozen_reward"`
+	ClosedTestReward    float64   `db:"closed_test_reward" json:"closed_test_reward"`
+	Test1Reward         float64   `db:"test1_reward" json:"test1_reward"`
+	Test1ReferralReward float64   `db:"test1_referral_reward" json:"test1_referral_reward"`
+	DeviceCount         int64     `db:"device_count" json:"device_count"`
+	CreatedAt           time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt           time.Time `db:"updated_at" json:"-"`
+	DeletedAt           time.Time `db:"deleted_at" json:"-"`
 }
 
 type Link struct {
