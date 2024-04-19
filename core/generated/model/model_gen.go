@@ -120,6 +120,7 @@ type DeviceInfo struct {
 	CpuUsage        float64 `db:"cpu_usage" json:"cpu_usage"`
 	CpuCores        int64   `db:"cpu_cores" json:"cpu_cores"`
 	CpuInfo         string  `db:"cpu_info" json:"cpu_info"`
+	GpuInfo  		string  `db:"gpu_info" json:"gpu_info"`
 	MemoryUsage     float64 `db:"memory_usage" json:"memory_usage"`
 	Memory          float64 `db:"memory" json:"memory"`
 	DiskSpace       float64 `db:"disk_space" json:"disk_space"`
