@@ -432,7 +432,7 @@ func GetQueryInfoHandler(c *gin.Context) {
 func getBandwidth(bandwidthUp float64) []Rule {
 	defaultRule := []Rule{
 		{Name: "<5Mbps", Score: 0.8, Current: bandwidthUp < 5_000_000},
-		{Name: "5Mbps<=X<30Mbps", Score: 1, Current: bandwidthUp > 5_00_00 && bandwidthUp < 30_000_000},
+		{Name: "5Mbps<=X<30Mbps", Score: 1, Current: bandwidthUp > 5_000_000 && bandwidthUp < 30_000_000},
 		{Name: "30Mbps<=X", Score: 1.2, Current: bandwidthUp > 30_000_000},
 	}
 
@@ -452,7 +452,7 @@ func getNodeCountRule(count int64) []Rule {
 func getNatRule(natType string, lang model.Language) []Rule {
 	if lang == model.LanguageEN {
 		return []Rule{
-			{Name: "NAT4", Score: 0.8, Current: "SymmetricNAT" == natType},
+			{Name: "NAT4", Score: 0.8, Current: "SymmetricNAT" == natType || "UnknowNAT" == natType || "" == natType},
 			{Name: "NAT3", Score: 1.1, Current: "PortRestrictedNAT" == natType},
 			{Name: "NAT2", Score: 1.3, Current: "RestrictedNAT" == natType},
 			{Name: "NAT1", Score: 1.5, Current: "FullConeNAT" == natType},
