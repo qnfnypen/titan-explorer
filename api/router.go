@@ -83,6 +83,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	apiV2.GET("/get_retrieval_list", GetRetrievalListHandler)
 	apiV2.GET("/get_validation_list", GetValidationListHandler)
 	apiV2.GET("/get_replica_list", GetReplicaListHandler)
+	apiV2.GET("/get_profit_details", GetProfitDetailsHandler)
 	apiV2.GET("/login_before", GetNonceStringHandler)
 	apiV2.POST("/login", authMiddleware.LoginHandler)
 	apiV2.POST("/logout", authMiddleware.LogoutHandler)

@@ -135,7 +135,7 @@ func toAssets(in []*types.ReplicaEventInfo) ([]*model.Asset, error) {
 	var out []*model.Asset
 	for _, r := range in {
 
-		if r.Source == types.AssetSourceAWS || r.Source == types.AssetSourceMinio {
+		if types.AssetSource(r.Source) == types.AssetSourceAWS || types.AssetSource(r.Source) == types.AssetSourceMinio {
 			continue
 		}
 

@@ -150,6 +150,52 @@ func GetReplicaListHandler(c *gin.Context) {
 	}))
 }
 
+func GetProfitDetailsHandler(c *gin.Context) {
+	nodeId := c.Query("device_id")
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+	page, _ := strconv.Atoi(c.Query("page"))
+	queryStatus := c.Query("ts")
+
+	if nodeId == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	var ts []int
+	for _, s := range strings.Split(queryStatus, ",") {
+		statusVal, _ := strconv.ParseInt(s, 10, 64)
+		ts = append(ts, int(statusVal))
+	}
+
+	deviceInfo, err := dao.GetDeviceInfoByID(c.Request.Context(), nodeId)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
+		return
+	}
+
+	if deviceInfo == nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
+		return
+	}
+
+	schedulerClient, err := getSchedulerClient(c.Request.Context(), deviceInfo.AreaID)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+		return
+	}
+
+	resp, err := schedulerClient.GetProfitDetailsForNode(c.Request.Context(), nodeId, pageSize, (page-1)*pageSize, ts)
+	if err != nil {
+		log.Errorf("api GetReplicaEventsForNode: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list":  resp.Infos,
+		"total": resp.Total,
+	}))
+}
+
 //	     _______________  ____  ___   ____________   ___    ____  ____
 //		/ ___/_  __/ __ \/ __ \/   | / ____/ ____/  /   |  / __ \/  _/
 //		\__ \ / / / / / / /_/ / /| |/ / __/ __/    / /| | / /_/ // /
