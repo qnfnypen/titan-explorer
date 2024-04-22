@@ -45,20 +45,20 @@ func AddDeviceInfoHours(ctx context.Context, upsertDevice []*model.DeviceInfoHou
 }
 
 func GetDeviceUserId(ctx context.Context, deviceId string) string {
-	deviceOrdinaryInfo, err := dao.GetDeviceInfo(ctx, deviceId)
+	deviceOrdinaryInfo, err := dao.GetSignatureByNodeId(ctx, deviceId)
 	if err != nil {
 		log.Errorf("set device info: %v", err)
 		return ""
 	}
 
-	if deviceOrdinaryInfo.UserID != "" {
-		err = dao.SetDeviceUserIdToCache(ctx, deviceId, deviceOrdinaryInfo.UserID)
+	if deviceOrdinaryInfo.Username != "" {
+		err = dao.SetDeviceUserIdToCache(ctx, deviceId, deviceOrdinaryInfo.Username)
 		if err != nil {
 			log.Errorf("set device user to cahce: %v", err)
 		}
 	}
 
-	return deviceOrdinaryInfo.UserID
+	return deviceOrdinaryInfo.Username
 }
 
 func QueryDataByDate(DateFrom, DateTo string) []map[string]string {
