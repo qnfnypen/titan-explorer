@@ -580,24 +580,24 @@ count(IF(device_status = 'abnormal', 1, NULL)) as abnormal_num, COALESCE(sum(ban
 	return &out, nil
 }
 
-func GetDeviceUserIdFromCache(ctx context.Context, deviceId string) (string, error) {
-	key := "TITAN::DEVICEUSERS"
+func GetDeviceUserIdFromCache(ctx context.Context, deviceId, areaId string) (string, error) {
+	key := fmt.Sprintf("TITAN::DEVICEUSERS::%s", areaId)
 	return RedisCache.HGet(ctx, key, deviceId).Result()
 }
 
-func SetDeviceUserIdToCache(ctx context.Context, deviceId, userId string) error {
-	key := "TITAN::DEVICEUSERS"
+func SetDeviceUserIdToCache(ctx context.Context, deviceId, userId, areaId string) error {
+	key := fmt.Sprintf("TITAN::DEVICEUSERS::%s", areaId)
 	_, err := RedisCache.HSet(ctx, key, deviceId, userId).Result()
 	return err
 }
 
-func GetAllDeviceUserIdFromCache(ctx context.Context) (map[string]string, error) {
-	key := "TITAN::DEVICEUSERS"
+func GetAllDeviceUserIdFromCache(ctx context.Context, areaId string) (map[string]string, error) {
+	key := fmt.Sprintf("TITAN::DEVICEUSERS::%s", areaId)
 	return RedisCache.HGetAll(ctx, key).Result()
 }
 
-func SetMultipleDeviceUserIdToCache(ctx context.Context, keyVal map[string]string) error {
-	key := fmt.Sprintf("TITAN::DEVICEUSERS")
+func SetMultipleDeviceUserIdToCache(ctx context.Context, areaId string, keyVal map[string]string) error {
+	key := fmt.Sprintf("TITAN::DEVICEUSERS::%s", areaId)
 	_, err := RedisCache.HSet(ctx, key, keyVal).Result()
 	return err
 }

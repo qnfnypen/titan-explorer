@@ -60,7 +60,7 @@ func (n *NodeFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
 		log.Infof("fetch all nodes done from scheduler: %s, cost: %v", scheduler.AreaId, time.Since(start))
 	}()
 
-	userInDevice, err := dao.GetAllDeviceUserIdFromCache(ctx)
+	userInDevice, err := dao.GetAllDeviceUserIdFromCache(ctx, scheduler.AreaId)
 	if err != nil {
 		log.Errorf("get all device user id from cache: %v", err)
 	}

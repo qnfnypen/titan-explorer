@@ -52,7 +52,7 @@ func GetDeviceUserId(ctx context.Context, deviceId string) string {
 	}
 
 	if deviceOrdinaryInfo.UserID != "" {
-		err = dao.SetDeviceUserIdToCache(ctx, deviceId, deviceOrdinaryInfo.UserID)
+		err = dao.SetDeviceUserIdToCache(ctx, deviceId, deviceOrdinaryInfo.UserID, deviceOrdinaryInfo.AreaID)
 		if err != nil {
 			log.Errorf("set device user to cahce: %v", err)
 		}
