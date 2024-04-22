@@ -60,9 +60,9 @@ func GetDeviceUserId(ctx context.Context, deviceId string) string {
 		return deviceOrdinaryInfo.UserID
 	}
 
-	signature, err := dao.GetSignatureByHash(ctx, deviceId)
+	signature, err := dao.GetSignatureByNodeId(ctx, deviceId)
 	if err != nil {
-		log.Errorf("set device info: %v", err)
+		log.Errorf("get signatrue by nodee id: %v", err)
 		//return ""
 	}
 
