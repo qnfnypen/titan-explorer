@@ -8,14 +8,14 @@ import (
 )
 
 func AddAppVersion(ctx context.Context, appVer *model.AppVersion) error {
-	statement := `INSERT INTO app_version(version, min_version, description, url, platform, size, lang, created_at, updated_at) VALUES(:version, :min_version, :description, :url, :platform, :size, :lang, :created_at, :updated_at)`
+	statement := `INSERT INTO app_version(version, min_version, description, url, cid, platform, size, lang, created_at, updated_at) VALUES(:version, :min_version, :description, :url, :cid, :platform, :size, :lang, :created_at, :updated_at)`
 	_, err := DB.NamedExecContext(ctx, statement, appVer)
 	return err
 }
 
 func UpdateAppVersion(ctx context.Context, appVer *model.AppVersion) error {
-	statement := `UPDATE app_version set min_version = ?, description = ?, url = ?, size = ?, updated_at = now() where version = ? and platform = ? and lang = ?`
-	_, err := DB.ExecContext(ctx, statement, appVer.MinVersion, appVer.Description, appVer.Url, appVer.Size, appVer.Version, appVer.Platform, appVer.Lang)
+	statement := `UPDATE app_version set min_version = ?, description = ?, url = ?, cid = ?, size = ?, updated_at = now() where version = ? and platform = ? and lang = ?`
+	_, err := DB.ExecContext(ctx, statement, appVer.MinVersion, appVer.Description, appVer.Url, appVer.Cid, appVer.Size, appVer.Version, appVer.Platform, appVer.Lang)
 	return err
 }
 

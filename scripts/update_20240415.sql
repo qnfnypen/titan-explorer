@@ -11,3 +11,6 @@ ALTER TABLE users ADD COLUMN herschel_reward DECIMAL(14, 6) NOT NULL DEFAULT 0 A
 ALTER TABLE users ADD COLUMN herschel_referral_reward DECIMAL(14, 6) NOT NULL DEFAULT 0 AFTER herschel_reward;
 
 ALTER TABLE device_info_daily ADD COLUMN is_mobile INT(1) NOT NULL DEFAULT 0;
+
+
+ALTER TABLE app_version ADD COLUMN cid varchar(128) NOT NULL DEFAULT '' AFTER url;

@@ -96,6 +96,7 @@ type AppVersion struct {
 	MinVersion  string    `db:"min_version" json:"min_version"`
 	Description string    `db:"description" json:"description"`
 	Url         string    `db:"url" json:"url"`
+	Cid         string    `db:"cid" json:"cid"`
 	Size        int64     `db:"size" json:"size"`
 	Platform    string    `db:"platform" json:"platform"`
 	Lang        string    `db:"lang" json:"lang"`

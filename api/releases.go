@@ -136,6 +136,7 @@ func GetAppVersionHandler(c *gin.Context) {
 		"min_version": appVer.MinVersion,
 		"description": appVer.Description,
 		"url":         appVer.Url,
+		"cid":         appVer.Cid,
 		"size":        appVer.Size,
 	}))
 }
