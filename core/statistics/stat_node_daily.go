@@ -242,7 +242,7 @@ func SumUserDeviceReward(ctx context.Context) error {
 		return err
 	}
 
-	referralRewards, err := dao.SumUserReferralReward2(ctx)
+	referralRewards, err := dao.SumUserReferralReward3(ctx)
 	if err != nil {
 		return err
 	}

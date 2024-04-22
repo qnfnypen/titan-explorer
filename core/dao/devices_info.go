@@ -754,7 +754,7 @@ func GetDeviceProfileFromCache(ctx context.Context, deviceId string) (map[string
 
 func SumUserReferralReward(ctx context.Context) ([]*model.User, error) {
 	query := `select  u.referrer_user_id as username , sum(d.cumulative_profit)* 0.05 as referral_reward  from device_info d 
-            inner join users u on d.user_id = u.username  and u.referrer_user_id <> '' group by u.referrer_user_id order by reward desc `
+            inner join users u on d.user_id = u.username  and u.referrer_user_id <> '' group by u.referrer_user_id`
 
 	var users []*model.User
 	err := DB.SelectContext(ctx, &users, query)
@@ -780,6 +780,35 @@ func SumUserReferralReward2(ctx context.Context) (map[string]float64, error) {
 	out := make(map[string]float64)
 
 	query := `select referrer_user_id, sum(reward) * 0.05 as referral_reward from users where referrer_user_id <> '' group by referrer_user_id`
+	rows, err := DB.QueryxContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var (
+		userid         string
+		referralReward float64
+	)
+
+	for rows.Next() {
+		err = rows.Scan(&userid, &referralReward)
+		if err != nil {
+			log.Errorf("scan %v", err)
+			continue
+		}
+
+		out[userid] = referralReward
+	}
+
+	return out, nil
+}
+
+func SumUserReferralReward3(ctx context.Context) (map[string]float64, error) {
+	out := make(map[string]float64)
+
+	query := `select  u.referrer_user_id as username , sum(d.cumulative_profit)* 0.05 as referral_reward  from device_info d 
+            inner join users u on d.user_id = u.username  and u.referrer_user_id <> '' group by u.referrer_user_id`
 	rows, err := DB.QueryxContext(ctx, query)
 	if err != nil {
 		return nil, err
