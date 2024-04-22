@@ -55,8 +55,8 @@ func GetUserInfoHandler(c *gin.Context) {
 		user.Reward = counter.CumulativeProfit
 	}
 
-	user.HuygensReward = user.Reward
-	user.HuygensReferralReward = user.RefereralReward
+	user.HerschelReward = user.Reward
+	user.HerschelReferralReward = user.RefereralReward
 
 	c.JSON(http.StatusOK, respJSON(user))
 }

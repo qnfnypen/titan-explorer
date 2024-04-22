@@ -9,3 +9,5 @@ ALTER TABLE users ADD COLUMN huygens_referral_reward DECIMAL(14, 6) NOT NULL DEF
 
 ALTER TABLE users ADD COLUMN herschel_reward DECIMAL(14, 6) NOT NULL DEFAULT 0 AFTER huygens_referral_reward;
 ALTER TABLE users ADD COLUMN herschel_referral_reward DECIMAL(14, 6) NOT NULL DEFAULT 0 AFTER herschel_reward;
+
+ALTER TABLE device_info_daily ADD COLUMN is_mobile INT(1) NOT NULL DEFAULT 0;

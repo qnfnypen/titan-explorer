@@ -173,6 +173,7 @@ type DeviceInfoDaily struct {
 	DownstreamTraffic float64   `db:"downstream_traffic" json:"downstream_traffic"`
 	RetrievalCount    int64     `db:"retrieval_count" json:"retrieval_count"`
 	BlockCount        int64     `db:"block_count" json:"block_count"`
+	IsMobile 		  int64	    `db:"is_mobile" json:"is_mobile"`
 }
 
 type DeviceInfoHour struct {
