@@ -461,11 +461,11 @@ func getNatRule(natType string, lang model.Language) []Rule {
 	}
 
 	return []Rule{
-		{Name: "NAT4", Score: 0.8, Current: "SymmetricNAT" == natType},
+		{Name: "NAT4", Score: 0.8, Current: "SymmetricNAT" == natType || "UnknowNAT" == natType || "" == natType},
 		{Name: "NAT3", Score: 1.1, Current: "PortRestrictedNAT" == natType},
 		{Name: "NAT2", Score: 1.3, Current: "RestrictedNAT" == natType},
 		{Name: "NAT1", Score: 1.5, Current: "FullConeNAT" == natType},
-		{Name: "公网IP", Score: 2, Current: "NoNat" == natType},
+		{Name: "公网IP", Score: 2, Current: "NoNAT" == natType},
 	}
 
 }
