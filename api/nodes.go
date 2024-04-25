@@ -6,8 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/Filecoin-Titan/titan/api/client"
-	"github.com/Filecoin-Titan/titan/api/types"
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/config"
@@ -909,41 +907,43 @@ func getNodeInfoFromScheduler(ctx context.Context, id string, areaId string) (*m
 
 	}
 
-	keyPrefix := fmt.Sprintf("%s::%s", SchedulerConfigKeyPrefix, "*")
-	result, err := dao.RedisCache.Keys(ctx, keyPrefix).Result()
-	if err != nil {
-		return nil, err
-	}
-
-	var configs []*types.SchedulerCfg
-	for _, key := range result {
-		schedulers, err := statistics.GetSchedulerConfigs(ctx, key)
-		if err != nil {
-			return nil, err
-		}
-		configs = append(configs, schedulers...)
-	}
-
-	for _, scheduler := range configs {
-		//SchedulerURL := strings.Replace(scheduler.SchedulerURL, "https", "http", 1)
-		headers := http.Header{}
-		headers.Add("Authorization", "Bearer "+scheduler.AccessToken)
-		schedulerClient, _, err := client.NewScheduler(ctx, scheduler.SchedulerURL, headers)
-		if err != nil {
-			log.Errorf("create scheduler rpc client: %v", err)
-			return nil, err
-		}
-
-		areaId = scheduler.AreaID
-		nodeInfo, err := schedulerClient.GetNodeInfo(ctx, id)
-		if err != nil {
-			continue
-		}
-
-		return statistics.ToDeviceInfo(nodeInfo, areaId), nil
-	}
-
 	return nil, fmt.Errorf("device not found")
+
+	//keyPrefix := fmt.Sprintf("%s::%s", SchedulerConfigKeyPrefix, "*")
+	//result, err := dao.RedisCache.Keys(ctx, keyPrefix).Result()
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//var configs []*types.SchedulerCfg
+	//for _, key := range result {
+	//	schedulers, err := statistics.GetSchedulerConfigs(ctx, key)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	configs = append(configs, schedulers...)
+	//}
+	//
+	//for _, scheduler := range configs {
+	//	//SchedulerURL := strings.Replace(scheduler.SchedulerURL, "https", "http", 1)
+	//	headers := http.Header{}
+	//	headers.Add("Authorization", "Bearer "+scheduler.AccessToken)
+	//	schedulerClient, _, err := client.NewScheduler(ctx, scheduler.SchedulerURL, headers)
+	//	if err != nil {
+	//		log.Errorf("create scheduler rpc client: %v", err)
+	//		return nil, err
+	//	}
+	//
+	//	areaId = scheduler.AreaID
+	//	nodeInfo, err := schedulerClient.GetNodeInfo(ctx, id)
+	//	if err != nil {
+	//		continue
+	//	}
+	//
+	//	return statistics.ToDeviceInfo(nodeInfo, areaId), nil
+	//}
+	//
+	//return nil, fmt.Errorf("device not found")
 }
 
 func GetDeviceProfileHandler(c *gin.Context) {
