@@ -47,9 +47,12 @@ func Init(cfg *config.Config) error {
 	db.SetConnMaxIdleTime(connMaxIdleTime * time.Second)
 
 	client := redis.NewClient(&redis.Options{
-		Addr:     cfg.RedisAddr,
-		Password: cfg.RedisPassword,
-		PoolSize: 100,
+		Addr:         cfg.RedisAddr,
+		Password:     cfg.RedisPassword,
+		PoolSize:     100,
+		ReadTimeout:  10 * time.Second,
+		DialTimeout:  30 * time.Second,
+		WriteTimeout: 10 * time.Second,
 	})
 	_, err = client.Ping(context.Background()).Result()
 	if err != nil {
