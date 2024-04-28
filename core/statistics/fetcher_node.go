@@ -318,10 +318,15 @@ func ToDeviceInfo(node types.NodeInfo, areaId string) *model.DeviceInfo {
 }
 
 func isMobile(systemVersion string, cpuInfo string) int64 {
+	if strings.Contains(systemVersion, "android") {
+		return 1
+	}
+
 	notAllowedCPU := strings.Contains(cpuInfo, "Intel") || strings.Contains(cpuInfo, "AMD") || strings.Contains(cpuInfo, "Apple")
 	if systemVersion == "0.1.16+api1.0.0" && !notAllowedCPU {
 		return 1
 	}
+
 	return 0
 }
 
