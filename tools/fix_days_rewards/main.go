@@ -36,7 +36,7 @@ func main() {
 	devices, _ := getDeviceIds(ctx)
 
 	for _, device := range devices {
-		for startTime := startEpoch; startTime.Carbon2Time().Before(carbon.CreateFromDate(2024, 03, 06).Carbon2Time()); startTime = startTime.AddDay() {
+		for startTime := startEpoch; startTime.StdTime().Before(carbon.CreateFromDate(2024, 03, 06).StdTime()); startTime = startTime.AddDay() {
 			starT := startTime.StartOfDay()
 			endT := startTime.EndOfDay()
 
@@ -107,7 +107,7 @@ func updateDailyIncome(ctx context.Context, deviceId string, start, end carbon.C
 	}
 
 	sub := todayIncome - beforeDayIncome
-	dateTime := start.Carbon2Time().Format(time.DateOnly)
+	dateTime := start.StdTime().Format(time.DateOnly)
 
 	//fmt.Println("deviceID: ", deviceId, "time: ", start, "income: ", todayIncome, "before", beforeDayIncome, "sub", sub)
 

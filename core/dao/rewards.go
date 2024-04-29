@@ -278,17 +278,17 @@ func handleDailyList(deviceStat []*DeviceStatistics, start, end string) []*Devic
 	deviceInDate := make(map[string]*DeviceStatistics)
 
 	for _, data := range deviceStat {
-		deviceInDate[dateKey(carbon.Parse(data.Date).Carbon2Time())] = data
+		deviceInDate[dateKey(carbon.Parse(data.Date).StdTime())] = data
 	}
 
 	var out []*DeviceStatistics
 	for st := startTime.StartOfDay(); st.Lte(endTime.StartOfDay()); st = st.AddDay() {
-		if val, ok := deviceInDate[dateKey(st.Carbon2Time())]; ok {
+		if val, ok := deviceInDate[dateKey(st.StdTime())]; ok {
 			out = append(out, val)
 			continue
 		}
 		out = append(out, &DeviceStatistics{
-			Date: dateKey(st.Carbon2Time()),
+			Date: dateKey(st.StdTime()),
 		})
 	}
 

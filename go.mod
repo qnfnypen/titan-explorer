@@ -15,7 +15,7 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-redis/redis/v9 v9.0.0-rc.1
 	github.com/go-sql-driver/mysql v1.6.0
-	github.com/golang-module/carbon/v2 v2.2.2
+	github.com/golang-module/carbon/v2 v2.3.12
 	github.com/golang/geo v0.0.0-20230421003525-6adc56603217
 	github.com/google/go-github/v60 v60.0.0
 	github.com/ipfs/go-cid v0.4.1

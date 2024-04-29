@@ -51,13 +51,13 @@ func (a AssertFetcher) Fetch(ctx context.Context, scheduler *Scheduler) error {
 	)
 
 	if latest == nil || latest.EndTime.IsZero() {
-		startTime = carbon.Now().StartOfDay().SubDays(defaultBackupDays).Carbon2Time()
+		startTime = carbon.Now().StartOfDay().SubDays(defaultBackupDays).StdTime()
 	} else {
 		startTime = latest.EndTime
 	}
 
 	limit = defaultRequestLimit
-	endTime = carbon.Now().EndOfDay().Carbon2Time()
+	endTime = carbon.Now().EndOfDay().StdTime()
 
 Loop:
 	assertsRes, err := scheduler.Api.GetReplicaEvents(ctx, startTime, endTime, limit, offset)

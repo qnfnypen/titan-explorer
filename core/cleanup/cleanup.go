@@ -21,7 +21,7 @@ func Run(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			threeMonthAgo := carbon.Now().SubMonths(3).Carbon2Time()
+			threeMonthAgo := carbon.Now().SubMonths(3).StdTime()
 			if err := cleanUpDeviceInfoHour(ctx, threeMonthAgo); err != nil {
 				log.Errorf("cleanUpDeviceInfoHour: %v", err)
 			}

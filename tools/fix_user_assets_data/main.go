@@ -63,12 +63,12 @@ func main() {
 			Hash:       record[0],
 			Cid:        cid,
 			UserId:     record[1],
-			CreatedAt:  carbon.Parse(record[2]).Carbon2Time(),
+			CreatedAt:  carbon.Parse(record[2]).StdTime(),
 			Name:       record[3],
 			TotalSize:  totalSize,
 			Type:       record[5],
 			Event:      1,
-			Expiration: carbon.Parse(record[7]).Carbon2Time(),
+			Expiration: carbon.Parse(record[7]).StdTime(),
 		})
 	}
 

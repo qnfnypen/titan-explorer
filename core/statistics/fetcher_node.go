@@ -249,7 +249,7 @@ func deviceInfoToDailyInfo(deviceInfo *model.DeviceInfo) *model.DeviceInfoDaily 
 		UpdatedAt:         time.Now(),
 		UserID:            deviceInfo.UserID,
 		DeviceID:          deviceInfo.DeviceID,
-		Time:              carbon.Time2Carbon(deviceInfo.UpdatedAt).StartOfDay().AddHours(8).Carbon2Time(),
+		Time:              carbon.CreateFromStdTime(deviceInfo.UpdatedAt).StartOfDay().AddHours(8).StdTime(),
 		Income:            deviceInfo.CumulativeProfit,
 		OnlineTime:        deviceInfo.OnlineTime,
 		PkgLossRatio:      0, // todo

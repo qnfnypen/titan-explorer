@@ -252,7 +252,7 @@ func toDeviceStatistic(start, end string, data map[string]map[string]interface{}
 
 	var out []*dao.DeviceStatistics
 	for st := startTime; st.Lte(endTime); st = st.AddDay() {
-		key := st.Carbon2Time().Format(formatter.TimeFormatDateOnly)
+		key := st.StdTime().Format(formatter.TimeFormatDateOnly)
 		_, ok := data[key]
 		if !ok {
 			out = append(out, &dao.DeviceStatistics{
