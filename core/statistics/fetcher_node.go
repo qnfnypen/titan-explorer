@@ -155,6 +155,10 @@ func (n *NodeFetcher) Finalize() error {
 		log.Infof("finialize done, cost: %v", time.Since(st))
 	}()
 
+	if err := OnlineIPCount(context.Background()); err != nil {
+		log.Errorf("OnlineIPCount: %v", err)
+	}
+
 	if err := n.SumDeviceInfoProfit(); err != nil {
 		log.Errorf("sum device info profit: %v", err)
 	}
@@ -166,6 +170,28 @@ func (n *NodeFetcher) Finalize() error {
 	if err := SumAllNodes(); err != nil {
 		log.Errorf("sum all node: %v", err)
 	}
+	return nil
+}
+
+func OnlineIPCount(ctx context.Context) error {
+	log.Infof("start count online ip nodes")
+	start := time.Now()
+	defer func() {
+		log.Infof("count online ip nodes cost: %v", time.Since(start))
+	}()
+
+	data, err := dao.OnlineIPCounts(ctx)
+	if err != nil {
+		log.Errorf("OnlineIPCounts: %v", err)
+		return err
+	}
+
+	err = dao.SetOnlineIPCountsToCache(ctx, data)
+	if err != nil {
+		log.Errorf("SetOnlineIPCountsToCache: %v", err)
+		return err
+	}
+
 	return nil
 }
 

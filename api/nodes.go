@@ -408,7 +408,7 @@ func GetQueryInfoHandler(c *gin.Context) {
 		maskLocation(device, lang)
 	}
 
-	ipDeviceCounts, err := dao.CountIPDevices(c.Request.Context(), deviceInfo.ExternalIp)
+	ipDeviceCounts, err := dao.GetOnlineIPCountsFromCache(c.Request.Context(), deviceInfo.ExternalIp)
 	if err != nil {
 		log.Errorf("get count ip device: %v", err)
 	}

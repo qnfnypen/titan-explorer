@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
+	"github.com/go-redis/redis/v9"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -640,12 +642,60 @@ func GetDeviceInfoById(ctx context.Context, deviceId string) model.DeviceInfo {
 	return deviceInfo
 }
 
-func CountIPDevices(ctx context.Context, ip string) (int64, error) {
-	var count int64
-	err := DB.GetContext(ctx, &count, `select count(1) from device_info where external_ip = ? and device_status_code = 1`, ip)
+func OnlineIPCounts(ctx context.Context) (map[string]interface{}, error) {
+	query := `select external_ip, count(device_id) from device_info where device_status_code = 1 group by external_ip`
+
+	out := make(map[string]interface{})
+	rows, err := DB.QueryxContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ip string
+	var count int32
+
+	for rows.Next() {
+		err := rows.Scan(&ip, &count)
+		if err != nil {
+			return nil, err
+		}
+
+		out[ip] = count
+	}
+
+	return out, nil
+}
+
+func SetOnlineIPCountsToCache(ctx context.Context, data map[string]interface{}) error {
+	key := fmt.Sprintf("TITAN::ONLINEIPCOUNTS")
+
+	_, err := RedisCache.Del(ctx, key).Result()
+	if err != nil {
+		return err
+	}
+
+	_, err = RedisCache.HSet(ctx, key, data).Result()
+	return err
+}
+
+func GetOnlineIPCountsFromCache(ctx context.Context, ip string) (int64, error) {
+	key := fmt.Sprintf("TITAN::ONLINEIPCOUNTS")
+
+	result, err := RedisCache.HGet(ctx, key, ip).Result()
+	if err == redis.Nil {
+		return 0, nil
+	}
+
 	if err != nil {
 		return 0, err
 	}
+
+	count, err := strconv.ParseInt(result, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
 	return count, nil
 }
 
