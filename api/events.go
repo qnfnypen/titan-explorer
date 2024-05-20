@@ -309,7 +309,7 @@ func GetUserAccessTokenHandler(c *gin.Context) {
 
 func CreateAssetHandler(c *gin.Context) {
 	userId := c.Query("user_id")
-	areaId, nodeId := GetDefaultTitanCandidateEntrypointInfo()
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -343,7 +343,7 @@ func CreateAssetHandler(c *gin.Context) {
 	//	}
 	//}
 
-	log.Debugf("CreateAssetHandler clientIP:%s, areaId:%s, nearestNode:%s\n", c.ClientIP(), areaId, nodeId)
+	log.Debugf("CreateAssetHandler clientIP:%s, areaId:%s, nearestNode:%s\n", c.ClientIP(), areaId)
 
 	var createAssetReq types.CreateAssetReq
 	createAssetReq.AssetName = c.Query("asset_name")
@@ -352,7 +352,19 @@ func CreateAssetHandler(c *gin.Context) {
 	createAssetReq.AssetType = c.Query("asset_type")
 	createAssetReq.AssetSize = formatter.Str2Int64(c.Query("asset_size"))
 	createAssetReq.GroupID, _ = strconv.Atoi(c.Query("group_id"))
-	createAssetReq.NodeID = nodeId
+
+	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &createAssetReq)
+	if err != nil {
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			return
+		}
+	}
+
+	if createAssetRsp.AlreadyExists {
+		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
+		return
+	}
 
 	if err := dao.AddAssets(c.Request.Context(), []*model.Asset{
 		{
@@ -360,7 +372,7 @@ func CreateAssetHandler(c *gin.Context) {
 			Name:      createAssetReq.AssetName,
 			Cid:       createAssetReq.AssetCID,
 			Type:      createAssetReq.AssetType,
-			NodeID:    createAssetReq.NodeID,
+			NodeID:    createAssetRsp.NodeID,
 			TotalSize: createAssetReq.AssetSize,
 			Event:     -1,
 			ProjectId: user.ProjectId,
@@ -370,17 +382,6 @@ func CreateAssetHandler(c *gin.Context) {
 		return
 	}
 
-	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &createAssetReq)
-	if err != nil {
-		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-			return
-		}
-	}
-	if createAssetRsp.AlreadyExists {
-		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
-		return
-	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"CandidateAddr": createAssetRsp.UploadURL,
 		"Token":         createAssetRsp.Token,
