@@ -24,6 +24,7 @@ type Config struct {
 	ContainerManager         ContainerManagerEndpointConfig
 	Epoch                    EpochConfig
 	SpecifyCandidate         SpecifyCandidateConfig
+	URL                      URLConfig
 }
 
 type EmailConfig struct {
@@ -70,4 +71,8 @@ type SpecifyCandidateConfig struct {
 	Disable bool
 	AreaId  string
 	NodeId  string
+}
+
+type URLConfig struct {
+	Discord string
 }

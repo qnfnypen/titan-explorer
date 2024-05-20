@@ -2,10 +2,11 @@ package api
 
 import (
 	"bytes"
+	"io"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/config"
 	logging "github.com/ipfs/go-log/v2"
-	"io"
 )
 
 var log = logging.Logger("api")
@@ -201,6 +202,10 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 
 	signature.POST("/upload", setSignInfo)
 	signature.POST("/command", getCommand)
+
+	// url
+	uri := apiV1.Group("/url")
+	uri.GET("/discord", getDiscordURL)
 
 }
 
