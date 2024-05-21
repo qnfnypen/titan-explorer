@@ -1,6 +1,7 @@
 package api
 
 import (
+	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gnasnik/titan-explorer/config"
 	"net/http"
 	"strconv"
@@ -307,6 +308,26 @@ func GetUserAccessTokenHandler(c *gin.Context) {
 	}))
 }
 
+func GetUploadInfoHandler(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	username := claims[identityKey].(string)
+
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+		return
+	}
+
+	res, err := schedulerClient.GetNodeUploadInfo(c.Request.Context(), username)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(res))
+}
+
 func CreateAssetHandler(c *gin.Context) {
 	userId := c.Query("user_id")
 	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
@@ -322,28 +343,7 @@ func CreateAssetHandler(c *gin.Context) {
 		return
 	}
 
-	//nodeIPInfos, err := schedulerClient.GetCandidateIPs(c.Request.Context())
-	//if err != nil {
-	//	log.Warnf("get candidate ips error %s", err.Error())
-	//}
-	//
-	//var nearestNode string
-	//if len(nodeIPInfos) > 0 {
-	//	nodeMap := make(map[string]string)
-	//	ips := make([]string, 0, len(nodeIPInfos))
-	//	for _, nodeIPInfo := range nodeIPInfos {
-	//		ips = append(ips, nodeIPInfo.IP)
-	//		nodeMap[nodeIPInfo.IP] = nodeIPInfo.NodeID
-	//	}
-	//
-	//	if ip, err := GetUserNearestIP(c.Request.Context(), c.ClientIP(), ips, NewIPCoordinate()); err == nil {
-	//		nearestNode = nodeMap[ip]
-	//	} else {
-	//		log.Warnf("GetUserNearestIP error %s", err.Error())
-	//	}
-	//}
-
-	log.Debugf("CreateAssetHandler clientIP:%s, areaId:%s, nearestNode:%s\n", c.ClientIP(), areaId)
+	log.Debugf("CreateAssetHandler clientIP:%s, areaId:%s\n", c.ClientIP(), areaId)
 
 	var createAssetReq types.CreateAssetReq
 	createAssetReq.AssetName = c.Query("asset_name")
