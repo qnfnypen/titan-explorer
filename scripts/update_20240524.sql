@@ -1,0 +1,1 @@
+ALTER  TABLE  device_info ADD COLUMN is_test_node TINYINT(1) NOT NULL DEFAULT 0;
