@@ -139,6 +139,7 @@ type DeviceInfo struct {
 	AreaID          string  `db:"area_id" json:"area_id"`
 	TitanDiskSpace  float64 `db:"titan_disk_space" json:"titan_disk_space"`
 	TitanDiskUsage  float64 `db:"titan_disk_usage" json:"titan_disk_usage"`
+	IsTestNode      bool    `db:"is_test_node" json:"is_test_node"`
 
 	Location
 }

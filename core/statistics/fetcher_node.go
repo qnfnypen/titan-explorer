@@ -2,14 +2,15 @@ package statistics
 
 import (
 	"context"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/gnasnik/titan-explorer/core/geo"
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/golang-module/carbon/v2"
 	errs "github.com/pkg/errors"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
@@ -323,6 +324,7 @@ func ToDeviceInfo(node types.NodeInfo, areaId string) *model.DeviceInfo {
 		AreaID:           areaId,
 		LastSeen:         node.LastSeen,
 		IsMobile:         isMobile(node.SystemVersion, node.CPUInfo),
+		IsTestNode:       node.IsTestNode,
 	}
 
 	switch node.Status {

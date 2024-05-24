@@ -117,6 +117,7 @@ CREATE TABLE `device_info` (
   `upload_traffic` FLOAT(32) NOT NULL DEFAULT '0',
   `cache_count` BIGINT(20) NOT NULL DEFAULT '0',
   `retrieval_count` BIGINT(20) NOT NULL DEFAULT '0',
+  `is_test_node` TINYINT(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`device_id`),
   INDEX `idx_device_info_deleted_at` USING BTREE(`deleted_at` ASC)
 ) ENGINE = INNODB CHARSET = utf8mb4;
