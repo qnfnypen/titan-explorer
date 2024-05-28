@@ -14,6 +14,12 @@ import (
 	"time"
 )
 
+const (
+	DefaultCommissionPercent = 5
+)
+
+const batchSize = 1000
+
 // AddDeviceInfoHours 写入 device_info_hour 表
 func AddDeviceInfoHours(ctx context.Context, upsertDevice []*model.DeviceInfoHour) error {
 	log.Info("start to fetch device info hours")
@@ -47,7 +53,7 @@ func AddDeviceInfoHours(ctx context.Context, upsertDevice []*model.DeviceInfoHou
 func GetDeviceUserId(ctx context.Context, deviceId string) string {
 	deviceOrdinaryInfo, err := dao.GetDeviceInfo(ctx, deviceId)
 	if err != nil {
-		log.Errorf("set device info: %v", err)
+		log.Errorf("get device info: %v", err)
 		return ""
 	}
 
@@ -62,7 +68,7 @@ func GetDeviceUserId(ctx context.Context, deviceId string) string {
 
 	signature, err := dao.GetSignatureByNodeId(ctx, deviceId)
 	if err != nil {
-		log.Errorf("get signatrue by nodee id: %v", err)
+		log.Errorf("get signatrue by node id: %v", err)
 		//return ""
 	}
 
@@ -192,7 +198,7 @@ func (s *Statistic) buildDailyInfos(dataList []map[string]string) ([]*model.Devi
 	return dailyInfos, nil
 }
 
-func (n *NodeFetcher) SumDeviceInfoProfit() error {
+func SumDeviceInfoProfit() error {
 	log.Info("start to sum device info profit")
 	start := time.Now()
 	defer func() {
@@ -250,43 +256,255 @@ func updateDeviceInfoForTimeRange(updatedDevices map[string]*model.DeviceInfo, s
 	}
 }
 
-func SumUserDeviceReward(ctx context.Context) error {
-	log.Info("start to sum user device reward")
+// UpdateUserRewardFields
+// update users table reward, referral_reward, referrer_commission_reward, from_kol_bonus_reward, device_count fields
+func UpdateUserRewardFields(ctx context.Context) error {
+	log.Info("start to update user reward")
 	start := time.Now()
 	defer func() {
-		log.Infof("sum sum user device reward done, cost: %v", time.Since(start))
+		log.Infof("update user reward done, cost: %v", time.Since(start))
 	}()
 
-	sumReward, err := dao.GetSumUserDeviceReward(ctx)
+	beforeDate := carbon.Now().EndOfDay().String()
+	userRewards, err := dao.GetAllUsersRewardBefore(ctx, beforeDate)
 	if err != nil {
+		log.Errorf("GetAllUsersRewardBefore: %v", err)
 		return err
 	}
 
-	referralRewards, err := dao.SumUserReferralReward3(ctx)
-	if err != nil {
-		return err
-	}
+	var (
+		count              int
+		todos              []*model.User
+		referrerUpdateList = make(map[string]float64)
+	)
 
-	var count int
-	users := make([]*model.User, 0)
-	for _, user := range sumReward {
-
-		if rw, ok := referralRewards[user.Username]; ok {
-			user.RefereralReward = rw
-		}
+	for _, user := range userRewards {
 
 		count++
-		users = append(users, user)
+		todos = append(todos, &model.User{
+			Username:                 user.UserId,
+			Reward:                   user.CumulativeReward,
+			RefereralReward:          user.ReferralReward,
+			DeviceCount:              user.TotalDeviceCount,
+			DeviceOnlineCount:        user.DeviceOnlineCount,
+			ReferrerCommissionReward: user.ReferrerReward,
+			FromKOLBonusReward:       user.KOLBonus,
+		})
 
-		if len(users) == 1000 || count == len(sumReward) {
-			if err := dao.BulkUpdateUserReward(context.Background(), users); err != nil {
-				log.Errorf("bulk update devices: %v", err)
+		// referrer hasn't run any nodes, so he isn't in the map.
+		if _, ok := userRewards[user.ReferrerUserId]; user.ReferrerUserId != "" && !ok {
+			referrerUpdateList[user.ReferrerUserId] += user.ReferrerReward
+		}
+
+		if len(todos)%batchSize == 0 || count == len(userRewards) {
+			if err = dao.BulkUpdateUserReward(ctx, todos); err != nil {
+				log.Errorf("BulkUpdateUserReward: %v", err)
 			}
-			users = make([]*model.User, 0)
+			todos = todos[:0]
+		}
+	}
+
+	todos = todos[:0]
+	for userId, reward := range referrerUpdateList {
+		todos = append(todos, &model.User{
+			Username:        userId,
+			RefereralReward: reward,
+		})
+	}
+
+	if err = dao.BulkUpdateUserReferralReward(ctx, todos); err != nil {
+		log.Errorf("BulkUpdateUserReferralReward: %v", err)
+	}
+
+	return nil
+}
+
+// SumUserDailyReward
+// 奖励规则
+// 普通用户:
+//   - 邀请人, 可得5%的佣金
+//   - 受邀人, 无津贴
+//
+// KOL:
+//   - 邀请人, 可得 cli 端 5% 佣金, 移动端 10%-15%-20% 的对应等级比例佣金
+//   - 受邀人, 5%-7%-10% 的津贴
+func SumUserDailyReward(ctx context.Context) error {
+	log.Info("start to sum user daily reward")
+	start := time.Now()
+	defer func() {
+		log.Infof("sum user daily reward done, cost: %v", time.Since(start))
+	}()
+
+	userRewardSum, err := dao.SumAllUsersReward(ctx)
+	if err != nil {
+		log.Errorf("SumAllUsersReward: %v", err)
+		return err
+	}
+
+	kolLevels, err := dao.GetAllKOLLevels(ctx)
+	if err != nil {
+		log.Errorf("GetAllKOLLevels: %v", err)
+		return err
+	}
+
+	referrerUserIdInUser, err := dao.GetAllUserReferrerUserId(ctx)
+	if err != nil {
+		log.Errorf("GetAllUserReferrerUserId: %v", err)
+		return err
+	}
+	//
+	//beforeDate := carbon.Yesterday().EndOfDay().String()
+	//maxUserRewardBefore, err := dao.GetAllUsersRewardBefore(ctx, beforeDate)
+	//if err != nil {
+	//	log.Errorf("GetAllUsersRewardBefore: %v", err)
+	//	return err
+	//}
+
+	referralReward := make(map[string]float64)
+
+	toLevelUpKOLs := make(map[string]*kolLevelRef)
+
+	var updateUserRewards []*model.UserRewardDaily
+	for _, userReward := range userRewardSum {
+		userReward.UpdatedAt = start
+		userReward.CreatedAt = start
+		userReward.Time = carbon.Now().StartOfDay().StdTime()
+
+		if _, ok := kolLevels[userReward.UserId]; ok {
+			userReward.IsKOL = 1
+		}
+
+		if v, ok := referrerUserIdInUser[userReward.UserId]; ok {
+			userReward.ReferrerUserId = v
+		}
+
+		//if before, ok := maxUserRewardBefore[userReward.UserId]; ok {
+		//	userReward.Reward = unSizeVal(userReward.CumulativeReward - before.CumulativeReward)
+		//	userReward.AppReward = unSizeVal(userReward.AppReward - before.AppReward)
+		//	userReward.CliReward = unSizeVal(userReward.CliReward - before.CliReward)
+		//} else {
+		//	userReward.Reward = userReward.CumulativeReward
+		//}
+
+		if kol, ok := kolLevels[userReward.ReferrerUserId]; ok {
+			userReward.IsReferrerKOL = 1
+			userReward.KOLBonus = userReward.Reward * float64(kol.ChildrenBonusPercent) / float64(100)
+			userReward.CommissionPercent = int64(kol.ParentCommissionPercent)
+			userReward.KOLBonusPercent = int64(kol.ChildrenBonusPercent)
+
+			cliReward := userReward.CliReward * DefaultCommissionPercent / 100
+			appReward := userReward.AppReward * float64(kol.ParentCommissionPercent) / float64(100)
+
+			userReward.ReferrerReward = cliReward + appReward
+			referralReward[userReward.ReferrerUserId] += cliReward + appReward
+
+			if _, exist := toLevelUpKOLs[userReward.ReferrerUserId]; !exist {
+				toLevelUpKOLs[userReward.ReferrerUserId] = &kolLevelRef{
+					CurrentLevel:               kol.Level,
+					LevelUpNodeCountsThreshold: kol.DeviceThreshold,
+				}
+			}
+
+			toLevelUpKOLs[userReward.ReferrerUserId].ReferralNodeCount += userReward.DeviceOnlineCount
+		} else {
+			userReward.IsReferrerKOL = 0
+			reward := userReward.Reward * DefaultCommissionPercent / 100
+			userReward.ReferrerReward = reward
+			referralReward[userReward.ReferrerUserId] += reward
+		}
+
+		updateUserRewards = append(updateUserRewards, userReward)
+	}
+
+	var todos []*model.UserRewardDaily
+
+	for i, u := range updateUserRewards {
+		if reward, ok := referralReward[u.UserId]; ok {
+			u.ReferralReward = reward
+		}
+
+		todos = append(todos, u)
+
+		// Perform bulk insert when todos reaches a multiple of batchSize or at the end of updateUserRewards
+		if len(todos)%batchSize == 0 || i == len(updateUserRewards)-1 {
+			if err := dao.BulkAddUserRewardDaily(context.Background(), todos); err != nil {
+				return errs.Wrap(err, "BulkAddUserRewardDaily")
+			}
+			todos = todos[:0] // Reset todos slice without reallocating memory
+		}
+	}
+
+	if err = checkingKOLLevelUp(ctx, toLevelUpKOLs); err != nil {
+		log.Errorf("checkingKOLLevelUp: %v", err)
+	}
+
+	return nil
+}
+
+type kolLevelRef struct {
+	CurrentLevel               int
+	ReferralNodeCount          int64
+	LevelUpNodeCountsThreshold int64
+}
+
+func checkingKOLLevelUp(ctx context.Context, nodeCountInKOL map[string]*kolLevelRef) error {
+	// Fetch all KOL levels once
+	kolLevels, _, err := dao.GetKolLevelConfig(ctx, dao.QueryOption{})
+	if err != nil {
+		return errs.Wrap(err, "GetAllKOLLevels")
+	}
+
+	for kolUserId, kolLevel := range nodeCountInKOL {
+		if kolLevel.ReferralNodeCount < kolLevel.LevelUpNodeCountsThreshold {
+			log.Infof("Level up conditions not met for user %s, %d, %d", kolUserId, kolLevel.ReferralNodeCount, kolLevel.LevelUpNodeCountsThreshold)
+			continue
+		}
+
+		nextLevel := kolLevel.CurrentLevel + 1
+
+		// Check if next level exists
+		nextLevelExists := false
+		for _, level := range kolLevels {
+			if level.Level == nextLevel {
+				nextLevelExists = true
+				break
+			}
+		}
+
+		if !nextLevelExists {
+			log.Infof("MAX KOL level reached for user %s", kolUserId)
+			continue
+		}
+
+		log.Infof("KOL LEVEL UP: %s, before Level: %d, after Level: %d", kolUserId, kolLevel.CurrentLevel, nextLevel)
+
+		record := &model.KOLLevelUPRecord{
+			UserId:             kolUserId,
+			BeforeLevel:        int64(kolLevel.CurrentLevel),
+			AfterLevel:         int64(nextLevel),
+			ReferralNodesCount: kolLevel.ReferralNodeCount,
+			CreatedAt:          time.Now(),
+		}
+
+		// Update KOL level
+		if err := dao.UpdateKOLLevel(ctx, kolUserId, nextLevel); err != nil {
+			return errs.Wrap(err, "UpdateKOLLevel")
+		}
+
+		// Prepare KOL level-up record
+		if err = dao.AddKOLLevelUPRecord(ctx, record); err != nil {
+			return errs.Wrap(err, "AddKOLLevelUPRecord")
 		}
 	}
 
 	return nil
+}
+
+func unSizeVal(val float64) float64 {
+	if val < 0 {
+		return 0
+	}
+	return val
 }
 
 func SumAllNodes() error {

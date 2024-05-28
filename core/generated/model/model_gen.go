@@ -120,7 +120,7 @@ type DeviceInfo struct {
 	CpuUsage        float64 `db:"cpu_usage" json:"cpu_usage"`
 	CpuCores        int64   `db:"cpu_cores" json:"cpu_cores"`
 	CpuInfo         string  `db:"cpu_info" json:"cpu_info"`
-	GpuInfo  		string  `db:"gpu_info" json:"gpu_info"`
+	GpuInfo         string  `db:"gpu_info" json:"gpu_info"`
 	MemoryUsage     float64 `db:"memory_usage" json:"memory_usage"`
 	Memory          float64 `db:"memory" json:"memory"`
 	DiskSpace       float64 `db:"disk_space" json:"disk_space"`
@@ -174,7 +174,7 @@ type DeviceInfoDaily struct {
 	DownstreamTraffic float64   `db:"downstream_traffic" json:"downstream_traffic"`
 	RetrievalCount    int64     `db:"retrieval_count" json:"retrieval_count"`
 	BlockCount        int64     `db:"block_count" json:"block_count"`
-	IsMobile 		  int64	    `db:"is_mobile" json:"is_mobile"`
+	IsMobile          int64     `db:"is_mobile" json:"is_mobile"`
 }
 
 type DeviceInfoHour struct {
@@ -304,32 +304,35 @@ type SystemInfo struct {
 }
 
 type User struct {
-	ID                     int64     `db:"id" json:"id"`
-	Uuid                   string    `db:"uuid" json:"uuid"`
-	Avatar                 string    `db:"avatar" json:"avatar"`
-	Username               string    `db:"username" json:"username"`
-	PassHash               string    `db:"pass_hash" json:"-"`
-	UserEmail              string    `db:"user_email" json:"user_email"`
-	WalletAddress          string    `db:"wallet_address" json:"wallet_address"`
-	Role                   int32     `db:"role" json:"role"`
-	AllocateStorage        int       `db:"allocate_storage" json:"allocate_storage"`
-	ProjectId              int64     `db:"project_id"`
-	Referrer               string    `db:"referrer" json:"referrer"`
-	ReferrerUserId         string    `db:"referrer_user_id" json:"-"`
-	ReferralCode           string    `db:"referral_code" json:"referral_code"`
-	Reward                 float64   `db:"reward" json:"reward"`
-	RefereralReward        float64   `db:"referral_reward" json:"referral_reward"`
-	Payout                 float64   `db:"payout" json:"payout"`
-	FrozenReward           float64   `db:"frozen_reward" json:"frozen_reward"`
-	ClosedTestReward       float64   `db:"closed_test_reward" json:"closed_test_reward"`
-	HuygensReward          float64   `db:"huygens_reward" json:"huygens_reward"`
-	HuygensReferralReward  float64   `db:"huygens_referral_reward" json:"huygens_referral_reward"`
-	HerschelReward         float64   `db:"herschel_reward" json:"herschel_reward"`
-	HerschelReferralReward float64   `db:"herschel_referral_reward" json:"herschel_referral_reward"`
-	DeviceCount            int64     `db:"device_count" json:"device_count"`
-	CreatedAt              time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt              time.Time `db:"updated_at" json:"-"`
-	DeletedAt              time.Time `db:"deleted_at" json:"-"`
+	ID                       int64     `db:"id" json:"id"`
+	Uuid                     string    `db:"uuid" json:"uuid"`
+	Avatar                   string    `db:"avatar" json:"avatar"`
+	Username                 string    `db:"username" json:"username"`
+	PassHash                 string    `db:"pass_hash" json:"-"`
+	UserEmail                string    `db:"user_email" json:"user_email"`
+	WalletAddress            string    `db:"wallet_address" json:"wallet_address"`
+	Role                     int32     `db:"role" json:"role"`
+	AllocateStorage          int       `db:"allocate_storage" json:"allocate_storage"`
+	ProjectId                int64     `db:"project_id"`
+	Referrer                 string    `db:"referrer" json:"referrer"`
+	ReferrerUserId           string    `db:"referrer_user_id" json:"-"`
+	ReferralCode             string    `db:"referral_code" json:"referral_code"`
+	Reward                   float64   `db:"reward" json:"reward"`
+	RefereralReward          float64   `db:"referral_reward" json:"referral_reward"`
+	Payout                   float64   `db:"payout" json:"payout"`
+	FrozenReward             float64   `db:"frozen_reward" json:"frozen_reward"`
+	ClosedTestReward         float64   `db:"closed_test_reward" json:"closed_test_reward"`
+	HuygensReward            float64   `db:"huygens_reward" json:"huygens_reward"`
+	HuygensReferralReward    float64   `db:"huygens_referral_reward" json:"huygens_referral_reward"`
+	HerschelReward           float64   `db:"herschel_reward" json:"herschel_reward"`
+	HerschelReferralReward   float64   `db:"herschel_referral_reward" json:"herschel_referral_reward"`
+	DeviceCount              int64     `db:"device_count" json:"device_count"`
+	DeviceOnlineCount        int64     `db:"device_online_count" json:"device_online_count"`
+	ReferrerCommissionReward float64   `db:"referrer_commission_reward" json:"-"`
+	FromKOLBonusReward       float64   `db:"from_kol_bonus_reward" json:"from_kol_bonus_reward"`
+	CreatedAt                time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt                time.Time `db:"updated_at" json:"-"`
+	DeletedAt                time.Time `db:"deleted_at" json:"-"`
 }
 
 type Link struct {
@@ -501,18 +504,6 @@ type UserSecret struct {
 	DeletedAt time.Time `db:"deleted_at" json:"deleted_at"`
 }
 
-type RewardStatement struct {
-	ID        int64       `db:"id" json:"id"`
-	FromUser  string      `db:"from_user" json:"from_user"`
-	Username  string      `db:"username" json:"username"`
-	Amount    int64       `db:"amount" json:"amount"`
-	Event     RewardEvent `db:"event" json:"event"`
-	Status    int32       `db:"status" json:"status"`
-	DeviceId  string      `db:"device_id" json:"device_id"`
-	CreatedAt time.Time   `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time   `db:"updated_at" json:"updated_at"`
-}
-
 type Withdraw struct {
 	ID        int64     `db:"id" json:"id"`
 	Username  string    `db:"username" json:"username"`
@@ -553,4 +544,14 @@ type Signature struct {
 	Signature string    `db:"signature" json:"signature"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+}
+
+type KOLLevelUPRecord struct {
+	ID                 int64     `db:"id" json:"id"`
+	UserId             string    `db:"user_id" json:"user_id"`
+	BeforeLevel        int64     `db:"before_level" json:"before_level"`
+	AfterLevel         int64     `db:"after_level" json:"after_level"`
+	ReferralUsersCount int64     `db:"referral_users_count" json:"referral_users_count"`
+	ReferralNodesCount int64     `db:"referral_nodes_count" json:"referral_nodes_count"`
+	CreatedAt          time.Time `db:"created_at" json:"created_at"`
 }

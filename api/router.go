@@ -59,6 +59,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	apiV2.POST("/device/binding", DeviceBindingHandler)
 	apiV2.GET("/device/query_code", QueryDeviceCodeHandler)
 	apiV2.GET("/device/distribution", GetDeviceDistributionHandler)
+	apiV2.POST("/data/collection", DataCollectionHandler)
 
 	// index info all nodes info from device info
 	apiV2.GET("/get_nodes_info", GetNodesInfoHandler)
@@ -116,13 +117,33 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	user.Use(authMiddleware.MiddlewareFunc())
 	user.GET("/refresh_token", authMiddleware.RefreshHandler)
 	user.POST("/info", GetUserInfoHandler)
+	user.POST("/referral_code/new", AddReferralCodeHandler)
+	user.GET("/referral_code/detail", GetReferralCodeDetailHandler)
+	user.GET("/referral_code/stat", GetReferralCodeStatHandler)
 
 	// admin
 	admin := apiV1.Group("/admin")
-	admin.Use(authMiddleware.MiddlewareFunc())
+	adminMiddleware := *authMiddleware
+	adminMiddleware.Authorizator = AdminOnly
+	err = adminMiddleware.MiddlewareInit()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	admin.Use(adminMiddleware.MiddlewareFunc())
 	admin.GET("/get_login_log", GetLoginLogHandler)
 	admin.GET("/get_operation_log", GetOperationLogHandler)
 	admin.GET("/get_node_daily_trend", GetNodeDailyTrendHandler)
+	admin.GET("/kol/list", GetKOLListHandler)
+	admin.POST("/kol/add", AddKOLHandler)
+	admin.POST("/kol/update", UpdateKOLHandler)
+	admin.POST("/kol/delete", DeleteKOLHandler)
+	admin.POST("/kol_level/add", AddKOLLevelHandler)
+	admin.GET("/kol_level/list", GetKOLLevelConfigHandler)
+	admin.POST("/kol_level/update", UpdateKOLLevelHandler)
+	admin.POST("/kol_level/delete", DeleteKOLLevelHandler)
+	admin.GET("/referral_reward_daily", GetReferralRewardDailyHandler)
+	admin.GET("/referral_reward_daily/export", ExportReferralRewardDailyHandler)
 
 	// storage
 	storage := apiV1.Group("/storage")
@@ -215,4 +236,8 @@ func RegisterRouterWithAPIKey(router *gin.Engine) {
 	app := authV1.Group("/app")
 	app.Use(AuthAPIKeyMiddlewareFunc())
 	app.POST("/new_version", CreateAppVersionHandler)
+
+	kol := authV1.Group("/kol")
+	kol.Use(AuthAPIKeyMiddlewareFunc())
+	kol.GET("/code", GetKOLReferralCodeInfoHandler)
 }

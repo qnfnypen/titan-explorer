@@ -160,12 +160,16 @@ func (n *NodeFetcher) Finalize() error {
 		log.Errorf("OnlineIPCount: %v", err)
 	}
 
-	if err := n.SumDeviceInfoProfit(); err != nil {
+	if err := SumDeviceInfoProfit(); err != nil {
 		log.Errorf("sum device info profit: %v", err)
 	}
 
-	if err := SumUserDeviceReward(context.Background()); err != nil {
-		log.Errorf("sum user device reward: %v", err)
+	if err := SumUserDailyReward(context.Background()); err != nil {
+		log.Errorf("sum user reward: %v", err)
+	}
+
+	if err := UpdateUserRewardFields(context.Background()); err != nil {
+		log.Errorf("update user device reward: %v", err)
 	}
 
 	if err := SumAllNodes(); err != nil {
@@ -367,12 +371,9 @@ func applyLocationInfo(deviceInfo *model.DeviceInfo) {
 		return
 	}
 
-	//var loc model.Location
-	//err := GetIpLocation(context.Background(), deviceInfo.ExternalIp, &loc, model.LanguageCN, model.LanguageEN)
 	loc, err := geo.GetIpLocation(context.Background(), deviceInfo.ExternalIp, model.LanguageEN)
 	if err != nil || loc == nil {
 		log.Errorf("get ip location %v", err)
-		// applyLocationFromLocalGEODB(deviceInfo)
 		return
 	}
 

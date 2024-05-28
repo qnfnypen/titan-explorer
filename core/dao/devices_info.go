@@ -589,11 +589,6 @@ count(IF(device_status = 'abnormal', 1, NULL)) as abnormal_num, COALESCE(sum(ban
 	return &out, nil
 }
 
-func GetDeviceUserIdFromCache(ctx context.Context, deviceId, areaId string) (string, error) {
-	key := fmt.Sprintf("TITAN::DEVICEUSERS::%s", areaId)
-	return RedisCache.HGet(ctx, key, deviceId).Result()
-}
-
 func SetDeviceUserIdToCache(ctx context.Context, deviceId, userId, areaId string) error {
 	key := fmt.Sprintf("TITAN::DEVICEUSERS::%s", areaId)
 	_, err := RedisCache.HSet(ctx, key, deviceId, userId).Result()
@@ -655,14 +650,6 @@ func GetDeviceInfoById(ctx context.Context, deviceId string) model.DeviceInfo {
 	if err != nil {
 		log.Errorf("getDeviceInfo %v", err)
 	}
-	//eIp := strings.Split(deviceInfo.ExternalIp, ".")
-	//if len(eIp) > 3 {
-	//	deviceInfo.ExternalIp = eIp[0] + "." + "xxx" + "." + "xxx" + "." + eIp[3]
-	//}
-	//iIp := strings.Split(deviceInfo.InternalIp, ".")
-	//if len(iIp) > 3 {
-	//	deviceInfo.InternalIp = iIp[0] + "." + "xxx" + "." + "xxx" + "." + iIp[3]
-	//}
 	return deviceInfo
 }
 
@@ -755,45 +742,6 @@ func GetNodesInfo(ctx context.Context, option QueryOption) (int64, []model.Nodes
 	return total, nodeInfo, nil
 }
 
-func GetIdIfExist(ctx context.Context, nodeId string) bool {
-	var out model.DeviceInfo
-	query := fmt.Sprintf(`SELECT * FROM %s where device_id = '%s';`, tableNameDeviceInfo, nodeId)
-	err := DB.QueryRowxContext(ctx, query).StructScan(&out)
-	if err == sql.ErrNoRows {
-		return false
-	}
-	if err != nil {
-		log.Errorf("GetIdIfExist err:%v", err)
-		return false
-	}
-	return true
-}
-
-func SumUserDeviceReward(ctx context.Context) (map[string]int64, error) {
-	query := fmt.Sprintf(`select user_id, sum(cumulative_profit) as income from %s where  user_id <> '' and today_profit > 0 GROUP BY user_id;`, tableNameDeviceInfo)
-
-	out := make(map[string]int64)
-	rows, err := DB.QueryxContext(ctx, query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var userID string
-		var reward int64
-
-		err := rows.Scan(&userID, &reward)
-		if err != nil {
-			return nil, err
-		}
-
-		out[userID] = reward
-	}
-
-	return out, nil
-}
-
 func DeleteDeviceInfoHourHistory(ctx context.Context, before time.Time) error {
 	statement := fmt.Sprintf(`DELETE FROM %s where created_at < ?`, tableNameDeviceInfoHour)
 	_, err := DB.ExecContext(ctx, statement, before)
@@ -826,82 +774,20 @@ func GetDeviceProfileFromCache(ctx context.Context, deviceId string) (map[string
 	return out, nil
 }
 
-func SumUserReferralReward(ctx context.Context) ([]*model.User, error) {
-	query := `select  u.referrer_user_id as username , sum(d.cumulative_profit)* 0.05 as referral_reward  from device_info d 
-            inner join users u on d.user_id = u.username  and u.referrer_user_id <> '' group by u.referrer_user_id`
+func SumAllUsersReward(ctx context.Context) ([]*model.UserRewardDaily, error) {
+	query := `select user_id, 
+       ifnull(sum(cumulative_profit),0) as cumulative_reward, 
+       ifnull(sum(today_profit),0) as reward,
+       sum(IF(app_type > 0,today_profit,0)) as app_reward, 
+       sum(IF(app_type = 0,today_profit,0)) as cli_reward, 
+       count(if(online_time >= 500, true, null)) as device_online_count,
+       count(device_id) as total_device_count
+		from device_info  where user_id <> '' GROUP BY user_id`
 
-	var users []*model.User
-	err := DB.SelectContext(ctx, &users, query)
-	if err != nil {
-		log.Errorf("SumUserReferralReward %v", err)
-		return nil, err
-	}
-	return users, nil
-}
-
-func GetSumUserDeviceReward(ctx context.Context) ([]*model.User, error) {
-	var users []*model.User
-	query := fmt.Sprintf(`select user_id as username, sum(cumulative_profit) as reward, count(device_id) as device_count from device_info  where user_id <>'' GROUP BY user_id;`)
-	err := DB.SelectContext(ctx, &users, query)
-	if err != nil {
-		log.Errorf("GetSumUserDeviceReward %v", err)
-		return nil, err
-	}
-	return users, nil
-}
-
-func SumUserReferralReward2(ctx context.Context) (map[string]float64, error) {
-	out := make(map[string]float64)
-
-	query := `select referrer_user_id, sum(reward) * 0.05 as referral_reward from users where referrer_user_id <> '' group by referrer_user_id`
-	rows, err := DB.QueryxContext(ctx, query)
+	var out []*model.UserRewardDaily
+	err := DB.SelectContext(ctx, &out, query)
 	if err != nil {
 		return nil, err
-	}
-	defer rows.Close()
-
-	var (
-		userid         string
-		referralReward float64
-	)
-
-	for rows.Next() {
-		err = rows.Scan(&userid, &referralReward)
-		if err != nil {
-			log.Errorf("scan %v", err)
-			continue
-		}
-
-		out[userid] = referralReward
-	}
-
-	return out, nil
-}
-
-func SumUserReferralReward3(ctx context.Context) (map[string]float64, error) {
-	out := make(map[string]float64)
-
-	query := `select  u.referrer_user_id as username , sum(d.cumulative_profit)* 0.05 as referral_reward  from device_info d 
-            inner join users u on d.user_id = u.username  and u.referrer_user_id <> '' group by u.referrer_user_id`
-	rows, err := DB.QueryxContext(ctx, query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var (
-		userid         string
-		referralReward float64
-	)
-
-	for rows.Next() {
-		err = rows.Scan(&userid, &referralReward)
-		if err != nil {
-			log.Errorf("scan %v", err)
-			continue
-		}
-
-		out[userid] = referralReward
 	}
 
 	return out, nil

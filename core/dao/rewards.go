@@ -62,31 +62,6 @@ type DeviceStatistics struct {
 	NodeCount         float64 `json:"node_count" db:"node_count"`
 }
 
-func GetDeviceHourlyIncome(ctx context.Context, nodeId string, option QueryOption) ([]*DeviceStatistics, error) {
-	if option.StartTime == "" {
-		option.StartTime = carbon.Now().StartOfDay().String()
-	}
-
-	if option.EndTime == "" {
-		option.EndTime = carbon.Now().EndOfDay().String()
-	}
-
-	query := fmt.Sprintf(`select date_format(time, '%%H') as date, max(hour_income) - min(hour_income) as income from %s 
-            where device_id='%s' and time>='%s' and time<='%s' group by date order by date`, tableNameDeviceInfoHour, nodeId, option.StartTime, option.EndTime)
-
-	var out []*DeviceStatistics
-	err := DB.SelectContext(ctx, &out, query)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(out) > 0 {
-		append24HoursData(out)
-	}
-
-	return out, err
-}
-
 func GetLatestDeviceStat(ctx context.Context, deviceId string, start string) (DeviceStatistics, error) {
 	var ds DeviceStatistics
 	query := fmt.Sprintf(`select 
@@ -164,28 +139,6 @@ func GetDeviceInfoHourList(ctx context.Context, cond *model.DeviceInfoHour, opti
 
 	return append24HoursData(out), err
 }
-
-//func GetDeviceInfoDailyHourListOld(ctx context.Context, cond *model.DeviceInfoHour, option QueryOption) ([]*DeviceStatistics, error) {
-//	sqlClause := fmt.Sprintf(`select date_format(time, '%%Y-%%m-%%d %%H') as date, avg(nat_ratio) as nat_ratio,
-//	avg(disk_usage) as disk_usage,avg(disk_space) as disk_space,avg(bandwidth_up) as bandwidth_up,avg(bandwidth_down) as bandwidth_down, avg(latency) as latency, avg(pkg_loss_ratio) as pkg_loss_ratio,
-//	if( (max(online_time) - min(online_time)) > 60,60,(max(online_time) - min(online_time))) as online_time,
-//	max(hour_income) - min(hour_income) as income,
-//	max(upstream_traffic) - min(upstream_traffic) as upstream_traffic,
-//	max(downstream_traffic) - min(downstream_traffic) as downstream_traffic,
-//	max(block_count) - min(block_count) as block_count,
-//	max(retrieval_count) - min(retrieval_count) as retrieval_count
-//	from %s where device_id='%s' and time>='%s' and time<='%s' group by date order by date`, tableNameDeviceInfoHour, cond.DeviceID, option.StartTime, option.EndTime)
-//	var out []*DeviceStatistics
-//	err := DB.SelectContext(ctx, &out, sqlClause)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	if len(out) > 0 {
-//		return append24HoursData(out), err
-//	}
-//	return out, err
-//}
 
 func GetDeviceInfoDailyListAppendDays(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*DeviceStatistics, error) {
 	var args []interface{}
@@ -412,16 +365,77 @@ func GetDeviceInfoDailyByPage(ctx context.Context, cond *model.DeviceInfoDaily, 
 	return out, total, err
 }
 
-func GetDeviceInfoByDeviceId(ctx context.Context, cond *model.DeviceInfoDaily, option QueryOption) ([]*model.DeviceInfoDaily, int64, error) {
+func GetAllUsersRewardBefore(ctx context.Context, before string) (map[string]*model.UserRewardDaily, error) {
+	query := `select 
+	user_id, 
+	referrer_user_id,
+	max(cumulative_reward) as cumulative_reward,
+	sum(app_reward) as app_reward,
+	sum(cli_reward) as cli_reward,
+	max(total_device_count) as total_device_count,
+	max(device_online_count) as device_online_count,
+	sum(referral_reward) as referral_reward,
+	sum(referrer_reward) as referrer_reward,
+	sum(kol_bonus) as kol_bonus
+	from user_reward_daily where time < ? group by user_id`
+
+	rows, err := DB.QueryxContext(ctx, query, before)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := make(map[string]*model.UserRewardDaily)
+
+	for rows.Next() {
+		var userRewardDaily model.UserRewardDaily
+		if err := rows.StructScan(&userRewardDaily); err != nil {
+			log.Errorf("struct scan: %v", err)
+			continue
+		}
+
+		out[userRewardDaily.UserId] = &userRewardDaily
+	}
+
+	return out, nil
+}
+
+func BulkAddUserRewardDaily(ctx context.Context, userRewards []*model.UserRewardDaily) error {
+	update := `INSERT INTO user_reward_daily (user_id, cumulative_reward, reward, app_reward, cli_reward, kol_bonus, referral_reward, device_online_count, total_device_count,
+                               referrer_user_id, is_kol, is_referrer_kol, commission_percent, kol_bonus_percent, referrer_reward, time, created_at, updated_at)
+			VALUES (:user_id, :cumulative_reward, :reward, :app_reward, :cli_reward, :kol_bonus, :referral_reward, :device_online_count, :total_device_count,
+			        :referrer_user_id, :is_kol, :is_referrer_kol, :commission_percent, :kol_bonus_percent, :referrer_reward, :time, :created_at, :updated_at) 
+			 ON DUPLICATE KEY UPDATE cumulative_reward = VALUES(cumulative_reward), reward = VALUES(reward), app_reward = VALUES(app_reward), cli_reward = VALUES(cli_reward), kol_bonus = VALUES(kol_bonus), 
+			  referral_reward = VALUES(referral_reward), referrer_user_id = VALUES(referrer_user_id), is_kol = VALUES(is_kol), is_referrer_kol = VALUES(is_referrer_kol), commission_percent = VALUES(commission_percent),
+			  kol_bonus_percent = VALUES(kol_bonus_percent), referrer_reward = VALUES(referrer_reward), device_online_count = VALUES(device_online_count), total_device_count = VALUES(total_device_count), updated_at = now()`
+
+	_, err := DB.NamedExecContext(ctx, update, userRewards)
+	return err
+}
+
+func GetUserReferralReward(ctx context.Context, option QueryOption) ([]*model.UserReferralRecord, int64, error) {
 	var args []interface{}
-	where := `WHERE 1=1`
-	if cond.DeviceID != "" {
-		where += ` AND device_id = ?`
-		args = append(args, cond.DeviceID)
+	where := `WHERE referrer_user_id <> '' `
+
+	if option.UserID != "" {
+		args = append(args, option.UserID)
+		where += ` and user_id = ?`
+	}
+
+	if option.StartTime != "" {
+		args = append(args, option.StartTime)
+		where += ` and time >= ?`
+	}
+
+	if option.EndTime != "" {
+		args = append(args, option.EndTime)
+		where += ` and time < ?`
 	}
 
 	if option.Order != "" && option.OrderField != "" {
 		where += fmt.Sprintf(` ORDER BY %s %s`, option.OrderField, option.Order)
+	} else {
+		where += fmt.Sprintf(" ORDER BY time desc")
 	}
 
 	limit := option.PageSize
@@ -434,16 +448,17 @@ func GetDeviceInfoByDeviceId(ctx context.Context, cond *model.DeviceInfoDaily, o
 	}
 
 	var total int64
-	var out []*model.DeviceInfoDaily
+	var out []*model.UserReferralRecord
 
 	err := DB.GetContext(ctx, &total, fmt.Sprintf(
-		`SELECT count(*) FROM %s %s`, tableNameDeviceInfo, where,
+		`SELECT count(*) FROM user_reward_daily %s`, where,
 	), args...)
 	if err != nil {
 		return nil, 0, err
 	}
+
 	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT * FROM %s %s LIMIT %d OFFSET %d`, tableNameDeviceInfo, where, limit, offset), args...)
+		`SELECT user_id, referrer_user_id, device_online_count, reward, referrer_reward, time as updated_at FROM user_reward_daily %s LIMIT %d OFFSET %d`, where, limit, offset), args...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -451,56 +466,51 @@ func GetDeviceInfoByDeviceId(ctx context.Context, cond *model.DeviceInfoDaily, o
 	return out, total, err
 }
 
-func GetRetrievalEventsFromDeviceByPage(ctx context.Context, cond *model.DeviceInfoHour, option QueryOption) ([]*model.DeviceInfoHour, int64, error) {
+func LoadAllUserReferralReward(ctx context.Context, option QueryOption) ([]*model.UserReferralRecord, error) {
 	var args []interface{}
-	where := `WHERE 1=1`
-	if cond.DeviceID != "" {
-		where += ` AND device_id = ?`
-		args = append(args, cond.DeviceID)
+	where := `WHERE referrer_user_id <> '' `
+
+	if option.UserID != "" {
+		args = append(args, option.UserID)
+		where += ` and user_id = ?`
 	}
 
-	limit := option.PageSize
-	offset := option.Page
-	if option.PageSize <= 0 {
-		limit = 50
-	}
-	if option.Page > 0 {
-		offset = limit * (option.Page - 1)
+	if option.StartTime != "" {
+		args = append(args, option.StartTime)
+		where += ` and time >= ?`
 	}
 
-	var total int64
-	var out []*model.DeviceInfoHour
+	if option.EndTime != "" {
+		args = append(args, option.EndTime)
+		where += ` and time < ?`
+	}
 
-	err := DB.GetContext(ctx, &total, fmt.Sprintf(
-		`select count(*)  from (
-	select device_id, retrieval_count , upstream_traffic , created_at, 
-	@a.retrieval_count AS pre_retrieval_count,
-	@a.upstream_traffic AS pre_upstream_traffic,
-	@a.retrieval_count := a.retrieval_count, 
-	@a.upstream_traffic := a.upstream_traffic  
-	from %s a ,
-	(SELECT @a.retrieval_count := 0, @a.upstream_traffic := 0 ) b %s
-) c where (c.retrieval_count - c.pre_retrieval_count) > 0`, tableNameDeviceInfoHour, where,
-	), args...)
+	if option.Order != "" && option.OrderField != "" {
+		where += fmt.Sprintf(` ORDER BY %s %s`, option.OrderField, option.Order)
+	}
+
+	var out []*model.UserReferralRecord
+
+	err := DB.SelectContext(ctx, &out, fmt.Sprintf(`SELECT user_id, referrer_user_id, device_online_count, reward, referrer_reward, time as updated_at FROM user_reward_daily %s`, where), args...)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
-	query := fmt.Sprintf(`
-select device_id, created_at, (c.retrieval_count - c.pre_retrieval_count) as retrieval_count, (c.upstream_traffic - c.pre_upstream_traffic) as upstream_traffic  
-from (
-	select device_id, retrieval_count , upstream_traffic , created_at, 
-	@a.retrieval_count AS pre_retrieval_count,
-	@a.upstream_traffic AS pre_upstream_traffic,
-	@a.retrieval_count := a.retrieval_count, 
-	@a.upstream_traffic := a.upstream_traffic  
-	from %s a ,
-	(SELECT @a.retrieval_count := 0, @a.upstream_traffic := 0 ) b %s
-) c where (c.retrieval_count - c.pre_retrieval_count) > 0 ORDER BY created_at DESC limit %d offset %d`, tableNameDeviceInfoHour, where, limit, offset)
-	err = DB.SelectContext(ctx, &out, query, args...)
-	if err != nil {
-		return nil, 0, err
-	}
+	return out, err
+}
 
-	return out, total, err
+func BulkUpdateUserReward(ctx context.Context, users []*model.User) error {
+	query := `INSERT INTO users (username, reward, referral_reward, referrer_commission_reward, from_kol_bonus_reward, device_count, device_online_count, updated_at) 
+	VALUES (:username, :reward, :referral_reward, :referrer_commission_reward, :from_kol_bonus_reward, :device_count, :device_online_count, :updated_at) ON DUPLICATE KEY UPDATE reward = VALUES(reward), 
+         referral_reward = VALUES(referral_reward), referrer_commission_reward = VALUES(referrer_commission_reward), from_kol_bonus_reward = VALUES(from_kol_bonus_reward),
+        device_count = VALUES(device_count), device_online_count = VALUES(device_online_count), updated_at  = now()`
+	_, err := DB.NamedExecContext(ctx, query, users)
+	return err
+}
+
+func BulkUpdateUserReferralReward(ctx context.Context, users []*model.User) error {
+	query := `INSERT INTO users (username, referral_reward, updated_at) 
+	VALUES (:username, :referral_reward, :updated_at) ON DUPLICATE KEY UPDATE referral_reward = VALUES(referral_reward), updated_at  = now()`
+	_, err := DB.NamedExecContext(ctx, query, users)
+	return err
 }

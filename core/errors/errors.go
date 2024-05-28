@@ -40,6 +40,12 @@ const (
 	PermissionNotAllowed
 	TokenHasBeenUsed
 
+	KolExist
+	KolLevelExist
+	KolNotExist
+	KolLevelNotExist
+	ExceedReferralCodeNumbers
+
 	InvalidMinerID = iota + 2000
 	InvalidAddress
 	GetLookupIDFailed
@@ -111,22 +117,26 @@ var ErrMap = map[int]string{
 	TimeoutCode:                              "request timeout, please try again later: 请求超时, 请稍后再试",
 	PermissionNotAllowed:                     "permission not allowed: 没有操作权限",
 	TokenHasBeenUsed:                         "token has been used: TOKEN 已被使用",
-
-	InvalidMinerID:          "invalid miner id:miner id错误",
-	InvalidAddress:          "invalid owner/worker address: owner/worker 地址错误",
-	GetLookupIDFailed:       "get lookup id failed:获取 lookup id 失败",
-	GetMinerInfoFailed:      "get miner info failed:获取miner信息失败",
-	AddressNotMatch:         "miner id not match address:地址与miner id不匹配",
-	GetMinerPowerFailed:     "get miner power failed:获取miner算力失败",
-	GetMinerBalanceFailed:   "get miner balance failed:获取miner余额失败",
-	ParseMinerPowerFailed:   "parse miner power failed:解析 miner 算力失败",
-	ParseMinerBalanceFailed: "parse miner balance failed:解析 miner 余额失败",
-	MinerPowerIsZero:        "miner power is 0:miner 算力为0",
-	VerifySignatureFailed:   "verify signature failed:验证签名失败",
-	SignatureError:          "signature error:签名错误",
-	MinerIDExists:           "miner id exists:miner id 已签名",
-	ParseSignatureFailed:    "parse signature failed: 解析签名结果失败",
-	Unregistered:            "unregistered:未注册",
+	KolExist:                                 "KOL exist: KOL 已添加",
+	KolLevelExist:                            "KOL level exist: KOL 等级已添加",
+	KolNotExist:                              "KOL not exist: KOL 不存在",
+	KolLevelNotExist:                         "KOL level not exist: KOL 等级不存在",
+	ExceedReferralCodeNumbers:                "Exceeded the limit of referral codes: 达到邀请码的申请上限",
+	InvalidMinerID:                           "invalid miner id:miner id错误",
+	InvalidAddress:                           "invalid owner/worker address: owner/worker 地址错误",
+	GetLookupIDFailed:                        "get lookup id failed:获取 lookup id 失败",
+	GetMinerInfoFailed:                       "get miner info failed:获取miner信息失败",
+	AddressNotMatch:                          "miner id not match address:地址与miner id不匹配",
+	GetMinerPowerFailed:                      "get miner power failed:获取miner算力失败",
+	GetMinerBalanceFailed:                    "get miner balance failed:获取miner余额失败",
+	ParseMinerPowerFailed:                    "parse miner power failed:解析 miner 算力失败",
+	ParseMinerBalanceFailed:                  "parse miner balance failed:解析 miner 余额失败",
+	MinerPowerIsZero:                         "miner power is 0:miner 算力为0",
+	VerifySignatureFailed:                    "verify signature failed:验证签名失败",
+	SignatureError:                           "signature error:签名错误",
+	MinerIDExists:                            "miner id exists:miner id 已签名",
+	ParseSignatureFailed:                     "parse signature failed: 解析签名结果失败",
+	Unregistered:                             "unregistered:未注册",
 }
 
 type GenericError struct {

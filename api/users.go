@@ -16,6 +16,7 @@ import (
 	"github.com/gnasnik/titan-explorer/pkg/random"
 	"github.com/gnasnik/titan-explorer/pkg/rsa"
 	"github.com/go-redis/redis/v9"
+	"github.com/golang-module/carbon/v2"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"os"
@@ -44,18 +45,16 @@ func GetUserInfoHandler(c *gin.Context) {
 		return
 	}
 
-	counter, err := dao.CountUserDeviceInfo(c.Request.Context(), username)
+	codes, err := dao.GetUserReferCodes(c.Request.Context(), username)
 	if err != nil {
-		//c.JSON(http.StatusOK, respErrorCode(errors.UserNotFound, c))
-		//return
-		log.Errorf("CountUserDeviceInfo %s: %v", username, err)
+		log.Errorf("get user referral codes: %v", err)
 	}
 
-	if counter != nil {
-		user.Reward = counter.CumulativeProfit
+	if len(codes) > 0 {
+		user.ReferralCode = codes[0].Code
 	}
 
-	user.HerschelReward = user.Reward
+	user.HerschelReward = user.Reward + user.FromKOLBonusReward
 	user.HerschelReferralReward = user.RefereralReward
 
 	c.JSON(http.StatusOK, respJSON(user))
@@ -76,11 +75,10 @@ func UserRegister(c *gin.Context) {
 	}
 
 	userInfo := &model.User{
-		Username:     params.Username,
-		UserEmail:    params.Username,
-		Referrer:     params.Referrer,
-		ReferralCode: random.GenerateRandomString(6),
-		CreatedAt:    time.Now(),
+		Username:  params.Username,
+		UserEmail: params.Username,
+		Referrer:  params.Referrer,
+		CreatedAt: time.Now(),
 	}
 
 	verifyCode := params.VerifyCode
@@ -89,20 +87,25 @@ func UserRegister(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
+
 	_, err := dao.GetUserByUsername(c.Request.Context(), userInfo.Username)
 	if err == nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.UserEmailExists, c))
 		return
 	}
+
 	if err != nil && err != sql.ErrNoRows {
+		log.Errorf("GetUserByUsername: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
 
-	//var referrer *model.User
+	var referrer *model.User
+
 	if userInfo.Referrer != "" {
-		referrer, err := dao.GetUserByRefCode(c.Request.Context(), userInfo.Referrer)
+		referrer, err = dao.GetUserByRefCode(c.Request.Context(), userInfo.Referrer)
 		if err != nil {
+			log.Errorf("GetUserByRefCode: %v", err)
 			c.JSON(http.StatusOK, respErrorCode(errors.InvalidReferralCode, c))
 			return
 		}
@@ -116,6 +119,21 @@ func UserRegister(c *gin.Context) {
 	}
 	userInfo.PassHash = string(passHash)
 
+	testCode := os.Getenv("TEST_ENV_VERIFY_CODE")
+	if testCode != "" && testCode == verifyCode {
+		err = dao.CreateUser(c.Request.Context(), userInfo)
+		if err != nil {
+			log.Errorf("create user : %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+
+		c.JSON(http.StatusOK, respJSON(JsonObject{
+			"msg": "success",
+		}))
+		return
+	}
+
 	nonce, err := getNonceFromCache(c.Request.Context(), userInfo.Username, NonceStringTypeRegister)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -127,7 +145,7 @@ func UserRegister(c *gin.Context) {
 		return
 	}
 
-	if nonce != verifyCode && os.Getenv("TEST_ENV_VERIFY_CODE") != verifyCode {
+	if nonce != verifyCode {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidVerifyCode, c))
 		return
 	}
@@ -138,22 +156,6 @@ func UserRegister(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-
-	//if referrer != nil {
-	//	rewardStatement := &model.RewardStatement{
-	//		Username:  referrer.Username,
-	//		FromUser:  userInfo.Username,
-	//		Amount:    0,
-	//		Event:     model.RewardEventInviteFrens,
-	//		Status:    1,
-	//		CreatedAt: time.Now(),
-	//		UpdatedAt: time.Now(),
-	//	}
-	//	err := dao.UpdateUserReward(c.Request.Context(), rewardStatement)
-	//	if err != nil {
-	//		log.Errorf("Update user reward: %v", err)
-	//	}
-	//}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"msg": "success",
@@ -782,17 +784,54 @@ func GetReferralListHandler(c *gin.Context) {
 		return
 	}
 
-	//totalReward, err := dao.GetUserReferralReward(c.Request.Context(), username)
-	//if err != nil {
-	//	log.Errorf("get user referral reward: %v", err)
-	//	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-	//	return
-	//}
+	var (
+		referralCodes []*model.ReferralCodeProfile
+		levelUpInfo   *model.KolLevelUpInfo
+	)
+
+	if model.UserRole(user.Role) == model.UserRoleKOL {
+		referralCodes, err = dao.GetReferralCodeProfileByUserId(c.Request.Context(), username)
+		if err != nil {
+			log.Errorf("GetUserReferCodes: %v", err)
+		}
+
+		kolLevel, err := dao.GetKOLByUserId(c.Request.Context(), username)
+		if err != nil {
+			log.Errorf("GetKOLByUserId: %v", err)
+		}
+
+		level, err := dao.GetKOLLevelByLevel(c.Request.Context(), kolLevel.Level)
+		if err != nil {
+			log.Errorf("GetKOLLevelByLevel: %v", err)
+		}
+
+		var (
+			sumReferralUser int
+			sumReferralNode int
+		)
+
+		for _, item := range referralCodes {
+			sumReferralUser += item.ReferralUsers
+			sumReferralNode += item.ReferralOnlineNodes
+		}
+
+		levelUpInfo = &model.KolLevelUpInfo{
+			CurrenLevel:          kolLevel.Level,
+			CommissionPercent:    level.ParentCommissionPercent,
+			BonusPercent:         level.ChildrenBonusPercent,
+			ReferralNodes:        sumReferralNode,
+			ReferralUsers:        sumReferralUser,
+			LevelUpReferralNodes: level.DeviceThreshold,
+			LevelUpReferralUsers: level.UserThreshold,
+		}
+	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list":         referList,
-		"total":        total,
-		"total_reward": user.RefereralReward,
+		"list":           referList,
+		"total":          total,
+		"total_reward":   user.RefereralReward,
+		"referral_codes": referralCodes,
+		"kol_level":      levelUpInfo,
 	}))
 }
 
@@ -870,5 +909,187 @@ func GetWithdrawListHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"list":  withdrawList,
 		"total": total,
+	}))
+}
+
+func AddReferralCodeHandler(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	username := claims[identityKey].(string)
+
+	user, err := dao.GetUserByUsername(c.Request.Context(), username)
+	if err != nil {
+		log.Errorf("query user: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	if model.UserRole(user.Role) != model.UserRoleKOL {
+		c.JSON(http.StatusOK, respErrorCode(errors.PermissionNotAllowed, c))
+		return
+	}
+
+	codes, err := dao.GetUserReferCodes(c.Request.Context(), username)
+	if err != nil {
+		log.Errorf("GetUserReferCodes: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	if len(codes) >= 5 {
+		c.JSON(http.StatusOK, respErrorCode(errors.ExceedReferralCodeNumbers, c))
+		return
+	}
+
+	referralCode := &model.ReferralCode{
+		UserId:    username,
+		Code:      random.GenerateRandomString(6),
+		CreatedAt: time.Now(),
+	}
+
+	err = dao.AddNewReferralCode(c.Request.Context(), referralCode)
+	if err != nil {
+		log.Errorf("AddNewReferralCode: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"code": referralCode.Code,
+	}))
+}
+
+func GetReferralCodeDetailHandler(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	username := claims[identityKey].(string)
+	code := c.Query("code")
+	from := c.Query("from")
+	to := c.Query("to")
+
+	option := dao.QueryOption{}
+
+	if from != "" {
+		option.StartTime = carbon.Parse(from).StartOfDay().String()
+	}
+
+	if to != "" {
+		option.EndTime = carbon.Parse(to).EndOfDay().String()
+	}
+
+	user, err := dao.GetUserByRefCode(c.Request.Context(), code)
+	if err != nil {
+		log.Errorf("GetUserByRefCode: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidReferralCode, c))
+		return
+	}
+
+	if user.Username != username {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidReferralCode, c))
+		return
+	}
+
+	ipCount, pvCount, err := dao.CountPageViewByEvent(c.Request.Context(), model.DataCollectionEventReferralCodePV, code, option)
+	if err != nil {
+		log.Errorf("CountPageViewByEvent: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidReferralCode, c))
+		return
+	}
+
+	referralUsers, referralNodes, err := dao.CountReferralUsersByCode(c.Request.Context(), code, option)
+	if err != nil {
+		log.Errorf("CountReferralUsersByCode: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidReferralCode, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"code":           code,
+		"ip_count":       ipCount,
+		"pv_count":       pvCount,
+		"referral_users": referralUsers,
+		"referral_nodes": referralNodes,
+	}))
+
+}
+
+func GetReferralCodeStatHandler(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	username := claims[identityKey].(string)
+
+	t := c.Query("type")
+	startTime := c.Query("from")
+	endTime := c.Query("to")
+	code := c.Query("code")
+
+	user, err := dao.GetUserByRefCode(c.Request.Context(), code)
+	if err != nil {
+		log.Errorf("GetUserByRefCode: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidReferralCode, c))
+		return
+	}
+
+	if user.Username != username {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidReferralCode, c))
+		return
+	}
+
+	option := dao.QueryOption{
+		StartTime: startTime,
+		EndTime:   endTime,
+	}
+
+	if startTime == "" {
+		option.StartTime = carbon.Now().SubDays(14).StartOfDay().String()
+	} else {
+		option.StartTime = carbon.Parse(startTime).StartOfDay().String()
+	}
+
+	if endTime == "" {
+		option.EndTime = carbon.Now().EndOfDay().String()
+	} else {
+		option.EndTime = carbon.Parse(endTime).EndOfDay().String()
+	}
+
+	var out []*model.DateValue
+
+	switch t {
+	case "referral_users":
+		out, err = dao.GetUserReferrerUsersDailyStat(c.Request.Context(), code, option)
+	case "referral_nodes":
+		out, err = dao.GetUserReferrerNodesDailyStat(c.Request.Context(), code, option)
+	case "ip_count":
+		out, err = dao.GetPageViewIPCountDailyStat(c.Request.Context(), model.DataCollectionEventReferralCodePV, code, option)
+	case "pv_count":
+		out, err = dao.GetPageViewCountDailyStat(c.Request.Context(), model.DataCollectionEventReferralCodePV, code, option)
+	}
+
+	if err != nil {
+		log.Errorf("GetReferralCodeStatHandler: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list": out,
+	}))
+}
+
+func GetKOLReferralCodeInfoHandler(c *gin.Context) {
+	code := c.Query("code")
+
+	user, err := dao.GetUserByRefCode(c.Request.Context(), code)
+	if err != nil {
+		log.Errorf("GetUserByRefCode: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	if user == nil || model.UserRole(user.Role) != model.UserRoleKOL {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidReferralCode, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"code":        code,
+		"kol_user_id": user.Username,
 	}))
 }

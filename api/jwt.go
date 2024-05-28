@@ -37,13 +37,16 @@ type loginResponse struct {
 	Expire string `json:"expire"`
 }
 
-var identityKey = "id"
+var (
+	identityKey = "id"
+	roleKey     = "role"
+)
 
 func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 	return jwt.New(&jwt.GinJWTMiddleware{
 		Realm:             "User",
 		Key:               []byte(secretKey),
-		Timeout:           time.Hour,
+		Timeout:           4 * time.Hour,
 		MaxRefresh:        24 * time.Hour,
 		IdentityKey:       identityKey,
 		SendAuthorization: true,
@@ -51,14 +54,23 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			if v, ok := data.(*model.User); ok {
 				return jwt.MapClaims{
 					identityKey: v.Username,
+					roleKey:     v.Role,
 				}
 			}
 			return jwt.MapClaims{}
 		},
 		IdentityHandler: func(c *gin.Context) interface{} {
 			claims := jwt.ExtractClaims(c)
+
+			var role int32
+			_, ok := claims[roleKey]
+			if ok {
+				role = int32(claims[roleKey].(float64))
+			}
+
 			return &model.User{
 				Username: claims[identityKey].(string),
+				Role:     role,
 			}
 		},
 		LoginResponse: func(c *gin.Context, code int, token string, expire time.Time) {
@@ -76,15 +88,6 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			})
 		},
 		Authenticator: func(c *gin.Context) (interface{}, error) {
-			//loginParams := login{
-			//	Username:   c.Query("username"),
-			//	VerifyCode: c.Query("verify_code"),
-			//	Password:   c.Query("password"),
-			//}
-			//
-			//signature := c.Query("sign")
-			//walletAddress := c.Query("address")
-
 			var loginParams login
 			if err := c.BindJSON(&loginParams); err != nil {
 				return "", fmt.Errorf("invalid input params")
@@ -267,6 +270,14 @@ func AuthRequired(authMiddleware *jwt.GinJWTMiddleware) gin.HandlerFunc {
 		}
 		ctx.Next()
 	}
+}
+
+func AdminOnly(data interface{}, c *gin.Context) bool {
+	user, ok := data.(*model.User)
+	if ok && model.UserRole(user.Role) >= model.UserRoleAdmin {
+		return true
+	}
+	return false
 }
 
 func Cors() gin.HandlerFunc {

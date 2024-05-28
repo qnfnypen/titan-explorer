@@ -38,7 +38,7 @@ func main() {
 	log.Printf("Preparing to parse %d locations\n", len(ips))
 
 	updateStatement := `update device_info set ip_location = ?, ip_country = ?, ip_province = ?, ip_city = ?, longitude = ?, latitude = ?, updated_at = now() where external_ip = ?`
-	
+
 	ctx := context.Background()
 	for _, ip := range ips {
 		log.Println("query ip: ", ip)
