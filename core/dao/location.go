@@ -3,11 +3,41 @@ package dao
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/go-redis/redis/v9"
 )
 
 var tableNameLocation = "location"
+
+var (
+	GEOLocationKeyPrefix = "TITAN::GEO"
+)
+
+func CacheIPLocation(ctx context.Context, location *model.Location, lang model.Language) error {
+	key := fmt.Sprintf("%s::%s::%s", GEOLocationKeyPrefix, lang, location.Ip)
+	bytes, err := json.Marshal(location)
+	if err != nil {
+		return err
+	}
+	_, err = RedisCache.Set(ctx, key, bytes, 0).Result()
+	return err
+}
+
+func GetCacheLocation(ctx context.Context, ip string, lang model.Language) (*model.Location, error) {
+	key := fmt.Sprintf("%s::%s::%s", GEOLocationKeyPrefix, lang, ip)
+	out := &model.Location{}
+	bytes, err := RedisCache.Get(ctx, key).Bytes()
+	if err != nil && err != redis.Nil {
+		return nil, err
+	}
+	err = json.Unmarshal(bytes, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
 
 func GetLocationInfoByIp(ctx context.Context, ip string, out *model.Location, lang model.Language) error {
 	if err := DB.QueryRowxContext(ctx, fmt.Sprintf(

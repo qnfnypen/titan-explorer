@@ -9,6 +9,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/go-redis/redis/v9"
+	"github.com/jmoiron/sqlx"
 	"strconv"
 	"strings"
 	"time"
@@ -350,7 +351,7 @@ func ContactIPLocation(loc model.Location, lang model.Language) string {
 	return fmt.Sprintf("%s-%s-%s-%s", cf(loc.Continent), cf(loc.Country), cf(loc.Province), cf(loc.City))
 }
 
-func HandleMapInfo(infos []*model.DeviceInfo, lang model.Language) []map[string]interface{} {
+func GenerateDeviceMapInfo(infos []*model.DeviceInfo, lang model.Language) []map[string]interface{} {
 	var out []map[string]interface{}
 	mapLocationExit := make(map[float64]float64)
 	for _, info := range infos {
@@ -365,11 +366,16 @@ func HandleMapInfo(infos []*model.DeviceInfo, lang model.Language) []map[string]
 			info.Longitude += formatter.RandFloat64() / 10000
 		}
 
-		TranslateIPLocation(context.Background(), info, lang)
+		loc, err := GetCacheLocation(context.Background(), info.ExternalIp, lang)
+		if err == nil && loc.City != "" {
+			info.IpCity = loc.City
+		}
+
+		//TranslateIPLocation(context.Background(), info, lang)
 		maskDeviceIPAddress(info)
 
 		out = append(out, map[string]interface{}{
-			"name":     info.City,
+			"name":     info.IpCity,
 			"nodeType": info.NodeType,
 			"ip":       info.ExternalIp,
 			"value":    []float64{info.Latitude, info.Longitude},
@@ -623,6 +629,23 @@ func GetDeviceInfo(ctx context.Context, deviceId string) (*model.DeviceInfo, err
 func UpdateDeviceInfoDailyUser(ctx context.Context, deviceId, userId string) error {
 	_, err := DB.ExecContext(context.Background(), "update device_info_daily set user_id = ? where device_id = ? and user_id = ''", userId, deviceId)
 	return err
+}
+
+func GetDeviceInfoListByIds(ctx context.Context, deviceIds []string) ([]*model.DeviceInfo, error) {
+	var out []*model.DeviceInfo
+	query, args, err := sqlx.In(fmt.Sprintf(
+		`SELECT * FROM %s WHERE device_id IN (?)`, tableNameDeviceInfo), deviceIds)
+	if err != nil {
+		return nil, err
+	}
+
+	query = DB.Rebind(query)
+	err = DB.SelectContext(ctx, &out, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
 
 func GetDeviceInfoById(ctx context.Context, deviceId string) model.DeviceInfo {

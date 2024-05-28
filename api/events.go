@@ -716,8 +716,7 @@ func GetAssetCountHandler(c *gin.Context) {
 	}))
 }
 
-func GetCarFileCountHandler(c *gin.Context) {
-	//userId := c.Query("user_id")
+func GetAssetDetailHandler(c *gin.Context) {
 	cid := c.Query("cid")
 	lang := model.Language(c.GetHeader("Lang"))
 	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
@@ -727,35 +726,36 @@ func GetCarFileCountHandler(c *gin.Context) {
 		return
 	}
 
-	assetRsp, err := schedulerClient.GetAssetRecord(c.Request.Context(), cid)
+	resp, err := schedulerClient.GetAssetRecord(c.Request.Context(), cid)
 	if err != nil {
 		log.Errorf("api GetAssetRecord: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
-	var deviceIdAll []string
-	deviceExists := make(map[string]int)
-	if len(assetRsp.ReplicaInfos) > 0 {
-		for _, rep := range assetRsp.ReplicaInfos {
-			if rep.Status == 3 {
-				deviceIdAll = append(deviceIdAll, rep.NodeID)
-				continue
-			}
+	cityMap := make(map[string]struct{})
+
+	var deviceIds []string
+	for _, replicas := range resp.ReplicaInfos {
+		if replicas.Status != 3 {
+			continue
 		}
+		deviceIds = append(deviceIds, replicas.NodeID)
 	}
 
-	assetListAll, e := dao.GetAssetList(c.Request.Context(), deviceIdAll, lang, dao.QueryOption{})
+	deviceInfos, e := dao.GetDeviceInfoListByIds(c.Request.Context(), deviceIds)
 	if err != nil {
 		log.Errorf("GetAssetList err: %v", e)
 	}
 
-	for _, nodeInfo := range assetListAll {
-		if _, ok := deviceExists[nodeInfo.IpCity]; ok {
+	for _, nodeInfo := range deviceInfos {
+		if _, ok := cityMap[nodeInfo.IpCity]; ok {
 			continue
 		}
-		deviceExists[nodeInfo.IpCity] = 1
+		cityMap[nodeInfo.IpCity] = struct{}{}
 	}
+
+	mapList := dao.GenerateDeviceMapInfo(deviceInfos, lang)
 
 	filReplicas, err := dao.CountFilStorage(c.Request.Context(), cid)
 	if err != nil {
@@ -763,12 +763,14 @@ func GetCarFileCountHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"cid":               assetRsp.CID,
+		"cid":               resp.CID,
 		"cid_name":          "",
-		"ReplicaInfo_count": len(deviceIdAll),
-		"area_count":        len(deviceExists),
-		"titan_count":       len(deviceIdAll),
+		"ReplicaInfo_count": len(deviceIds),
+		"area_count":        len(cityMap),
+		"titan_count":       len(deviceIds),
 		"fileCoin_count":    filReplicas,
+		"list":              mapList,
+		"total":             len(mapList),
 	}))
 }
 
@@ -784,7 +786,11 @@ func GetLocationHandler(c *gin.Context) {
 	}
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
-	resp, err := schedulerClient.GetReplicas(c.Request.Context(), cid, 9999, 0)
+
+	limit := pageSize
+	offset := (pageSize - 1) * page
+
+	resp, err := schedulerClient.GetReplicas(c.Request.Context(), cid, limit, offset)
 	if err != nil {
 		log.Errorf("api GetReplicas: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -851,11 +857,13 @@ func GetMapByCidHandler(c *gin.Context) {
 		}
 	}
 
-	assetList, e := dao.GetAssetList(c.Request.Context(), deviceIds, lang, dao.QueryOption{})
+	deviceInfos, e := dao.GetDeviceInfoListByIds(c.Request.Context(), deviceIds)
 	if err != nil {
 		log.Errorf("GetAssetList err: %v", e)
 	}
-	mapList := dao.HandleMapInfo(assetList, lang)
+
+	mapList := dao.GenerateDeviceMapInfo(deviceInfos, lang)
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"list":  mapList,
 		"total": len(mapList),

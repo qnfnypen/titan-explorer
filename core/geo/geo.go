@@ -2,49 +2,18 @@ package geo
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/iptool"
-	"github.com/go-redis/redis/v9"
 	logging "github.com/ipfs/go-log/v2"
 )
 
 var log = logging.Logger("geo")
 
-var (
-	GEOLocationKeyPrefix = "TITAN::GEO"
-)
-
-func CacheIPLocation(ctx context.Context, location *model.Location, lang model.Language) error {
-	key := fmt.Sprintf("%s::%s::%s", GEOLocationKeyPrefix, lang, location.Ip)
-	bytes, err := json.Marshal(location)
-	if err != nil {
-		return err
-	}
-	_, err = dao.RedisCache.Set(ctx, key, bytes, 0).Result()
-	return err
-}
-
-func GetCacheLocation(ctx context.Context, ip string, lang model.Language) (*model.Location, error) {
-	key := fmt.Sprintf("%s::%s::%s", GEOLocationKeyPrefix, lang, ip)
-	out := &model.Location{}
-	bytes, err := dao.RedisCache.Get(ctx, key).Bytes()
-	if err != nil && err != redis.Nil {
-		return nil, err
-	}
-	err = json.Unmarshal(bytes, out)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func GetIpLocation(ctx context.Context, ip string, languages ...model.Language) (*model.Location, error) {
 	//  get location from redis
-	location, err := GetCacheLocation(ctx, ip, model.LanguageEN)
+	location, err := dao.GetCacheLocation(ctx, ip, model.LanguageEN)
 	if err == nil && location != nil {
 		return location, nil
 	}
@@ -83,7 +52,7 @@ func GetIpLocation(ctx context.Context, ip string, languages ...model.Language) 
 			continue
 		}
 
-		err = CacheIPLocation(ctx, loc, l)
+		err = dao.CacheIPLocation(ctx, loc, l)
 		if err != nil {
 			log.Errorf("cache ip location: %v", err)
 		}

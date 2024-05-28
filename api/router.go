@@ -140,7 +140,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_link", ShareLinkHandler)
 	storage.GET("/get_map_cid", GetMapByCidHandler)
 	storage.GET("/get_map_link", GetShareLinkHandler)
-	storage.GET("/get_asset_detail", GetCarFileCountHandler)
+	storage.GET("/get_asset_detail", GetAssetDetailHandler)
 	storage.GET("/get_asset_location", GetLocationHandler)
 	storage.GET("/share_asset", ShareAssetsHandler)
 	storage.GET("/get_asset_status", GetAssetStatusHandler)
