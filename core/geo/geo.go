@@ -43,7 +43,7 @@ func GetIpLocation(ctx context.Context, ip string, languages ...model.Language) 
 	for _, l := range model.SupportLanguages {
 		loc, err := iptool.IPDataCloudGetLocation(ctx, config.Cfg.IpDataCloud.Url, ip, config.Cfg.IpDataCloud.Key, string(l))
 		if err != nil {
-			log.Errorf("ip data cloud get location: %v", err)
+			log.Errorf("ip data cloud get location, ip: %s : %v", ip, err)
 			continue
 		}
 
