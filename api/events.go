@@ -348,6 +348,7 @@ func CreateAssetHandler(c *gin.Context) {
 	var createAssetReq types.CreateAssetReq
 	createAssetReq.AssetName = c.Query("asset_name")
 	createAssetReq.AssetCID = c.Query("asset_cid")
+	createAssetReq.NodeID = c.Query("node_id")
 	createAssetReq.UserID = userId
 	createAssetReq.AssetType = c.Query("asset_type")
 	createAssetReq.AssetSize = formatter.Str2Int64(c.Query("asset_size"))
