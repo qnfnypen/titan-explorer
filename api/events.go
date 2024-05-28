@@ -811,11 +811,16 @@ func GetLocationHandler(c *gin.Context) {
 
 	var assetInfos []*DeviceInfoRes
 	if len(deviceIds) > 0 {
-		assetList, err := dao.GetAssetList(c.Request.Context(), deviceIds, lang, dao.QueryOption{PageSize: pageSize, Page: page})
+		assetList, err := dao.GetDeviceInfoListByIds(c.Request.Context(), deviceIds)
 		if err != nil {
 			log.Errorf("GetAssetList err: %v", err)
 		}
 		for _, nodeInfo := range assetList {
+			loc, lErr := dao.GetCacheLocation(c.Request.Context(), nodeInfo.ExternalIp, lang)
+			if lErr == nil && loc != nil {
+				nodeInfo.Location = *loc
+			}
+
 			assetInfos = append(assetInfos, &DeviceInfoRes{
 				DeviceId:   nodeInfo.DeviceID,
 				IpLocation: dao.ContactIPLocation(nodeInfo.Location, lang),
