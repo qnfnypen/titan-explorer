@@ -101,7 +101,7 @@ type DeviceInfo struct {
 	BoundAt          time.Time `db:"bound_at" json:"bound_at"`
 	UserID           string    `db:"user_id" json:"-"`
 	LastSeen         time.Time `db:"last_seen" json:"last_seen"`
-	IsMobile         int64     `db:"is_mobile" json:"is_mobile"`
+	AppType          int64     `db:"app_type" json:"app_type"`
 
 	NodeType        int64   `db:"node_type" json:"node_type"`
 	DeviceRank      int64   `db:"device_rank" json:"device_rank"`

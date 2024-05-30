@@ -264,7 +264,6 @@ func deviceInfoToDailyInfo(deviceInfo *model.DeviceInfo) *model.DeviceInfoDaily 
 		DownstreamTraffic: deviceInfo.DownloadTraffic,
 		RetrievalCount:    deviceInfo.RetrievalCount,
 		BlockCount:        deviceInfo.CacheCount,
-		IsMobile:          deviceInfo.IsMobile,
 	}
 }
 
@@ -323,8 +322,8 @@ func ToDeviceInfo(node types.NodeInfo, areaId string) *model.DeviceInfo {
 		IncomeIncr:       node.IncomeIncr,
 		AreaID:           areaId,
 		LastSeen:         node.LastSeen,
-		IsMobile:         isMobile(node.SystemVersion, node.CPUInfo),
 		IsTestNode:       node.IsTestNode,
+		AppType:          getAppType(node.SystemVersion, node.CPUInfo),
 	}
 
 	switch node.Status {
@@ -345,7 +344,11 @@ func ToDeviceInfo(node types.NodeInfo, areaId string) *model.DeviceInfo {
 	return &deviceInfo
 }
 
-func isMobile(systemVersion string, cpuInfo string) int64 {
+func getAppType(systemVersion string, cpuInfo string) int64 {
+	if strings.Contains(systemVersion, "windows") || strings.Contains(systemVersion, "mac") {
+		return 2
+	}
+
 	if strings.Contains(systemVersion, "android") {
 		return 1
 	}
