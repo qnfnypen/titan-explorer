@@ -389,6 +389,85 @@ func CreateAssetHandler(c *gin.Context) {
 	}))
 }
 
+type createAssetRequest struct {
+	AssetName string `json:"asset_name"`
+	AssetCID  string `json:"asset_cid"`
+	NodeID    string `json:"node_id"`
+	AssetType string `json:"asset_type"`
+	AssetSize int64  `json:"asset_size"`
+	GroupId   int    `json:"group_id"`
+}
+
+func CreateAssetPostHandler(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	username := claims[identityKey].(string)
+
+	var createAssetReq createAssetRequest
+	if err := c.BindJSON(&createAssetReq); err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+		return
+	}
+
+	user, err := dao.GetUserByUsername(c.Request.Context(), username)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	log.Debugf("CreateAssetHandler clientIP:%s, areaId:%s\n", c.ClientIP(), areaId)
+
+	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{
+		AssetProperty: types.AssetProperty{
+			AssetName: createAssetReq.AssetName,
+			AssetCID:  createAssetReq.AssetCID,
+			NodeID:    createAssetReq.NodeID,
+			AssetType: createAssetReq.AssetType,
+			AssetSize: createAssetReq.AssetSize,
+			GroupID:   createAssetReq.GroupId,
+		},
+		UserID: username,
+	})
+	if err != nil {
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			return
+		}
+	}
+
+	if createAssetRsp.AlreadyExists {
+		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
+		return
+	}
+
+	if err := dao.AddAssets(c.Request.Context(), []*model.Asset{
+		{
+			UserId:    username,
+			Name:      createAssetReq.AssetName,
+			Cid:       createAssetReq.AssetCID,
+			Type:      createAssetReq.AssetType,
+			NodeID:    createAssetRsp.NodeID,
+			TotalSize: createAssetReq.AssetSize,
+			Event:     -1,
+			ProjectId: user.ProjectId,
+		},
+	}); err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"CandidateAddr": createAssetRsp.UploadURL,
+		"Token":         createAssetRsp.Token,
+	}))
+}
+
 func CreateKeyHandler(c *gin.Context) {
 	userId := c.Query("user_id")
 	keyName := c.Query("key_name")

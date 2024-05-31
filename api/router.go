@@ -174,6 +174,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_user_access_token", GetUserAccessTokenHandler)
 	storage.GET("/get_upload_info", GetUploadInfoHandler)
 	storage.GET("/create_asset", CreateAssetHandler)
+	storage.POST("/create_asset", CreateAssetPostHandler)
 	storage.GET("/delete_asset", DeleteAssetHandler)
 	storage.GET("/get_asset_info", GetAssetInfoHandler)
 	storage.GET("/get_asset_list", GetAssetListHandler)
