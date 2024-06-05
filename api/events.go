@@ -868,7 +868,7 @@ func GetLocationHandler(c *gin.Context) {
 	page, _ := strconv.Atoi(c.Query("page"))
 
 	limit := pageSize
-	offset := (pageSize - 1) * page
+	offset := (page - 1) * pageSize
 
 	resp, err := schedulerClient.GetReplicas(c.Request.Context(), cid, limit, offset)
 	if err != nil {
