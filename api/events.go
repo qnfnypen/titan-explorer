@@ -226,6 +226,10 @@ func GetAllocateStorageHandler(c *gin.Context) {
 	}
 	_, err = schedulerClient.AllocateStorage(c.Request.Context(), userId)
 	if err != nil {
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			return
+		}
 		log.Errorf("api GetValidationResults: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -247,6 +251,10 @@ func GetStorageSizeHandler(c *gin.Context) {
 	}
 	storageSize, err := schedulerClient.GetUserInfo(c.Request.Context(), userId)
 	if err != nil {
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			return
+		}
 		log.Errorf("api GetStorageSize: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 		return
@@ -321,6 +329,10 @@ func GetUploadInfoHandler(c *gin.Context) {
 
 	res, err := schedulerClient.GetNodeUploadInfo(c.Request.Context(), username)
 	if err != nil {
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			return
+		}
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
@@ -511,6 +523,11 @@ func DeleteKeyHandler(c *gin.Context) {
 	}
 	err = schedulerClient.DeleteAPIKey(c.Request.Context(), userId, keyName)
 	if err != nil {
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			return
+		}
+
 		log.Errorf("api DeleteAPIKey: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 		return
@@ -552,7 +569,10 @@ func ShareAssetsHandler(c *gin.Context) {
 	}
 	urls, err := schedulerClient.ShareAssets(c.Request.Context(), userId, []string{cid})
 	if err != nil {
-		log.Errorf("api ShareAssets: %v", err)
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			return
+		}
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
@@ -624,6 +644,11 @@ func UpdateShareStatusHandler(c *gin.Context) {
 	}
 	err = schedulerClient.UpdateShareStatus(c.Request.Context(), userId, cid)
 	if err != nil {
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			return
+		}
+
 		log.Errorf("api UpdateShareStatus: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -654,6 +679,11 @@ func GetAssetListHandler(c *gin.Context) {
 	}
 	createAssetRsp, err := schedulerClient.ListAssets(c.Request.Context(), userId, pageSize, (page-1)*pageSize, groupId)
 	if err != nil {
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			return
+		}
+
 		log.Errorf("api ListAssets: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -724,6 +754,10 @@ func GetAssetStatusHandler(c *gin.Context) {
 	}
 	statusRsp, err := schedulerClient.GetAssetStatus(c.Request.Context(), userId, cid)
 	if err != nil {
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			return
+		}
 		log.Errorf("api GetAssetStatus: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -808,6 +842,11 @@ func GetAssetDetailHandler(c *gin.Context) {
 
 	resp, err := schedulerClient.GetAssetRecord(c.Request.Context(), cid)
 	if err != nil {
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			return
+		}
+
 		log.Errorf("api GetAssetRecord: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -872,6 +911,10 @@ func GetLocationHandler(c *gin.Context) {
 
 	resp, err := schedulerClient.GetReplicas(c.Request.Context(), cid, limit, offset)
 	if err != nil {
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			return
+		}
 		log.Errorf("api GetReplicas: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -967,6 +1010,11 @@ func GetAssetInfoHandler(c *gin.Context) {
 
 	assetRsp, err := schedulerClient.GetAssetRecord(c.Request.Context(), cid)
 	if err != nil {
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			return
+		}
+
 		log.Errorf("api GetAssetRecord: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -1194,6 +1242,10 @@ func GetAssetGroupListHandler(c *gin.Context) {
 	}
 	assetSummary, err := schedulerClient.ListAssetSummary(c.Request.Context(), userId, parentId, pageSize, (page-1)*pageSize)
 	if err != nil {
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			return
+		}
 		log.Errorf("api ListAssetSummary: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
