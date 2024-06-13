@@ -46,8 +46,8 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 	return jwt.New(&jwt.GinJWTMiddleware{
 		Realm:             "User",
 		Key:               []byte(secretKey),
-		Timeout:           4 * time.Hour,
-		MaxRefresh:        24 * time.Hour,
+		Timeout:           24 * time.Hour,
+		MaxRefresh:        7 * 24 * time.Hour,
 		IdentityKey:       identityKey,
 		SendAuthorization: true,
 		PayloadFunc: func(data interface{}) jwt.MapClaims {
