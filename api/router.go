@@ -224,6 +224,13 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	uri := apiV1.Group("/url")
 	uri.GET("/discord", getDiscordURL)
 
+	// test1
+	test1 := apiV1.Group("/test1")
+	tnc := &Test1NodeController{}
+	test1.GET("/node/info", tnc.GetNodes)
+	test1.PUT("/node/update_name", tnc.UpdateDeviceName)
+	test1.PUT("/node/delete_offline", tnc.DeleteOffLineNode)
+	test1.PUT("/node/move_back_deleted", tnc.MoveBackDeletedNode)
 }
 
 func RegisterRouterWithAPIKey(router *gin.Engine) {

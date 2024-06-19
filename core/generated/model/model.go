@@ -234,3 +234,13 @@ type ReferralCounter struct {
 	ReferrerReward float64 `json:"referrer_reward" db:"referrer_reward"`
 	RefereeReward  float64 `json:"referee_reward" db:"referee_reward"`
 }
+
+// Test1NodeInfo 节点信息
+type Test1NodeInfo struct {
+	DeviceName    string  `db:"device_name" json:"deviceName"`        // 设备备注
+	IP            string  `db:"external_ip" json:"ip"`                // 公网IP
+	SystemVersion string  `db:"system_version" json:"systemVersion"`  // 程序版本
+	DeviceID      string  `db:"device_id" json:"deviceId"`            // 设备id
+	IPLocation    string  `db:"ip_location" json:"ipLocation"`        // IP所在区域
+	TotalProfit   float64 `db:"cumulative_profit" json:"totalProfit"` // 累计收益
+}

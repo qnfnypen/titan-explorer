@@ -89,6 +89,7 @@ require (
 )
 
 require (
+	github.com/Masterminds/squirrel v1.5.4 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
 	github.com/bytedance/sonic v1.9.1 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
@@ -110,6 +111,8 @@ require (
 	github.com/holiman/uint256 v1.2.4 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
+	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
+	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/multiformats/go-multicodec v0.9.0 // indirect
