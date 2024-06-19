@@ -114,6 +114,8 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	user.GET("/verify_code", GetNumericVerifyCodeHandler)
 	user.POST("/login", authMiddleware.LoginHandler)
 	user.POST("/logout", authMiddleware.LogoutHandler)
+	user.GET("/ads/banners", GetBannersHandler)
+	user.GET("/ads/notices", GetNoticesHandler)
 	user.Use(authMiddleware.MiddlewareFunc())
 	user.GET("/refresh_token", authMiddleware.RefreshHandler)
 	user.POST("/info", GetUserInfoHandler)
@@ -144,6 +146,10 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	admin.POST("/kol_level/delete", DeleteKOLLevelHandler)
 	admin.GET("/referral_reward_daily", GetReferralRewardDailyHandler)
 	admin.GET("/referral_reward_daily/export", ExportReferralRewardDailyHandler)
+	// ads
+	admin.GET("ads/list", ListAdsHandler)
+	admin.GET("ads/add", AddAdsHandler)
+	admin.GET("ads/delete", DeleteAdsHandler)
 
 	// storage
 	storage := apiV1.Group("/storage")

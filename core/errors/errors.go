@@ -62,6 +62,10 @@ const (
 	ParseSignatureFailed
 	Unregistered
 
+	AdsLangNotExist
+	AdsPlatformNotExist
+	AdsFetchFailed
+
 	Unknown     = -1
 	GenericCode = 1
 )
@@ -138,6 +142,9 @@ var ErrMap = map[int]string{
 	MinerIDExists:                            "miner id exists:miner id 已签名",
 	ParseSignatureFailed:                     "parse signature failed: 解析签名结果失败",
 	Unregistered:                             "unregistered:未注册",
+	AdsLangNotExist:                          "language not exist:语言不存在",
+	AdsPlatformNotExist:                      "platform not exist:平台不存在",
+	AdsFetchFailed:                           "fetch banners or notice failed: 获取banner或通知失败",
 }
 
 type GenericError struct {

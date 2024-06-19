@@ -6,6 +6,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -18,11 +24,6 @@ import (
 	"github.com/go-redis/redis/v9"
 	"github.com/golang-module/carbon/v2"
 	"golang.org/x/crypto/bcrypt"
-	"net/http"
-	"os"
-	"strconv"
-	"strings"
-	"time"
 )
 
 type NonceStringType string
@@ -1091,5 +1092,59 @@ func GetKOLReferralCodeInfoHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"code":        code,
 		"kol_user_id": user.Username,
+	}))
+}
+
+func GetBannersHandler(c *gin.Context) {
+	lang := c.GetHeader("Lang")
+	platform := c.Query("platform")
+
+	if lang != "cn" && lang != "en" {
+		c.JSON(http.StatusOK, respErrorCode(errors.AdsLangNotExist, c))
+		return
+	}
+
+	pfm, _ := strconv.Atoi(platform)
+	if pfm != dao.AdsPlatformAPP && pfm != dao.AdsPlatformPC {
+		c.JSON(http.StatusOK, respErrorCode(errors.AdsPlatformNotExist, c))
+		return
+	}
+
+	list, err := dao.ListBannersCtx(c.Request.Context(), int64(pfm), lang)
+	if err != nil {
+		log.Errorf("GetBannersHandler: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.AdsFetchFailed, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list": list,
+	}))
+}
+
+func GetNoticesHandler(c *gin.Context) {
+	lang := c.GetHeader("Lang")
+	platform := c.Query("platform")
+
+	if lang != "cn" && lang != "en" {
+		c.JSON(http.StatusOK, respErrorCode(errors.AdsLangNotExist, c))
+		return
+	}
+
+	pfm, _ := strconv.Atoi(platform)
+	if pfm != dao.AdsPlatformAPP && pfm != dao.AdsPlatformPC {
+		c.JSON(http.StatusOK, respErrorCode(errors.AdsPlatformNotExist, c))
+		return
+	}
+
+	notices, err := dao.ListNoticesCtx(c.Request.Context(), int64(pfm), lang)
+	if err != nil {
+		log.Errorf("GetNoticesHandler: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.AdsFetchFailed, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list": notices,
 	}))
 }

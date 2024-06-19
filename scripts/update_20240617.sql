@@ -1,0 +1,17 @@
+DROP TABLE IF EXISTS `ads`;
+CREATE TABLE `ads` (
+`id` BIGINT(20) NOT NULL AUTO_INCREMENT,
+`name` VARCHAR(128) NOT NULL DEFAULT '',
+`ads_type` TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1:banner 2:notice',
+`redirect_url` VARCHAR(1024) NOT NULL DEFAULT '',
+`platform` TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1:PC 2:APP',
+`lang` CHAR(2) NOT NULL DEFAULT 'cn' COMMENT 'cn,en',
+`desc` TEXT NOT NULL COMMENT 'details for ads config, pic url or text description',
+`weight` INT(4) NOT NULL DEFAULT 0 COMMENT '',
+`state` TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1:enable 2:disable',
+`invalid_from` DATETIME(3) NOT NULL DEFAULT 0,
+`invalid_to` DATETIME(3) NOT NULL DEFAULT 0,
+`created_at` DATETIME(3) NOT NULL DEFAULT 0,
+`updated_at` DATETIME(3) NOT NULL DEFAULT 0,
+PRIMARY KEY (`id`)
+) ENGINE = INNODB CHARSET = utf8mb4;
