@@ -152,8 +152,8 @@ func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option Query
 		where += ` AND deleted_at <> ?`
 		args = append(args, 0)
 	} else if cond.DeviceStatus != "" && cond.DeviceStatus != "allDevices" {
-		where += ` AND device_status = ?`
-		args = append(args, cond.DeviceStatus)
+		where += ` AND device_status = ? AND deleted_at = ?`
+		args = append(args, cond.DeviceStatus, "0000-00-00 00:00:00.000")
 	}
 	if cond.IpLocation != "" && cond.IpLocation != "0" {
 		where += ` AND ip_location = ?`
