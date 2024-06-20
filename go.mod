@@ -8,7 +8,9 @@ require (
 	github.com/Filecoin-Titan/titan v0.0.0-20230414233209-f4fad7df425f
 	github.com/Filecoin-Titan/titan-container v0.0.0-20230807102055-6ff1c07eb035
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/appleboy/gin-jwt/v2 v2.9.0
+	github.com/aliyun/alibaba-cloud-sdk-go v1.62.771
+	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
+	github.com/appleboy/gin-jwt/v2 v2.9.1
 	github.com/bsm/redislock v0.8.2
 	github.com/docker/go-units v0.5.0
 	github.com/ethereum/go-ethereum v1.13.6
@@ -26,6 +28,7 @@ require (
 	github.com/mssola/user_agent v0.6.0
 	github.com/multiformats/go-multiaddr v0.12.1
 	github.com/multiformats/go-multihash v0.2.3
+	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/quic-go/quic-go v0.42.0
 	github.com/robfig/cron/v3 v3.0.0
@@ -109,6 +112,7 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/pprof v0.0.0-20230817174616-7a8ec2ada47b // indirect
 	github.com/holiman/uint256 v1.2.4 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
@@ -117,6 +121,7 @@ require (
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/multiformats/go-multicodec v0.9.0 // indirect
 	github.com/onsi/ginkgo/v2 v2.11.0 // indirect
+	github.com/opentracing/opentracing-go v1.2.1-0.20220228012449-10b1cf09e00b // indirect
 	github.com/oschwald/geoip2-golang v1.7.0 // indirect
 	github.com/oschwald/maxminddb-golang v1.9.0 // indirect
 	github.com/peterbourgon/diskv/v3 v3.0.1 // indirect
@@ -138,6 +143,6 @@ require (
 )
 
 replace (
-	github.com/Filecoin-Titan/titan v0.0.0-20230414233209-f4fad7df425f => ../filecoin-titan
+	github.com/Filecoin-Titan/titan v0.0.0-20230414233209-f4fad7df425f => ../titan
 	github.com/Filecoin-Titan/titan-container v0.0.0-20230807102055-6ff1c07eb035 => ../titan-container
 )

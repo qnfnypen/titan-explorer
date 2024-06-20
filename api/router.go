@@ -148,8 +148,9 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	admin.GET("/referral_reward_daily/export", ExportReferralRewardDailyHandler)
 	// ads
 	admin.GET("ads/list", ListAdsHandler)
-	admin.GET("ads/add", AddAdsHandler)
-	admin.GET("ads/delete", DeleteAdsHandler)
+	admin.POST("ads/add", AddAdsHandler)
+	admin.POST("ads/delete", DeleteAdsHandler)
+	admin.POST("ads/update", UpdateAdsHandler)
 
 	// storage
 	storage := apiV1.Group("/storage")

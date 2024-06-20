@@ -559,16 +559,16 @@ type KOLLevelUPRecord struct {
 
 type Ads struct {
 	ID          int64     `db:"id" json:"id"`
-	Name        string    `db:"name", json:"name"`
-	AdsType     int64     `db:"ads_type", json:"ads_type"`
-	RedirectUrl string    `db:"redirect_url", json:"redirect_url"`
-	Platform    int64     `db:"platform", json:"platform"`
-	Lang        string     `db:"lang", json:"lang"`
-	Desc        string    `db:"desc", json:"desc"`
-	Weight      int64     `db:"weight", json:"weight"`
-	State       int64     `db:"state", json:"state"`
-	InvalidFrom time.Time `db:"invalid_from", json:"invalid_from"`
-	InvalidTo   time.Time `db:"invalid_to", json:"invalid_to"`
-	CreatedAt   time.Time `db:"created_at", json:"created_at"`
-	UpdatedAt   time.Time `db:"updated_at", json:"updated_at"`
+	Name        string    `db:"name" json:"name"`
+	AdsType     int64     `db:"ads_type" json:"ads_type"`
+	RedirectUrl string    `db:"redirect_url" json:"redirect_url"`
+	Platform    int64     `db:"platform" json:"platform"`
+	Lang        string    `db:"lang" json:"lang"`
+	Desc        string    `db:"desc" json:"desc"`
+	Weight      int64     `db:"weight" json:"weight"`
+	State       int64     `db:"state" json:"state"`
+	InvalidFrom time.Time `db:"invalid_from" json:"invalid_from"`
+	InvalidTo   time.Time `db:"invalid_to" json:"invalid_to"`
+	CreatedAt   time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
 }
