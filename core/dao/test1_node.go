@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
@@ -62,6 +63,50 @@ func GetTest1Nodes(ctx context.Context, statusCode int64, page, size uint64) (in
 	return total, infos, nil
 }
 
+// GetNodeNums 获取节点总数
+func GetNodeNums(ctx context.Context, usedID string) (int64, int64, int64, int64, error) {
+	var online, abnormal, offline, deleted int64
+	// device_status_code 1-在线 2-故障 3-离线
+	// 在线
+	query, args, err := squirrel.Select("COUNT(device_id)").From(test1NodeTable).Where("device_status_code = 1 AND user_id = ? AND deleted_at = ?", usedID, zeroTime).ToSql()
+	if err != nil {
+		return 0, 0, 0, 0, fmt.Errorf("get total of device's info error:%w", err)
+	}
+	err = DB.GetContext(ctx, &online, query, args...)
+	if err != nil {
+		return 0, 0, 0, 0, fmt.Errorf("get total of device's info error:%w", err)
+	}
+	// 故障
+	query, args, err = squirrel.Select("COUNT(device_id)").From(test1NodeTable).Where("device_status_code = 2 AND user_id = ? AND deleted_at = ?", usedID, zeroTime).ToSql()
+	if err != nil {
+		return 0, 0, 0, 0, fmt.Errorf("get total of device's info error:%w", err)
+	}
+	err = DB.GetContext(ctx, &abnormal, query, args...)
+	if err != nil {
+		return 0, 0, 0, 0, fmt.Errorf("get total of device's info error:%w", err)
+	}
+	// 离线
+	query, args, err = squirrel.Select("COUNT(device_id)").From(test1NodeTable).Where("device_status_code = 3 AND user_id = ? AND deleted_at = ?", usedID, zeroTime).ToSql()
+	if err != nil {
+		return 0, 0, 0, 0, fmt.Errorf("get total of device's info error:%w", err)
+	}
+	err = DB.GetContext(ctx, &offline, query, args...)
+	if err != nil {
+		return 0, 0, 0, 0, fmt.Errorf("get total of device's info error:%w", err)
+	}
+	// 删除
+	query, args, err = squirrel.Select("COUNT(device_id)").From(test1NodeTable).Where("deleted_at <> 0 AND user_id = ?", usedID).ToSql()
+	if err != nil {
+		return 0, 0, 0, 0, fmt.Errorf("get total of device's info error:%w", err)
+	}
+	err = DB.GetContext(ctx, &deleted, query, args...)
+	if err != nil {
+		return 0, 0, 0, 0, fmt.Errorf("get total of device's info error:%w", err)
+	}
+
+	return online, abnormal, offline, deleted, nil
+}
+
 // UpdateTest1DeviceName 编辑节点设备备注
 func UpdateTest1DeviceName(ctx context.Context, id, name string) error {
 	query, args, err := squirrel.Update(test1NodeTable).Set("device_name", name).Where("device_id = ?", id).ToSql()
@@ -69,7 +114,7 @@ func UpdateTest1DeviceName(ctx context.Context, id, name string) error {
 		return fmt.Errorf("generate update device's name error:%w", err)
 	}
 
-	_, err = DB.ExecContext(ctx, query, args...)
+	_, err = DB.DB.ExecContext(ctx, query, args...)
 	switch err {
 	case sql.ErrNoRows:
 	case nil:
@@ -82,17 +127,17 @@ func UpdateTest1DeviceName(ctx context.Context, id, name string) error {
 
 // DeleteOfflineDevice 删除离线设备
 func DeleteOfflineDevice(ctx context.Context, ids []string, usedID string) error {
-	// Where("device_status_code = 3 AND device_id IN ? AND user_id = ?", ids).ToSql()
-	query, args, err := squirrel.Update(test1NodeTable).Set("deleted_at", "now()").Where(squirrel.Eq{
+	query, args, err := squirrel.Update(test1NodeTable).Set("deleted_at", time.Now()).Where(squirrel.Eq{
 		"device_id":          ids,
 		"user_id":            usedID,
 		"device_status_code": 3,
+		"deleted_at":         zeroTime,
 	}).ToSql()
 	if err != nil {
 		return fmt.Errorf("generate delete offline's device error:%w", err)
 	}
 
-	_, err = DB.ExecContext(ctx, query, args...)
+	_, err = DB.DB.ExecContext(ctx, query, args...)
 	switch err {
 	case sql.ErrNoRows:
 	case nil:
@@ -113,7 +158,7 @@ func MoveBackDeletedDevice(ctx context.Context, ids []string, usedID string) err
 		return fmt.Errorf("generate move back deleted device error:%w", err)
 	}
 
-	_, err = DB.ExecContext(ctx, query, args...)
+	_, err = DB.DB.ExecContext(ctx, query, args...)
 	switch err {
 	case sql.ErrNoRows:
 	case nil:

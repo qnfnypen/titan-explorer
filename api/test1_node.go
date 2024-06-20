@@ -71,7 +71,9 @@ func (tc *Test1NodeController) UpdateDeviceName(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, nil)
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"msg": "ok",
+	}))
 }
 
 // DeleteOffLineNode 删除离线节点
@@ -92,7 +94,9 @@ func (tc *Test1NodeController) DeleteOffLineNode(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, nil)
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"msg": "ok",
+	}))
 }
 
 // MoveBackDeletedNode 移回删除的节点
@@ -113,5 +117,26 @@ func (tc *Test1NodeController) MoveBackDeletedNode(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, nil)
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"msg": "ok",
+	}))
+}
+
+// GetNodeNums 获取节点数量
+func (tc *Test1NodeController) GetNodeNums(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	username := claims[identityKey].(string)
+
+	online, abnormal, offline, deleted, err := dao.GetNodeNums(c, username)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"online":   online,
+		"abnormal": abnormal,
+		"offline":  offline,
+		"deleted":  deleted,
+	}))
 }

@@ -233,9 +233,11 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 
 	// test1
 	test1 := apiV1.Group("/test1")
+	test1.Use(authMiddleware.MiddlewareFunc())
 	tnc := &Test1NodeController{}
 	// test1.GET("/node/info", tnc.GetNodes)
 	// test1.PUT("/node/update_name", tnc.UpdateDeviceName)
+	test1.GET("/node/nums", tnc.GetNodeNums)
 	test1.PUT("/node/delete_offline", tnc.DeleteOffLineNode)
 	test1.PUT("/node/move_back_deleted", tnc.MoveBackDeletedNode)
 }
