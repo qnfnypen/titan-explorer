@@ -32,3 +32,10 @@ FilecoinRPCServerAddress = "http://api.node.glif.io/rpc/v0"
 
 [Epoch]
     Token = "TTN1"
+
+[Oss]
+    AccessId = "access key id"
+    AccessKey = "access key secret"
+    Endpoint = "oss-cn-shenzhen.aliyuncs.com"
+    Bucket = "titan-file01"
+    Host = "titan-file01.oss-cn-shenzhen.aliyuncs.com"
