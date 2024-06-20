@@ -25,6 +25,7 @@ type Config struct {
 	Epoch                    EpochConfig
 	SpecifyCandidate         SpecifyCandidateConfig
 	URL                      URLConfig
+	Oss                      OssConfig
 }
 
 type EmailConfig struct {
@@ -75,4 +76,12 @@ type SpecifyCandidateConfig struct {
 
 type URLConfig struct {
 	Discord string
+}
+
+type OssConfig struct {
+	EndPoint  string
+	AccessId  string
+	AccessKey string
+	Bucket    string
+	Host      string
 }
