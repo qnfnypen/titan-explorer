@@ -81,8 +81,13 @@ func UpdateTest1DeviceName(ctx context.Context, id, name string) error {
 }
 
 // DeleteOfflineDevice 删除离线设备
-func DeleteOfflineDevice(ctx context.Context, id string) error {
-	query, args, err := squirrel.Update(test1NodeTable).Set("deleted_at", "now()").Where("device_status_code = ? AND device_id = ?", 3, id).ToSql()
+func DeleteOfflineDevice(ctx context.Context, ids []string, usedID string) error {
+	// Where("device_status_code = 3 AND device_id IN ? AND user_id = ?", ids).ToSql()
+	query, args, err := squirrel.Update(test1NodeTable).Set("deleted_at", "now()").Where(squirrel.Eq{
+		"device_id":          ids,
+		"user_id":            usedID,
+		"device_status_code": 3,
+	}).ToSql()
 	if err != nil {
 		return fmt.Errorf("generate delete offline's device error:%w", err)
 	}
@@ -99,8 +104,11 @@ func DeleteOfflineDevice(ctx context.Context, id string) error {
 }
 
 // MoveBackDeletedDevice 移回删除的设备
-func MoveBackDeletedDevice(ctx context.Context, id string) error {
-	query, args, err := squirrel.Update(test1NodeTable).Set("deleted_at", zeroTime).Where("deleted_at <> 0 AND device_id = ?", id).ToSql()
+func MoveBackDeletedDevice(ctx context.Context, ids []string, usedID string) error {
+	query, args, err := squirrel.Update(test1NodeTable).Set("deleted_at", zeroTime).Where("deleted_at <> 0").Where(squirrel.Eq{
+		"device_id": ids,
+		"user_id":   usedID,
+	}).ToSql()
 	if err != nil {
 		return fmt.Errorf("generate move back deleted device error:%w", err)
 	}

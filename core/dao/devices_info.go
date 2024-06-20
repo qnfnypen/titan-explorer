@@ -6,13 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/go-redis/redis/v9"
 	"github.com/jmoiron/sqlx"
-	"strconv"
-	"strings"
-	"time"
 )
 
 var (
@@ -147,7 +148,9 @@ func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option Query
 		where += ` AND user_id = ?`
 		args = append(args, cond.UserID)
 	}
-	if cond.DeviceStatus != "" && cond.DeviceStatus != "allDevices" {
+	if cond.DeviceStatus == "deleted" {
+		where += ` AND deleted_at <> 0`
+	} else if cond.DeviceStatus != "" && cond.DeviceStatus != "allDevices" {
 		where += ` AND device_status = ?`
 		args = append(args, cond.DeviceStatus)
 	}

@@ -7,6 +7,7 @@ toolchain go1.21.6
 require (
 	github.com/Filecoin-Titan/titan v0.0.0-20230414233209-f4fad7df425f
 	github.com/Filecoin-Titan/titan-container v0.0.0-20230807102055-6ff1c07eb035
+	github.com/Masterminds/squirrel v1.5.4
 	github.com/appleboy/gin-jwt/v2 v2.9.0
 	github.com/bsm/redislock v0.8.2
 	github.com/docker/go-units v0.5.0
@@ -89,7 +90,6 @@ require (
 )
 
 require (
-	github.com/Masterminds/squirrel v1.5.4 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
 	github.com/bytedance/sonic v1.9.1 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
@@ -117,6 +117,8 @@ require (
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/multiformats/go-multicodec v0.9.0 // indirect
 	github.com/onsi/ginkgo/v2 v2.11.0 // indirect
+	github.com/oschwald/geoip2-golang v1.7.0 // indirect
+	github.com/oschwald/maxminddb-golang v1.9.0 // indirect
 	github.com/peterbourgon/diskv/v3 v3.0.1 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
 	github.com/rogpeppe/fastuuid v1.2.0 // indirect

@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 
+	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
@@ -21,8 +22,8 @@ type (
 
 	// UpdateDeviceInfoReq 修改节点信息请求
 	UpdateDeviceInfoReq struct {
-		DeviceID   string `json:"deviceId" binding:"required"` // 设备id
-		DeviceName string `json:"deviceName"`                  // 设备备注
+		DeviceID   []string `json:"deviceId" binding:"required"` // 设备id
+		DeviceName string   `json:"deviceName"`                  // 设备备注
 	}
 )
 
@@ -62,7 +63,9 @@ func (tc *Test1NodeController) UpdateDeviceName(c *gin.Context) {
 		return
 	}
 
-	err = dao.UpdateTest1DeviceName(c, req.DeviceID, req.DeviceName)
+	id := req.DeviceID[0]
+
+	err = dao.UpdateTest1DeviceName(c, id, req.DeviceName)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -73,6 +76,8 @@ func (tc *Test1NodeController) UpdateDeviceName(c *gin.Context) {
 
 // DeleteOffLineNode 删除离线节点
 func (tc *Test1NodeController) DeleteOffLineNode(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	username := claims[identityKey].(string)
 	var req UpdateDeviceInfoReq
 
 	err := c.BindJSON(&req)
@@ -81,7 +86,7 @@ func (tc *Test1NodeController) DeleteOffLineNode(c *gin.Context) {
 		return
 	}
 
-	err = dao.DeleteOfflineDevice(c, req.DeviceID)
+	err = dao.DeleteOfflineDevice(c, req.DeviceID, username)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -92,6 +97,8 @@ func (tc *Test1NodeController) DeleteOffLineNode(c *gin.Context) {
 
 // MoveBackDeletedNode 移回删除的节点
 func (tc *Test1NodeController) MoveBackDeletedNode(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	username := claims[identityKey].(string)
 	var req UpdateDeviceInfoReq
 
 	err := c.BindJSON(&req)
@@ -100,7 +107,7 @@ func (tc *Test1NodeController) MoveBackDeletedNode(c *gin.Context) {
 		return
 	}
 
-	err = dao.MoveBackDeletedDevice(c, req.DeviceID)
+	err = dao.MoveBackDeletedDevice(c, req.DeviceID, username)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return

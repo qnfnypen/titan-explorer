@@ -6,6 +6,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/config"
@@ -18,10 +23,6 @@ import (
 	"github.com/go-redis/redis/v9"
 	"github.com/golang-module/carbon/v2"
 	"github.com/google/uuid"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
 )
 
 func CacheAllAreas(ctx context.Context, info []string) error {
@@ -524,7 +525,7 @@ func GetDeviceInfoHandler(c *gin.Context) {
 	}
 	deviceStatus := c.Query("device_status")
 
-	if deviceStatus == "online" || deviceStatus == "offline" || deviceStatus == "abnormal" {
+	if deviceStatus == "online" || deviceStatus == "offline" || deviceStatus == "abnormal" || deviceStatus == "deleted" {
 		info.DeviceStatus = deviceStatus
 	}
 	if deviceStatus == "unbinding" || deviceStatus == "unbound" {
