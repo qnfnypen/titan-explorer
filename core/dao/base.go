@@ -4,6 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
@@ -11,13 +14,11 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang-module/carbon/v2"
 	"github.com/jmoiron/sqlx"
-	"strings"
-	"time"
 )
 
 var (
 	// DB reference to database
-	DB *sqlx.DB
+	DB, QDB *sqlx.DB
 	// RedisCache  redis caching instance
 	RedisCache *redis.Client
 )
@@ -37,6 +38,10 @@ func Init(cfg *config.Config) error {
 	}
 
 	db, err := sqlx.Connect("mysql", cfg.DatabaseURL)
+	if err != nil {
+		return err
+	}
+	qdb, err := sqlx.Connect("mysql", cfg.QuestDatabaseURL)
 	if err != nil {
 		return err
 	}
@@ -60,6 +65,7 @@ func Init(cfg *config.Config) error {
 	}
 
 	DB = db
+	QDB = qdb
 	RedisCache = client
 	return nil
 }

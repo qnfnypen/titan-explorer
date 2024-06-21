@@ -24,6 +24,7 @@ import (
 	"github.com/gnasnik/titan-explorer/pkg/rsa"
 	"github.com/go-redis/redis/v9"
 	"github.com/golang-module/carbon/v2"
+	"github.com/jinzhu/copier"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -39,6 +40,7 @@ const (
 var defaultNonceExpiration = 5 * time.Minute
 
 func GetUserInfoHandler(c *gin.Context) {
+	quesr := new(dao.UserAndQuest)
 	claims := jwt.ExtractClaims(c)
 	username := claims[identityKey].(string)
 	user, err := dao.GetUserByUsername(c.Request.Context(), username)
@@ -56,7 +58,14 @@ func GetUserInfoHandler(c *gin.Context) {
 		user.ReferralCode = codes[0].Code
 	}
 
-	c.JSON(http.StatusOK, respJSON(user))
+	user.HerschelReward = user.Reward + user.FromKOLBonusReward
+	user.HerschelReferralReward = user.RefereralReward
+
+	copier.Copy(quesr, user)
+	quesr.Credits, _ = dao.GetCreditByUn(c.Request.Context(), username)
+	quesr.InviteCredits, _ = dao.GetInviteCreditByUn(c.Request.Context(), username)
+
+	c.JSON(http.StatusOK, respJSON(quesr))
 }
 
 type registerParams struct {

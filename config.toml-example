@@ -1,6 +1,7 @@
 Mode = "debug"
 ApiListen = ":8080"
 DatabaseURL = "root:password@tcp(localhost:3306)/titan_explorer?charset=utf8mb4&parseTime=True&loc=Local"
+QuestDatabaseURL = "root:password@tcp(localhost:3306)/titan_quest?charset=utf8mb4&parseTime=True&loc=Local"
 SecretKey = "test"
 RedisAddr = "127.0.0.1:6379"
 RedisPassword = ""
