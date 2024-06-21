@@ -13,6 +13,7 @@ type Config struct {
 	Mode                     string
 	ApiListen                string
 	DatabaseURL              string
+	QuestDatabaseURL         string
 	SecretKey                string
 	RedisAddr                string
 	RedisPassword            string

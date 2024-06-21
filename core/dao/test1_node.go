@@ -16,6 +16,40 @@ const (
 	zeroTime       = "0000-00-00 00:00:00.000"
 )
 
+type UserAndQuest struct {
+	ID                       int64     `db:"id" json:"id"`
+	Uuid                     string    `db:"uuid" json:"uuid"`
+	Avatar                   string    `db:"avatar" json:"avatar"`
+	Username                 string    `db:"username" json:"username"`
+	PassHash                 string    `db:"pass_hash" json:"-"`
+	UserEmail                string    `db:"user_email" json:"user_email"`
+	WalletAddress            string    `db:"wallet_address" json:"wallet_address"`
+	Role                     int32     `db:"role" json:"role"`
+	AllocateStorage          int       `db:"allocate_storage" json:"allocate_storage"`
+	ProjectId                int64     `db:"project_id"`
+	Referrer                 string    `db:"referrer" json:"referrer"`
+	ReferrerUserId           string    `db:"referrer_user_id" json:"-"`
+	ReferralCode             string    `db:"referral_code" json:"referral_code"`
+	Reward                   float64   `db:"reward" json:"reward"`
+	RefereralReward          float64   `db:"referral_reward" json:"referral_reward"`
+	Payout                   float64   `db:"payout" json:"payout"`
+	FrozenReward             float64   `db:"frozen_reward" json:"frozen_reward"`
+	ClosedTestReward         float64   `db:"closed_test_reward" json:"closed_test_reward"`
+	HuygensReward            float64   `db:"huygens_reward" json:"huygens_reward"`
+	HuygensReferralReward    float64   `db:"huygens_referral_reward" json:"huygens_referral_reward"`
+	HerschelReward           float64   `db:"herschel_reward" json:"herschel_reward"`
+	HerschelReferralReward   float64   `db:"herschel_referral_reward" json:"herschel_referral_reward"`
+	DeviceCount              int64     `db:"device_count" json:"device_count"`
+	DeviceOnlineCount        int64     `db:"device_online_count" json:"device_online_count"`
+	ReferrerCommissionReward float64   `db:"referrer_commission_reward" json:"-"`
+	FromKOLBonusReward       float64   `db:"from_kol_bonus_reward" json:"from_kol_bonus_reward"`
+	CreatedAt                time.Time `db:"created_at" json:"created_at"`
+	Credits                  int64     `json:"credits" db:"-"`
+	InviteCredits            int64     `json:"invite_credits" db:"-"`
+	UpdatedAt                time.Time `db:"updated_at" json:"-"`
+	DeletedAt                time.Time `db:"deleted_at" json:"-"`
+}
+
 // GetTest1Nodes 获取test1节点信息
 func GetTest1Nodes(ctx context.Context, statusCode int64, page, size uint64) (int64, []model.Test1NodeInfo, error) {
 	// device_status_code 1-在线 2-故障 3-离线
@@ -167,4 +201,38 @@ func MoveBackDeletedDevice(ctx context.Context, ids []string, usedID string) err
 	}
 
 	return nil
+}
+
+// GetCreditByUn 获取社区奖励
+func GetCreditByUn(ctx context.Context, un string) (int64, error) {
+	var credit int64
+
+	query, args, err := squirrel.Select("IFNULL(SUM(credit),0)").From("user_mission").Where("username = ?", un).ToSql()
+	if err != nil {
+		return 0, fmt.Errorf("get sum of credit error:%w", err)
+	}
+
+	err = QDB.GetContext(ctx, &credit, query, args...)
+	if err != nil {
+		return 0, fmt.Errorf("get credit of user's mission error:%w", err)
+	}
+
+	return credit, nil
+}
+
+// GetInviteCreditByUn 获取社区邀请奖励
+func GetInviteCreditByUn(ctx context.Context, un string) (int64, error) {
+	var credit int64
+
+	query, args, err := squirrel.Select("IFNULL(SUM(credit),0)").From("invite_log").Where("username = ?", un).ToSql()
+	if err != nil {
+		return 0, fmt.Errorf("get sum of credit error:%w", err)
+	}
+
+	err = QDB.GetContext(ctx, &credit, query, args...)
+	if err != nil {
+		return 0, fmt.Errorf("get credit of user's mission error:%w", err)
+	}
+
+	return credit, nil
 }
