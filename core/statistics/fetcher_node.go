@@ -86,6 +86,7 @@ loop:
 		onlineNodes     []*model.DeviceInfo
 		offlineNodes    []*model.DeviceInfo
 		deviceInfoHours []*model.DeviceInfoHour
+		allNodes        []*model.DeviceInfo
 	)
 
 	for _, node := range resp.Data {
@@ -94,6 +95,9 @@ loop:
 		}
 
 		nodeInfo := ToDeviceInfo(node, scheduler.AreaId)
+		allNodes = append(allNodes, nodeInfo)
+		deviceInfoHours = append(deviceInfoHours, ToDeviceInfoHour(nodeInfo, start))
+
 		if nodeInfo.DeviceStatus == DeviceStatusOffline {
 			offlineNodes = append(offlineNodes, nodeInfo)
 			continue
@@ -105,7 +109,6 @@ loop:
 		}
 
 		nodeInfo.UserID = userId
-		deviceInfoHours = append(deviceInfoHours, ToDeviceInfoHour(nodeInfo, start))
 		onlineNodes = append(onlineNodes, nodeInfo)
 	}
 
@@ -122,14 +125,6 @@ loop:
 			if err != nil {
 				log.Errorf("%s bulk upsert device info: %v", scheduler.AreaId, err)
 			}
-
-			if err = AddDeviceInfoHours(ctx, deviceInfoHours); err != nil {
-				log.Errorf("add device info hours: %v", err)
-			}
-
-			if err := SumDailyReward(ctx, start, onlineNodes); err != nil {
-				log.Errorf("add device info daily reward: %v", err)
-			}
 		}
 
 		if len(offlineNodes) > 0 {
@@ -137,6 +132,16 @@ loop:
 			if err != nil {
 				log.Errorf("bulk add device info: %v", err)
 			}
+		}
+
+		if len(deviceInfoHours) > 0 {
+			if err = AddDeviceInfoHours(ctx, deviceInfoHours); err != nil {
+				log.Errorf("add device info hours: %v", err)
+			}
+		}
+
+		if err = SumDailyReward(ctx, start, allNodes); err != nil {
+			log.Errorf("add device info daily reward: %v", err)
 		}
 
 		return nil
