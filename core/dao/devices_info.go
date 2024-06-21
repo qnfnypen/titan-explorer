@@ -483,7 +483,7 @@ func BulkInsertOrUpdateDeviceStatus(ctx context.Context, deviceInfos []*model.De
 					:ip_country, :ip_province, :ip_city, :latitude, :longitude, :mac_location,:cpu_usage, :memory_usage, :cpu_cores, :memory, :disk_usage, :disk_space,
 					:device_status, :device_status_code, :io_system, :online_time, :today_online_time, :today_profit,:yesterday_profit, :seven_days_profit, :month_profit, :area_id,
 					:cumulative_profit, :bandwidth_up, :bandwidth_down,:download_traffic,:upload_traffic, now(), now(),:bound_at,:cache_count,:retrieval_count, :nat_type, :income_incr
-				) ON DUPLICATE KEY UPDATE  device_status = VALUES(device_status), device_status_code = VALUES(device_status_code), updated_at = now()`, tableNameDeviceInfo,
+				) ON DUPLICATE KEY UPDATE  device_status = VALUES(device_status), device_status_code = VALUES(device_status_code), cumulative_profit = values(cumulative_profit), updated_at = now()`, tableNameDeviceInfo,
 	)
 	_, err := DB.NamedExecContext(ctx, statement, deviceInfos)
 	return err
