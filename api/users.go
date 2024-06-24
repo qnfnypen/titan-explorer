@@ -56,9 +56,6 @@ func GetUserInfoHandler(c *gin.Context) {
 		user.ReferralCode = codes[0].Code
 	}
 
-	user.HerschelReward = user.Reward + user.FromKOLBonusReward
-	user.HerschelReferralReward = user.RefereralReward
-
 	c.JSON(http.StatusOK, respJSON(user))
 }
 
