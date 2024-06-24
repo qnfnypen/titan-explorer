@@ -8,7 +8,7 @@ require (
 	github.com/Filecoin-Titan/titan v0.0.0-20230414233209-f4fad7df425f
 	github.com/Filecoin-Titan/titan-container v0.0.0-20230807102055-6ff1c07eb035
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/aliyun/alibaba-cloud-sdk-go v1.62.771
+	github.com/aliyun/alibaba-cloud-sdk-go v1.62.772
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
 	github.com/appleboy/gin-jwt/v2 v2.9.1
 	github.com/bsm/redislock v0.8.2
