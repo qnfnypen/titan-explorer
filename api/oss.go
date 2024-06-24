@@ -39,7 +39,7 @@ func FileUploadHandler(c *gin.Context) {
 	// 根据日期创建文件夹
 	path = fmt.Sprintf("%s/%s/%s", path, time.Now().Format("20060102"), newFileName)
 
-	ossClient := oss.NewMustOssAPI(config.Cfg.Oss.EndPoint, config.Cfg.Oss.AccessId, config.Cfg.Oss.AccessKey)
+	// ossClient := oss.NewMustOssAPI(config.Cfg.Oss.EndPoint, config.Cfg.Oss.AccessId, config.Cfg.Oss.AccessKey)
 
 	f, err := file.Open()
 	if err != nil {
@@ -47,7 +47,7 @@ func FileUploadHandler(c *gin.Context) {
 		return
 	}
 
-	if err := ossClient.Upload(config.Cfg.Oss.Bucket, path, f); err != nil {
+	if err := oss.OssInstance.Upload(config.Cfg.Oss.Bucket, path, f); err != nil {
 		log.Errorf("FileUploadHandler: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return

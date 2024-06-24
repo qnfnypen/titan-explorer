@@ -3,6 +3,12 @@ package api
 import (
 	"database/sql"
 	"fmt"
+	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/Masterminds/squirrel"
+	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
@@ -10,9 +16,6 @@ import (
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/golang-module/carbon/v2"
 	"github.com/tealeg/xlsx/v3"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 type NodeDailyTrend struct {
@@ -388,6 +391,67 @@ func ExportReferralRewardDailyHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+}
 
-	return
+func BugReportListHandler(c *gin.Context) {
+	size, _ := strconv.Atoi(c.Query("size"))
+	page, _ := strconv.Atoi(c.Query("page"))
+
+	sb := squirrel.Select().From("bugs")
+
+	email := c.Query("email")
+	if email != "" {
+		sb = sb.Where("email = ?", email)
+	}
+
+	state, _ := strconv.Atoi(c.Query("state"))
+	if state > 0 {
+		sb = sb.Where("state = ?", state)
+	}
+
+	sb = sb.OrderBy("updated_at DESC")
+
+	list, n, err := dao.BugsListPageCtx(c.Request.Context(), page, size, sb, "*")
+	if err != nil {
+		log.Errorf("BugReportListHandler: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list":  list,
+		"total": n,
+	}))
+}
+
+func BugEditHandler(c *gin.Context) {
+	var bug model.Bug
+	if err := c.BindJSON(&bug); err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	bug.UpdatedAt = time.Now()
+
+	if bug.Reward > 0 {
+		switch bug.RewardType {
+		case "tnt2":
+			// todo:
+		case "tnt3":
+			// todo:
+		}
+		// todo: add profit for node
+	}
+
+	claims := jwt.ExtractClaims(c)
+	username := claims[identityKey].(string)
+	bug.Operator = username
+
+	if err := dao.BugUpdateCtx(c.Request.Context(), &bug); err != nil {
+		log.Errorf("UpdateBug: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(nil))
 }

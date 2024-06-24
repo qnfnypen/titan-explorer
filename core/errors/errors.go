@@ -65,6 +65,7 @@ const (
 	AdsLangNotExist
 	AdsPlatformNotExist
 	AdsFetchFailed
+	ReportToManyBugs
 
 	Unknown     = -1
 	GenericCode = 1
@@ -145,6 +146,7 @@ var ErrMap = map[int]string{
 	AdsLangNotExist:                          "language not exist:语言不存在",
 	AdsPlatformNotExist:                      "platform not exist:平台不存在",
 	AdsFetchFailed:                           "fetch banners or notice failed: 获取banner或通知失败",
+	ReportToManyBugs:                         "report to many bugs, please try again tomorrow: bug提交过于频繁，请明天再试",
 }
 
 type GenericError struct {
