@@ -1158,29 +1158,47 @@ func BugReportHandler(c *gin.Context) {
 	bug.CreatedAt = time.Now()
 	bug.UpdatedAt = time.Now()
 
-	claims := jwt.ExtractClaims(c)
-	username := claims[identityKey].(string)
+	// claims := jwt.ExtractClaims(c)
+	// username := claims[identityKey].(string)
 
-	// user, err := dao.GetUserByUsername(c.Request.Context(), username)
-	// if err != nil {
-	// 	c.JSON(http.StatusOK, respErrorCode(errors.UserNotFound, c))
-	// 	return
-	// }
-	bug.Username = username
-	bug.Email = username
+	if bug.Code == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+	info, err := dao.GetSignatureByHash(c.Request.Context(), bug.Code)
+	if err != nil {
+		log.Errorf("BugReportHandler: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidSignature, c))
+		return
+	}
+	bug.NodeId = info.NodeId
+
+	if info.Username == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.NodeNotBound, c))
+		return
+	}
+	user, err := dao.GetUserByUsername(c.Request.Context(), info.Username)
+	if err != nil {
+		log.Errorf("BugReportHandler: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.UserNotFound, c))
+		return
+	}
+	bug.Username = info.Username
+	bug.Email = user.UserEmail
 
 	now := time.Now()
 	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	endOfDay := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location())
 
-	n, err := dao.BugsCountByBuilderCtx(c.Request.Context(), squirrel.Select().Where("username = ?", username).Where("created_at <= ?", endOfDay).Where("created_at >= ?", startOfDay))
+	n, err := dao.BugsCountByBuilderCtx(c.Request.Context(), squirrel.Select().Where("node_id=?", info.NodeId).
+		Where("username = ?", info.Username).Where("created_at <= ?", endOfDay).Where("created_at >= ?", startOfDay))
 	if err != nil {
 		log.Errorf("BugReportHandler: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
-	if n > 5 {
+	if n >= 5 {
 		c.JSON(http.StatusOK, respErrorCode(errors.ReportToManyBugs, c))
 		return
 	}
@@ -1200,10 +1218,14 @@ func MyBugReportListHandler(c *gin.Context) {
 	size, _ := strconv.Atoi(c.Query("size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 
-	claims := jwt.ExtractClaims(c)
-	username := claims[identityKey].(string)
+	code := c.Query("code")
 
-	sb := squirrel.Select().From("bugs").Where("username = ?", username).OrderBy("updated_at DESC")
+	if code == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	sb := squirrel.Select().From("bugs").Where("code = ?", code).OrderBy("updated_at DESC")
 	state, _ := strconv.Atoi(c.Query("state"))
 	if state > 0 {
 		sb = sb.Where("state = ?", state)

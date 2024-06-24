@@ -28,8 +28,8 @@ func BugsCountByBuilderCtx(ctx context.Context, cb squirrel.SelectBuilder) (int6
 }
 
 func BugsAddCtx(ctx context.Context, b *model.Bug) error {
-	query := "insert into bugs (username, node_id, email, telegram_id, description, feedback_type, feedback, pics, log, platform, version, state, reward, reward_type, operator, created_at, updated_at) " +
-		"values (:username, :node_id, :email, :telegram_id, :description, :feedback_type, :feedback, :pics, :log, :platform, :version, :state, :reward, :reward_type, :operator, :created_at, :updated_at)"
+	query := "insert into bugs (username, code, node_id, email, telegram_id, description, feedback_type, feedback, pics, log, platform, version, state, reward, reward_type, operator, created_at, updated_at) " +
+		"values (:username, :code, :node_id, :email, :telegram_id, :description, :feedback_type, :feedback, :pics, :log, :platform, :version, :state, :reward, :reward_type, :operator, :created_at, :updated_at)"
 	_, err := DB.NamedExecContext(ctx, query, b)
 	return err
 }

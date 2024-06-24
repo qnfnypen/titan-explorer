@@ -116,15 +116,15 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	user.POST("/logout", authMiddleware.LogoutHandler)
 	user.GET("/ads/banners", GetBannersHandler)
 	user.GET("/ads/notices", GetNoticesHandler)
+	user.POST("/upload", FileUploadHandler)
+	user.POST("/bugs/report", BugReportHandler)
+	user.GET("/bugs/list", MyBugReportListHandler)
 	user.Use(authMiddleware.MiddlewareFunc())
 	user.GET("/refresh_token", authMiddleware.RefreshHandler)
 	user.POST("/info", GetUserInfoHandler)
 	user.POST("/referral_code/new", AddReferralCodeHandler)
 	user.GET("/referral_code/detail", GetReferralCodeDetailHandler)
 	user.GET("/referral_code/stat", GetReferralCodeStatHandler)
-	user.POST("/upload", FileUploadHandler)
-	user.POST("/bugs/report", BugReportHandler)
-	user.GET("/bugs/list", MyBugReportListHandler)
 
 	// admin
 	admin := apiV1.Group("/admin")

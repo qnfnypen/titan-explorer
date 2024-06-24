@@ -66,6 +66,7 @@ const (
 	AdsPlatformNotExist
 	AdsFetchFailed
 	ReportToManyBugs
+	NodeNotBound
 
 	Unknown     = -1
 	GenericCode = 1
@@ -147,6 +148,7 @@ var ErrMap = map[int]string{
 	AdsPlatformNotExist:                      "platform not exist:平台不存在",
 	AdsFetchFailed:                           "fetch banners or notice failed: 获取banner或通知失败",
 	ReportToManyBugs:                         "report to many bugs, please try again tomorrow: bug提交过于频繁，请明天再试",
+	NodeNotBound:                             "the node is not bound, please bind frist:节点未绑定,请先绑定再试",
 }
 
 type GenericError struct {

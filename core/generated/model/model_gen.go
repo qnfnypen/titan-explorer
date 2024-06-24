@@ -575,6 +575,7 @@ type Ads struct {
 
 type Bug struct {
 	ID           int64     `db:"id" json:"id"`
+	Code         string    `db:"code" json:"code"`
 	Username     string    `db:"username" json:"username"`
 	NodeId       string    `db:"node_id" json:"node_id"`
 	Email        string    `db:"email" json:"email"`
