@@ -116,13 +116,15 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	user.POST("/logout", authMiddleware.LogoutHandler)
 	user.GET("/ads/banners", GetBannersHandler)
 	user.GET("/ads/notices", GetNoticesHandler)
+	user.POST("/upload", FileUploadHandler)
+	user.POST("/bugs/report", BugReportHandler)
+	user.GET("/bugs/list", MyBugReportListHandler)
 	user.Use(authMiddleware.MiddlewareFunc())
 	user.GET("/refresh_token", authMiddleware.RefreshHandler)
 	user.POST("/info", GetUserInfoHandler)
 	user.POST("/referral_code/new", AddReferralCodeHandler)
 	user.GET("/referral_code/detail", GetReferralCodeDetailHandler)
 	user.GET("/referral_code/stat", GetReferralCodeStatHandler)
-	user.POST("/upload", FileUploadHandler)
 
 	// admin
 	admin := apiV1.Group("/admin")
@@ -153,6 +155,9 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	admin.POST("/ads/delete", DeleteAdsHandler)
 	admin.POST("/ads/update", UpdateAdsHandler)
 	admin.POST("/upload", FileUploadHandler)
+	// bugs
+	admin.GET("/bugs/list", BugReportListHandler)
+	admin.POST("/bugs/edit", BugEditHandler)
 
 	// storage
 	storage := apiV1.Group("/storage")

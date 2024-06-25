@@ -572,3 +572,25 @@ type Ads struct {
 	CreatedAt   time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
 }
+
+type Bug struct {
+	ID           int64     `db:"id" json:"id"`
+	Code         string    `db:"code" json:"code"`
+	Username     string    `db:"username" json:"username"`
+	NodeId       string    `db:"node_id" json:"node_id"`
+	Email        string    `db:"email" json:"email"`
+	TelegramId   string    `db:"telegram_id" json:"telegram_id"`
+	Description  string    `db:"description" json:"description"`
+	FeedbackType int64     `db:"feedback_type" json:"feedback_type"`
+	Feedback     string    `db:"feedback" json:"feedback"`
+	Pics         string    `db:"pics" json:"pics"`
+	Log          string    `db:"log" json:"log"`
+	Platform     int64     `db:"platform" json:"platform"`
+	Version      string    `db:"version" json:"version"`
+	State        int64     `db:"state" json:"state"`
+	Reward       int64     `db:"reward" json:"reward"`
+	RewardType   string    `db:"reward_type" json:"reward_type"`
+	Operator     string    `db:"operator" json:"operator"`
+	CreatedAt    time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt    time.Time `db:"updated_at" json:"updated_at"`
+}

@@ -3,16 +3,18 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/gnasnik/titan-explorer/api"
-	"github.com/gnasnik/titan-explorer/config"
-	"github.com/gnasnik/titan-explorer/core/dao"
-	"github.com/gnasnik/titan-explorer/core/oplog"
-	logging "github.com/ipfs/go-log/v2"
-	"github.com/spf13/viper"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/gnasnik/titan-explorer/api"
+	"github.com/gnasnik/titan-explorer/config"
+	"github.com/gnasnik/titan-explorer/core/dao"
+	"github.com/gnasnik/titan-explorer/core/oplog"
+	"github.com/gnasnik/titan-explorer/pkg/oss"
+	logging "github.com/ipfs/go-log/v2"
+	"github.com/spf13/viper"
 )
 
 func main() {
@@ -36,6 +38,10 @@ func main() {
 
 	if err := dao.Init(&cfg); err != nil {
 		log.Fatalf("initital: %v\n", err)
+	}
+
+	if err := oss.InitFromCfg(cfg.Oss); err != nil {
+		log.Fatalf("init oss: %v\n", err)
 	}
 
 	oplog.Subscribe(context.Background())

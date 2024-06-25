@@ -4,11 +4,16 @@ import (
 	"io"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"github.com/gnasnik/titan-explorer/config"
 )
 
 var (
 	tokenCacheKey     = "cache:sts:token"
 	ossClientCacheKey = "cache:oss:token"
+)
+
+var (
+	OssInstance OssAPI
 )
 
 type OssAPI interface {
@@ -21,6 +26,20 @@ type ossAPI struct {
 	accessId     string
 	accessSecret string
 	client       *oss.Client
+}
+
+func InitFromCfg(cfg config.OssConfig) error {
+	client, err := oss.New(cfg.EndPoint, cfg.AccessId, cfg.AccessKey)
+	if err != nil {
+		return err
+	}
+	OssInstance = &ossAPI{
+		endpoint:     cfg.EndPoint,
+		accessId:     cfg.AccessId,
+		accessSecret: cfg.AccessKey,
+		client:       client,
+	}
+	return nil
 }
 
 type Option func(*ossAPI)

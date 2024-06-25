@@ -8,7 +8,7 @@ require (
 	github.com/Filecoin-Titan/titan v0.0.0-20230414233209-f4fad7df425f
 	github.com/Filecoin-Titan/titan-container v0.0.0-20230807102055-6ff1c07eb035
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/aliyun/alibaba-cloud-sdk-go v1.62.771
+	github.com/aliyun/alibaba-cloud-sdk-go v1.62.772
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
 	github.com/appleboy/gin-jwt/v2 v2.9.1
 	github.com/bsm/redislock v0.8.2
@@ -23,6 +23,7 @@ require (
 	github.com/google/go-github/v60 v60.0.0
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/go-log/v2 v2.5.1
+	github.com/jinzhu/copier v0.4.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/libp2p/go-libp2p v0.31.1
 	github.com/mssola/user_agent v0.6.0
@@ -110,7 +111,6 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/pprof v0.0.0-20230817174616-7a8ec2ada47b // indirect
 	github.com/holiman/uint256 v1.2.4 // indirect
-	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
