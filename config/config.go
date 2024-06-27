@@ -9,7 +9,6 @@ type NodesInfo struct {
 }
 
 type Config struct {
-	EtcdAddress              string
 	Mode                     string
 	ApiListen                string
 	DatabaseURL              string
@@ -18,9 +17,10 @@ type Config struct {
 	RedisAddr                string
 	RedisPassword            string
 	FilecoinRPCServerAddress string
+	EtcdAddresses            []string
+	EligibleOnlineMinutes    int
 	Statistic                StatisticsConfig
 	Emails                   []EmailConfig
-	StorageBackup            StorageBackupConfig
 	IpDataCloud              IpDataCloudConfig
 	ContainerManager         ContainerManagerEndpointConfig
 	Epoch                    EpochConfig
@@ -49,12 +49,6 @@ type AdminSchedulerConfig struct {
 	Token   string
 }
 
-type StorageBackupConfig struct {
-	BackupPath string
-	Crontab    string
-	Disable    bool
-}
-
 type IpDataCloudConfig struct {
 	Url string
 	Key string
@@ -72,7 +66,6 @@ type EpochConfig struct {
 type SpecifyCandidateConfig struct {
 	Disable bool
 	AreaId  string
-	NodeId  string
 }
 
 type URLConfig struct {

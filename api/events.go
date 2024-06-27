@@ -19,9 +19,9 @@ import (
 )
 
 // GetDefaultTitanCandidateEntrypointInfo  specify candidate to upload file in testnet, only for storage api
-func GetDefaultTitanCandidateEntrypointInfo() (string, string) {
+func GetDefaultTitanCandidateEntrypointInfo() string {
 	cfg := config.Cfg.SpecifyCandidate
-	return cfg.AreaId, cfg.NodeId
+	return cfg.AreaId
 }
 
 func GetCacheListHandler(c *gin.Context) {
@@ -218,7 +218,7 @@ func GetAllocateStorageHandler(c *gin.Context) {
 		_ = dao.CreateUser(c.Request.Context(), &userInfo)
 	}
 
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -243,7 +243,7 @@ func GetAllocateStorageHandler(c *gin.Context) {
 
 func GetStorageSizeHandler(c *gin.Context) {
 	userId := c.Query("user_id")
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -279,7 +279,7 @@ func GetStorageSizeHandler(c *gin.Context) {
 
 func GetUserVipInfoHandler(c *gin.Context) {
 	userId := c.Query("user_id")
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -299,7 +299,7 @@ func GetUserVipInfoHandler(c *gin.Context) {
 
 func GetUserAccessTokenHandler(c *gin.Context) {
 	UserId := c.Query("user_id")
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -320,7 +320,7 @@ func GetUploadInfoHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	username := claims[identityKey].(string)
 
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -342,7 +342,7 @@ func GetUploadInfoHandler(c *gin.Context) {
 
 func CreateAssetHandler(c *gin.Context) {
 	userId := c.Query("user_id")
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -420,7 +420,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 		return
 	}
 
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -491,7 +491,7 @@ func CreateKeyHandler(c *gin.Context) {
 		acl = append(acl, types.UserAccessControl(perm))
 	}
 
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -515,7 +515,7 @@ func CreateKeyHandler(c *gin.Context) {
 func DeleteKeyHandler(c *gin.Context) {
 	userId := c.Query("user_id")
 	keyName := c.Query("key_name")
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -540,7 +540,7 @@ func DeleteKeyHandler(c *gin.Context) {
 func DeleteAssetHandler(c *gin.Context) {
 	UserId := c.Query("user_id")
 	cid := c.Query("asset_cid")
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -561,7 +561,7 @@ func DeleteAssetHandler(c *gin.Context) {
 func ShareAssetsHandler(c *gin.Context) {
 	userId := c.Query("user_id")
 	cid := c.Query("asset_cid")
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -636,7 +636,7 @@ func GetShareLinkHandler(c *gin.Context) {
 func UpdateShareStatusHandler(c *gin.Context) {
 	userId := c.Query("user_id")
 	cid := c.Query("cid")
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -671,7 +671,7 @@ func GetAssetListHandler(c *gin.Context) {
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -715,7 +715,7 @@ func GetAssetListHandler(c *gin.Context) {
 func GetAssetAllListHandler(c *gin.Context) {
 	userId := c.Query("user_id")
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -746,7 +746,7 @@ loop:
 func GetAssetStatusHandler(c *gin.Context) {
 	userId := c.Query("username")
 	cid := c.Query("cid")
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -774,7 +774,7 @@ func GetAssetCountHandler(c *gin.Context) {
 	page, _ := strconv.Atoi(c.Query("page"))
 	pageSize = 100
 	page = 1
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -833,7 +833,7 @@ func GetAssetCountHandler(c *gin.Context) {
 func GetAssetDetailHandler(c *gin.Context) {
 	cid := c.Query("cid")
 	lang := model.Language(c.GetHeader("Lang"))
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -897,7 +897,7 @@ func GetLocationHandler(c *gin.Context) {
 	//userId := c.Query("user_id")
 	cid := c.Query("cid")
 	lang := model.Language(c.GetHeader("Lang"))
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -962,7 +962,7 @@ func GetMapByCidHandler(c *gin.Context) {
 	//userId := c.Query("user_id")
 	cid := c.Query("cid")
 	lang := model.Language(c.GetHeader("Lang"))
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -1001,7 +1001,7 @@ func GetMapByCidHandler(c *gin.Context) {
 func GetAssetInfoHandler(c *gin.Context) {
 	//userId := c.Query("user_id")
 	cid := c.Query("cid")
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -1037,7 +1037,7 @@ func GetAssetInfoHandler(c *gin.Context) {
 
 func GetKeyListHandler(c *gin.Context) {
 	userId := c.Query("user_id")
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -1149,7 +1149,7 @@ func GetAPIKeyPermsHandler(c *gin.Context) {
 	userId := c.Query("user_id")
 	keyName := c.Query("key_name")
 
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -1174,7 +1174,7 @@ func CreateGroupHandler(c *gin.Context) {
 	userId := c.Query("user_id")
 	name := c.Query("name")
 	parent, _ := strconv.Atoi(c.Query("parent"))
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -1202,7 +1202,7 @@ func GetGroupsHandler(c *gin.Context) {
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -1234,7 +1234,7 @@ func GetAssetGroupListHandler(c *gin.Context) {
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 	parentId, _ := strconv.Atoi(c.Query("parent"))
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -1286,7 +1286,7 @@ func DeleteGroupHandler(c *gin.Context) {
 	userId := c.Query("user_id")
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
 
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -1312,7 +1312,7 @@ func RenameGroupHandler(c *gin.Context) {
 	newName := c.Query("new_name")
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
 
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -1338,7 +1338,7 @@ func MoveGroupToGroupHandler(c *gin.Context) {
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
 	targetGroupId, _ := strconv.Atoi(c.Query("target_group_id"))
 
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -1364,7 +1364,7 @@ func MoveAssetToGroupHandler(c *gin.Context) {
 	assetCid := c.Query("asset_cid")
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
 
-	areaId, _ := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))

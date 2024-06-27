@@ -99,7 +99,7 @@ func GetKOLListHandler(c *gin.Context) {
 		}
 
 		if user != nil {
-			counter.ReferrerReward = user.RefereralReward
+			counter.ReferrerReward = user.ReferralReward
 		}
 
 		out = append(out, &kolReferral{
@@ -170,7 +170,7 @@ func AddKOLHandler(c *gin.Context) {
 }
 
 func AddKOLLevelHandler(c *gin.Context) {
-	var params model.KOLLevelConf
+	var params model.KOLLevelConfig
 	if err := c.BindJSON(&params); err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
@@ -198,7 +198,7 @@ func AddKOLLevelHandler(c *gin.Context) {
 }
 
 func UpdateKOLLevelHandler(c *gin.Context) {
-	var params model.KOLLevelConf
+	var params model.KOLLevelConfig
 	if err := c.BindJSON(&params); err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
@@ -219,7 +219,7 @@ func UpdateKOLLevelHandler(c *gin.Context) {
 }
 
 func DeleteKOLLevelHandler(c *gin.Context) {
-	var params model.KOLLevelConf
+	var params model.KOLLevelConfig
 	if err := c.BindJSON(&params); err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return

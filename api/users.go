@@ -40,7 +40,7 @@ const (
 var defaultNonceExpiration = 5 * time.Minute
 
 func GetUserInfoHandler(c *gin.Context) {
-	quesr := new(dao.UserAndQuest)
+	quest := new(dao.UserAndQuest)
 	claims := jwt.ExtractClaims(c)
 	username := claims[identityKey].(string)
 	user, err := dao.GetUserByUsername(c.Request.Context(), username)
@@ -58,14 +58,14 @@ func GetUserInfoHandler(c *gin.Context) {
 		user.ReferralCode = codes[0].Code
 	}
 
-	user.HerschelReward = user.Reward + user.FromKOLBonusReward
-	user.HerschelReferralReward = user.RefereralReward
+	user.CassiniReward = user.Reward
+	user.CassiniReferralReward = user.ReferralReward
 
-	copier.Copy(quesr, user)
-	quesr.Credits, _ = dao.GetCreditByUn(c.Request.Context(), username)
-	quesr.InviteCredits, _ = dao.GetInviteCreditByUn(c.Request.Context(), username)
+	copier.Copy(quest, user)
+	quest.HerschelCredits, _ = dao.GetCreditByUn(c.Request.Context(), username)
+	quest.HerschelInviteCredits, _ = dao.GetInviteCreditByUn(c.Request.Context(), username)
 
-	c.JSON(http.StatusOK, respJSON(quesr))
+	c.JSON(http.StatusOK, respJSON(quest))
 }
 
 type registerParams struct {
@@ -781,6 +781,10 @@ func GetReferralListHandler(c *gin.Context) {
 
 	var userIds []string
 	for _, refer := range referList {
+		rw, err := dao.GetReferralReward(c.Request.Context(), username, refer.Email)
+		if err == nil && rw != nil {
+			refer.Reward = rw.Reward
+		}
 		userIds = append(userIds, refer.Email)
 		refer.Email = maskEmail(refer.Email)
 	}
@@ -792,149 +796,56 @@ func GetReferralListHandler(c *gin.Context) {
 		return
 	}
 
+	referralCodes, err := dao.GetReferralCodeProfileByUserId(c.Request.Context(), username)
+	if err != nil {
+		log.Errorf("GetUserReferCodes: %v", err)
+	}
+
+	kolLevel, err := dao.GetKOLByUserId(c.Request.Context(), username)
+	if err != nil {
+		log.Errorf("GetKOLByUserId: %v", err)
+	}
+
+	var currentLevel int
+	if kolLevel != nil {
+		currentLevel = kolLevel.Level
+	}
+
+	level, err := dao.GetKOLLevelByLevel(c.Request.Context(), currentLevel)
+	if err != nil {
+		log.Errorf("GetKOLLevelByLevel: %v", err)
+	}
+
 	var (
-		referralCodes []*model.ReferralCodeProfile
-		levelUpInfo   *model.KolLevelUpInfo
+		sumReferralUser int
+		sumReferralNode int
 	)
 
-	if model.UserRole(user.Role) == model.UserRoleKOL {
-		referralCodes, err = dao.GetReferralCodeProfileByUserId(c.Request.Context(), username)
-		if err != nil {
-			log.Errorf("GetUserReferCodes: %v", err)
-		}
+	for _, item := range referralCodes {
+		sumReferralUser += item.ReferralUsers
+		sumReferralNode += item.ReferralOnlineNodes
+	}
 
-		kolLevel, err := dao.GetKOLByUserId(c.Request.Context(), username)
-		if err != nil {
-			log.Errorf("GetKOLByUserId: %v", err)
-		}
-
-		level, err := dao.GetKOLLevelByLevel(c.Request.Context(), kolLevel.Level)
-		if err != nil {
-			log.Errorf("GetKOLLevelByLevel: %v", err)
-		}
-
-		var (
-			sumReferralUser int
-			sumReferralNode int
-		)
-
-		for _, item := range referralCodes {
-			sumReferralUser += item.ReferralUsers
-			sumReferralNode += item.ReferralOnlineNodes
-		}
-
-		levelUpInfo = &model.KolLevelUpInfo{
-			CurrenLevel:          kolLevel.Level,
-			CommissionPercent:    level.ParentCommissionPercent,
-			BonusPercent:         level.ChildrenBonusPercent,
-			ReferralNodes:        sumReferralNode,
-			ReferralUsers:        sumReferralUser,
-			LevelUpReferralNodes: level.DeviceThreshold,
-			LevelUpReferralUsers: level.UserThreshold,
-		}
+	levelUpInfo := &model.KolLevelUpInfo{
+		CurrenLevel:             currentLevel,
+		CommissionPercent:       level.CommissionPercent,
+		ParentCommissionPercent: level.ParentCommissionPercent,
+		ReferralNodes:           sumReferralNode,
+		LevelUpReferralNodes:    level.DeviceThreshold,
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"list":           referList,
 		"total":          total,
-		"total_reward":   user.RefereralReward,
+		"total_reward":   user.ReferralReward,
 		"referral_codes": referralCodes,
 		"kol_level":      levelUpInfo,
-	}))
-}
-
-func WithdrawHandler(c *gin.Context) {
-	claims := jwt.ExtractClaims(c)
-	username := claims[identityKey].(string)
-
-	type withdrawRequest struct {
-		Amount int64  `json:"amount"`
-		To     string `json:"to"`
-	}
-
-	var params withdrawRequest
-	if err := c.BindJSON(&params); err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
-		return
-	}
-
-	if params.Amount <= 0 {
-		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
-		return
-	}
-
-	user, err := dao.GetUserByUsername(c.Request.Context(), username)
-	if err != nil {
-		log.Errorf("query user: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
-		return
-	}
-
-	if user.Reward < float64(params.Amount) {
-		c.JSON(http.StatusOK, respErrorCode(errors.InsufficientBalance, c))
-		return
-	}
-
-	request := &model.Withdraw{
-		Username:  username,
-		ToAddress: params.To,
-		Amount:    params.Amount,
-		Status:    0,
-		CreatedAt: time.Now(),
-	}
-
-	if err = dao.AddWithdrawRequest(c.Request.Context(), request); err != nil {
-		log.Errorf("add withdraw request: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
-
-	c.JSON(http.StatusOK, respJSON(nil))
-}
-
-func GetWithdrawListHandler(c *gin.Context) {
-	claims := jwt.ExtractClaims(c)
-	username := claims[identityKey].(string)
-
-	pageSize, _ := strconv.Atoi(c.Query("page_size"))
-	page, _ := strconv.Atoi(c.Query("page"))
-	order := c.Query("order")
-	orderField := c.Query("order_field")
-	option := dao.QueryOption{
-		Page:       page,
-		PageSize:   pageSize,
-		Order:      order,
-		OrderField: orderField,
-	}
-
-	total, withdrawList, err := dao.GetWithdrawRecordList(c.Request.Context(), username, option)
-	if err != nil {
-		log.Errorf("get withdraw list: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
-
-	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list":  withdrawList,
-		"total": total,
 	}))
 }
 
 func AddReferralCodeHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	username := claims[identityKey].(string)
-
-	user, err := dao.GetUserByUsername(c.Request.Context(), username)
-	if err != nil {
-		log.Errorf("query user: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
-		return
-	}
-
-	if model.UserRole(user.Role) != model.UserRoleKOL {
-		c.JSON(http.StatusOK, respErrorCode(errors.PermissionNotAllowed, c))
-		return
-	}
 
 	codes, err := dao.GetUserReferCodes(c.Request.Context(), username)
 	if err != nil {

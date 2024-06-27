@@ -94,17 +94,12 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	apiV2.Use(authMiddleware.MiddlewareFunc())
 	apiV2.Use(AuthRequired(authMiddleware))
 	apiV2.GET("/get_device_info_auth", GetDeviceInfoHandler)
-	//apiV2.GET("/get_application_amount", GetApplicationAmountHandler)
-	//apiV2.POST("/create_application", CreateApplicationHandler)
-	//apiV2.GET("/device_binding", DeviceBindingHandlerOld)
 	apiV2.GET("/device_unbinding", DeviceUnBindingHandlerOld)
 	apiV2.GET("/get_user_device_profile", GetUserDeviceProfileHandler)
 	apiV2.GET("/get_device_active_info", GetDeviceActiveInfoHandler)
 	apiV2.POST("/wallet/bind", BindWalletHandler)
 	apiV2.POST("/wallet/unbind", UnBindWalletHandler)
-	apiV2.POST("/withdraw", WithdrawHandler)
 	apiV2.GET("/referral_list", GetReferralListHandler)
-	apiV2.GET("/withdraw_list", GetWithdrawListHandler)
 	apiV2.GET("/generate/code", GenerateCodeHandler)
 
 	// user
@@ -260,8 +255,4 @@ func RegisterRouterWithAPIKey(router *gin.Engine) {
 	app := authV1.Group("/app")
 	app.Use(AuthAPIKeyMiddlewareFunc())
 	app.POST("/new_version", CreateAppVersionHandler)
-
-	kol := authV1.Group("/kol")
-	kol.Use(AuthAPIKeyMiddlewareFunc())
-	kol.GET("/code", GetKOLReferralCodeInfoHandler)
 }

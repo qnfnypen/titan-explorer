@@ -113,13 +113,12 @@ type AppVersion struct {
 	UpdatedAt   time.Time `db:"updated_at" json:"-"`
 }
 
-type KOLLevelConf struct {
+type KOLLevelConfig struct {
 	ID                      int64     `db:"id" json:"-"`
 	Level                   int       `json:"level" db:"level"`
-	ParentCommissionPercent int       `db:"parent_commission_percent" json:"parent_commission_percent"`
-	ChildrenBonusPercent    int       `db:"children_bonus_percent" json:"children_bonus_percent"`
+	CommissionPercent       float64   `db:"commission_percent" json:"commission_percent"`
+	ParentCommissionPercent float64   `db:"parent_commission_percent" json:"parent_commission_percent"`
 	Status                  int       `db:"status" json:"status"`
-	UserThreshold           int       `db:"user_threshold" json:"user_threshold"`
 	DeviceThreshold         int       `db:"device_threshold" json:"device_threshold"`
 	CreatedAt               time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt               time.Time `db:"updated_at" json:"updated_at"`
@@ -160,13 +159,11 @@ type ReferralCodeProfile struct {
 }
 
 type KolLevelUpInfo struct {
-	CurrenLevel          int `json:"curren_level"`
-	CommissionPercent    int `json:"commission_percent"`
-	BonusPercent         int `json:"bonus_percent"`
-	ReferralUsers        int `json:"referral_users"`
-	ReferralNodes        int `json:"referral_nodes"`
-	LevelUpReferralUsers int `json:"level_up_referral_users"`
-	LevelUpReferralNodes int `json:"level_up_referral_nodes"`
+	CurrenLevel             int     `json:"curren_level"`
+	CommissionPercent       float64 `json:"commission_percent"`
+	ParentCommissionPercent float64 `json:"parent_commission_percent"`
+	ReferralNodes           int     `json:"referral_nodes"`
+	LevelUpReferralNodes    int     `json:"level_up_referral_nodes"`
 }
 
 type ReferralRewardDaily struct {
@@ -198,25 +195,28 @@ type DateValue struct {
 	Value float64 `json:"value"`
 }
 
-type UserRewardDaily struct {
-	UserId            string    `json:"user_id" db:"user_id"`
-	CumulativeReward  float64   `json:"cumulative_reward" db:"cumulative_reward"`
-	Reward            float64   `json:"reward" db:"reward"`
-	AppReward         float64   `json:"app_reward" db:"app_reward"`
-	CliReward         float64   `json:"cli_reward" db:"cli_reward"`
-	KOLBonus          float64   `json:"kol_bonus" db:"kol_bonus"`
-	ReferralReward    float64   `json:"referral_reward" db:"referral_reward"`
-	ReferrerUserId    string    `json:"referrer_user_id" db:"referrer_user_id"`
-	DeviceOnlineCount int64     `json:"device_online_count" db:"device_online_count"`
-	TotalDeviceCount  int64     `json:"total_device_count" db:"total_device_count"`
-	IsKOL             int64     `json:"is_kol" db:"is_kol"`
-	IsReferrerKOL     int64     `json:"is_referrer_kol" db:"is_referrer_kol"`
-	ReferrerReward    float64   `json:"referrer_reward" db:"referrer_reward"`
-	CommissionPercent int64     `json:"commission_percent" db:"commission_percent"`
-	KOLBonusPercent   int64     `json:"kol_bonus_percent" db:"kol_bonus_percent"`
-	Time              time.Time `db:"time" json:"time"`
-	CreatedAt         time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt         time.Time `db:"updated_at" json:"-"`
+type Relationship int
+
+const (
+	RelationshipLevel1 = iota + 1
+	RelationshipLevel2
+)
+
+type UserRewardDetail struct {
+	UserId       string       `json:"user_id" db:"user_id"`
+	FromUserId   string       `json:"from_user_id" db:"from_user_id"`
+	Reward       float64      `json:"reward" db:"reward"`
+	Relationship Relationship `json:"relationship" db:"relationship"`
+	CreatedAt    time.Time    `db:"created_at" json:"created_at"`
+	UpdatedAt    time.Time    `db:"updated_at" json:"-"`
+}
+
+type UserReward struct {
+	UserId              string  `json:"user_id" db:"user_id"`
+	CumulativeReward    float64 `json:"cumulative_reward" db:"cumulative_reward"`
+	Reward              float64 `json:"reward" db:"reward"`
+	EligibleDeviceCount int64   `json:"eligible_device_count" db:"eligible_device_count"`
+	DeviceCount         int64   `json:"device_count" db:"device_count"`
 }
 
 type UserReferralRecord struct {

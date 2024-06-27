@@ -101,3 +101,4 @@ alter table device_info rename column `is_mobile` to `app_type`;
 
 alter table user_reward_daily rename column `mobile_reward` to `app_reward`;
 alter table user_reward_daily rename column `pc_reward` to `cli_reward`;
+

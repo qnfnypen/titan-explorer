@@ -198,59 +198,6 @@ func GetDeviceInfoList(ctx context.Context, cond *model.DeviceInfo, option Query
 	return out, total, err
 }
 
-func GetDeviceActiveInfoList(ctx context.Context, cond *model.DeviceInfo, option QueryOption) ([]*ActiveInfoOut, int64, error) {
-	var args []interface{}
-	where := `WHERE a.device_id <> ''`
-	if cond.DeviceID != "" {
-		where += ` AND a.device_id = ?`
-		args = append(args, cond.DeviceID)
-	}
-	if cond.BindStatus != "" {
-		where += ` AND b.bind_status = ?`
-		args = append(args, cond.BindStatus)
-	}
-	if cond.ActiveStatus < 10 {
-		where += ` AND b.active_status = ?`
-		args = append(args, cond.ActiveStatus)
-	}
-	if cond.UserID != "" {
-		where += ` AND a.user_id = ?`
-		args = append(args, cond.UserID)
-	}
-
-	if option.Order != "" && option.OrderField != "" {
-		where += fmt.Sprintf(` ORDER BY %s %s`, option.OrderField, option.Order)
-	}
-
-	limit := option.PageSize
-	offset := option.Page
-	if option.PageSize <= 0 {
-		limit = 500
-	}
-	if option.Page > 0 {
-		offset = limit * (option.Page - 1)
-	}
-
-	var total int64
-
-	err := DB.GetContext(ctx, &total, fmt.Sprintf(
-		`SELECT count(*)  FROM %s a LEFT JOIN %s b on a.device_id = b.device_id %s`, tableNameApplicationResult, tableNameDeviceInfo, where,
-	), args...)
-	if err != nil {
-		return nil, 0, err
-	}
-	var out []*ActiveInfoOut
-	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT a.device_id,IFNULL(0,b.active_status) active_status,a.secret FROM %s a LEFT JOIN %s b on a.device_id = b.device_id %s ORDER BY device_rank LIMIT %d OFFSET %d`, tableNameApplicationResult, tableNameDeviceInfo, where, limit, offset,
-	), args...)
-
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return out, total, err
-}
-
 func GetDeviceInfoListByKey(ctx context.Context, cond *model.DeviceInfo, option QueryOption) ([]*model.DeviceInfo, int64, error) {
 	var args []interface{}
 	where := `WHERE device_id <> '' AND active_status = 1`
@@ -748,12 +695,6 @@ func GetNodesInfo(ctx context.Context, option QueryOption) (int64, []model.Nodes
 	return total, nodeInfo, nil
 }
 
-func DeleteDeviceInfoHourHistory(ctx context.Context, before time.Time) error {
-	statement := fmt.Sprintf(`DELETE FROM %s where created_at < ?`, tableNameDeviceInfoHour)
-	_, err := DB.ExecContext(ctx, statement, before)
-	return err
-}
-
 func SetDeviceProfileFromCache(ctx context.Context, deviceId string, data map[string]string) error {
 	key := fmt.Sprintf("TITAN::NODE::PROFILE::%s", deviceId)
 	val, err := json.Marshal(data)
@@ -780,18 +721,16 @@ func GetDeviceProfileFromCache(ctx context.Context, deviceId string) (map[string
 	return out, nil
 }
 
-func SumAllUsersReward(ctx context.Context) ([]*model.UserRewardDaily, error) {
-	query := `select user_id, 
-       ifnull(sum(cumulative_profit),0) as cumulative_reward, 
-       ifnull(sum(today_profit),0) as reward,
-       sum(IF(app_type > 0,today_profit,0)) as app_reward, 
-       sum(IF(app_type = 0,today_profit,0)) as cli_reward, 
-       count(if(online_time >= 500, true, null)) as device_online_count,
-       count(device_id) as total_device_count
+func SumAllUsersReward(ctx context.Context, eligibleOnlineMinutes int) ([]*model.UserReward, error) {
+	query := `select user_id,
+      ifnull(sum(cumulative_profit),0) as cumulative_reward,
+      ifnull(sum(today_profit),0) as reward,
+      count(if(online_time >= ?, true, null)) as eligible_device_count,
+      count(device_id) as device_count
 		from device_info  where user_id <> '' GROUP BY user_id`
 
-	var out []*model.UserRewardDaily
-	err := DB.SelectContext(ctx, &out, query)
+	var out []*model.UserReward
+	err := DB.SelectContext(ctx, &out, query, eligibleOnlineMinutes)
 	if err != nil {
 		return nil, err
 	}

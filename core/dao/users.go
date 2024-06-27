@@ -8,6 +8,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/random"
 	"github.com/golang-module/carbon/v2"
+	"github.com/jmoiron/sqlx"
 )
 
 const tableNameUser = "users"
@@ -20,8 +21,8 @@ func CreateUser(ctx context.Context, user *model.User) error {
 	defer tx.Rollback()
 
 	_, err = DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s (uuid, username, pass_hash, user_email, wallet_address, role, referrer, referral_code, referrer_user_id, created_at)
-			VALUES (:uuid, :username, :pass_hash, :user_email, :wallet_address, :role, :referrer, :referral_code, :referrer_user_id, :created_at);`, tableNameUser,
+		`INSERT INTO %s (uuid, username, pass_hash, user_email, wallet_address, role, referrer, referrer_user_id, created_at)
+			VALUES (:uuid, :username, :pass_hash, :user_email, :wallet_address, :role, :referrer, :referrer_user_id, :created_at);`, tableNameUser,
 	), user)
 
 	referralCode := &model.ReferralCode{
@@ -91,9 +92,45 @@ func GetUserByRefCode(ctx context.Context, refCode string) (*model.User, error) 
 	return &out, nil
 }
 
+func GetReferralList(ctx context.Context, username string, option QueryOption) (int64, []*model.InviteFrensRecord, error) {
+	var out []*model.InviteFrensRecord
+
+	limit := option.PageSize
+	offset := option.Page
+	if option.PageSize <= 0 {
+		limit = 50
+	}
+	if option.Page > 0 {
+		offset = limit * (option.Page - 1)
+	}
+
+	var total int64
+
+	countQuery := `select count(1) from users where referrer_user_id = ?;`
+	countQueryIn, countQueryParams, err := sqlx.In(countQuery, username)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	err = DB.GetContext(ctx, &total, countQueryIn, countQueryParams...)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	query := `select username as email, device_count as bound_count, if(device_count>0, 2, 1) as status,  referrer, created_at as time from users where referrer_user_id = ? order by created_at desc LIMIT ? OFFSET ?;`
+
+	err = DB.SelectContext(ctx, &out, query, username, limit, offset)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return total, out, nil
+
+}
+
 func GetUserReferCodes(ctx context.Context, userId string) ([]*model.ReferralCode, error) {
 	var out []*model.ReferralCode
-	err := DB.SelectContext(ctx, &out, `select * from referral_code where user_id = ?`, userId)
+	err := DB.SelectContext(ctx, &out, `select * from referral_code where user_id = ? order by created_at`, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +139,8 @@ func GetUserReferCodes(ctx context.Context, userId string) ([]*model.ReferralCod
 
 func GetReferralCodeProfileByUserId(ctx context.Context, userId string) ([]*model.ReferralCodeProfile, error) {
 	var out []*model.ReferralCodeProfile
-	query := `select r.code, ifnull(count(u.username),0) as referral_users , ifnull(sum(u.device_count),0) as referral_nodes, ifnull(sum(u.device_online_count),0) as referral_online_nodes, r.created_at from referral_code r left join users u on u.referrer = r.code where  r.user_id = ? group by code`
+	query := `select * from ( select r.code, ifnull(count(u.username),0) as referral_users , ifnull(sum(u.device_count),0) as referral_nodes, 
+       ifnull(sum(u.device_count),0) as referral_online_nodes, r.created_at from referral_code r left join users u on u.referrer = r.code where  r.user_id = ? group by code) t order by created_at;`
 	err := DB.SelectContext(ctx, &out, query, userId)
 	if err != nil {
 		return nil, err
