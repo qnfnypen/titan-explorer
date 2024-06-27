@@ -35,7 +35,7 @@ func BugsAddCtx(ctx context.Context, b *model.Bug) error {
 }
 
 func BugsListPageCtx(ctx context.Context, page, size int, sb squirrel.SelectBuilder, sel string) ([]*model.Bug, int64, error) {
-	var out []*model.Bug
+	var out = make([]*model.Bug, 0)
 	var count int64
 
 	if page < 1 {

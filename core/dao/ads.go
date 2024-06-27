@@ -17,7 +17,7 @@ const (
 )
 
 func ListBannersCtx(ctx context.Context, platform int64, lang string) ([]*model.Ads, error) {
-	var out []*model.Ads
+	var out = make([]*model.Ads, 0)
 
 	tn := time.Now()
 	query := `SELECT * FROM ads where platform = ? and lang = ? and ads_type = ? and state = ? and invalid_from <= ? and invalid_to >= ? order by weight desc, created_at desc`
@@ -29,9 +29,9 @@ func ListBannersCtx(ctx context.Context, platform int64, lang string) ([]*model.
 }
 
 func ListNoticesCtx(ctx context.Context, platform int64, lang string) ([]*model.Ads, error) {
-	var n []*model.Ads
+	var n = make([]*model.Ads, 0)
 
-	tn := time.Now()	
+	tn := time.Now()
 	query := `SELECT * FROM ads where platform = ? and lang = ? and ads_type = ? and state = ? and invalid_from <= ? and invalid_to >= ? order by weight desc, created_at desc`
 
 	if err := DB.SelectContext(ctx, &n, query, platform, lang, AdsTypeNotice, 1, tn, tn); err != nil {
@@ -41,7 +41,7 @@ func ListNoticesCtx(ctx context.Context, platform int64, lang string) ([]*model.
 }
 
 func AdsListPageCtx(ctx context.Context, page, size int, sb squirrel.SelectBuilder) ([]*model.Ads, int64, error) {
-	var out []*model.Ads
+	var out = make([]*model.Ads, 0)
 	var count int64
 
 	if page < 1 {
