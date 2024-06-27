@@ -17,37 +17,36 @@ const (
 )
 
 type UserAndQuest struct {
-	ID                       int64     `db:"id" json:"id"`
-	Uuid                     string    `db:"uuid" json:"uuid"`
-	Avatar                   string    `db:"avatar" json:"avatar"`
-	Username                 string    `db:"username" json:"username"`
-	PassHash                 string    `db:"pass_hash" json:"-"`
-	UserEmail                string    `db:"user_email" json:"user_email"`
-	WalletAddress            string    `db:"wallet_address" json:"wallet_address"`
-	Role                     int32     `db:"role" json:"role"`
-	AllocateStorage          int       `db:"allocate_storage" json:"allocate_storage"`
-	ProjectId                int64     `db:"project_id"`
-	Referrer                 string    `db:"referrer" json:"referrer"`
-	ReferrerUserId           string    `db:"referrer_user_id" json:"-"`
-	ReferralCode             string    `db:"referral_code" json:"referral_code"`
-	Reward                   float64   `db:"reward" json:"reward"`
-	RefereralReward          float64   `db:"referral_reward" json:"referral_reward"`
-	Payout                   float64   `db:"payout" json:"payout"`
-	FrozenReward             float64   `db:"frozen_reward" json:"frozen_reward"`
-	ClosedTestReward         float64   `db:"closed_test_reward" json:"closed_test_reward"`
-	HuygensReward            float64   `db:"huygens_reward" json:"huygens_reward"`
-	HuygensReferralReward    float64   `db:"huygens_referral_reward" json:"huygens_referral_reward"`
-	HerschelReward           float64   `db:"herschel_reward" json:"herschel_reward"`
-	HerschelReferralReward   float64   `db:"herschel_referral_reward" json:"herschel_referral_reward"`
-	DeviceCount              int64     `db:"device_count" json:"device_count"`
-	DeviceOnlineCount        int64     `db:"device_online_count" json:"device_online_count"`
-	ReferrerCommissionReward float64   `db:"referrer_commission_reward" json:"-"`
-	FromKOLBonusReward       float64   `db:"from_kol_bonus_reward" json:"from_kol_bonus_reward"`
-	CreatedAt                time.Time `db:"created_at" json:"created_at"`
-	Credits                  int64     `json:"credits" db:"-"`
-	InviteCredits            int64     `json:"invite_credits" db:"-"`
-	UpdatedAt                time.Time `db:"updated_at" json:"-"`
-	DeletedAt                time.Time `db:"deleted_at" json:"-"`
+	ID                     int64     `db:"id" json:"id"`
+	Uuid                   string    `db:"uuid" json:"uuid"`
+	Avatar                 string    `db:"avatar" json:"avatar"`
+	Username               string    `db:"username" json:"username"`
+	PassHash               string    `db:"pass_hash" json:"-"`
+	UserEmail              string    `db:"user_email" json:"user_email"`
+	WalletAddress          string    `db:"wallet_address" json:"wallet_address"`
+	Role                   int32     `db:"role" json:"role"`
+	AllocateStorage        int       `db:"allocate_storage" json:"allocate_storage"`
+	ProjectId              int64     `db:"project_id"`
+	Referrer               string    `db:"referrer" json:"referrer"`
+	ReferrerUserId         string    `db:"referrer_user_id" json:"-"`
+	ReferralCode           string    `db:"referral_code" json:"referral_code"`
+	Reward                 float64   `db:"reward" json:"reward"`
+	ReferralReward         float64   `db:"referral_reward" json:"referral_reward"`
+	ClosedTestReward       float64   `db:"closed_test_reward" json:"closed_test_reward"`
+	HuygensReward          float64   `db:"huygens_reward" json:"huygens_reward"`
+	HuygensReferralReward  float64   `db:"huygens_referral_reward" json:"huygens_referral_reward"`
+	HerschelReward         float64   `db:"herschel_reward" json:"herschel_reward"`
+	HerschelReferralReward float64   `db:"herschel_referral_reward" json:"herschel_referral_reward"`
+	CassiniReward          float64   `db:"cassini_reward" json:"cassini_reward"`
+	CassiniReferralReward  float64   `db:"cassini_referral_reward" json:"cassini_referral_reward"`
+	DeviceCount            int64     `db:"device_count" json:"device_count"`
+	CreatedAt              time.Time `db:"created_at" json:"created_at"`
+	HerschelCredits        int64     `json:"herschel_credits" db:"-"`
+	HerschelInviteCredits  int64     `json:"herschel_invite_credits" db:"-"`
+	CassiniCredits         int64     `json:"cassini_credits" db:"-"`
+	CassiniInviteCredits   int64     `json:"cassini_invite_credits" db:"-"`
+	UpdatedAt              time.Time `db:"updated_at" json:"-"`
+	DeletedAt              time.Time `db:"deleted_at" json:"-"`
 }
 
 // GetTest1Nodes 获取test1节点信息

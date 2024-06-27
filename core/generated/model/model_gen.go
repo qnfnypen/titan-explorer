@@ -317,19 +317,16 @@ type User struct {
 	Referrer                 string    `db:"referrer" json:"referrer"`
 	ReferrerUserId           string    `db:"referrer_user_id" json:"-"`
 	ReferralCode             string    `db:"referral_code" json:"referral_code"`
-	Reward                   float64   `db:"reward" json:"reward"`
-	RefereralReward          float64   `db:"referral_reward" json:"referral_reward"`
-	Payout                   float64   `db:"payout" json:"payout"`
-	FrozenReward             float64   `db:"frozen_reward" json:"frozen_reward"`
-	ClosedTestReward         float64   `db:"closed_test_reward" json:"closed_test_reward"`
+	Reward           		 float64 `db:"reward" json:"reward"`
+	ReferralReward   		 float64 `db:"referral_reward" json:"referral_reward"`
+	ClosedTestReward 		 float64 `db:"closed_test_reward" json:"closed_test_reward"`
 	HuygensReward            float64   `db:"huygens_reward" json:"huygens_reward"`
 	HuygensReferralReward    float64   `db:"huygens_referral_reward" json:"huygens_referral_reward"`
 	HerschelReward           float64   `db:"herschel_reward" json:"herschel_reward"`
 	HerschelReferralReward   float64   `db:"herschel_referral_reward" json:"herschel_referral_reward"`
+	CassiniReward  			 float64   `db:"cassini_reward" json:"cassini_reward"`
+	CassiniReferralReward    float64   `db:"cassini_referral_reward" json:"cassini_referral_reward"`
 	DeviceCount              int64     `db:"device_count" json:"device_count"`
-	DeviceOnlineCount        int64     `db:"device_online_count" json:"device_online_count"`
-	ReferrerCommissionReward float64   `db:"referrer_commission_reward" json:"-"`
-	FromKOLBonusReward       float64   `db:"from_kol_bonus_reward" json:"from_kol_bonus_reward"`
 	CreatedAt                time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt                time.Time `db:"updated_at" json:"-"`
 	DeletedAt                time.Time `db:"deleted_at" json:"-"`
@@ -504,16 +501,6 @@ type UserSecret struct {
 	DeletedAt time.Time `db:"deleted_at" json:"deleted_at"`
 }
 
-type Withdraw struct {
-	ID        int64     `db:"id" json:"id"`
-	Username  string    `db:"username" json:"username"`
-	Amount    int64     `db:"amount" json:"amount"`
-	ToAddress string    `db:"to_address" json:"to_address"`
-	Hash      string    `db:"hash" json:"hash"'`
-	Status    int32     `db:"status" json:"status"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
-}
 
 type Subscription struct {
 	ID                      int64     `db:"id" json:"id"`

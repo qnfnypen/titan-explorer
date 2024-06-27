@@ -588,55 +588,24 @@ func maskLocation(d *model.DeviceInfo, lang model.Language) {
 
 }
 
-//func handleNodeList(ctx *gin.Context, userId string, devicesInfo []*model.DeviceInfo) []*model.DeviceInfo {
-//	areaId := dao.GetAreaID(ctx.Request.Context(), userId)
-//	schedulerClient, err := getSchedulerClient(ctx, areaId)
-//	if err != nil {
-//		log.Errorf("no scheder found")
-//		return nil
-//	}
-//	for _, deviceIfo := range devicesInfo {
-//		createAssetRsp, err := schedulerClient.GetNodeInfo(ctx, deviceIfo.DeviceID)
-//		if err != nil {
-//			log.Errorf("api GetNodeInfo: %v", err)
-//		}
-//		deviceIfo.DeactivateTime = createAssetRsp.DeactivateTime
-//		//dao.HandleMapList(ctx, deviceIfo)
-//		dao.TranslateIPLocation()
-//	}
-//	return devicesInfo
-//}
-
 func GetDeviceActiveInfoHandler(c *gin.Context) {
-	info := &model.DeviceInfo{}
-	info.UserID = c.Query("user_id")
-	pageSize, _ := strconv.Atoi(c.Query("page_size"))
-	page, _ := strconv.Atoi(c.Query("page"))
-	order := c.Query("order")
-	orderField := c.Query("order_field")
-	activeStatusStr := c.Query("active_status")
-	if activeStatusStr == "" {
-		info.ActiveStatus = 10
-	} else {
-		activeStatus, _ := strconv.ParseInt(activeStatusStr, 10, 64)
-		info.ActiveStatus = activeStatus
-	}
-	option := dao.QueryOption{
-		Page:       page,
-		PageSize:   pageSize,
-		Order:      order,
-		OrderField: orderField,
-	}
-	list, total, err := dao.GetDeviceActiveInfoList(c.Request.Context(), info, option)
-	if err != nil {
-		log.Errorf("GetDeviceActiveInfoHandler GetDeviceActiveInfoList: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
+	//info := &model.DeviceInfo{}
+	//info.UserID = c.Query("user_id")
+	//pageSize, _ := strconv.Atoi(c.Query("page_size"))
+	//page, _ := strconv.Atoi(c.Query("page"))
+	//order := c.Query("order")
+	//orderField := c.Query("order_field")
+	//activeStatusStr := c.Query("active_status")
+	//if activeStatusStr == "" {
+	//	info.ActiveStatus = 10
+	//} else {
+	//	activeStatus, _ := strconv.ParseInt(activeStatusStr, 10, 64)
+	//	info.ActiveStatus = activeStatus
+	//}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list":  list,
-		"total": total,
+		"list":  nil,
+		"total": 0,
 	}))
 }
 

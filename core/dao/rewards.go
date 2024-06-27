@@ -362,54 +362,6 @@ func GetDeviceInfoDailyByPage(ctx context.Context, cond *model.DeviceInfoDaily, 
 	return out, total, err
 }
 
-func GetAllUsersRewardBefore(ctx context.Context, before string) (map[string]*model.UserRewardDaily, error) {
-	query := `select 
-	user_id, 
-	referrer_user_id,
-	max(cumulative_reward) as cumulative_reward,
-	sum(app_reward) as app_reward,
-	sum(cli_reward) as cli_reward,
-	max(total_device_count) as total_device_count,
-	max(device_online_count) as device_online_count,
-	sum(referral_reward) as referral_reward,
-	sum(referrer_reward) as referrer_reward,
-	sum(kol_bonus) as kol_bonus
-	from user_reward_daily where time < ? group by user_id`
-
-	rows, err := DB.QueryxContext(ctx, query, before)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	out := make(map[string]*model.UserRewardDaily)
-
-	for rows.Next() {
-		var userRewardDaily model.UserRewardDaily
-		if err := rows.StructScan(&userRewardDaily); err != nil {
-			log.Errorf("struct scan: %v", err)
-			continue
-		}
-
-		out[userRewardDaily.UserId] = &userRewardDaily
-	}
-
-	return out, nil
-}
-
-func BulkAddUserRewardDaily(ctx context.Context, userRewards []*model.UserRewardDaily) error {
-	update := `INSERT INTO user_reward_daily (user_id, cumulative_reward, reward, app_reward, cli_reward, kol_bonus, referral_reward, device_online_count, total_device_count,
-                               referrer_user_id, is_kol, is_referrer_kol, commission_percent, kol_bonus_percent, referrer_reward, time, created_at, updated_at)
-			VALUES (:user_id, :cumulative_reward, :reward, :app_reward, :cli_reward, :kol_bonus, :referral_reward, :device_online_count, :total_device_count,
-			        :referrer_user_id, :is_kol, :is_referrer_kol, :commission_percent, :kol_bonus_percent, :referrer_reward, :time, :created_at, :updated_at) 
-			 ON DUPLICATE KEY UPDATE cumulative_reward = VALUES(cumulative_reward), reward = VALUES(reward), app_reward = VALUES(app_reward), cli_reward = VALUES(cli_reward), kol_bonus = VALUES(kol_bonus), 
-			  referral_reward = VALUES(referral_reward), referrer_user_id = VALUES(referrer_user_id), is_kol = VALUES(is_kol), is_referrer_kol = VALUES(is_referrer_kol), commission_percent = VALUES(commission_percent),
-			  kol_bonus_percent = VALUES(kol_bonus_percent), referrer_reward = VALUES(referrer_reward), device_online_count = VALUES(device_online_count), total_device_count = VALUES(total_device_count), updated_at = now()`
-
-	_, err := DB.NamedExecContext(ctx, update, userRewards)
-	return err
-}
-
 func GetUserReferralReward(ctx context.Context, option QueryOption) ([]*model.UserReferralRecord, int64, error) {
 	var args []interface{}
 	where := `WHERE referrer_user_id <> '' `
@@ -497,17 +449,34 @@ func LoadAllUserReferralReward(ctx context.Context, option QueryOption) ([]*mode
 }
 
 func BulkUpdateUserReward(ctx context.Context, users []*model.User) error {
-	query := `INSERT INTO users (username, reward, referral_reward, referrer_commission_reward, from_kol_bonus_reward, device_count, device_online_count, updated_at) 
-	VALUES (:username, :reward, :referral_reward, :referrer_commission_reward, :from_kol_bonus_reward, :device_count, :device_online_count, :updated_at) ON DUPLICATE KEY UPDATE reward = VALUES(reward), 
-         referral_reward = VALUES(referral_reward), referrer_commission_reward = VALUES(referrer_commission_reward), from_kol_bonus_reward = VALUES(from_kol_bonus_reward),
-        device_count = VALUES(device_count), device_online_count = VALUES(device_online_count), updated_at  = now()`
+	query := `INSERT INTO users (username, reward, device_count, updated_at) 
+	VALUES (:username, :reward, :device_count, :updated_at) ON DUPLICATE KEY UPDATE reward = VALUES(reward), device_count = values(device_count), updated_at = now()`
 	_, err := DB.NamedExecContext(ctx, query, users)
 	return err
 }
 
 func BulkUpdateUserReferralReward(ctx context.Context, users []*model.User) error {
 	query := `INSERT INTO users (username, referral_reward, updated_at) 
-	VALUES (:username, :referral_reward, :updated_at) ON DUPLICATE KEY UPDATE referral_reward = VALUES(referral_reward), updated_at  = now()`
+	VALUES (:username, :referral_reward, :updated_at) ON DUPLICATE KEY UPDATE referral_reward = referral_reward + VALUES(referral_reward), updated_at = now()`
 	_, err := DB.NamedExecContext(ctx, query, users)
 	return err
+}
+
+func BulkUpdateUserRewardDetails(ctx context.Context, logs []*model.UserRewardDetail) error {
+	query := `INSERT INTO user_reward_detail (user_id, from_user_id, reward, relationship, created_at, updated_at) 
+	VALUES (:user_id, :from_user_id, :reward, :relationship, now(), now()) ON DUPLICATE KEY UPDATE reward = reward + VALUES(reward), updated_at = now()`
+	_, err := DB.NamedExecContext(ctx, query, logs)
+	return err
+}
+
+func GetReferralReward(ctx context.Context, userId, fromUserId string) (*model.UserRewardDetail, error) {
+	query := `select * from user_reward_detail where user_id = ? and from_user_id = ?`
+
+	var out model.UserRewardDetail
+	err := DB.GetContext(ctx, &out, query, userId, fromUserId)
+	if err != nil {
+		return &out, err
+	}
+
+	return &out, nil
 }
