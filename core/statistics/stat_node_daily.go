@@ -500,6 +500,7 @@ func applyUserLevel(ctx context.Context, kolConfig []*model.KOLLevelConfig, sumR
 			}
 
 			kol.Level = lc.Level
+			break
 		}
 
 		out[userId] = kol.Level
