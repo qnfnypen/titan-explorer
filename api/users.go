@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	constant "github.com/TestsLing/aj-captcha-go/const"
 	"net/http"
 	"os"
 	"strconv"
@@ -291,10 +292,33 @@ func generateNonceString(ctx context.Context, key string) (string, error) {
 	return verifyCode, nil
 }
 
+// GetBlockCaptcha 滑块验证
+func GetBlockCaptcha(c *gin.Context) {
+	data, _ := factory.GetService(constant.BlockPuzzleCaptcha).Get()
+	//输出json结果给调用方
+	c.JSON(200, data)
+}
+
+type (
+	// VerifyCodeReq 获取邮箱验证码
+	VerifyCodeReq struct {
+		Username  string `json:"username"`
+		Token     string `json:"token"`
+		PointJSON string `json:"pointJson"`
+		Type      int64  `json:"type"`
+	}
+)
+
 func GetNumericVerifyCodeHandler(c *gin.Context) {
 	userInfo := &model.User{}
-	userInfo.Username = c.Query("username")
-	verifyType := c.Query("type")
+	req := &VerifyCodeReq{}
+	err := c.ShouldBindJSON(req)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+	userInfo.Username = req.Username
+	verifyType := strconv.FormatInt(req.Type, 10)
 	lang := c.GetHeader("Lang")
 	userInfo.UserEmail = userInfo.Username
 

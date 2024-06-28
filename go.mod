@@ -8,6 +8,7 @@ require (
 	github.com/Filecoin-Titan/titan v0.0.0-20230414233209-f4fad7df425f
 	github.com/Filecoin-Titan/titan-container v0.0.0-20230807102055-6ff1c07eb035
 	github.com/Masterminds/squirrel v1.5.4
+	github.com/TestsLing/aj-captcha-go v0.0.0-20240518053305-e20480a6396a
 	github.com/aliyun/alibaba-cloud-sdk-go v1.62.772
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
 	github.com/appleboy/gin-jwt/v2 v2.9.1
@@ -31,13 +32,11 @@ require (
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
-	github.com/quic-go/quic-go v0.42.0
 	github.com/robfig/cron/v3 v3.0.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.15.0
 	github.com/tealeg/xlsx/v3 v3.3.6
 	go.etcd.io/etcd/api/v3 v3.5.9
-	go.etcd.io/etcd/client/pkg/v3 v3.5.9
 	golang.org/x/crypto v0.17.0
 	golang.org/x/net v0.18.0
 )
@@ -102,9 +101,11 @@ require (
 	github.com/frankban/quicktest v1.14.6 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/go-playground/validator/v10 v10.14.0 // indirect
+	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
@@ -125,15 +126,18 @@ require (
 	github.com/oschwald/maxminddb-golang v1.9.0 // indirect
 	github.com/peterbourgon/diskv/v3 v3.0.1 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
+	github.com/quic-go/quic-go v0.42.0 // indirect
 	github.com/rogpeppe/fastuuid v1.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/shabbyrobe/xmlwriter v0.0.0-20200208144257-9fca06d00ffa // indirect
 	github.com/tidwall/gjson v1.14.4 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.5.9 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.9 // indirect
 	go.uber.org/mock v0.4.0 // indirect
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa // indirect
+	golang.org/x/image v0.0.0-20220617043117-41969df76e82 // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.15.0 // indirect
