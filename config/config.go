@@ -19,6 +19,7 @@ type Config struct {
 	FilecoinRPCServerAddress string
 	EtcdAddresses            []string
 	EligibleOnlineMinutes    int
+	ResourcePath             string
 	Statistic                StatisticsConfig
 	Emails                   []EmailConfig
 	IpDataCloud              IpDataCloudConfig

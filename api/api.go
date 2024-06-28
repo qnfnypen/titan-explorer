@@ -5,12 +5,16 @@ import (
 	"fmt"
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/client"
+	config2 "github.com/TestsLing/aj-captcha-go/config"
+	constant "github.com/TestsLing/aj-captcha-go/const"
+	"github.com/TestsLing/aj-captcha-go/service"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/cleanup"
 	"github.com/gnasnik/titan-explorer/core/statistics"
 	"github.com/go-redis/redis/v9"
 	"github.com/pkg/errors"
+	"image/color"
 	"net/http"
 	"strings"
 )
@@ -18,6 +22,11 @@ import (
 var (
 	DefaultAreaId            = "Asia-China-Guangdong-Shenzhen"
 	SchedulerConfigKeyPrefix = "TITAN::SCHEDULERCFG"
+)
+
+// 行为校验初始化
+var (
+	factory *service.CaptchaServiceFactory
 )
 
 type Server struct {
@@ -36,6 +45,15 @@ func NewServer(cfg config.Config) (*Server, error) {
 
 	// logging request body
 	router.Use(RequestLoggerMiddleware())
+
+	InitCaptcha()
+
+	// 人机校验：滑块验证
+	// 行为校验配置模块
+	//注册内存缓存
+	factory.RegisterCache(constant.RedisCacheKey, service.NewConfigRedisCacheService([]string{config.Cfg.RedisAddr}, "", config.Cfg.RedisPassword, false, 0))
+	factory.RegisterService(constant.ClickWordCaptcha, service.NewClickWordCaptchaService(factory))
+	factory.RegisterService(constant.BlockPuzzleCaptcha, service.NewBlockPuzzleCaptchaService(factory))
 
 	RegisterRouters(router, cfg)
 
@@ -93,4 +111,23 @@ func getSchedulerClient(ctx context.Context, areaId string) (api.Scheduler, erro
 	}
 
 	return schedulerClient, nil
+}
+
+func InitCaptcha() {
+	// 水印配置
+	clickWordConfig := &config2.ClickWordConfig{
+		FontSize: 25,
+		FontNum:  4,
+	}
+	// 点击文字配置
+	watermarkConfig := &config2.WatermarkConfig{
+		FontSize: 12,
+		Color:    color.RGBA{R: 255, G: 255, B: 255, A: 255},
+		Text:     "",
+	}
+	// 滑动模块配置
+	blockPuzzleConfig := &config2.BlockPuzzleConfig{Offset: 200}
+	configcap := config2.BuildConfig(constant.RedisCacheKey, config.Cfg.ResourcePath, watermarkConfig,
+		clickWordConfig, blockPuzzleConfig, 2*60)
+	factory = service.NewCaptchaServiceFactory(configcap)
 }
