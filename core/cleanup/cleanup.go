@@ -50,6 +50,10 @@ func cleanUpDeviceInfoHour(ctx context.Context, before time.Time) error {
 		return err
 	}
 
+	if maxId == 0 {
+		return nil
+	}
+
 	for {
 		deleteSql := `delete from device_info_hour where id <= ? limit 100000`
 
