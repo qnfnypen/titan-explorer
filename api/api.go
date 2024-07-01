@@ -41,7 +41,7 @@ func NewServer(cfg config.Config) (*Server, error) {
 	gin.SetMode(cfg.Mode)
 	router := gin.Default()
 
-	//router.Use(Cors())
+	//	router.Use(Cors())
 
 	// logging request body
 	router.Use(RequestLoggerMiddleware())

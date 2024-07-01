@@ -9,9 +9,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"github.com/google/go-github/v60/github"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -23,8 +21,6 @@ type Release struct {
 }
 
 func GetReleasesHandler(c *gin.Context) {
-	client := github.NewClient(nil)
-
 	release, err := GetReleaseFromCache(c.Request.Context())
 	if err == nil {
 		c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -33,63 +29,48 @@ func GetReleasesHandler(c *gin.Context) {
 		return
 	}
 
-	releases, _, err := client.Repositories.GetLatestRelease(context.Background(), "Titannet-dao", "titan-node")
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoBearerToken, c))
-		return
-	}
-
-	var out []*Release
-	for _, release := range releases.Assets {
-		if strings.HasSuffix(*release.Name, "sha256") {
-			continue
-		}
-
-		var platform string
-		if strings.Contains(*release.Name, "darwin") {
-			platform = "macOS"
-		}
-		if strings.Contains(*release.Name, "windows") {
-			platform = "Windows"
-		}
-		if strings.Contains(*release.Name, "linux") {
-			platform = "Linux"
-		}
-
-		var arch string
-		splits := strings.Split(*release.Name, "_")
-		if len(splits) > 3 {
-			arch = strings.ToUpper(strings.Split(splits[3], ".")[0])
-		}
-
-		out = append(out, &Release{
-			OS:          platform,
-			Arch:        arch,
-			Version:     *releases.TagName,
-			DownloadURL: *release.BrowserDownloadURL,
-		})
-	}
-
-	err = CacheRelease(c.Request.Context(), out)
-	if err != nil {
-		log.Errorf("cache release: %v", err)
-	}
+	//err = CacheRelease(c.Request.Context(), out)
+	//if err != nil {
+	//	log.Errorf("cache release: %v", err)
+	//}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"release": out,
+		"release": release,
 	}))
 }
 
-func CacheRelease(ctx context.Context, info []*Release) error {
+func UpdateReleaseInfoHandler(c *gin.Context) {
+	//data, err := io.ReadAll(c.Request.Body)
+	//if err != nil {
+	//	c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+	//	return
+	//}
+
+	var release map[string]interface{}
+	err := c.Bind(&release)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	err = CacheRelease(c.Request.Context(), release)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(nil))
+}
+
+func CacheRelease(ctx context.Context, release interface{}) error {
 	key := fmt.Sprintf("TITAN::RELEASE")
 
-	data, err := json.Marshal(info)
+	data, err := json.Marshal(release)
 	if err != nil {
 		return err
 	}
 
-	expiration := time.Minute * 5
-	_, err = dao.RedisCache.Set(ctx, key, data, expiration).Result()
+	_, err = dao.RedisCache.Set(ctx, key, data, 0).Result()
 	if err != nil {
 		log.Errorf("set release info: %v", err)
 	}
@@ -97,16 +78,15 @@ func CacheRelease(ctx context.Context, info []*Release) error {
 	return nil
 }
 
-func GetReleaseFromCache(ctx context.Context) ([]*Release, error) {
+func GetReleaseFromCache(ctx context.Context) (map[string]interface{}, error) {
 	key := fmt.Sprintf("TITAN::RELEASE")
 	result, err := dao.RedisCache.Get(ctx, key).Result()
 	if err != nil {
 		return nil, err
 	}
 
-	var out []*Release
-	err = json.Unmarshal([]byte(result), &out)
-	if err != nil {
+	var out map[string]interface{}
+	if err = json.Unmarshal([]byte(result), &out); err != nil {
 		return nil, err
 	}
 

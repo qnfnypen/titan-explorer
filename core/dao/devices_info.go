@@ -606,6 +606,28 @@ func GetDeviceInfoById(ctx context.Context, deviceId string) model.DeviceInfo {
 	return deviceInfo
 }
 
+func GetPlainDeviceInfoByIds(ctx context.Context, deviceIds []string) ([]*model.PlainDeviceInfo, error) {
+	query := fmt.Sprintf(`
+			select  device_id, device_name, device_status_code, cumulative_profit, nat_type, node_type, ip_location, CONCAT(
+    	SUBSTRING_INDEX(external_ip, '.', 1), 
+    	'.xxx.xxx.', 
+    	SUBSTRING_INDEX(external_ip, '.', -1)
+  		) AS external_ip, system_version, io_system from device_info where device_id in (?)`)
+
+	query, args, err := sqlx.In(query, deviceIds)
+	if err != nil {
+		return nil, err
+	}
+
+	var out []*model.PlainDeviceInfo
+	err = DB.SelectContext(ctx, &out, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
 func OnlineIPCounts(ctx context.Context) (map[string]interface{}, error) {
 	query := `select external_ip, count(device_id) from device_info where device_status_code = 1 group by external_ip`
 

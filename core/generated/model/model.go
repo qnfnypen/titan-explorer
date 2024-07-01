@@ -244,3 +244,16 @@ type Test1NodeInfo struct {
 	IPLocation    string  `db:"ip_location" json:"ipLocation"`        // IP所在区域
 	TotalProfit   float64 `db:"cumulative_profit" json:"totalProfit"` // 累计收益
 }
+
+type PlainDeviceInfo struct {
+	DeviceId         string `json:"device_id" db:"device_id"`
+	DeviceName       string `json:"device_name" db:"device_name"`
+	DeviceStatusCode int64  `json:"device_status_code" db:"device_status_code"`
+	CumulativeProfit string `json:"cumulative_profit" db:"cumulative_profit"`
+	NatType          string `json:"nat_type" db:"nat_type"`
+	NodeType         string `json:"node_type" db:"node_type"`
+	IPLocation       string `json:"ip_location" db:"ip_location"`
+	ExternalIP       string `json:"external_ip" db:"external_ip"`
+	SystemVersion    string `json:"system_version" db:"system_version"`
+	IOSystem         string `json:"io_system" db:"io_system"`
+}
