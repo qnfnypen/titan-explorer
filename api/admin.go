@@ -2,7 +2,6 @@ package api
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -15,7 +14,6 @@ import (
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/golang-module/carbon/v2"
-	"github.com/tealeg/xlsx/v3"
 )
 
 type NodeDailyTrend struct {
@@ -65,9 +63,11 @@ func reverse(s []*model.FullNodeInfo) {
 func GetKOLListHandler(c *gin.Context) {
 	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)
 	size, _ := strconv.ParseInt(c.Query("size"), 10, 64)
+	userId := c.Query("user_id")
 	opt := dao.QueryOption{
 		Page:     int(page),
 		PageSize: int(size),
+		UserID:   userId,
 	}
 
 	type kolReferral struct {
@@ -331,6 +331,15 @@ func GetReferralRewardDailyHandler(c *gin.Context) {
 		return
 	}
 
+	for _, item := range list {
+		user, err := dao.GetUserByUsername(c.Request.Context(), item.UserId)
+		if err != nil {
+			continue
+		}
+		item.Reward = user.Reward
+		item.DeviceOnlineCount = user.DeviceCount
+	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"list":  list,
 		"total": total,
@@ -338,59 +347,61 @@ func GetReferralRewardDailyHandler(c *gin.Context) {
 }
 
 func ExportReferralRewardDailyHandler(c *gin.Context) {
-	start := c.Query("from")
-	end := c.Query("to")
-
-	if start == "" {
-		start = carbon.Parse("2024-03-10").String()
-	}
-
-	userId := c.Query("user_id")
-	opt := dao.QueryOption{
-		UserID:    userId,
-		StartTime: start,
-		EndTime:   end,
-	}
-
-	list, err := dao.LoadAllUserReferralReward(c.Request.Context(), opt)
-	if err != nil {
-		log.Errorf("LoadAllUserReferralReward: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
-
-	wb := xlsx.NewFile()
-	sheet, err := wb.AddSheet("Sheet1")
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
-
-	headerRow := sheet.AddRow()
-	headerRow.WriteSlice([]string{"父级邀请人", "被邀请人", "今日在线节点", "今日被邀请人奖励", "今日父级邀请人奖励", "创建时间"}, -1)
-
-	for _, item := range list {
-		row := sheet.AddRow()
-		row.WriteSlice(
-			[]interface{}{
-				item.ReferrerUserId,
-				item.UserId,
-				item.DeviceOnlineCount,
-				item.Reward,
-				item.ReferrerReward,
-				item.UpdatedAt.Format(time.DateOnly)},
-			-1)
-	}
-
-	c.Writer.Header().Add("Content-Type", "application/octet-stream")
-	c.Writer.Header().Set("Content-Disposition", fmt.Sprintf("attachment;filename=%s", "RewardRecord.xlsx"))
-
-	err = wb.Write(c.Writer)
-	if err != nil {
-		log.Errorf("write file: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
+	c.JSON(http.StatusOK, respJSON(nil))
+	return
+	//start := c.Query("from")
+	//end := c.Query("to")
+	//
+	//if start == "" {
+	//	start = carbon.Parse("2024-03-10").String()
+	//}
+	//
+	//userId := c.Query("user_id")
+	//opt := dao.QueryOption{
+	//	UserID:    userId,
+	//	StartTime: start,
+	//	EndTime:   end,
+	//}
+	//
+	//list, err := dao.LoadAllUserReferralReward(c.Request.Context(), opt)
+	//if err != nil {
+	//	log.Errorf("LoadAllUserReferralReward: %v", err)
+	//	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	//	return
+	//}
+	//
+	//wb := xlsx.NewFile()
+	//sheet, err := wb.AddSheet("Sheet1")
+	//if err != nil {
+	//	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	//	return
+	//}
+	//
+	//headerRow := sheet.AddRow()
+	//headerRow.WriteSlice([]string{"父级邀请人", "被邀请人", "今日在线节点", "今日被邀请人奖励", "今日父级邀请人奖励", "创建时间"}, -1)
+	//
+	//for _, item := range list {
+	//	row := sheet.AddRow()
+	//	row.WriteSlice(
+	//		[]interface{}{
+	//			item.ReferrerUserId,
+	//			item.UserId,
+	//			item.DeviceOnlineCount,
+	//			item.Reward,
+	//			item.ReferrerReward,
+	//			item.UpdatedAt.Format(time.DateOnly)},
+	//		-1)
+	//}
+	//
+	//c.Writer.Header().Add("Content-Type", "application/octet-stream")
+	//c.Writer.Header().Set("Content-Disposition", fmt.Sprintf("attachment;filename=%s", "RewardRecord.xlsx"))
+	//
+	//err = wb.Write(c.Writer)
+	//if err != nil {
+	//	log.Errorf("write file: %v", err)
+	//	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	//	return
+	//}
 }
 
 func BugReportListHandler(c *gin.Context) {

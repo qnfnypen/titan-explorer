@@ -364,7 +364,7 @@ func GetDeviceInfoDailyByPage(ctx context.Context, cond *model.DeviceInfoDaily, 
 
 func GetUserReferralReward(ctx context.Context, option QueryOption) ([]*model.UserReferralRecord, int64, error) {
 	var args []interface{}
-	where := `WHERE referrer_user_id <> '' `
+	where := `WHERE 1=1 `
 
 	if option.UserID != "" {
 		args = append(args, option.UserID)
@@ -373,18 +373,16 @@ func GetUserReferralReward(ctx context.Context, option QueryOption) ([]*model.Us
 
 	if option.StartTime != "" {
 		args = append(args, option.StartTime)
-		where += ` and time >= ?`
+		where += ` and created_at >= ?`
 	}
 
 	if option.EndTime != "" {
 		args = append(args, option.EndTime)
-		where += ` and time < ?`
+		where += ` and created_at < ?`
 	}
 
 	if option.Order != "" && option.OrderField != "" {
 		where += fmt.Sprintf(` ORDER BY %s %s`, option.OrderField, option.Order)
-	} else {
-		where += fmt.Sprintf(" ORDER BY time desc")
 	}
 
 	limit := option.PageSize
@@ -400,14 +398,14 @@ func GetUserReferralReward(ctx context.Context, option QueryOption) ([]*model.Us
 	var out []*model.UserReferralRecord
 
 	err := DB.GetContext(ctx, &total, fmt.Sprintf(
-		`SELECT count(*) FROM user_reward_daily %s`, where,
+		`SELECT count(*) FROM user_reward_detail %s`, where,
 	), args...)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT user_id, referrer_user_id, device_online_count, reward, referrer_reward, time as updated_at FROM user_reward_daily %s LIMIT %d OFFSET %d`, where, limit, offset), args...)
+		`SELECT user_id as referrer_user_id, from_user_id as user_id, reward as referrer_reward, created_at as updated_at FROM user_reward_detail %s LIMIT %d OFFSET %d`, where, limit, offset), args...)
 	if err != nil {
 		return nil, 0, err
 	}

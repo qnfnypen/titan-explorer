@@ -159,9 +159,14 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			return nil, nil
 		},
 		Unauthorized: func(c *gin.Context, code int, message string) {
-
 			if strings.Contains(message, "Token is expired") {
-				message = "Session expired"
+				msg := "Session expired, please log in again"
+
+				if c.GetHeader("Lang") == "cn" {
+					msg = "会话已过期, 请重新登陆"
+				}
+
+				message = msg
 			}
 
 			c.JSON(http.StatusOK, gin.H{
