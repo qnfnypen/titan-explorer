@@ -67,6 +67,7 @@ const (
 	AdsFetchFailed
 	ReportToManyBugs
 	NodeNotBound
+	LimitExceeded
 
 	Unknown     = -1
 	GenericCode = 1
@@ -149,6 +150,7 @@ var ErrMap = map[int]string{
 	AdsFetchFailed:                           "fetch banners or notice failed: 获取banner或通知失败",
 	ReportToManyBugs:                         "report to many bugs, please try again tomorrow: bug提交过于频繁，请明天再试",
 	NodeNotBound:                             "the node is not bound, please bind frist:节点未绑定,请先绑定再试",
+	LimitExceeded:                            "Limit Exceeded: 超出访问限制",
 }
 
 type GenericError struct {

@@ -1238,3 +1238,31 @@ func GetDeviceDistributionHandler(c *gin.Context) {
 		"distribution": distribution,
 	}))
 }
+
+func GetPlainDeviceInfoHandler(c *gin.Context) {
+	type query struct {
+		Ids []string `json:"ids"`
+	}
+
+	var req query
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	if len(req.Ids) > 100 {
+		c.JSON(http.StatusOK, respErrorCode(errors.LimitExceeded, c))
+		return
+	}
+
+	deviceInfos, err := dao.GetPlainDeviceInfoByIds(c.Request.Context(), req.Ids)
+	if err != nil {
+		log.Errorf("GetPlainDeviceInfoByIds: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"devices": deviceInfos,
+	}))
+}
