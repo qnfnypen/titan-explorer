@@ -447,8 +447,8 @@ func LoadAllUserReferralReward(ctx context.Context, option QueryOption) ([]*mode
 }
 
 func BulkUpdateUserReward(ctx context.Context, users []*model.User) error {
-	query := `INSERT INTO users (username, reward, device_count, updated_at) 
-	VALUES (:username, :reward, :device_count, :updated_at) ON DUPLICATE KEY UPDATE reward = VALUES(reward), device_count = values(device_count), updated_at = now()`
+	query := `INSERT INTO users (username, reward, device_count, eligible_device_count, updated_at) 
+	VALUES (:username, :reward, :device_count, :eligible_device_count, :updated_at) ON DUPLICATE KEY UPDATE reward = VALUES(reward), device_count = values(device_count), eligible_device_count = values(eligible_device_count), updated_at = now()`
 	_, err := DB.NamedExecContext(ctx, query, users)
 	return err
 }

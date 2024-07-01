@@ -74,6 +74,30 @@ func GetAllKOLLevels(ctx context.Context) (map[string]*model.KOLLevel, error) {
 	return out, nil
 }
 
+func GetAdminAddedKolLevel(ctx context.Context) (map[string]int, error) {
+	query := `select user_id, level from kol where comment <> 'system'`
+
+	out := make(map[string]int)
+	rows, err := DB.QueryxContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var userId string
+		var level int
+		err = rows.Scan(&userId, &level)
+		if err != nil {
+			return nil, err
+		}
+
+		out[userId] = level
+	}
+
+	return out, nil
+}
+
 func GetKolList(ctx context.Context, option QueryOption) ([]*model.KOL, int64, error) {
 	var total int64
 	var out []*model.KOL

@@ -420,7 +420,7 @@ func updateUserRewards(ctx context.Context, userRewards []*model.UserReward) err
 	var todos []*model.User
 
 	for i, u := range userRewards {
-		todos = append(todos, &model.User{Username: u.UserId, Reward: u.CumulativeReward, DeviceCount: u.DeviceCount})
+		todos = append(todos, &model.User{Username: u.UserId, Reward: u.CumulativeReward, DeviceCount: u.DeviceCount, EligibleDeviceCount: u.EligibleDeviceCount})
 
 		// Perform bulk insert when todos reaches a multiple of batchSize or at the end of updateUserRewards
 		if len(todos)%batchSize == 0 || i == len(userRewards)-1 {
@@ -485,6 +485,11 @@ func applyUserLevel(ctx context.Context, kolConfig []*model.KOLLevelConfig, sumR
 		return kolConfig[i].Level < kolConfig[j].Level
 	})
 
+	adminAddedKols, err := dao.GetAdminAddedKolLevel(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	for userId, eligibleCount := range sumReferrerDeviceCount {
 		kol := &model.KOL{
 			UserId:  userId,
@@ -503,6 +508,10 @@ func applyUserLevel(ctx context.Context, kolConfig []*model.KOLLevelConfig, sumR
 			break
 		}
 
+		if setLevel, existing := adminAddedKols[userId]; existing && kol.Level < setLevel {
+			kol.Level = setLevel
+		}
+
 		out[userId] = kol.Level
 		updateKols = append(updateKols, kol)
 	}
@@ -511,7 +520,7 @@ func applyUserLevel(ctx context.Context, kolConfig []*model.KOLLevelConfig, sumR
 		return out, nil
 	}
 
-	err := dao.UpsertKOLs(ctx, updateKols)
+	err = dao.UpsertKOLs(ctx, updateKols)
 	if err != nil {
 		return nil, err
 	}

@@ -841,13 +841,11 @@ func GetReferralListHandler(c *gin.Context) {
 	}
 
 	var (
-		sumReferralUser int
 		sumReferralNode int
 	)
 
 	for _, item := range referralCodes {
-		sumReferralUser += item.ReferralUsers
-		sumReferralNode += item.ReferralOnlineNodes
+		sumReferralNode += item.EligibleNodes
 	}
 
 	levelUpInfo := &model.KolLevelUpInfo{
