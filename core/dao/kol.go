@@ -78,6 +78,11 @@ func GetKolList(ctx context.Context, option QueryOption) ([]*model.KOL, int64, e
 	var total int64
 	var out []*model.KOL
 
+	var (
+		args  []interface{}
+		where = " where 1=1"
+	)
+
 	limit := option.PageSize
 	offset := option.Page
 	if option.PageSize <= 0 {
@@ -87,14 +92,19 @@ func GetKolList(ctx context.Context, option QueryOption) ([]*model.KOL, int64, e
 		offset = limit * (option.Page - 1)
 	}
 
-	err := DB.GetContext(ctx, &total, `SELECT count(*) FROM kol`)
+	if option.UserID != "" {
+		where += " and user_id = ?"
+		args = append(args, option.UserID)
+	}
+
+	err := DB.GetContext(ctx, &total, `SELECT count(1) FROM kol`+where, args...)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	err = DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT * FROM kol LIMIT %d OFFSET %d`, limit, offset,
-	))
+		`SELECT * FROM kol %s LIMIT %d OFFSET %d`, where, limit, offset,
+	), args...)
 	if err != nil {
 		return nil, 0, err
 	}
