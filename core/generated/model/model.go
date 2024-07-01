@@ -151,11 +151,11 @@ type ReferralCode struct {
 }
 
 type ReferralCodeProfile struct {
-	Code                string    `db:"code" json:"code"`
-	ReferralUsers       int       `db:"referral_users" json:"referral_users"`
-	ReferralNodes       int       `db:"referral_nodes" json:"referral_nodes"`
-	ReferralOnlineNodes int       `db:"referral_online_nodes" json:"referral_online_nodes"`
-	CreatedAt           time.Time `db:"created_at" json:"created_at"`
+	Code          string    `db:"code" json:"code"`
+	ReferralUsers int       `db:"referral_users" json:"referral_users"`
+	ReferralNodes int       `db:"referral_nodes" json:"referral_nodes"`
+	EligibleNodes int       `db:"eligible_nodes" json:"eligible_nodes"`
+	CreatedAt     time.Time `db:"created_at" json:"created_at"`
 }
 
 type KolLevelUpInfo struct {

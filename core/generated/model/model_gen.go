@@ -327,6 +327,7 @@ type User struct {
 	CassiniReward          float64   `db:"cassini_reward" json:"cassini_reward"`
 	CassiniReferralReward  float64   `db:"cassini_referral_reward" json:"cassini_referral_reward"`
 	DeviceCount            int64     `db:"device_count" json:"device_count"`
+	EligibleDeviceCount    int64     `db:"eligible_device_count" json:"eligible_device_count"`
 	FromKolBonusReward     float64   `db:"from_kol_bonus_reward" json:"-"`
 	CreatedAt              time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt              time.Time `db:"updated_at" json:"-"`

@@ -140,7 +140,7 @@ func GetUserReferCodes(ctx context.Context, userId string) ([]*model.ReferralCod
 func GetReferralCodeProfileByUserId(ctx context.Context, userId string) ([]*model.ReferralCodeProfile, error) {
 	var out []*model.ReferralCodeProfile
 	query := `select * from ( select r.code, ifnull(count(u.username),0) as referral_users , ifnull(sum(u.device_count),0) as referral_nodes, 
-       ifnull(sum(u.device_count),0) as referral_online_nodes, r.created_at from referral_code r left join users u on u.referrer = r.code where  r.user_id = ? group by code) t order by created_at;`
+       ifnull(sum(u.eligible_device_count),0) as eligible_nodes, r.created_at from referral_code r left join users u on u.referrer = r.code where  r.user_id = ? group by code) t order by created_at;`
 	err := DB.SelectContext(ctx, &out, query, userId)
 	if err != nil {
 		return nil, err
@@ -218,7 +218,7 @@ func appendDataValueList(dv []*model.DateValue, start, end string) []*model.Date
 }
 
 func GetUserReferralCounter(ctx context.Context, userId string) (*model.ReferralCounter, error) {
-	query := `select count(1) as referral_users, sum(device_count) as referral_nodes, sum(reward) as referee_reward from users where referrer_user_id = ?`
+	query := `select count(1) as referral_users, ifnull(sum(device_count), 0) as referral_nodes, ifnull(sum(reward),0) as referee_reward from users where referrer_user_id = ?`
 
 	var out model.ReferralCounter
 	err := DB.GetContext(ctx, &out, query, userId)
