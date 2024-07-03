@@ -392,6 +392,7 @@ func GetQueryInfoHandler(c *gin.Context) {
 
 	deviceInfo := dao.GetDeviceInfoById(context.Background(), key)
 	if deviceInfo.DeviceID != "" {
+		deviceInfo.CumulativeProfit = deviceInfo.CumulativeProfit + deviceInfo.OnlineIncentiveProfit
 		deviceInfos = append(deviceInfos, &deviceInfo)
 	} else {
 		device, err := getDeviceInfoFromSchedulerAndInsert(c.Request.Context(), key, "")
@@ -402,6 +403,7 @@ func GetQueryInfoHandler(c *gin.Context) {
 			return
 		}
 		deviceInfo = *device
+		deviceInfos = append(deviceInfos, device)
 	}
 
 	for _, device := range deviceInfos {
@@ -441,10 +443,10 @@ func getBandwidth(bandwidthUp float64) []Rule {
 
 func getNodeCountRule(count int64) []Rule {
 	return []Rule{
-		{Name: "5", Score: 0.2, Current: count >= 5},
-		{Name: "4", Score: 0.25, Current: count == 4},
-		{Name: "3", Score: 0.33, Current: count == 3},
-		{Name: "2", Score: 0.5, Current: count == 2},
+		{Name: "5", Score: 0.1, Current: count >= 5},
+		{Name: "4", Score: 0.2, Current: count == 4},
+		{Name: "3", Score: 0.3, Current: count == 3},
+		{Name: "2", Score: 0.4, Current: count == 2},
 		{Name: "1", Score: 1.1, Current: count == 1},
 	}
 }
@@ -878,42 +880,6 @@ func getNodeInfoFromScheduler(ctx context.Context, id string, areaId string) (*m
 	}
 
 	return nil, fmt.Errorf("device not found")
-
-	//keyPrefix := fmt.Sprintf("%s::%s", SchedulerConfigKeyPrefix, "*")
-	//result, err := dao.RedisCache.Keys(ctx, keyPrefix).Result()
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//var configs []*types.SchedulerCfg
-	//for _, key := range result {
-	//	schedulers, err := statistics.GetSchedulerConfigs(ctx, key)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	configs = append(configs, schedulers...)
-	//}
-	//
-	//for _, scheduler := range configs {
-	//	//SchedulerURL := strings.Replace(scheduler.SchedulerURL, "https", "http", 1)
-	//	headers := http.Header{}
-	//	headers.Add("Authorization", "Bearer "+scheduler.AccessToken)
-	//	schedulerClient, _, err := client.NewScheduler(ctx, scheduler.SchedulerURL, headers)
-	//	if err != nil {
-	//		log.Errorf("create scheduler rpc client: %v", err)
-	//		return nil, err
-	//	}
-	//
-	//	areaId = scheduler.AreaID
-	//	nodeInfo, err := schedulerClient.GetNodeInfo(ctx, id)
-	//	if err != nil {
-	//		continue
-	//	}
-	//
-	//	return statistics.ToDeviceInfo(nodeInfo, areaId), nil
-	//}
-	//
-	//return nil, fmt.Errorf("device not found")
 }
 
 func GetDeviceProfileHandler(c *gin.Context) {
@@ -1264,5 +1230,28 @@ func GetPlainDeviceInfoHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"devices": deviceInfos,
+	}))
+}
+
+func GetDeviceOnlineIncentivesHandler(c *gin.Context) {
+	deviceId := c.Query("device_id")
+	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)
+	size, _ := strconv.ParseInt(c.Query("page_size"), 10, 64)
+
+	option := dao.QueryOption{
+		Page:     int(page),
+		PageSize: int(size),
+	}
+
+	list, total, err := dao.GetDeviceOnlineIncentiveList(c.Request.Context(), deviceId, option)
+	if err != nil {
+		log.Errorf("GetDeviceOnlineIncentiveList: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list":  list,
+		"total": total,
 	}))
 }

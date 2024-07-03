@@ -369,20 +369,6 @@ func UpdateUserDeviceInfo(ctx context.Context, deviceInfo *model.DeviceInfo) err
 	return err
 }
 
-func UpdateDownloadCount(ctx context.Context, deviceInfo *model.DeviceInfo) error {
-	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`UPDATE %s SET download_count = :download_count, total_upload = :total_upload,updated_at = now() WHERE device_id = :device_id`, tableNameDeviceInfo),
-		deviceInfo)
-	return err
-}
-
-func UpdateTotalDownload(ctx context.Context, deviceInfo *model.DeviceInfo) error {
-	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`UPDATE %s SET total_download = :total_download, updated_at = now() WHERE device_id = :device_id`, tableNameDeviceInfo),
-		deviceInfo)
-	return err
-}
-
 func UpdateDeviceName(ctx context.Context, deviceInfo *model.DeviceInfo) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
 		`UPDATE %s SET updated_at = now(),device_name = :device_name WHERE device_id = :device_id`, tableNameDeviceInfo),
@@ -441,18 +427,18 @@ func BulkUpdateDeviceInfo(ctx context.Context, deviceInfos []*model.DeviceInfo) 
 		`INSERT INTO %s (
                 	device_id, node_type, device_name, user_id, system_version,  active_status,network_info, external_ip, internal_ip, ip_location,
                 	ip_country, ip_province, ip_city, latitude, longitude, mac_location, cpu_usage, memory_usage, cpu_cores, memory, disk_usage, disk_space,
-                	device_status, device_status_code, io_system, online_time, today_online_time, today_profit, yesterday_profit, seven_days_profit, month_profit, area_id,
+                	device_status, device_status_code, io_system, online_time, today_online_time, yesterday_online_time, today_profit, yesterday_profit, seven_days_profit, month_profit, area_id,
                 	cumulative_profit, bandwidth_up, bandwidth_down,download_traffic,upload_traffic, created_at, updated_at, bound_at,cache_count,retrieval_count, nat_type, income_incr
                 	)
 				VALUES (
 					:device_id, :node_type, :device_name, :user_id,  :system_version, :active_status,:network_info, :external_ip, :internal_ip, :ip_location,
 					:ip_country, :ip_province, :ip_city, :latitude, :longitude, :mac_location,:cpu_usage, :memory_usage, :cpu_cores, :memory, :disk_usage, :disk_space,
-					:device_status, :device_status_code, :io_system, :online_time, :today_online_time, :today_profit,:yesterday_profit, :seven_days_profit, :month_profit, :area_id,
+					:device_status, :device_status_code, :io_system, :online_time, :today_online_time, :yesterday_online_time, :today_profit,:yesterday_profit, :seven_days_profit, :month_profit, :area_id,
 					:cumulative_profit, :bandwidth_up, :bandwidth_down,:download_traffic,:upload_traffic, now(), now(),:bound_at,:cache_count,:retrieval_count, :nat_type, :income_incr
 				)`, tableNameDeviceInfo,
 	)
 	updateStatement := ` ON DUPLICATE KEY UPDATE today_online_time = VALUES(today_online_time), today_profit = VALUES(today_profit), yesterday_profit = VALUES(yesterday_profit),seven_days_profit = VALUES(seven_days_profit),
-month_profit = VALUES(month_profit), updated_at = now()`
+month_profit = VALUES(month_profit), yesterday_online_time = VALUES(yesterday_online_time), updated_at = now()`
 	_, err := DB.NamedExecContext(ctx, insertStatement+updateStatement, deviceInfos)
 	return err
 }
@@ -747,6 +733,7 @@ func SumAllUsersReward(ctx context.Context, eligibleOnlineMinutes int) ([]*model
 	query := `select user_id,
       ifnull(sum(cumulative_profit),0) as cumulative_reward,
       ifnull(sum(today_profit),0) as reward,
+      ifnull(sum(online_incentive_profit), 0 ) as online_incentive_reward,
       count(if(online_time >= ?, true, null)) as eligible_device_count,
       count(device_id) as device_count
 		from device_info  where user_id <> '' GROUP BY user_id`

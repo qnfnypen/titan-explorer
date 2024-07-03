@@ -176,6 +176,11 @@ func (n *NodeFetcher) Finalize() error {
 	if err := SumAllNodes(); err != nil {
 		log.Errorf("sum all node: %v", err)
 	}
+
+	if err := runGenOnlineIncentive(); err != nil {
+		log.Errorf("runGenOnlineIncentive: %v", err)
+	}
+
 	return nil
 }
 

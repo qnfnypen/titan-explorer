@@ -79,8 +79,8 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 
 	// node daily count
 	apiV2.GET("/get_nodes_days", GetDiskDaysHandler)
-	// console
-	apiV2.GET("/device_update", DeviceUpdateHandler)
+	apiV2.GET("/node_online_incentive", GetDeviceOnlineIncentivesHandler)
+
 	// request from titan api
 	apiV2.GET("/get_cache_list", GetCacheListHandler)
 	apiV2.GET("/get_retrieval_list", GetRetrievalListHandler)
@@ -94,6 +94,9 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 
 	apiV2.Use(authMiddleware.MiddlewareFunc())
 	apiV2.Use(AuthRequired(authMiddleware))
+	// console
+	apiV2.GET("/device_update", DeviceUpdateHandler)
+	apiV2.POST("/device_update", DeviceUpdateHandler)
 	apiV2.GET("/get_device_info_auth", GetDeviceInfoHandler)
 	apiV2.GET("/device_unbinding", DeviceUnBindingHandlerOld)
 	apiV2.GET("/get_user_device_profile", GetUserDeviceProfileHandler)
