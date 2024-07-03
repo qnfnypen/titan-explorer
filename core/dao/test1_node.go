@@ -45,6 +45,7 @@ type UserAndQuest struct {
 	HerschelInviteCredits  int64     `json:"herschel_invite_credits" db:"-"`
 	CassiniCredits         int64     `json:"cassini_credits" db:"-"`
 	CassiniInviteCredits   int64     `json:"cassini_invite_credits" db:"-"`
+	OnlineIncentiveReward  float64   `json:"online_incentive_reward" db:"-"`
 	UpdatedAt              time.Time `db:"updated_at" json:"-"`
 	DeletedAt              time.Time `db:"deleted_at" json:"-"`
 }
