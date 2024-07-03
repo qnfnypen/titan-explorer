@@ -581,3 +581,10 @@ type Bug struct {
 	CreatedAt    time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt    time.Time `db:"updated_at" json:"updated_at"`
 }
+
+type Acme struct {
+	Certificate string    `db:"certificate" json:"certificate"`
+	PrivateKey  string    `db:"private_key" json:"private_key"`
+	CreatedAt   time.Time `db:"created_at" json:"created_at"`
+	ExpireAt    time.Time `db:"expire_at" json:"expire_at"`
+}

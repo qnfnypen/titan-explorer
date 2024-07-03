@@ -61,7 +61,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	apiV2.GET("/device/query_code", QueryDeviceCodeHandler)
 	apiV2.GET("/device/distribution", GetDeviceDistributionHandler)
 	apiV2.POST("/data/collection", DataCollectionHandler)
-
+	apiV2.GET("/acme", AcmeHandler)
 	// index info all nodes info from device info
 	apiV2.GET("/get_nodes_info", GetNodesInfoHandler)
 	apiV2.GET("/get_device_info", GetDeviceInfoHandler)
@@ -155,6 +155,8 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	// bugs
 	admin.GET("/bugs/list", BugReportListHandler)
 	admin.POST("/bugs/edit", BugEditHandler)
+	// acme
+	admin.POST("/acme/add", AcmeAddHandler)
 
 	// storage
 	storage := apiV1.Group("/storage")
