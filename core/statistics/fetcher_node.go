@@ -341,7 +341,7 @@ func ToDeviceInfo(node types.NodeInfo, areaId string) *model.DeviceInfo {
 		deviceInfo.DeviceStatus = DeviceStatusOffline
 		deviceInfo.DeviceID = node.NodeID
 		deviceInfo.DeviceStatusCode = DeviceStatusCodeOffline
-	case types.NodeServicing, types.NodeNatSymmetric:
+	case types.NodeServicing:
 		deviceInfo.DeviceStatusCode = DeviceStatusCodeOnline
 		deviceInfo.DeviceStatus = DeviceStatusOnline
 	default:

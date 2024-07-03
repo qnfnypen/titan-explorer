@@ -32,7 +32,5 @@ func runGenOnlineIncentive() error {
 		log.Errorf("GenerateEligibleOnlineDevices: %v", err)
 	}
 
-	// 计算今天的, 昨天的, 七天的, 30天的在线收益
-
 	return nil
 }
