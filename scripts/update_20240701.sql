@@ -3,6 +3,5 @@ CREATE TABLE `acme` (
 `certificate` VARCHAR(4096) NOT NULL,
 `private_key` VARCHAR(1024) NOT NULL,
 `created_at` DATETIME(3) NOT NULL DEFAULT 0,
-`expire_at` DATETIME(3) NOT NULL DEFAULT 0,
-PRIMARY KEY (`id`)
+`expire_at` DATETIME(3) NOT NULL DEFAULT 0
 ) ENGINE = INNODB CHARSET = utf8mb4;
