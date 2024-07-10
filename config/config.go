@@ -23,7 +23,6 @@ type Config struct {
 	Statistic                StatisticsConfig
 	Emails                   []EmailConfig
 	IpDataCloud              IpDataCloudConfig
-	ContainerManager         ContainerManagerEndpointConfig
 	Epoch                    EpochConfig
 	SpecifyCandidate         SpecifyCandidateConfig
 	URL                      URLConfig
@@ -53,11 +52,6 @@ type AdminSchedulerConfig struct {
 type IpDataCloudConfig struct {
 	Url string
 	Key string
-}
-
-type ContainerManagerEndpointConfig struct {
-	Addr  string
-	Token string
 }
 
 type EpochConfig struct {

@@ -176,6 +176,11 @@ func (n *NodeFetcher) Finalize() error {
 	if err := SumAllNodes(); err != nil {
 		log.Errorf("sum all node: %v", err)
 	}
+
+	if err := runGenOnlineIncentive(); err != nil {
+		log.Errorf("runGenOnlineIncentive: %v", err)
+	}
+
 	return nil
 }
 
@@ -336,7 +341,7 @@ func ToDeviceInfo(node types.NodeInfo, areaId string) *model.DeviceInfo {
 		deviceInfo.DeviceStatus = DeviceStatusOffline
 		deviceInfo.DeviceID = node.NodeID
 		deviceInfo.DeviceStatusCode = DeviceStatusCodeOffline
-	case types.NodeServicing, types.NodeNatSymmetric:
+	case types.NodeServicing:
 		deviceInfo.DeviceStatusCode = DeviceStatusCodeOnline
 		deviceInfo.DeviceStatus = DeviceStatusOnline
 	default:

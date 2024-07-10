@@ -59,7 +59,7 @@ func GetUserInfoHandler(c *gin.Context) {
 		user.ReferralCode = codes[0].Code
 	}
 
-	user.CassiniReward = user.Reward
+	user.CassiniReward = user.Reward + user.OnlineIncentiveReward
 	user.CassiniReferralReward = user.ReferralReward
 
 	copier.Copy(quest, user)
@@ -525,12 +525,13 @@ func DeviceUnBindingHandlerOld(c *gin.Context) {
 }
 
 func DeviceUpdateHandler(c *gin.Context) {
-	deviceInfo := &model.DeviceInfo{}
-	deviceInfo.DeviceID = c.Query("device_id")
-	deviceInfo.UserID = c.Query("user_id")
-	deviceInfo.DeviceName = c.Query("device_name")
+	deviceId := c.Query("device_id")
+	deviceName := c.Query("device_name")
 
-	old, err := dao.GetDeviceInfoByID(c.Request.Context(), deviceInfo.DeviceID)
+	claims := jwt.ExtractClaims(c)
+	username := claims[identityKey].(string)
+
+	old, err := dao.GetDeviceInfoByID(c.Request.Context(), deviceId)
 	if err != nil {
 		log.Errorf("get user device: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -541,7 +542,12 @@ func DeviceUpdateHandler(c *gin.Context) {
 		return
 	}
 
-	err = dao.UpdateDeviceName(c.Request.Context(), deviceInfo)
+	if old.UserID != username {
+		c.JSON(http.StatusOK, respErrorCode(errors.PermissionNotAllowed, c))
+		return
+	}
+
+	err = dao.UpdateDeviceName(c.Request.Context(), &model.DeviceInfo{DeviceID: deviceId, DeviceName: deviceName})
 	if err != nil {
 		log.Errorf("update user device: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -768,8 +774,8 @@ func UnBindWalletHandler(c *gin.Context) {
 
 func maskEmail(email string) string {
 	words := strings.Split(email, ".")
-	if len(words) < 1 {
-		return email[:3] + "****"
+	if len(words) <= 1 {
+		return email
 	}
 
 	prefix, suffix := words[0], words[1]

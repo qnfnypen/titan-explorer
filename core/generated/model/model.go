@@ -212,11 +212,12 @@ type UserRewardDetail struct {
 }
 
 type UserReward struct {
-	UserId              string  `json:"user_id" db:"user_id"`
-	CumulativeReward    float64 `json:"cumulative_reward" db:"cumulative_reward"`
-	Reward              float64 `json:"reward" db:"reward"`
-	EligibleDeviceCount int64   `json:"eligible_device_count" db:"eligible_device_count"`
-	DeviceCount         int64   `json:"device_count" db:"device_count"`
+	UserId                string  `json:"user_id" db:"user_id"`
+	CumulativeReward      float64 `json:"cumulative_reward" db:"cumulative_reward"`
+	Reward                float64 `json:"reward" db:"reward"`
+	EligibleDeviceCount   int64   `json:"eligible_device_count" db:"eligible_device_count"`
+	DeviceCount           int64   `json:"device_count" db:"device_count"`
+	OnlineIncentiveReward float64 `json:"online_incentive_reward" db:"online_incentive_reward"`
 }
 
 type UserReferralRecord struct {

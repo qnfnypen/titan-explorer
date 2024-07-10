@@ -6,14 +6,12 @@ toolchain go1.21.6
 
 require (
 	github.com/Filecoin-Titan/titan v0.0.0-20230414233209-f4fad7df425f
-	github.com/Filecoin-Titan/titan-container v0.0.0-20230807102055-6ff1c07eb035
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/TestsLing/aj-captcha-go v0.0.0-20240518053305-e20480a6396a
 	github.com/aliyun/alibaba-cloud-sdk-go v1.62.772
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
 	github.com/appleboy/gin-jwt/v2 v2.9.1
 	github.com/bsm/redislock v0.8.2
-	github.com/docker/go-units v0.5.0
 	github.com/ethereum/go-ethereum v1.13.6
 	github.com/filecoin-project/pubsub v1.0.0
 	github.com/gin-gonic/gin v1.9.1
@@ -21,7 +19,6 @@ require (
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/golang-module/carbon/v2 v2.3.12
 	github.com/golang/geo v0.0.0-20230421003525-6adc56603217
-	github.com/google/go-github/v60 v60.0.0
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/go-log/v2 v2.5.1
 	github.com/jinzhu/copier v0.4.0
@@ -109,7 +106,6 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
-	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/pprof v0.0.0-20230817174616-7a8ec2ada47b // indirect
 	github.com/holiman/uint256 v1.2.4 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
@@ -145,7 +141,4 @@ require (
 	google.golang.org/grpc v1.55.0 // indirect
 )
 
-replace (
-	github.com/Filecoin-Titan/titan v0.0.0-20230414233209-f4fad7df425f => ../filecoin-titan
-	github.com/Filecoin-Titan/titan-container v0.0.0-20230807102055-6ff1c07eb035 => ../titan-container
-)
+replace github.com/Filecoin-Titan/titan v0.0.0-20230414233209-f4fad7df425f => ../filecoin-titan

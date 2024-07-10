@@ -245,6 +245,7 @@ func updateDeviceInfoForTimeRange(updatedDevices map[string]*model.DeviceInfo, s
 			switch field {
 			case "YesterdayProfit":
 				updatedDevices[deviceID].YesterdayProfit = formatter.Str2Float64(d["income"])
+				updatedDevices[deviceID].YesterdayOnlineTime = formatter.Str2Float64(d["online_time"])
 			case "SevenDaysProfit":
 				updatedDevices[deviceID].SevenDaysProfit = formatter.Str2Float64(d["income"])
 			case "MonthProfit":
@@ -396,7 +397,7 @@ func SumUserReward(ctx context.Context) error {
 
 	log.Infof("today user reward changed count: %d %d %d", len(userRewards), len(referralReward), len(updateDetails))
 
-	// 更新 users 表, 用户的 reward, device_count
+	// 更新 users 表, 用户的 reward, device_count, online_incentive_reward
 	if err = updateUserRewards(ctx, userRewards); err != nil {
 		return err
 	}
@@ -420,7 +421,13 @@ func updateUserRewards(ctx context.Context, userRewards []*model.UserReward) err
 	var todos []*model.User
 
 	for i, u := range userRewards {
-		todos = append(todos, &model.User{Username: u.UserId, Reward: u.CumulativeReward, DeviceCount: u.DeviceCount, EligibleDeviceCount: u.EligibleDeviceCount})
+		todos = append(todos, &model.User{
+			Username:              u.UserId,
+			Reward:                u.CumulativeReward,
+			DeviceCount:           u.DeviceCount,
+			EligibleDeviceCount:   u.EligibleDeviceCount,
+			OnlineIncentiveReward: u.OnlineIncentiveReward,
+		})
 
 		// Perform bulk insert when todos reaches a multiple of batchSize or at the end of updateUserRewards
 		if len(todos)%batchSize == 0 || i == len(userRewards)-1 {
