@@ -110,5 +110,5 @@ func GetIPLocationHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, loc)
+	c.JSON(http.StatusOK, respJSON(loc))
 }
