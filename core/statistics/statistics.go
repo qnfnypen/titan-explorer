@@ -108,17 +108,40 @@ func (s *Statistic) handleJobs() {
 					}
 
 					// 当执行完所有的任务之后,调用 Finalize, 主要用于拉取节点数据完成之后的整个节点数据重新统计
-					if len(f.GetJobQueue()) == 0 {
+					if len(f.GetJobQueue()) == 0 && hasFinished(f) {
 						err := f.Finalize()
 						if err != nil {
 							log.Errorf("handle finalize: %v", err)
 						}
 					}
+
 				case <-s.ctx.Done():
 					return
 				}
 			}
 		}(fetcher)
+	}
+}
+
+func hasFinished(f Fetcher) bool {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	confirmed := 0
+
+	for {
+		select {
+		case <-ticker.C:
+			if confirmed >= 10 {
+				return true
+			}
+
+			if len(f.GetJobQueue()) > 0 {
+				return false
+			}
+
+			confirmed++
+		}
 	}
 }
 

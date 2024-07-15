@@ -12,15 +12,23 @@ import (
 var log = logging.Logger("geo")
 
 func GetIpLocation(ctx context.Context, ip string, languages ...model.Language) (*model.Location, error) {
+	var lang model.Language
+
+	if len(languages) == 0 {
+		lang = model.LanguageEN
+	} else {
+		lang = languages[0]
+	}
+
 	//  get location from redis
-	location, err := dao.GetCacheLocation(ctx, ip, model.LanguageEN)
+	location, err := dao.GetCacheLocation(ctx, ip, lang)
 	if err == nil && location != nil {
 		return location, nil
 	}
 
 	// get info from databases
 	var locationDb model.Location
-	err = dao.GetLocationInfoByIp(ctx, ip, &locationDb, model.LanguageEN)
+	err = dao.GetLocationInfoByIp(ctx, ip, &locationDb, lang)
 	if err != nil {
 		log.Errorf("get location by ip: %v", err)
 		return nil, err
@@ -31,14 +39,6 @@ func GetIpLocation(ctx context.Context, ip string, languages ...model.Language) 
 	}
 
 	// get location from ip data cloud api
-
-	var lang model.Language
-
-	if len(languages) == 0 {
-		lang = model.LanguageEN
-	} else {
-		lang = languages[0]
-	}
 
 	for _, l := range model.SupportLanguages {
 		loc, err := iptool.IPDataCloudGetLocation(ctx, config.Cfg.IpDataCloud.Url, ip, config.Cfg.IpDataCloud.Key, string(l))

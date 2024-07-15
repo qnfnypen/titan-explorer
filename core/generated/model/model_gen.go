@@ -369,7 +369,7 @@ type ValidationEvent struct {
 }
 
 type Location struct {
-	ID          int64     `db:"id" json:"id"`
+	ID          int64     `db:"id" json:"-"`
 	Ip          string    `db:"ip" json:"ip"`
 	Continent   string    `db:"continent" json:"continent"`
 	Province    string    `db:"province" json:"province"`

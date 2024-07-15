@@ -3,8 +3,12 @@ package api
 import (
 	"context"
 	"fmt"
+	"github.com/gin-gonic/gin"
+	"github.com/gnasnik/titan-explorer/core/errors"
+	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/core/geo"
 	"math"
+	"net/http"
 	"strconv"
 
 	"github.com/golang/geo/s2"
@@ -89,4 +93,22 @@ func GetUserNearestIP(ctx context.Context, userIP string, ipList []string, coord
 	}
 
 	return nearestIP, nil
+}
+
+func GetIPLocationHandler(c *gin.Context) {
+	ip := c.Query("ip")
+	lang := model.Language(c.Query("lang"))
+
+	if lang == "" {
+		lang = model.LanguageEN
+	}
+
+	loc, err := geo.GetIpLocation(c.Request.Context(), ip, lang)
+	if err != nil {
+		log.Errorf("GetIpLocation: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(loc))
 }

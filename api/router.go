@@ -48,6 +48,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 
 	// dashboard
 	// Deprecated: use /height instead
+	apiV2.GET("/location", GetIPLocationHandler)
 	apiV2.GET("/get_high", GetBlockHeightHandler)
 	apiV2.GET("/height", GetBlockHeightHandler)
 	apiV2.GET("/all_areas", GetAllAreas)
