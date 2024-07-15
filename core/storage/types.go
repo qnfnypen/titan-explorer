@@ -1,0 +1,41 @@
+package storage
+
+import "time"
+
+// UserAccessControl 用户文件控制
+type userAccessControl = string
+
+const (
+	userAPIKeyReadFile     userAccessControl = "readFile"
+	userAPIKeyCreateFile   userAccessControl = "createFile"
+	userAPIKeyDeleteFile   userAccessControl = "deleteFile"
+	userAPIKeyReadFolder   userAccessControl = "readFolder"
+	userAPIKeyCreateFolder userAccessControl = "createFolder"
+	userAPIKeyDeleteFolder userAccessControl = "deleteFolder"
+)
+
+var userAccessControlAll = []userAccessControl{
+	userAPIKeyReadFile,
+	userAPIKeyCreateFile,
+	userAPIKeyDeleteFile,
+	userAPIKeyReadFolder,
+	userAPIKeyCreateFolder,
+	userAPIKeyDeleteFolder,
+}
+
+var funcAccessControlMap = map[string]userAccessControl{
+	"CreateAsset":      userAPIKeyCreateFile,
+	"ListAssets":       userAPIKeyReadFile,
+	"DeleteAsset":      userAPIKeyDeleteFile,
+	"ShareAssets":      userAPIKeyReadFile,
+	"CreateAssetGroup": userAPIKeyCreateFolder,
+	"ListAssetGroup":   userAPIKeyReadFolder,
+	"DeleteAssetGroup": userAPIKeyDeleteFolder,
+	"RenameAssetGroup": userAPIKeyCreateFolder,
+}
+
+// UserAPIKeysInfo 用户 api key 信息
+type UserAPIKeysInfo struct {
+	CreatedTime time.Time
+	APIKey      string
+}

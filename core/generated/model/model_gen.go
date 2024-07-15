@@ -332,6 +332,13 @@ type User struct {
 	EligibleDeviceCount    int64     `db:"eligible_device_count" json:"eligible_device_count"`
 	FromKolBonusReward     float64   `db:"from_kol_bonus_reward" json:"-"` // Deprecated
 	OnlineIncentiveReward  float64   `db:"online_incentive_reward" json:"online_incentive_reward"`
+	TotalStorageSize 	   int64	 `db:"total_storage_size"`
+	UsedStorageSize        int64     `db:"used_storage_size"`
+	TotalTraffic           int64     `db:"total_traffic"`
+	PeakBandwidth          int64     `db:"peak_bandwidth"`
+	DownloadCount          int64     `db:"download_count"`
+	EnableVIP              bool      `db:"enable_vip"`
+	ApiKeys                []byte    `db:"api_keys"`
 	CreatedAt              time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt              time.Time `db:"updated_at" json:"-"`
 	DeletedAt              time.Time `db:"deleted_at" json:"-"`
@@ -465,6 +472,10 @@ type Asset struct {
 	Type       string    `db:"type" json:"type"`
 	Name       string    `db:"name" json:"name"`
 	ProjectId  int64     `db:"project_id" json:"project_id"`
+	GroupID    int64     `db:"group_id"`
+	AreaID     string    `db:"area_id"`
+	Count      int64     `db:"visit_count"`
+	ShareStatus int64    `db:"share_status"`
 	CreatedAt  time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt  time.Time `db:"updated_at" json:"updated_at"`
 	DeletedAt  time.Time `db:"deleted_at" json:"deleted_at"`
@@ -599,4 +610,42 @@ type DeviceOnlineIncentive struct {
 	OnlineTime float64   `db:"online_time" json:"online_time"`
 	Date       time.Time `db:"date" json:"date"`
 	CreatedAt  time.Time `db:"created_at" json:"created_at"`
+}
+
+type StorageUserInfo struct {
+	UserId        string `db:"user_id"`
+	TotalSize     int64 `db:"total_storage_size"`
+	UsedSize      int64 `db:"used_storage_size"`
+	APIKey        string `db:"api_keys"`
+	TotalTraffic  int64 `db:"total_traffic"`
+	PeakBandwidth int64 `db:"peak_bandwidth"`
+	DownloadCount int64 `db:"download_count"`
+	EnableVIP     bool  `db:"enable_vip"`
+	UpdateTime 	  time.Time `db:"update_peak_time"`
+}
+
+type StorageUserAssetDetail struct {
+	UserID      string    `db:"user_id"`
+	Hash        string    `db:"hash"`
+	AssetName   string    `db:"asset_name"`
+	AssetType   string    `db:"asset_type"`
+	ShareStatus int64     `db:"share_status"`
+	Expiration  time.Time `db:"expiration"`
+	CreatedTime time.Time `db:"created_time"`
+	TotalSize   int64     `db:"total_size"`
+	Password    string    `db:"password"`
+	GroupID     int64     `db:"group_id"`
+}
+
+type AssetGroup struct {
+	ID          int64     `db:"id"`
+	UserID      string    `db:"user_id"`
+	Name        string    `db:"name"`
+	Parent      int64     `db:"parent"`
+	CreatedTime time.Time `db:"created_time"`
+}
+
+type StorageAssetVisitCount struct {
+	Hash  string `db:"hash"`
+	Count int64 `db:"count"`
 }

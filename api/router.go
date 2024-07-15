@@ -184,10 +184,10 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_fil_storage_list", GetFilStorageListHandler)
 	storage.Use(authMiddleware.MiddlewareFunc())
 	storage.Use(AuthRequired(authMiddleware))
-	storage.GET("/get_locateStorage", GetAllocateStorageHandler)
-	storage.GET("/get_storage_size", GetStorageSizeHandler)
-	storage.GET("/get_vip_info", GetUserVipInfoHandler)
-	storage.GET("/get_user_access_token", GetUserAccessTokenHandler)
+	// storage.GET("/get_locateStorage", GetAllocateStorageHandler)
+	storage.GET("/get_storage_size", GetStorageSizeHandler)          // 获取用户存储空间信息
+	storage.GET("/get_vip_info", GetUserVipInfoHandler)              // 判断用户是否为vip
+	storage.GET("/get_user_access_token", GetUserAccessTokenHandler) // TODO: 获取用户的 access token，需要重新商定如何生存sdk的access_token
 	storage.GET("/get_upload_info", GetUploadInfoHandler)
 	storage.GET("/create_asset", CreateAssetHandler)
 	storage.POST("/create_asset", CreateAssetPostHandler)
@@ -195,8 +195,8 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_asset_info", GetAssetInfoHandler)
 	storage.GET("/get_asset_list", GetAssetListHandler)
 	storage.GET("/get_all_asset_list", GetAssetAllListHandler)
-	storage.GET("/share_status_set", UpdateShareStatusHandler)
-	storage.GET("/create_key", CreateKeyHandler)
+	storage.GET("/share_status_set", UpdateShareStatusHandler) // 修改分享状态
+	storage.GET("/create_key", CreateKeyHandler)               // TODO: 需要讨论key生成方式
 	storage.GET("/get_keys", GetKeyListHandler)
 	storage.GET("/delete_key", DeleteKeyHandler)
 	storage.GET("/get_asset_count", GetAssetCountHandler)
@@ -204,9 +204,9 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_user_info_daily", GetStorageDailyHandler)
 	storage.GET("/refresh_token", authMiddleware.RefreshHandler)
 	storage.GET("/new_secret", CreateNewSecretKeyHandler)
-	storage.GET("/get_key_perms", GetAPIKeyPermsHandler)
-	storage.GET("/create_group", CreateGroupHandler)
-	storage.GET("/get_groups", GetGroupsHandler)
+	storage.GET("/get_key_perms", GetAPIKeyPermsHandler) // 获取 key 的权限
+	storage.GET("/create_group", CreateGroupHandler)     // 创建文件夹
+	storage.GET("/get_groups", GetGroupsHandler)         // 获取文件夹信息
 	storage.GET("/get_asset_group_list", GetAssetGroupListHandler)
 	storage.GET("/delete_group", DeleteGroupHandler)
 	storage.GET("/rename_group", RenameGroupHandler)

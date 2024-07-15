@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+
+	"github.com/Masterminds/squirrel"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/random"
 	"github.com/golang-module/carbon/v2"
@@ -264,4 +266,18 @@ func GetAllUserReferrerUserId(ctx context.Context) (map[string]string, error) {
 	}
 
 	return out, nil
+}
+
+// UpdateUserAPIKeys 更新用户密钥
+func UpdateUserAPIKeys(ctx context.Context, id int64, buf []byte) error {
+	query, args, err := squirrel.Update(tableNameUser).Set("api_keys", buf).Where("id = ?", id).ToSql()
+	if err != nil {
+		return fmt.Errorf("generate update user sql error:%w", err)
+	}
+	_, err = DB.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
