@@ -3,6 +3,11 @@ package api
 import (
 	"context"
 	"database/sql"
+	"net/http"
+	"strconv"
+	"time"
+
+	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
@@ -10,34 +15,34 @@ import (
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/golang-module/carbon/v2"
 	errs "github.com/pkg/errors"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 func GetStorageHourHandler(c *gin.Context) {
-	userId := c.Query("user_id")
+	// userId := c.Query("user_id")
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
 	start := c.Query("from")
 	end := c.Query("to")
 	startTime := time.Now()
 
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-		return
-	}
-	Info, err := schedulerClient.GetUserInfo(c.Request.Context(), userId)
-	if err != nil {
-		log.Errorf("api GetUserInfo: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
+	// areaId := GetDefaultTitanCandidateEntrypointInfo()
+	// schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	// if err != nil {
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+	// 	return
+	// }
+	// Info, err := schedulerClient.GetUserInfo(c.Request.Context(), userId)
+	// if err != nil {
+	// 	log.Errorf("api GetUserInfo: %v", err)
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	// 	return
+	// }
+	Info, err := dao.GetUserByUsername(c.Request.Context(), userId)
 	var infos []*model.UserInfo
 	var userInfo model.UserInfo
 	userInfo.UserId = userId
-	userInfo.TotalSize = Info.TotalSize
-	userInfo.UsedSize = Info.UsedSize
+	userInfo.TotalSize = Info.TotalStorageSize
+	userInfo.UsedSize = Info.UsedStorageSize
 	userInfo.TotalBandwidth = Info.TotalTraffic
 	userInfo.PeakBandwidth = Info.PeakBandwidth
 	userInfo.DownloadCount = Info.DownloadCount

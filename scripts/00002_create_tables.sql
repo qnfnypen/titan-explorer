@@ -34,3 +34,55 @@ CREATE TABLE signature (
 `updated_at` DATETIME(3) NOT NULL DEFAULT 0,
 PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `storage_user_info`;
+CREATE TABLE storage_user_info (
+`user_id` VARCHAR(128) NOT NULL,
+`total_storage_size` BIGINT DEFAULT 0,
+`used_storage_size` BIGINT DEFAULT 0,
+`api_keys` BLOB,
+`total_traffic` BIGINT DEFAULT 0,
+`peak_bandwidth` INT DEFAULT 0,
+`download_count` INT DEFAULT 0,
+`enable_vip` BOOLEAN DEFAULT false,
+`update_peak_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+PRIMARY KEY (`user_id`)
+) ENGINE=InnoDB COMMENT='titan存储服务的用户信息表';
+
+DROP TABLE IF EXISTS `storage_user_asset`;
+CREATE TABLE storage_user_asset (
+`hash` VARCHAR(128) NOT NULL,
+`user_id` VARCHAR(128) NOT NULL,
+`asset_name` VARCHAR(128) DEFAULT '' ,
+`asset_type` VARCHAR(128) DEFAULT '' ,
+`share_status` TINYINT DEFAULT 0,
+`created_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+`total_size` BIGINT DEFAULT 0,
+`expiration` DATETIME DEFAULT CURRENT_TIMESTAMP,
+`password` VARCHAR(128) DEFAULT '' ,		
+`group_id` INT DEFAULT 0,
+PRIMARY KEY (`hash`,`user_id`),
+KEY `idx_user_id` (`user_id`),
+KEY `idx_group_id` (`group_id`)
+) ENGINE=InnoDB COMMENT='titan存储服务的用户文件表';
+
+DROP TABLE IF EXISTS `asset_group`;
+CREATE TABLE storage_user_asset_group (
+`id` INT UNSIGNED AUTO_INCREMENT,
+`user_id` VARCHAR(128) NOT NULL,
+`name` VARCHAR(32) DEFAULT '',
+`parent` INT DEFAULT 0,
+`created_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+PRIMARY KEY (`id`),
+KEY `idx_user_id` (`user_id`),
+KEY `idx_parent` (`parent`)
+) ENGINE=InnoDB COMMENT='titan存储服务的用户文件组表';
+
+DROP TABLE IF EXISTS `storage_asset_visit_count`;
+CREATE TABLE storage_asset_visit_count (
+`hash` VARCHAR(128) NOT NULL,
+`count` INT DEFAULT 0,
+PRIMARY KEY (`hash`)
+) ENGINE=InnoDB COMMENT='titan存储服务的文件被访问次数表';
+
+

@@ -1,21 +1,24 @@
 package api
 
 import (
-	jwt "github.com/appleboy/gin-jwt/v2"
-	"github.com/gnasnik/titan-explorer/config"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	jwt "github.com/appleboy/gin-jwt/v2"
+	"github.com/gnasnik/titan-explorer/config"
+
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
 
 	"github.com/Filecoin-Titan/titan/api"
+	"github.com/Filecoin-Titan/titan/api/terrors"
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/core/storage"
 )
 
 // GetDefaultTitanCandidateEntrypointInfo  specify candidate to upload file in testnet, only for storage api
@@ -218,13 +221,13 @@ func GetAllocateStorageHandler(c *gin.Context) {
 		_ = dao.CreateUser(c.Request.Context(), &userInfo)
 	}
 
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-		return
-	}
-	_, err = schedulerClient.AllocateStorage(c.Request.Context(), userId)
+	// areaId := GetDefaultTitanCandidateEntrypointInfo()
+	// schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	// if err != nil {
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+	// 	return
+	// }
+	// _, err = schedulerClient.AllocateStorage(c.Request.Context(), userId)
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
@@ -242,77 +245,64 @@ func GetAllocateStorageHandler(c *gin.Context) {
 }
 
 func GetStorageSizeHandler(c *gin.Context) {
-	userId := c.Query("user_id")
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	claims := jwt.ExtractClaims(c)
+	username := claims[identityKey].(string)
+	user, err := dao.GetUserByUsername(c.Request.Context(), username)
 	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	storageSize, err := schedulerClient.GetUserInfo(c.Request.Context(), userId)
-	if err != nil {
-		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-			return
-		}
-		log.Errorf("api GetStorageSize: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
-		return
-	}
-	peakBandwidth := GetUserInfo(c.Request.Context(), userId)
-	if peakBandwidth > storageSize.PeakBandwidth {
-		storageSize.PeakBandwidth = peakBandwidth
+	peakBandwidth := GetUserInfo(c.Request.Context(), username)
+	if peakBandwidth > user.PeakBandwidth {
+		user.PeakBandwidth = peakBandwidth
 	} else {
 		var expireTime time.Duration
 		expireTime = time.Hour
 		// update redis data
-		_ = SetUserInfo(c.Request.Context(), userId, storageSize.PeakBandwidth, expireTime)
+		_ = SetUserInfo(c.Request.Context(), username, user.PeakBandwidth, expireTime)
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"PeakBandwidth": storageSize.PeakBandwidth,
-		"TotalTraffic":  storageSize.TotalTraffic,
-		"TotalSize":     storageSize.TotalSize,
-		"UsedSize":      storageSize.UsedSize,
+		"PeakBandwidth": user.PeakBandwidth,
+		"TotalTraffic":  user.TotalTraffic,
+		"TotalSize":     user.TotalStorageSize,
+		"UsedSize":      user.UsedStorageSize,
 	}))
 	return
 }
 
 func GetUserVipInfoHandler(c *gin.Context) {
-	userId := c.Query("user_id")
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-		return
-	}
-	storageSize, err := schedulerClient.GetUserInfo(c.Request.Context(), userId)
+	claims := jwt.ExtractClaims(c)
+	username := claims[identityKey].(string)
+	user, err := dao.GetUserByUsername(c.Request.Context(), username)
 	if err != nil {
 		log.Errorf("api GetUserInfo: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"vip": storageSize.EnableVIP,
+		"vip": user.EnableVIP,
 	}))
 	return
 }
 
 func GetUserAccessTokenHandler(c *gin.Context) {
-	UserId := c.Query("user_id")
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-		return
-	}
-	token, err := schedulerClient.GetUserAccessToken(c.Request.Context(), UserId)
-	if err != nil {
-		log.Errorf("api GetUserAccessToken: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
-		return
-	}
+	// UserId := c.Query("user_id")
+	// claims := jwt.ExtractClaims(c)
+	// UserId := claims[identityKey].(string)
+	// areaId := getAreaID(c)
+	// schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	// if err != nil {
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+	// 	return
+	// }
+	// token, err := schedulerClient.GetUserAccessToken(c.Request.Context(), UserId)
+	// if err != nil {
+	// 	log.Errorf("api GetUserAccessToken: %v", err)
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+	// 	return
+	// }
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"AccessToken": token,
+		"AccessToken": "token",
 	}))
 }
 
@@ -320,7 +310,7 @@ func GetUploadInfoHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	username := claims[identityKey].(string)
 
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := getAreaID(c)
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -341,13 +331,10 @@ func GetUploadInfoHandler(c *gin.Context) {
 }
 
 func CreateAssetHandler(c *gin.Context) {
-	userId := c.Query("user_id")
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-		return
-	}
+	// userId := c.Query("user_id")
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
+	areaId := getAreaID(c)
 
 	user, err := dao.GetUserByUsername(c.Request.Context(), userId)
 	if err != nil {
@@ -366,53 +353,80 @@ func CreateAssetHandler(c *gin.Context) {
 	createAssetReq.AssetSize = formatter.Str2Int64(c.Query("asset_size"))
 	createAssetReq.GroupID, _ = strconv.Atoi(c.Query("group_id"))
 
-	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &createAssetReq)
+	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	// createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &createAssetReq)
+	// if err != nil {
+	// 	if webErr, ok := err.(*api.ErrWeb); ok {
+	// 		c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+	// 		return
+	// 	}
+	// }
+	ainfo, _ := dao.GetAssetByCID(c.Request.Context(), createAssetReq.AssetCID)
+	if ainfo != nil && ainfo.ID > 0 {
+		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
+		return
+	}
+	// 判断用户存储空间是否够用
+	if user.TotalStorageSize-user.UsedStorageSize < createAssetReq.AssetSize {
+		c.JSON(http.StatusOK, respErrorCode(int(terrors.UserStorageSizeNotEnough), c))
+		return
+	}
+	// 获取文件hash
+	hash, err := storage.CIDToHash(createAssetReq.AssetCID)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{AssetProperty: types.AssetProperty{AssetCID: createAssetReq.AssetCID}})
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
 			return
 		}
-	}
-
-	if createAssetRsp.AlreadyExists {
-		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
-	if err := dao.AddAssets(c.Request.Context(), []*model.Asset{
-		{
-			UserId:    userId,
-			Name:      createAssetReq.AssetName,
-			Cid:       createAssetReq.AssetCID,
-			Type:      createAssetReq.AssetType,
-			NodeID:    createAssetRsp.NodeID,
-			TotalSize: createAssetReq.AssetSize,
-			Event:     -1,
-			ProjectId: user.ProjectId,
-		},
+	if err := dao.AddAssetAndUpdateSize(c.Request.Context(), &model.Asset{
+		UserId:    userId,
+		Name:      createAssetReq.AssetName,
+		Cid:       createAssetReq.AssetCID,
+		Type:      createAssetReq.AssetType,
+		NodeID:    createAssetReq.NodeID,
+		TotalSize: createAssetReq.AssetSize,
+		GroupID:   int64(createAssetReq.GroupID),
+		AreaID:    areaId,
+		Hash:      hash,
+		Event:     -1,
+		ProjectId: user.ProjectId,
 	}); err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
-	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"CandidateAddr": createAssetRsp.UploadURL,
-		"Token":         createAssetRsp.Token,
-	}))
+	rsp := make([]JsonObject, len(createAssetRsp.Candidators))
+	for i, v := range createAssetRsp.Candidators {
+		rsp[i] = JsonObject{"CandidateAddr": v.UploadURL, "Token": v.Token}
+	}
+
+	c.JSON(http.StatusOK, respJSON(rsp))
 }
 
 type createAssetRequest struct {
 	AssetName string `json:"asset_name"`
 	AssetCID  string `json:"asset_cid"`
+	AreaID    string `json:"area_id"`
 	NodeID    string `json:"node_id"`
 	AssetType string `json:"asset_type"`
 	AssetSize int64  `json:"asset_size"`
-	GroupId   int    `json:"group_id"`
+	GroupId   int64  `json:"group_id"`
 }
 
+// CreateAssetPostHandler 创建文件
 func CreateAssetPostHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	username := claims[identityKey].(string)
+	areaId := getAreaID(c)
 
 	var createAssetReq createAssetRequest
 	if err := c.BindJSON(&createAssetReq); err != nil {
@@ -420,133 +434,176 @@ func CreateAssetPostHandler(c *gin.Context) {
 		return
 	}
 
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
+	// TODO:
+	// areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-		return
-	}
+	// if err != nil {
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+	// 	return
+	// }
 
 	user, err := dao.GetUserByUsername(c.Request.Context(), username)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+	ainfo, _ := dao.GetAssetByCID(c.Request.Context(), createAssetReq.AssetCID)
+	if ainfo != nil && ainfo.ID > 0 {
+		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
+		return
+	}
+	// 获取文件hash
+	hash, err := storage.CIDToHash(createAssetReq.AssetCID)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	// 判断用户存储空间是否够用
+	if user.TotalStorageSize-user.UsedStorageSize < createAssetReq.AssetSize {
+		c.JSON(http.StatusOK, respErrorCode(int(terrors.UserStorageSizeNotEnough), c))
+		return
+	}
 
-	log.Debugf("CreateAssetHandler clientIP:%s, areaId:%s\n", c.ClientIP(), areaId)
-
-	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{
-		AssetProperty: types.AssetProperty{
-			AssetName: createAssetReq.AssetName,
-			AssetCID:  createAssetReq.AssetCID,
-			NodeID:    createAssetReq.NodeID,
-			AssetType: createAssetReq.AssetType,
-			AssetSize: createAssetReq.AssetSize,
-			GroupID:   createAssetReq.GroupId,
-		},
-		UserID: username,
-	})
+	log.Debugf("CreateAssetHandler clientIP:%s, areaId:%s\n", c.ClientIP(), createAssetReq.AreaID)
+	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{AssetProperty: types.AssetProperty{AssetCID: createAssetReq.AssetCID}})
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
 			return
 		}
-	}
-
-	if createAssetRsp.AlreadyExists {
-		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
-		return
-	}
-
-	if err := dao.AddAssets(c.Request.Context(), []*model.Asset{
-		{
-			UserId:    username,
-			Name:      createAssetReq.AssetName,
-			Cid:       createAssetReq.AssetCID,
-			Type:      createAssetReq.AssetType,
-			NodeID:    createAssetRsp.NodeID,
-			TotalSize: createAssetReq.AssetSize,
-			Event:     -1,
-			ProjectId: user.ProjectId,
-		},
-	}); err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
-	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"CandidateAddr": createAssetRsp.UploadURL,
-		"Token":         createAssetRsp.Token,
-	}))
+	if err := dao.AddAssetAndUpdateSize(c.Request.Context(), &model.Asset{
+		UserId:    username,
+		Name:      createAssetReq.AssetName,
+		Cid:       createAssetReq.AssetCID,
+		Type:      createAssetReq.AssetType,
+		NodeID:    createAssetReq.NodeID,
+		TotalSize: createAssetReq.AssetSize,
+		GroupID:   createAssetReq.GroupId,
+		AreaID:    createAssetReq.AreaID,
+		Hash:      hash,
+		Event:     -1,
+		ProjectId: user.ProjectId,
+	}); err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	rsp := make([]JsonObject, len(createAssetRsp.Candidators))
+	for i, v := range createAssetRsp.Candidators {
+		rsp[i] = JsonObject{"CandidateAddr": v.UploadURL, "Token": v.Token}
+	}
+
+	c.JSON(http.StatusOK, respJSON(rsp))
 }
 
 func CreateKeyHandler(c *gin.Context) {
-	userId := c.Query("user_id")
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
+	// userId := c.Query("user_id")
 	keyName := c.Query("key_name")
 	permsStr := c.Query("perms")
-
+	// areaId := getAreaID(c)
 	perms := strings.Split(permsStr, ",")
 	acl := make([]types.UserAccessControl, 0, len(perms))
 	for _, perm := range perms {
 		acl = append(acl, types.UserAccessControl(perm))
 	}
-
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	// 获取apikey
+	info, err := dao.GetUserByUsername(c.Request.Context(), userId)
 	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+		c.JSON(http.StatusOK, respErrorCode(errors.UserNotFound, c))
 		return
 	}
-	keyStr, err := schedulerClient.CreateAPIKey(c.Request.Context(), userId, keyName, acl)
+	buf, keyStr, err := storage.CreateAPIKey(c.Request.Context(), userId, keyName, perms, info.ApiKeys)
 	if err != nil {
-		log.Errorf("api CreateAPIKey: %v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-		} else {
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
 		}
+		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 		return
 	}
+	err = dao.UpdateUserAPIKeys(c.Request.Context(), info.ID, buf)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"key": keyStr,
 	}))
 }
 
 func DeleteKeyHandler(c *gin.Context) {
-	userId := c.Query("user_id")
+	// userId := c.Query("user_id")
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
 	keyName := c.Query("key_name")
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+
+	info, err := dao.GetUserByUsername(c.Request.Context(), userId)
 	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+		c.JSON(http.StatusOK, respErrorCode(errors.UserNotFound, c))
 		return
 	}
-	err = schedulerClient.DeleteAPIKey(c.Request.Context(), userId, keyName)
-	if err != nil {
-		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+	if len(info.ApiKeys) > 0 {
+		keyMaps, err := storage.DecodeAPIKeys(info.ApiKeys)
+		if err != nil {
+			c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 			return
 		}
-
-		log.Errorf("api DeleteAPIKey: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
-		return
+		if _, ok := keyMaps[keyName]; !ok {
+			c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+			return
+		}
+		delete(keyMaps, keyName)
+		buf, err := storage.EncodeAPIKeys(keyMaps)
+		if err != nil {
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+		err = dao.UpdateUserAPIKeys(c.Request.Context(), info.ID, buf)
+		if err != nil {
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"msg": "delete success",
 	}))
 }
 
+// DeleteAssetHandler 删除文件
 func DeleteAssetHandler(c *gin.Context) {
-	UserId := c.Query("user_id")
+	claims := jwt.ExtractClaims(c)
+	userID := claims[identityKey].(string)
 	cid := c.Query("asset_cid")
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	areaId := getAreaID(c)
+	// 获取文件信息
+	asset, err := dao.GetAssetByCID(c.Request.Context(), cid)
 	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+		c.JSON(http.StatusOK, respErrorCode(int(terrors.NotFound), c))
 		return
 	}
-	err = schedulerClient.DeleteAsset(c.Request.Context(), UserId, cid)
+	// TODO: 调用scheduler接口删除文件
+	// areaId := GetDefaultTitanCandidateEntrypointInfo()
+	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	// if err != nil {
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+	// 	return
+	// }
+	err = schedulerClient.RemoveAssetRecord(c.Request.Context(), cid)
+	if err != nil {
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			return
+		}
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	err = dao.DelAssetAndUpdateSize(c.Request.Context(), cid, userID, asset.TotalSize)
 	if err != nil {
 		log.Errorf("api DeleteAsset: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -634,22 +691,11 @@ func GetShareLinkHandler(c *gin.Context) {
 }
 
 func UpdateShareStatusHandler(c *gin.Context) {
-	userId := c.Query("user_id")
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
 	cid := c.Query("cid")
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	err := dao.UpdateAssetShareStatus(c.Request.Context(), cid, userId)
 	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-		return
-	}
-	err = schedulerClient.UpdateShareStatus(c.Request.Context(), userId, cid)
-	if err != nil {
-		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-			return
-		}
-
-		log.Errorf("api UpdateShareStatus: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
@@ -660,31 +706,38 @@ func UpdateShareStatusHandler(c *gin.Context) {
 
 type AccessOverview struct {
 	AssetRecord      *types.AssetRecord
-	UserAssetDetail  *types.UserAssetDetail
-	VisitCount       int
-	RemainVisitCount int
+	UserAssetDetail  *model.Asset
+	VisitCount       int64
+	RemainVisitCount int64
 	FilcoinCount     int64
 }
 
 func GetAssetListHandler(c *gin.Context) {
-	userId := c.Query("user_id")
+	// userId := c.Query("user_id")
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := getAreaID(c)
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
 		return
 	}
-	createAssetRsp, err := schedulerClient.ListAssets(c.Request.Context(), userId, pageSize, (page-1)*pageSize, groupId)
-	if err != nil {
-		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-			return
-		}
+	// createAssetRsp, err := schedulerClient.ListAssets(c.Request.Context(), userId, pageSize, (page-1)*pageSize, groupId)
+	// if err != nil {
+	// 	if webErr, ok := err.(*api.ErrWeb); ok {
+	// 		c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+	// 		return
+	// 	}
 
-		log.Errorf("api ListAssets: %v", err)
+	// 	log.Errorf("api ListAssets: %v", err)
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	// 	return
+	// }
+	createAssetRsp, err := listAssets(c.Request.Context(), schedulerClient, userId, page, pageSize, groupId)
+	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
@@ -713,7 +766,9 @@ func GetAssetListHandler(c *gin.Context) {
 }
 
 func GetAssetAllListHandler(c *gin.Context) {
-	userId := c.Query("user_id")
+	// userId := c.Query("user_id")
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
 	areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
@@ -721,18 +776,18 @@ func GetAssetAllListHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
 		return
 	}
-	var total int
+	var total int64
 	page, size := 1, 100
-	var listRsp []*types.AssetOverview
+	var listRsp []*AssetOverview
 loop:
-	createAssetRsp, err := schedulerClient.ListAssets(c.Request.Context(), userId, size, (page-1)*size, groupId)
+	createAssetRsp, err := listAssets(c.Request.Context(), schedulerClient, userId, size, size, groupId)
 	if err != nil {
 		log.Errorf("api ListAssets: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	listRsp = append(listRsp, createAssetRsp.AssetOverviews...)
-	total += len(createAssetRsp.AssetOverviews)
+	total += int64(len(createAssetRsp.AssetOverviews))
 	page++
 	if total < createAssetRsp.Total {
 		goto loop
@@ -746,13 +801,8 @@ loop:
 func GetAssetStatusHandler(c *gin.Context) {
 	userId := c.Query("username")
 	cid := c.Query("cid")
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-		return
-	}
-	statusRsp, err := schedulerClient.GetAssetStatus(c.Request.Context(), userId, cid)
+
+	statusRsp, err := getAssetStatus(c.Request.Context(), userId, cid)
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
@@ -768,27 +818,35 @@ func GetAssetStatusHandler(c *gin.Context) {
 }
 
 func GetAssetCountHandler(c *gin.Context) {
-	userId := c.Query("user_id")
+	// userId := c.Query("user_id")
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 	pageSize = 100
 	page = 1
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-		return
+	areaId := c.Query("area_id")
+	if areaId == "" {
+		areaId = GetDefaultTitanCandidateEntrypointInfo()
 	}
-
-	createAssetRsp, err := schedulerClient.ListAssets(c.Request.Context(), userId, pageSize, (page-1)*pageSize, groupId)
+	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	// if err != nil {
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+	// 	return
+	// }
+	// createAssetRsp, err := schedulerClient.ListAssets(c.Request.Context(), userId, pageSize, (page-1)*pageSize, groupId)
+	// if err != nil {
+	// 	log.Errorf("api ListAssets: %v", err)
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	// 	return
+	// }
+	total, infos, err := dao.ListAssets(c.Request.Context(), userId, page, pageSize, groupId)
 	if err != nil {
-		log.Errorf("api ListAssets: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-
-	if createAssetRsp.Total == 0 {
+	if total == 0 {
 		c.JSON(http.StatusOK, respJSON(JsonObject{
 			"area_count":      0,
 			"candidate_count": 0,
@@ -796,14 +854,26 @@ func GetAssetCountHandler(c *gin.Context) {
 		}))
 		return
 	}
+	//
 
 	var deviceIds []string
 	deviceExists := make(map[string]int)
 	var candidateCount int64
 	var edgeCount int64
-	for _, data := range createAssetRsp.AssetOverviews {
-		if len(data.AssetRecord.ReplicaInfos) > 0 {
-			for _, rep := range data.AssetRecord.ReplicaInfos {
+	for _, data := range infos {
+		assetRsp, err := schedulerClient.GetAssetRecord(c.Request.Context(), data.Cid)
+		if err != nil {
+			if webErr, ok := err.(*api.ErrWeb); ok {
+				c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+				return
+			}
+
+			log.Errorf("api GetAssetRecord: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+		if len(assetRsp.ReplicaInfos) > 0 {
+			for _, rep := range assetRsp.ReplicaInfos {
 				if _, ok := deviceExists[rep.NodeID]; ok {
 					continue
 				}
@@ -1001,7 +1071,7 @@ func GetMapByCidHandler(c *gin.Context) {
 func GetAssetInfoHandler(c *gin.Context) {
 	//userId := c.Query("user_id")
 	cid := c.Query("cid")
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := getAreaID(c)
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -1036,27 +1106,31 @@ func GetAssetInfoHandler(c *gin.Context) {
 }
 
 func GetKeyListHandler(c *gin.Context) {
-	userId := c.Query("user_id")
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	// userId := c.Query("user_id")
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
+
+	info, err := dao.GetUserByUsername(c.Request.Context(), userId)
 	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-		return
-	}
-	keyResp, err := schedulerClient.GetAPIKeys(c.Request.Context(), userId)
-	if err != nil {
-		log.Errorf("api GetAPIKeys: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		c.JSON(http.StatusOK, respErrorCode(errors.UserNotFound, c))
 		return
 	}
 	var out []map[string]interface{}
-	for k, v := range keyResp {
-		item := make(map[string]interface{})
-		item["name"] = k
-		item["key"] = v.APIKey
-		item["time"] = v.CreatedTime
-		out = append(out, item)
+	if len(info.ApiKeys) > 0 {
+		keyResp, err := storage.DecodeAPIKeys(info.ApiKeys)
+		if err != nil {
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+		for k, v := range keyResp {
+			item := make(map[string]interface{})
+			item["name"] = k
+			item["key"] = v.APIKey
+			item["time"] = v.CreatedTime
+			out = append(out, item)
+		}
 	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"list": out,
 	}))
@@ -1146,44 +1220,55 @@ func GetCacheDaysHandler(c *gin.Context) {
 }
 
 func GetAPIKeyPermsHandler(c *gin.Context) {
-	userId := c.Query("user_id")
+	// userId := c.Query("user_id")
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
 	keyName := c.Query("key_name")
 
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	var perms []string
+
+	info, err := dao.GetUserByUsername(c.Request.Context(), userId)
 	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+		c.JSON(http.StatusOK, respErrorCode(errors.UserNotFound, c))
 		return
 	}
-	perms, err := schedulerClient.GetAPPKeyPermissions(c.Request.Context(), userId, keyName)
-	if err != nil {
-		log.Errorf("api GetAPPKeyPermissions: %v", err)
-		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-		} else {
+	if len(info.ApiKeys) > 0 {
+		keyMap, err := storage.DecodeAPIKeys(info.ApiKeys)
+		if err != nil {
 			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
 		}
+		key, ok := keyMap[keyName]
+		if !ok {
+			c.JSON(http.StatusOK, respErrorCode(int(terrors.APPKeyNotFound), c))
+			return
+		}
+		payload, err := storage.AuthVerify(key.APIKey)
+		if err != nil {
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+		for _, v := range payload.AccessControlList {
+			perms = append(perms, v)
+		}
+	} else {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"perms": perms,
 	}))
 }
 
 func CreateGroupHandler(c *gin.Context) {
-	userId := c.Query("user_id")
+	// userId := c.Query("user_id")
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
 	name := c.Query("name")
 	parent, _ := strconv.Atoi(c.Query("parent"))
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	group, err := dao.CreateAssetGroup(c.Request.Context(), userId, name, parent)
 	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-		return
-	}
-
-	group, err := schedulerClient.CreateAssetGroup(c.Request.Context(), userId, name, parent)
-	if err != nil {
-		log.Errorf("api CreateAssetGroup: %v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
 		} else {
@@ -1197,25 +1282,22 @@ func CreateGroupHandler(c *gin.Context) {
 }
 
 func GetGroupsHandler(c *gin.Context) {
-	userId := c.Query("user_id")
+	// userId := c.Query("user_id")
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
 	parent, _ := strconv.Atoi(c.Query("parent"))
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
-
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-		return
+	if page == 0 {
+		page = 1
 	}
-	rsp, err := schedulerClient.ListAssetGroup(c.Request.Context(), userId, parent, pageSize, (page-1)*pageSize)
+	if pageSize == 0 {
+		pageSize = 100
+	}
+
+	rsp, err := dao.ListAssetGroupForUser(c.Request.Context(), userId, parent, pageSize, (page-1)*pageSize)
 	if err != nil {
-		log.Errorf("api ListAssetGroup: %v", err)
-		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-		} else {
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		}
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -1230,17 +1312,19 @@ type AssetOrGroup struct {
 }
 
 func GetAssetGroupListHandler(c *gin.Context) {
-	userId := c.Query("user_id")
+	// userId := c.Query("user_id")
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 	parentId, _ := strconv.Atoi(c.Query("parent"))
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := getAreaID(c)
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
 		return
 	}
-	assetSummary, err := schedulerClient.ListAssetSummary(c.Request.Context(), userId, parentId, pageSize, (page-1)*pageSize)
+	assetSummary, err := listAssetSummary(c.Request.Context(), schedulerClient, userId, parentId, page, pageSize)
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
@@ -1283,18 +1367,13 @@ func GetAssetGroupListHandler(c *gin.Context) {
 }
 
 func DeleteGroupHandler(c *gin.Context) {
-	userId := c.Query("user_id")
+	// userId := c.Query("user_id")
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
 
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	err := dao.DeleteAssetGroup(c.Request.Context(), userId, groupId)
 	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-		return
-	}
-	err = schedulerClient.DeleteAssetGroup(c.Request.Context(), userId, groupId)
-	if err != nil {
-		log.Errorf("api DeleteAssetGroup: %v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
 		} else {
@@ -1308,24 +1387,15 @@ func DeleteGroupHandler(c *gin.Context) {
 }
 
 func RenameGroupHandler(c *gin.Context) {
-	userId := c.Query("user_id")
+	// userId := c.Query("user_id")
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
 	newName := c.Query("new_name")
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
 
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	err := dao.UpdateAssetGroupName(c.Request.Context(), userId, newName, groupId)
 	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-		return
-	}
-	err = schedulerClient.RenameAssetGroup(c.Request.Context(), userId, newName, groupId)
-	if err != nil {
-		log.Errorf("api RenameAssetGroup: %v", err)
-		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-		} else {
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		}
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -1334,17 +1404,13 @@ func RenameGroupHandler(c *gin.Context) {
 }
 
 func MoveGroupToGroupHandler(c *gin.Context) {
-	userId := c.Query("user_id")
+	// userId := c.Query("user_id")
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
 	targetGroupId, _ := strconv.Atoi(c.Query("target_group_id"))
 
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-		return
-	}
-	err = schedulerClient.MoveAssetGroup(c.Request.Context(), userId, groupId, targetGroupId)
+	err := dao.MoveAssetGroup(c.Request.Context(), userId, groupId, targetGroupId)
 	if err != nil {
 		log.Errorf("api MoveAssetGroup: %v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
@@ -1360,24 +1426,15 @@ func MoveGroupToGroupHandler(c *gin.Context) {
 }
 
 func MoveAssetToGroupHandler(c *gin.Context) {
-	userId := c.Query("user_id")
+	// userId := c.Query("user_id")
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
 	assetCid := c.Query("asset_cid")
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
 
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	err := dao.UpdateAssetGroup(c.Request.Context(), userId, assetCid, groupId)
 	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-		return
-	}
-	err = schedulerClient.MoveAssetToGroup(c.Request.Context(), userId, assetCid, groupId)
-	if err != nil {
-		log.Errorf("api MoveAssetToGroup: %v", err)
-		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-		} else {
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		}
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
