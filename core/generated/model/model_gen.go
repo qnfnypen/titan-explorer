@@ -474,7 +474,7 @@ type Asset struct {
 	ProjectId  int64     `db:"project_id" json:"project_id"`
 	GroupID    int64     `db:"group_id"`
 	AreaID     string    `db:"area_id"`
-	Count      int64     `db:"visit_count"`
+	VisitCount      int64     `db:"visit_count"`
 	ShareStatus int64    `db:"share_status"`
 	CreatedAt  time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt  time.Time `db:"updated_at" json:"updated_at"`

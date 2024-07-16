@@ -85,7 +85,7 @@ type QueryOption struct {
 func SumDeviceDailyBeforeDate(ctx context.Context, deviceIds []string, end string) (map[string]*model.DeviceInfoDaily, error) {
 	query := fmt.Sprintf(`
 			select 
-		  user_id, 
+		  	user_id, 
 			device_id, 
 			max(nat_ratio) as nat_ratio, 
 			max(disk_usage) as disk_usage, 

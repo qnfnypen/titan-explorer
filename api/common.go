@@ -70,7 +70,7 @@ func listAssets(ctx context.Context, sCli api.Scheduler, uid string, page, size,
 			continue
 		}
 
-		if !uInfo.EnableVIP && info.Count >= maxCountOfVisitAsset {
+		if !uInfo.EnableVIP && info.VisitCount >= maxCountOfVisitAsset {
 			info.ShareStatus = 2
 		} else {
 			info.ShareStatus = 1
@@ -79,8 +79,8 @@ func listAssets(ctx context.Context, sCli api.Scheduler, uid string, page, size,
 		r := &AssetOverview{
 			AssetRecord:      record,
 			UserAssetDetail:  info,
-			VisitCount:       info.Count,
-			RemainVisitCount: maxCountOfVisitAsset - info.Count,
+			VisitCount:       info.VisitCount,
+			RemainVisitCount: maxCountOfVisitAsset - info.VisitCount,
 		}
 
 		list = append(list, r)
@@ -109,7 +109,7 @@ func getAssetStatus(ctx context.Context, uid, cid string) (*types.AssetStatus, e
 	if uInfo.EnableVIP {
 		return resp, nil
 	}
-	if aInfo.Count >= maxCountOfVisitShareLink {
+	if aInfo.VisitCount >= maxCountOfVisitShareLink {
 		resp.IsVisitOutOfLimit = true
 	}
 
