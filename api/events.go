@@ -361,7 +361,7 @@ func CreateAssetHandler(c *gin.Context) {
 	// 		return
 	// 	}
 	// }
-	ainfo, _ := dao.GetAssetByCID(c.Request.Context(), createAssetReq.AssetCID)
+	ainfo, _ := dao.GetAssetByCIDAndUser(c.Request.Context(), createAssetReq.AssetCID, userId)
 	if ainfo != nil && ainfo.ID > 0 {
 		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
 		return
@@ -447,7 +447,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	ainfo, _ := dao.GetAssetByCID(c.Request.Context(), createAssetReq.AssetCID)
+	ainfo, _ := dao.GetAssetByCIDAndUser(c.Request.Context(), createAssetReq.AssetCID, username)
 	if ainfo != nil && ainfo.ID > 0 {
 		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
 		return
@@ -582,7 +582,7 @@ func DeleteAssetHandler(c *gin.Context) {
 	cid := c.Query("asset_cid")
 	areaId := getAreaID(c)
 	// 获取文件信息
-	asset, err := dao.GetAssetByCID(c.Request.Context(), cid)
+	asset, err := dao.GetAssetByCIDAndUser(c.Request.Context(), cid, userID)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(int(terrors.NotFound), c))
 		return

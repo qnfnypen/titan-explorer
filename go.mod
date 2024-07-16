@@ -169,5 +169,5 @@ require (
 	google.golang.org/grpc v1.55.0 // indirect
 )
 
-replace github.com/Filecoin-Titan/titan v0.0.0-20230414233209-f4fad7df425f => ../filecoin-titan
-// replace github.com/Filecoin-Titan/titan v0.0.0-20230414233209-f4fad7df425f => ../filecoin/titan
+// replace github.com/Filecoin-Titan/titan v0.0.0-20230414233209-f4fad7df425f => ../filecoin-titan
+replace github.com/Filecoin-Titan/titan v0.0.0-20230414233209-f4fad7df425f => ../filecoin/titan

@@ -96,7 +96,7 @@ func getAssetStatus(ctx context.Context, uid, cid string) (*types.AssetStatus, e
 	if err != nil {
 		return nil, fmt.Errorf("get user's info error:%w", err)
 	}
-	aInfo, err := dao.GetAssetByCID(ctx, cid)
+	aInfo, err := dao.GetAssetByCIDAndUser(ctx, cid, uid)
 	if err != nil {
 		return nil, fmt.Errorf("get asset's info error:%w", err)
 	}
