@@ -185,7 +185,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_fil_storage_list", GetFilStorageListHandler)
 	storage.Use(authMiddleware.MiddlewareFunc())
 	storage.Use(AuthRequired(authMiddleware))
-	// storage.GET("/get_locateStorage", GetAllocateStorageHandler)
+	storage.GET("/get_locateStorage", GetAllocateStorageHandler)
 	storage.GET("/get_storage_size", GetStorageSizeHandler)          // 获取用户存储空间信息
 	storage.GET("/get_vip_info", GetUserVipInfoHandler)              // 判断用户是否为vip
 	storage.GET("/get_user_access_token", GetUserAccessTokenHandler) // TODO: 获取用户的 access token，需要重新商定如何生存sdk的access_token

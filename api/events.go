@@ -207,36 +207,36 @@ func GetProfitDetailsHandler(c *gin.Context) {
 //	  /____//_/  \____/_/ |_/_/  |_\____/_____/  /_/  |_/_/   /___/
 
 func GetAllocateStorageHandler(c *gin.Context) {
-	userId := c.Query("user_id")
-	if userId == "" {
-		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
-		return
-	}
-	var userInfo model.User
-	userInfo.Username = userId
-	_, err := dao.GetUserByUsername(c.Request.Context(), userInfo.Username)
-	if err == nil {
-		log.Info("GetUserByUsername user exists")
-	} else {
-		_ = dao.CreateUser(c.Request.Context(), &userInfo)
-	}
-
-	// areaId := GetDefaultTitanCandidateEntrypointInfo()
-	// schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	// if err != nil {
-	// 	c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+	// userId := c.Query("user_id")
+	// if userId == "" {
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 	// 	return
 	// }
-	// _, err = schedulerClient.AllocateStorage(c.Request.Context(), userId)
-	if err != nil {
-		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-			return
-		}
-		log.Errorf("api GetValidationResults: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
+	// var userInfo model.User
+	// userInfo.Username = userId
+	// _, err := dao.GetUserByUsername(c.Request.Context(), userInfo.Username)
+	// if err == nil {
+	// 	log.Info("GetUserByUsername user exists")
+	// } else {
+	// 	_ = dao.CreateUser(c.Request.Context(), &userInfo)
+	// }
+
+	// // areaId := GetDefaultTitanCandidateEntrypointInfo()
+	// // schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	// // if err != nil {
+	// // 	c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+	// // 	return
+	// // }
+	// // _, err = schedulerClient.AllocateStorage(c.Request.Context(), userId)
+	// if err != nil {
+	// 	if webErr, ok := err.(*api.ErrWeb); ok {
+	// 		c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+	// 		return
+	// 	}
+	// 	log.Errorf("api GetValidationResults: %v", err)
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	// 	return
+	// }
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"msg": "success",
@@ -338,6 +338,7 @@ func CreateAssetHandler(c *gin.Context) {
 
 	user, err := dao.GetUserByUsername(c.Request.Context(), userId)
 	if err != nil {
+		log.Errorf("CreateAssetHandler GetUserByUsername error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
@@ -354,14 +355,15 @@ func CreateAssetHandler(c *gin.Context) {
 	createAssetReq.GroupID, _ = strconv.Atoi(c.Query("group_id"))
 
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	// createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &createAssetReq)
-	// if err != nil {
-	// 	if webErr, ok := err.(*api.ErrWeb); ok {
-	// 		c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-	// 		return
-	// 	}
-	// }
-	ainfo, _ := dao.GetAssetByCIDAndUser(c.Request.Context(), createAssetReq.AssetCID, userId)
+	if err != nil {
+		log.Errorf("CreateAssetHandler getSchedulerClient error: %v", err)
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			return
+		}
+	}
+
+	ainfo, _ := dao.GetAssetByCID(c.Request.Context(), createAssetReq.AssetCID)
 	if ainfo != nil && ainfo.ID > 0 {
 		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
 		return
@@ -374,11 +376,13 @@ func CreateAssetHandler(c *gin.Context) {
 	// 获取文件hash
 	hash, err := storage.CIDToHash(createAssetReq.AssetCID)
 	if err != nil {
+		log.Errorf("CreateAssetHandler CIDToHash error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{AssetProperty: types.AssetProperty{AssetCID: createAssetReq.AssetCID}})
 	if err != nil {
+		log.Errorf("CreateAssetHandler CreateAsset error: %v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
 			return
@@ -400,12 +404,13 @@ func CreateAssetHandler(c *gin.Context) {
 		Event:     -1,
 		ProjectId: user.ProjectId,
 	}); err != nil {
+		log.Errorf("CreateAssetHandler AddAsset error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
-	rsp := make([]JsonObject, len(createAssetRsp.Candidators))
-	for i, v := range createAssetRsp.Candidators {
+	rsp := make([]JsonObject, len(createAssetRsp.List))
+	for i, v := range createAssetRsp.List {
 		rsp[i] = JsonObject{"CandidateAddr": v.UploadURL, "Token": v.Token}
 	}
 
@@ -430,6 +435,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 
 	var createAssetReq createAssetRequest
 	if err := c.BindJSON(&createAssetReq); err != nil {
+		log.Errorf("CreateAssetHandler c.BindJSON() error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
@@ -437,13 +443,15 @@ func CreateAssetPostHandler(c *gin.Context) {
 	// TODO:
 	// areaId := GetDefaultTitanCandidateEntrypointInfo()
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	// if err != nil {
-	// 	c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-	// 	return
-	// }
+	if err != nil {
+		log.Errorf("CreateAssetHandler getSchedulerClient() error: %+v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+		return
+	}
 
 	user, err := dao.GetUserByUsername(c.Request.Context(), username)
 	if err != nil {
+		log.Errorf("CreateAssetHandler dao.GetUserByUsername() error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
@@ -455,6 +463,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 	// 获取文件hash
 	hash, err := storage.CIDToHash(createAssetReq.AssetCID)
 	if err != nil {
+		log.Errorf("CreateAssetHandler storage.CIDToHash() error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
@@ -467,6 +476,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 	log.Debugf("CreateAssetHandler clientIP:%s, areaId:%s\n", c.ClientIP(), createAssetReq.AreaID)
 	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{AssetProperty: types.AssetProperty{AssetCID: createAssetReq.AssetCID}})
 	if err != nil {
+		log.Errorf("CreateAssetHandler schedulerClient.CreateAsset() error: %+v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
 			return
@@ -488,11 +498,12 @@ func CreateAssetPostHandler(c *gin.Context) {
 		Event:     -1,
 		ProjectId: user.ProjectId,
 	}); err != nil {
+		log.Errorf("CreateAssetHandler dao.AddAssetAndUpdateSize() error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	rsp := make([]JsonObject, len(createAssetRsp.Candidators))
-	for i, v := range createAssetRsp.Candidators {
+	rsp := make([]JsonObject, len(createAssetRsp.List))
+	for i, v := range createAssetRsp.List {
 		rsp[i] = JsonObject{"CandidateAddr": v.UploadURL, "Token": v.Token}
 	}
 

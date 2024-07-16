@@ -2,6 +2,10 @@ package statistics
 
 import (
 	"fmt"
+	"reflect"
+	"sync"
+	"time"
+
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/bsm/redislock"
 	"github.com/gnasnik/titan-explorer/config"
@@ -10,9 +14,6 @@ import (
 	"github.com/robfig/cron/v3"
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	"golang.org/x/net/context"
-	"reflect"
-	"sync"
-	"time"
 )
 
 var log = logging.Logger("statistics")
