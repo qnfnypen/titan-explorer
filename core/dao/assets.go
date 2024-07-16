@@ -267,7 +267,7 @@ func ListAssets(ctx context.Context, uid string, page, size, groupID int) (int64
 		return 0, nil, err
 	}
 
-	query, args, err := squirrel.Select("*").From(tableNameAsset).Where("user_id = ? AND group_id = ?", uid, groupID).OrderBy("created_time desc").
+	query, args, err := squirrel.Select("*").From(tableNameAsset).Where("user_id = ? AND group_id = ?", uid, groupID).OrderBy("created_at desc").
 		Limit(uint64(size)).Offset(uint64((page - 1) * size)).ToSql()
 	if err != nil {
 		return 0, nil, fmt.Errorf("generate get asset sql error:%w", err)
@@ -342,7 +342,7 @@ func ListAssetGroupForUser(ctx context.Context, uid string, parent, limit, offse
 	if err != nil {
 		return nil, fmt.Errorf("generate get asset's group sql error:%w", err)
 	}
-	err = DB.SelectContext(ctx, &resp.Total, query, args...)
+	err = DB.SelectContext(ctx, &resp.AssetGroups, query, args...)
 	if err != nil {
 		return nil, err
 	}
