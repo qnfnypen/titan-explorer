@@ -281,3 +281,12 @@ func UpdateUserAPIKeys(ctx context.Context, id int64, buf []byte) error {
 
 	return nil
 }
+
+func AllUsers(ctx context.Context) ([]*model.User, error) {
+	var users []*model.User
+	err := DB.SelectContext(ctx, &users, fmt.Sprintf("SELECT * FROM %s", tableNameUser))
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
+}

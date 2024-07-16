@@ -142,6 +142,7 @@ require (
 	github.com/oschwald/geoip2-golang v1.7.0 // indirect
 	github.com/oschwald/maxminddb-golang v1.9.0 // indirect
 	github.com/peterbourgon/diskv/v3 v3.0.1 // indirect
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/polydawn/refmt v0.89.0 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
 	github.com/quic-go/quic-go v0.42.0 // indirect
@@ -169,4 +170,5 @@ require (
 )
 
 replace github.com/Filecoin-Titan/titan v0.0.0-20230414233209-f4fad7df425f => ../filecoin-titan
+
 // replace github.com/Filecoin-Titan/titan v0.0.0-20230414233209-f4fad7df425f => ../filecoin/titan

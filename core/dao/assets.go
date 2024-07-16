@@ -439,3 +439,12 @@ func UpdateAssetGroup(ctx context.Context, userID, cid string, groupID int) erro
 
 	return err
 }
+
+func AllAssets(ctx context.Context) ([]*model.Asset, error) {
+	var assets []*model.Asset
+	err := DB.SelectContext(ctx, &assets, fmt.Sprintf("SELECT * FROM %s", tableNameAsset))
+	if err != nil {
+		return nil, err
+	}
+	return assets, nil
+}
