@@ -379,15 +379,17 @@ func CreateAssetHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(int(terrors.UserStorageSizeNotEnough), c))
 		return
 	}
-	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{AssetProperty: types.AssetProperty{
-		AssetCID:  createAssetReq.AssetCID,
-		AssetSize: createAssetReq.AssetSize,
-		AssetName: createAssetReq.AssetName,
-		AssetType: createAssetReq.AssetType,
-		NodeID:    createAssetReq.NodeID,
-		Password:  createAssetReq.Password,
-		GroupID:   createAssetReq.GroupID,
-	}})
+	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{
+		UserID: userId,
+		AssetProperty: types.AssetProperty{
+			AssetCID:  createAssetReq.AssetCID,
+			AssetSize: createAssetReq.AssetSize,
+			AssetName: createAssetReq.AssetName,
+			AssetType: createAssetReq.AssetType,
+			NodeID:    createAssetReq.NodeID,
+			Password:  createAssetReq.Password,
+			GroupID:   createAssetReq.GroupID,
+		}})
 	if err != nil {
 		log.Errorf("CreateAssetHandler CreateAsset error: %v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
