@@ -363,7 +363,7 @@ func CreateAssetHandler(c *gin.Context) {
 		}
 	}
 
-	ainfo, _ := dao.GetAssetByCID(c.Request.Context(), createAssetReq.AssetCID)
+	ainfo, _ := dao.GetAssetByCIDAndUser(c.Request.Context(), createAssetReq.AssetCID, userId)
 	if ainfo != nil && ainfo.ID > 0 {
 		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
 		return
