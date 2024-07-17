@@ -612,14 +612,12 @@ func DeleteAssetHandler(c *gin.Context) {
 	err = schedulerClient.RemoveAssetRecord(c.Request.Context(), cid)
 	if err != nil {
 		log.Errorf("api DeleteAsset: %v", err)
-		if _, ok := err.(*api.ErrWeb); ok {
-			// c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-			// return
-		} else {
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		if webErr, ok := err.(*api.ErrWeb); ok && webErr.Code != terrors.HashNotFound.Int() {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
 			return
 		}
-
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
 	}
 	err = dao.DelAssetAndUpdateSize(c.Request.Context(), hash, userID, areaId, asset.TotalSize)
 	if err != nil {
