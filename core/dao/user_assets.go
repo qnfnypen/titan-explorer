@@ -121,8 +121,8 @@ func ListAssets(ctx context.Context, uid string, page, size, groupID int) (int64
 		return 0, nil, err
 	}
 
-	query, args, err := squirrel.Select("ua.*,uav.count AS visit_count").From(fmt.Sprintf("%s AS ua", tableUserAsset)).LeftJoin("%s AS uav ON ua.hash=uav.hash", tableUserAssetVisit).
-		Where("ua.user_id = ? AND ua.group_id = ?", uid, groupID).OrderBy("created_at desc").
+	query, args, err := squirrel.Select("ua.*,IFNULL(uav.count,0) AS visit_count").From(fmt.Sprintf("%s AS ua", tableUserAsset)).LeftJoin(fmt.Sprintf("%s AS uav ON ua.hash=uav.hash", tableUserAssetVisit)).
+		Where("ua.user_id = ? AND ua.group_id = ?", uid, groupID).OrderBy("ua.created_time desc").
 		Limit(uint64(size)).Offset(uint64((page - 1) * size)).ToSql()
 	if err != nil {
 		return 0, nil, fmt.Errorf("generate get asset sql error:%w", err)
@@ -286,8 +286,8 @@ func MoveAssetGroup(ctx context.Context, userID string, groupID, targetGroupID i
 }
 
 // UpdateAssetGroup update user asset group
-func UpdateAssetGroup(ctx context.Context, userID, cid string, groupID int) error {
-	query, args, err := squirrel.Update(tableNameAsset).Set("group_id", groupID).Where("user_id=? AND cid=?", userID, cid).ToSql()
+func UpdateAssetGroup(ctx context.Context, userID, hash, areaID string, groupID int) error {
+	query, args, err := squirrel.Update(tableUserAsset).Set("group_id", groupID).Where("user_id=? AND hash=? AND area_id", userID, hash, areaID).ToSql()
 	if err != nil {
 		return fmt.Errorf("generate update asset sql error:%w", err)
 	}
@@ -300,7 +300,7 @@ func UpdateAssetGroup(ctx context.Context, userID, cid string, groupID int) erro
 func GetUserAsset(ctx context.Context, hash, uid, areaID string) (*UserAssetDetail, error) {
 	var asset UserAssetDetail
 
-	query, args, err := squirrel.Select("ua.*,uav.count AS visit_count").From(fmt.Sprintf("%s AS ua", tableUserAsset)).LeftJoin("%s AS uav ON ua.hash=uav.hash", tableUserAssetVisit).
+	query, args, err := squirrel.Select("ua.*,IFNULL(uav.count,0) AS visit_count").From(fmt.Sprintf("%s AS ua", tableUserAsset)).LeftJoin("%s AS uav ON ua.hash=uav.hash", tableUserAssetVisit).
 		Where("ua.user_id = ? AND ua.hash = ? AND ua.area_id = ?", uid, hash, areaID).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("generate get asset sql error:%w", err)

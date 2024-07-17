@@ -389,6 +389,10 @@ func CreateAssetHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+	if len(createAssetRsp.List) == 0 {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
 
 	if err := dao.AddAssetAndUpdateSize(c.Request.Context(), &model.UserAsset{
 		UserID:      userId,
@@ -608,12 +612,14 @@ func DeleteAssetHandler(c *gin.Context) {
 	err = schedulerClient.RemoveAssetRecord(c.Request.Context(), cid)
 	if err != nil {
 		log.Errorf("api DeleteAsset: %v", err)
-		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+		if _, ok := err.(*api.ErrWeb); ok {
+			// c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			// return
+		} else {
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 			return
 		}
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
+
 	}
 	err = dao.DelAssetAndUpdateSize(c.Request.Context(), hash, userID, areaId, asset.TotalSize)
 	if err != nil {
@@ -1453,8 +1459,17 @@ func MoveAssetToGroupHandler(c *gin.Context) {
 	userId := claims[identityKey].(string)
 	assetCid := c.Query("asset_cid")
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
+	areaId := getAreaID(c)
 
-	err := dao.UpdateAssetGroup(c.Request.Context(), userId, assetCid, groupId)
+	// 获取文件hash
+	hash, err := storage.CIDToHash(assetCid)
+	if err != nil {
+		log.Errorf("CreateAssetHandler CIDToHash error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	err = dao.UpdateAssetGroup(c.Request.Context(), userId, hash, areaId, groupId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
