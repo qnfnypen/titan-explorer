@@ -8,6 +8,7 @@ import (
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/core/storage"
 	"github.com/spf13/viper"
 	"github.com/tealeg/xlsx/v3"
 )
@@ -59,10 +60,10 @@ func main() {
 		log.Fatalf("fetching asset groups: %v\n", err)
 	}
 
-	asm, err := MergeAssetInfo(ea, cfg)
-	if err != nil {
-		log.Fatalf("merging asset info: %v\n", err)
-	}
+	// asm, err := MergeAssetInfo(ea, cfg)
+	// if err != nil {
+	// 	log.Fatalf("merging asset info: %v\n", err)
+	// }
 
 	tx, err := dao.DB.Beginx()
 	if err != nil {
@@ -77,11 +78,45 @@ func main() {
 		}
 	}
 
-	for _, a := range asm {
-		if _, err := tx.NamedExec(`update assets set group_id=:group_id, area_id=:area_id, share_status=:share_status, visit_count=:visit_count where hash=:hash`, a); err != nil {
-			log.Fatalf("updating asset info: %v\n", err)
-		}
-	}
+	// type Asset struct {
+	// 	ID         int64     `db:"id" json:"id"`
+	// 	NodeID     string    `db:"node_id" json:"node_id"`
+	// 	Event      int64     `db:"event" json:"event"`
+	// 	Cid        string    `db:"cid" json:"cid"`
+	// 	Hash       string    `db:"hash" json:"hash"`
+	// 	TotalSize  int64     `db:"total_size" json:"total_size"`
+	// 	Path       string    `db:"path" json:"path"`
+	// 	EndTime    time.Time `db:"end_time" json:"end_time"`
+	// 	Expiration time.Time `db:"expiration" json:"expiration"`
+	// 	UserId     string    `db:"user_id" json:"user_id"`
+	// 	Type       string    `db:"type" json:"type"`
+	// 	Name       string    `db:"name" json:"name"`
+	// 	ProjectId  int64     `db:"project_id" json:"project_id"`
+	// 	GroupID    int64     `db:"group_id"`
+	// 	AreaID     string    `db:"area_id"`
+	// 	VisitCount      int64     `db:"visit_count"`
+	// 	ShareStatus int64    `db:"share_status"`
+	// 	CreatedAt  time.Time `db:"created_at" json:"created_at"`
+	// 	UpdatedAt  time.Time `db:"updated_at" json:"updated_at"`
+	// 	DeletedAt  time.Time `db:"deleted_at" json:"deleted_at"`
+	// }
+	// for _, a := range asm {
+	// 	_, err := dao.GetAssetByCIDAndUser(ctx, a.Cid, a.UserId)
+	// 	if err != nil && err != sql.ErrNoRows {
+	// 		log.Fatalf("getting asset by cid and user: %v\n", err)
+	// 	}
+	// 	if err == sql.ErrNoRows {
+	// 		if _, err := tx.NamedExec(`insert into assets (id, node_id, event, cid, hash, total_size, path, end_time, expiration, user_id, type, name, project_id, group_id, area_id, visit_count, share_status, created_at, updated_at, deleted_at)
+	// 		 values (:id, :node_id, :event, :cid, :hash, :total_size, :path, :end_time, :expiration, :user_id, :type, :name, :project_id, :group_id, :area_id, :visit_count, :share_status, :created_at, :updated_at, :deleted_at)`, a); err != nil {
+	// 			log.Fatalf("inserting asset: %v\n", err)
+	// 		}
+	// 	}
+	// 	if err == nil {
+	// 		if _, err := tx.NamedExec(`update assets set group_id=:group_id, area_id=:area_id, share_status=:share_status, visit_count=:visit_count where id=:id`, a); err != nil {
+	// 			log.Fatalf("updating asset: %v\n", err)
+	// 		}
+	// 	}
+	// }
 
 	for _, ag := range assetGroups {
 		if _, err := tx.NamedExec(`insert into asset_group (id, user_id, name, parent, created_time) values (:id, :user_id, :name, :parent, :created_time)`, ag); err != nil {
@@ -253,9 +288,11 @@ func MergeAssetInfo(ea map[string]*model.Asset, cfg config.Config) (map[string]*
 			return nil
 		}
 		hash := r.GetCell(0).String()
+		var needAppend bool
 		if _, ok := ea[hash]; !ok {
-			return nil
+			needAppend = true
 		}
+		user_id := r.GetCell(1).String()
 		group_id, err := r.GetCell(9).Int64()
 		if err != nil {
 			return err
@@ -265,10 +302,51 @@ func MergeAssetInfo(ea map[string]*model.Asset, cfg config.Config) (map[string]*
 		if err != nil {
 			return err
 		}
-		ret[hash] = ea[hash]
-		ret[hash].GroupID = group_id
-		ret[hash].AreaID = area_id
-		ret[hash].ShareStatus = share_status
+		total_size, err := r.GetCell(6).Int64()
+		if err != nil {
+			return err
+		}
+		expt := r.GetCell(7).String()
+		expration_time, err := time.Parse("2006-01-02 15:04:05", expt)
+		if err != nil {
+			return err
+		}
+
+		crt := r.GetCell(5).String()
+		created_time, err := time.Parse("2006-01-02 15:04:05", crt)
+		if err != nil {
+			return err
+		}
+
+		asset_name := r.GetCell(2).String()
+		if needAppend {
+			cid, err := storage.HashToCID(hash)
+			if err != nil {
+				return err
+			}
+			ret[hash] = &model.Asset{
+				Hash:      hash,
+				Event:     1,
+				Cid:       cid,
+				TotalSize: total_size,
+				Path:      "",
+				// EndTime: ,
+				Expiration:  expration_time,
+				UserId:      user_id,
+				Type:        "file",
+				Name:        asset_name,
+				GroupID:     group_id,
+				AreaID:      area_id,
+				ShareStatus: share_status,
+				CreatedAt:   created_time,
+			}
+		} else {
+			ret[hash] = ea[hash]
+			ret[hash].GroupID = group_id
+			ret[hash].AreaID = area_id
+			ret[hash].ShareStatus = share_status
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -285,9 +363,6 @@ func MergeAssetInfo(ea map[string]*model.Asset, cfg config.Config) (map[string]*
 			return nil
 		}
 		hash := r.GetCell(0).String()
-		if _, ok := ea[hash]; !ok {
-			return nil
-		}
 		visit_count, err := r.GetCell(1).Int64()
 		if err != nil {
 			return err

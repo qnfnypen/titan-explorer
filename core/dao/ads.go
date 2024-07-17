@@ -84,7 +84,14 @@ func AdsDelCtx(ctx context.Context, id int64) error {
 
 func AdsUpdateCtx(ctx context.Context, ads *model.Ads) error {
 	query := "UPDATE ads SET name = :name, ads_type = :ads_type, redirect_url = :redirect_url, platform = :platform, lang = :lang, " +
-		"`desc` = :desc, weight = :weight, state = :state, invalid_from = :invalid_from, invalid_to = :invalid_to, updated_at = :updated_at WHERE id = :id"
+		"`desc` = :desc, weight = :weight, state = :state, hits = :hits, invalid_from = :invalid_from, invalid_to = :invalid_to, updated_at = :updated_at WHERE id = :id"
 	_, err := DB.NamedExecContext(ctx, query, ads)
 	return err
+}
+
+func AdsFindOne(ctx context.Context, id int64) (*model.Ads, error) {
+	var out model.Ads
+	query := "SELECT * FROM ads where id = :id"
+	err := DB.GetContext(ctx, &out, query, map[string]interface{}{"id": id})
+	return &out, err
 }

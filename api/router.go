@@ -117,6 +117,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	user.POST("/logout", authMiddleware.LogoutHandler)
 	user.GET("/ads/banners", GetBannersHandler)
 	user.GET("/ads/notices", GetNoticesHandler)
+	user.GET("ads/click", AdsClickIncrHandler)
 	user.POST("/upload", FileUploadHandler)
 	user.POST("/bugs/report", BugReportHandler)
 	user.GET("/bugs/list", MyBugReportListHandler)

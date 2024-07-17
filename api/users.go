@@ -6,12 +6,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	constant "github.com/TestsLing/aj-captcha-go/const"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	constant "github.com/TestsLing/aj-captcha-go/const"
 
 	"github.com/Masterminds/squirrel"
 	jwt "github.com/appleboy/gin-jwt/v2"
@@ -1095,6 +1096,31 @@ func GetNoticesHandler(c *gin.Context) {
 	}))
 }
 
+func AdsClickIncrHandler(c *gin.Context) {
+	id := c.GetInt64("id")
+	if id == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	ads, err := dao.AdsFindOne(c.Request.Context(), id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{"error": "ads not found"})
+			return
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+			return
+		}
+	}
+	ads.Hits++
+	if err := dao.AdsUpdateCtx(c.Request.Context(), ads); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"id": id})
+}
+
 func BugReportHandler(c *gin.Context) {
 	var bug model.Bug
 	if err := c.BindJSON(&bug); err != nil {
@@ -1179,7 +1205,7 @@ func MyBugReportListHandler(c *gin.Context) {
 		sb = sb.Where("state = ?", state)
 	}
 
-	list, n, err := dao.BugsListPageCtx(c.Request.Context(), page, size, sb, "id, username, email, node_id, telegram_id, description, feedback_type, feedback, pics, state, reward, updated_at")
+	list, n, err := dao.BugsListPageCtx(c.Request.Context(), page, size, sb, "id, username, email, node_id, telegram_id, description, feedback_type, feedback, pics, state, reward_type, reward, updated_at")
 	if err != nil {
 		log.Errorf("BugReportListHandler: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))

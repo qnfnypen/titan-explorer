@@ -9,6 +9,7 @@ CREATE TABLE `ads` (
 `desc` TEXT NOT NULL COMMENT 'details for ads config, pic url or text description',
 `weight` INT(4) NOT NULL DEFAULT 0 COMMENT '',
 `state` TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1:enable 2:disable',
+`hits` INT(10) NOT NULL DEFAULT 0 COMMENT 'hits',
 `invalid_from` DATETIME(3) NOT NULL DEFAULT 0,
 `invalid_to` DATETIME(3) NOT NULL DEFAULT 0,
 `created_at` DATETIME(3) NOT NULL DEFAULT 0,

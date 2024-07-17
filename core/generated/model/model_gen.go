@@ -564,6 +564,7 @@ type Ads struct {
 	Desc        string    `db:"desc" json:"desc"`
 	Weight      int64     `db:"weight" json:"weight"`
 	State       int64     `db:"state" json:"state"`
+	Hits 		int64 	  `db:"hits" json:"hits"`
 	InvalidFrom time.Time `db:"invalid_from" json:"invalid_from"`
 	InvalidTo   time.Time `db:"invalid_to" json:"invalid_to"`
 	CreatedAt   time.Time `db:"created_at" json:"created_at"`
