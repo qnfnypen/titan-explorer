@@ -802,7 +802,7 @@ func GetAssetAllListHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := getAreaID(c)
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -833,7 +833,7 @@ loop:
 func GetAssetStatusHandler(c *gin.Context) {
 	userId := c.Query("username")
 	cid := c.Query("cid")
-	areaID := c.Query("area_id")
+	areaID := getAreaID(c)
 
 	statusRsp, err := getAssetStatus(c.Request.Context(), userId, cid, areaID)
 	if err != nil {
