@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	tableNameAssetGroup = "asset_group"
+	tableNameAssetGroup = "user_asset_group"
 	tableUserAsset      = "user_asset"
-	tableUserAssetVisit = "user_asset_visit_count"
+	tableUserAssetVisit = "asset_visit_count"
 )
 
 type (

@@ -67,8 +67,8 @@ KEY `idx_user_id` (`user_id`),
 KEY `idx_group_id` (`group_id`)
 ) ENGINE=InnoDB COMMENT='titan存储服务的用户文件表';
 
-DROP TABLE IF EXISTS `asset_group`;
-CREATE TABLE asset_group (
+DROP TABLE IF EXISTS `user_asset_group`;
+CREATE TABLE user_asset_group (
 `id` INT UNSIGNED AUTO_INCREMENT,
 `user_id` VARCHAR(128) NOT NULL,
 `name` VARCHAR(32) DEFAULT '',
@@ -79,8 +79,8 @@ KEY `idx_user_id` (`user_id`),
 KEY `idx_parent` (`parent`)
 ) ENGINE=InnoDB COMMENT='titan存储服务的用户文件组表';
 
-DROP TABLE IF EXISTS `user_asset_visit_count`;
-CREATE TABLE user_asset_visit_count (
+DROP TABLE IF EXISTS `asset_visit_count`;
+CREATE TABLE asset_visit_count (
 `hash` VARCHAR(128) NOT NULL,
 `count` INT DEFAULT 0,
 PRIMARY KEY (`hash`)
