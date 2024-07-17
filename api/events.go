@@ -362,22 +362,21 @@ func CreateAssetHandler(c *gin.Context) {
 			return
 		}
 	}
-
-	ainfo, _ := dao.GetAssetByCIDAndUser(c.Request.Context(), createAssetReq.AssetCID, userId)
-	if ainfo != nil && ainfo.ID > 0 {
+	// 获取文件hash
+	hash, err := storage.CIDToHash(createAssetReq.AssetCID)
+	if err != nil {
+		log.Errorf("CreateAssetHandler CIDToHash error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	ainfo, _ := dao.GetUserAsset(c.Request.Context(), hash, userId, areaId)
+	if ainfo != nil && ainfo.UserID != "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
 		return
 	}
 	// 判断用户存储空间是否够用
 	if user.TotalStorageSize-user.UsedStorageSize < createAssetReq.AssetSize {
 		c.JSON(http.StatusOK, respErrorCode(int(terrors.UserStorageSizeNotEnough), c))
-		return
-	}
-	// 获取文件hash
-	hash, err := storage.CIDToHash(createAssetReq.AssetCID)
-	if err != nil {
-		log.Errorf("CreateAssetHandler CIDToHash error: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{AssetProperty: types.AssetProperty{AssetCID: createAssetReq.AssetCID}})
@@ -391,18 +390,15 @@ func CreateAssetHandler(c *gin.Context) {
 		return
 	}
 
-	if err := dao.AddAssetAndUpdateSize(c.Request.Context(), &model.Asset{
-		UserId:    userId,
-		Name:      createAssetReq.AssetName,
-		Cid:       createAssetReq.AssetCID,
-		Type:      createAssetReq.AssetType,
-		NodeID:    createAssetReq.NodeID,
-		TotalSize: createAssetReq.AssetSize,
-		GroupID:   int64(createAssetReq.GroupID),
-		AreaID:    areaId,
-		Hash:      hash,
-		Event:     -1,
-		ProjectId: user.ProjectId,
+	if err := dao.AddAssetAndUpdateSize(c.Request.Context(), &model.UserAsset{
+		UserID:      userId,
+		Hash:        hash,
+		AreaID:      areaId,
+		AssetName:   createAssetReq.AssetName,
+		AssetType:   createAssetReq.AssetType,
+		CreatedTime: time.Now(),
+		TotalSize:   createAssetReq.AssetSize,
+		GroupID:     int64(createAssetReq.GroupID),
 	}); err != nil {
 		log.Errorf("CreateAssetHandler AddAsset error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -424,7 +420,7 @@ type createAssetRequest struct {
 	NodeID    string `json:"node_id"`
 	AssetType string `json:"asset_type"`
 	AssetSize int64  `json:"asset_size"`
-	GroupId   int64  `json:"group_id"`
+	GroupID   int64  `json:"group_id"`
 }
 
 // CreateAssetPostHandler 创建文件
@@ -455,16 +451,16 @@ func CreateAssetPostHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	ainfo, _ := dao.GetAssetByCIDAndUser(c.Request.Context(), createAssetReq.AssetCID, username)
-	if ainfo != nil && ainfo.ID > 0 {
-		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
-		return
-	}
 	// 获取文件hash
 	hash, err := storage.CIDToHash(createAssetReq.AssetCID)
 	if err != nil {
 		log.Errorf("CreateAssetHandler storage.CIDToHash() error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	ainfo, _ := dao.GetUserAsset(c.Request.Context(), hash, username, areaId)
+	if ainfo != nil && ainfo.UserID != "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
 		return
 	}
 	// 判断用户存储空间是否够用
@@ -485,18 +481,15 @@ func CreateAssetPostHandler(c *gin.Context) {
 		return
 	}
 
-	if err := dao.AddAssetAndUpdateSize(c.Request.Context(), &model.Asset{
-		UserId:    username,
-		Name:      createAssetReq.AssetName,
-		Cid:       createAssetReq.AssetCID,
-		Type:      createAssetReq.AssetType,
-		NodeID:    createAssetReq.NodeID,
-		TotalSize: createAssetReq.AssetSize,
-		GroupID:   createAssetReq.GroupId,
-		AreaID:    createAssetReq.AreaID,
-		Hash:      hash,
-		Event:     -1,
-		ProjectId: user.ProjectId,
+	if err := dao.AddAssetAndUpdateSize(c.Request.Context(), &model.UserAsset{
+		UserID:      username,
+		Hash:        hash,
+		AreaID:      areaId,
+		AssetName:   createAssetReq.AssetName,
+		AssetType:   createAssetReq.AssetType,
+		CreatedTime: time.Now(),
+		TotalSize:   createAssetReq.AssetSize,
+		GroupID:     createAssetReq.GroupID,
 	}); err != nil {
 		log.Errorf("CreateAssetHandler dao.AddAssetAndUpdateSize() error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -592,8 +585,15 @@ func DeleteAssetHandler(c *gin.Context) {
 	userID := claims[identityKey].(string)
 	cid := c.Query("asset_cid")
 	areaId := getAreaID(c)
+	// 获取文件hash
+	hash, err := storage.CIDToHash(cid)
+	if err != nil {
+		log.Errorf("CreateAssetHandler storage.CIDToHash() error: %+v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
 	// 获取文件信息
-	asset, err := dao.GetAssetByCIDAndUser(c.Request.Context(), cid, userID)
+	asset, err := dao.GetUserAsset(c.Request.Context(), hash, userID, areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(int(terrors.NotFound), c))
 		return
@@ -607,6 +607,7 @@ func DeleteAssetHandler(c *gin.Context) {
 	// }
 	err = schedulerClient.RemoveAssetRecord(c.Request.Context(), cid)
 	if err != nil {
+		log.Errorf("api DeleteAsset: %v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
 			return
@@ -614,7 +615,7 @@ func DeleteAssetHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	err = dao.DelAssetAndUpdateSize(c.Request.Context(), cid, userID, asset.TotalSize)
+	err = dao.DelAssetAndUpdateSize(c.Request.Context(), hash, userID, areaId, asset.TotalSize)
 	if err != nil {
 		log.Errorf("api DeleteAsset: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -704,8 +705,16 @@ func GetShareLinkHandler(c *gin.Context) {
 func UpdateShareStatusHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
+	areaId := getAreaID(c)
 	cid := c.Query("cid")
-	err := dao.UpdateAssetShareStatus(c.Request.Context(), cid, userId)
+	// 获取文件hash
+	hash, err := storage.CIDToHash(cid)
+	if err != nil {
+		log.Errorf("CreateAssetHandler storage.CIDToHash() error: %+v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	err = dao.UpdateAssetShareStatus(c.Request.Context(), hash, userId, areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -717,7 +726,7 @@ func UpdateShareStatusHandler(c *gin.Context) {
 
 type AccessOverview struct {
 	AssetRecord      *types.AssetRecord
-	UserAssetDetail  *model.Asset
+	UserAssetDetail  *dao.UserAssetDetail
 	VisitCount       int64
 	RemainVisitCount int64
 	FilcoinCount     int64
@@ -812,8 +821,9 @@ loop:
 func GetAssetStatusHandler(c *gin.Context) {
 	userId := c.Query("username")
 	cid := c.Query("cid")
+	areaID := c.Query("area_id")
 
-	statusRsp, err := getAssetStatus(c.Request.Context(), userId, cid)
+	statusRsp, err := getAssetStatus(c.Request.Context(), userId, cid, areaID)
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
@@ -872,7 +882,8 @@ func GetAssetCountHandler(c *gin.Context) {
 	var candidateCount int64
 	var edgeCount int64
 	for _, data := range infos {
-		assetRsp, err := schedulerClient.GetAssetRecord(c.Request.Context(), data.Cid)
+		cid, _ := storage.HashToCID(data.Hash)
+		assetRsp, err := schedulerClient.GetAssetRecord(c.Request.Context(), cid)
 		if err != nil {
 			if webErr, ok := err.(*api.ErrWeb); ok {
 				c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))

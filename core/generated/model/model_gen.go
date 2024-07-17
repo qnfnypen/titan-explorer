@@ -472,10 +472,6 @@ type Asset struct {
 	Type       string    `db:"type" json:"type"`
 	Name       string    `db:"name" json:"name"`
 	ProjectId  int64     `db:"project_id" json:"project_id"`
-	GroupID    int64     `db:"group_id"`
-	AreaID     string    `db:"area_id"`
-	VisitCount      int64     `db:"visit_count"`
-	ShareStatus int64    `db:"share_status"`
 	CreatedAt  time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt  time.Time `db:"updated_at" json:"updated_at"`
 	DeletedAt  time.Time `db:"deleted_at" json:"deleted_at"`
@@ -612,21 +608,10 @@ type DeviceOnlineIncentive struct {
 	CreatedAt  time.Time `db:"created_at" json:"created_at"`
 }
 
-type StorageUserInfo struct {
-	UserId        string `db:"user_id"`
-	TotalSize     int64 `db:"total_storage_size"`
-	UsedSize      int64 `db:"used_storage_size"`
-	APIKey        string `db:"api_keys"`
-	TotalTraffic  int64 `db:"total_traffic"`
-	PeakBandwidth int64 `db:"peak_bandwidth"`
-	DownloadCount int64 `db:"download_count"`
-	EnableVIP     bool  `db:"enable_vip"`
-	UpdateTime 	  time.Time `db:"update_peak_time"`
-}
-
-type StorageUserAssetDetail struct {
+type UserAsset struct {
 	UserID      string    `db:"user_id"`
 	Hash        string    `db:"hash"`
+	AreaID      string    `db:"area_id"`
 	AssetName   string    `db:"asset_name"`
 	AssetType   string    `db:"asset_type"`
 	ShareStatus int64     `db:"share_status"`
@@ -645,7 +630,7 @@ type AssetGroup struct {
 	CreatedTime time.Time `db:"created_time"`
 }
 
-type StorageAssetVisitCount struct {
+type UserAssetVisitCount struct {
 	Hash  string `db:"hash"`
 	Count int64 `db:"count"`
 }

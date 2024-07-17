@@ -29,7 +29,7 @@ type ListAssetGroupRsp struct {
 // GetUserAssetCountByGroupID Get count by group id
 func getUserAssetCountByGroupID(ctx context.Context, uid string, groupID int) (int64, error) {
 	var total int64
-	query, args, err := squirrel.Select("COUNT(id)").From(tableNameAsset).Where("user_id = ? AND group_id = ?", uid, groupID).ToSql()
+	query, args, err := squirrel.Select("COUNT(hash)").From(tableUserAsset).Where("user_id = ? AND group_id = ?", uid, groupID).ToSql()
 	if err != nil {
 		return 0, fmt.Errorf("generate get asset sql error:%w", err)
 	}

@@ -49,10 +49,11 @@ CREATE TABLE storage_user_info (
 PRIMARY KEY (`user_id`)
 ) ENGINE=InnoDB COMMENT='titan存储服务的用户信息表';
 
-DROP TABLE IF EXISTS `storage_user_asset`;
+DROP TABLE IF EXISTS `user_asset`;
 CREATE TABLE storage_user_asset (
 `hash` VARCHAR(128) NOT NULL,
 `user_id` VARCHAR(128) NOT NULL,
+`area_id` varchar(128) NOT NULL,
 `asset_name` VARCHAR(128) DEFAULT '' ,
 `asset_type` VARCHAR(128) DEFAULT '' ,
 `share_status` TINYINT DEFAULT 0,
@@ -61,7 +62,7 @@ CREATE TABLE storage_user_asset (
 `expiration` DATETIME DEFAULT CURRENT_TIMESTAMP,
 `password` VARCHAR(128) DEFAULT '' ,		
 `group_id` INT DEFAULT 0,
-PRIMARY KEY (`hash`,`user_id`),
+PRIMARY KEY (`hash`,`user_id`,`area_id`),
 KEY `idx_user_id` (`user_id`),
 KEY `idx_group_id` (`group_id`)
 ) ENGINE=InnoDB COMMENT='titan存储服务的用户文件表';
@@ -78,7 +79,7 @@ KEY `idx_user_id` (`user_id`),
 KEY `idx_parent` (`parent`)
 ) ENGINE=InnoDB COMMENT='titan存储服务的用户文件组表';
 
-DROP TABLE IF EXISTS `storage_asset_visit_count`;
+DROP TABLE IF EXISTS `user_asset_visit_count`;
 CREATE TABLE storage_asset_visit_count (
 `hash` VARCHAR(128) NOT NULL,
 `count` INT DEFAULT 0,

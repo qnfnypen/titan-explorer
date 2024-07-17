@@ -9,7 +9,7 @@ import (
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
-	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/core/storage"
 )
 
 var (
@@ -21,7 +21,7 @@ type (
 	// AssetOverview 文件概览
 	AssetOverview struct {
 		AssetRecord      *types.AssetRecord
-		UserAssetDetail  *model.Asset
+		UserAssetDetail  *dao.UserAssetDetail
 		VisitCount       int64
 		RemainVisitCount int64
 	}
@@ -64,7 +64,12 @@ func listAssets(ctx context.Context, sCli api.Scheduler, uid string, page, size,
 
 	list := make([]*AssetOverview, 0)
 	for _, info := range infos {
-		record, err := sCli.GetAssetRecord(ctx, info.Cid)
+		// 将 hash 转换为 cid
+		cid, err := storage.HashToCID(info.Hash)
+		if err != nil {
+			continue
+		}
+		record, err := sCli.GetAssetRecord(ctx, cid)
 		if err != nil {
 			log.Errorf("asset LoadAssetRecord err: %s", err.Error())
 			continue
@@ -89,14 +94,20 @@ func listAssets(ctx context.Context, sCli api.Scheduler, uid string, page, size,
 	return &ListAssetRecordRsp{Total: total, AssetOverviews: list}, nil
 }
 
-func getAssetStatus(ctx context.Context, uid, cid string) (*types.AssetStatus, error) {
+func getAssetStatus(ctx context.Context, uid, cid, areaID string) (*types.AssetStatus, error) {
 	resp := new(types.AssetStatus)
+
+	// 将cid转换为hash
+	hash, err := storage.CIDToHash(cid)
+	if err != nil {
+		return nil, err
+	}
 
 	uInfo, err := dao.GetUserByUsername(ctx, uid)
 	if err != nil {
 		return nil, fmt.Errorf("get user's info error:%w", err)
 	}
-	aInfo, err := dao.GetAssetByCIDAndUser(ctx, cid, uid)
+	aInfo, err := dao.GetUserAsset(ctx, hash, uid, areaID)
 	if err != nil {
 		return nil, fmt.Errorf("get asset's info error:%w", err)
 	}
