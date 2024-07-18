@@ -21,3 +21,17 @@ Feel free to submit issues and enhancement requests.
 Titan Explorer is released under the terms of both the MIT License and the Apache2.0.
 
 See [MIT](LICENSE-MIT) and [Apache2.0](LICENSE-APACHE) for more information.
+
+## titan-storage API变更说明
++ 新增获取调度器区域列表接口: `/api/v1/storage/get_area_id`
++ 取消数据同步接口: `/api/v1/storage/get_locateStorage`
++ 需要增加 `area_id` 请求参数的接口:
+  - `/api/v1/storage/create_asset`,响应由原来的单节点，变为节点列表
+  - `/api/v1/storage/delete_asset`
+  - `/api/v1/storage/get_asset_info`
+  - `/api/v1/storage/get_asset_list`
+  - `/api/v1/storage/get_all_asset_list`
+  - `/api/v1/storage/share_status_set`
+  - `/api/v1/storage/get_asset_count`
+  - `/api/v1/storage/get_asset_group_list`
+  - `/api/v1/storage/move_asset_to_group`

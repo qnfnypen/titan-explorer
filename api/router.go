@@ -184,6 +184,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/share_asset", ShareAssetsHandler)
 	storage.GET("/get_asset_status", GetAssetStatusHandler)
 	storage.GET("/get_fil_storage_list", GetFilStorageListHandler)
+	storage.GET("/get_area_id", GetSchedulerAreaIDs)
 	storage.Use(authMiddleware.MiddlewareFunc())
 	storage.Use(AuthRequired(authMiddleware))
 	storage.GET("/get_locateStorage", GetAllocateStorageHandler)

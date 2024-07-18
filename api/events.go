@@ -18,6 +18,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/core/statistics"
 	"github.com/gnasnik/titan-explorer/core/storage"
 )
 
@@ -484,7 +485,16 @@ func CreateAssetPostHandler(c *gin.Context) {
 	}
 
 	log.Debugf("CreateAssetHandler clientIP:%s, areaId:%s\n", c.ClientIP(), createAssetReq.AreaID)
-	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{AssetProperty: types.AssetProperty{AssetCID: createAssetReq.AssetCID}})
+	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{
+		UserID: username,
+		AssetProperty: types.AssetProperty{
+			AssetCID:  createAssetReq.AssetCID,
+			AssetSize: createAssetReq.AssetSize,
+			AssetName: createAssetReq.AssetName,
+			AssetType: createAssetReq.AssetType,
+			NodeID:    createAssetReq.NodeID,
+			GroupID:   int(createAssetReq.GroupID),
+		}})
 	if err != nil {
 		log.Errorf("CreateAssetHandler schedulerClient.CreateAsset() error: %+v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
@@ -854,10 +864,7 @@ func GetAssetCountHandler(c *gin.Context) {
 	page, _ := strconv.Atoi(c.Query("page"))
 	pageSize = 100
 	page = 1
-	areaId := c.Query("area_id")
-	if areaId == "" {
-		areaId = GetDefaultTitanCandidateEntrypointInfo()
-	}
+	areaId := getAreaID(c)
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	// if err != nil {
 	// 	c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -1473,11 +1480,36 @@ func MoveAssetToGroupHandler(c *gin.Context) {
 
 	err = dao.UpdateAssetGroup(c.Request.Context(), userId, hash, areaId, groupId)
 	if err != nil {
-
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"msg": "success",
+	}))
+}
+
+// GetSchedulerAreaIDs 获取调度器的 area id 列表
+func GetSchedulerAreaIDs(c *gin.Context) {
+	var areaIDs []string
+
+	etcdClient, err := statistics.NewEtcdClient(config.Cfg.EtcdAddresses)
+	if err != nil {
+		log.Errorf("New etcdClient Failed: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	schedulers, err := statistics.FetchSchedulersFromEtcd(etcdClient)
+	if err != nil {
+		log.Errorf("fetch scheduler from etcd Failed: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	for _, v := range schedulers {
+		areaIDs = append(areaIDs, v.AreaId)
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list": areaIDs,
 	}))
 }
