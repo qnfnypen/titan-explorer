@@ -35,3 +35,9 @@ See [MIT](LICENSE-MIT) and [Apache2.0](LICENSE-APACHE) for more information.
   - `/api/v1/storage/get_asset_count`
   - `/api/v1/storage/get_asset_group_list`
   - `/api/v1/storage/move_asset_to_group`
+  - `/api/v1/storage/get_map_cid`
+  - `/api/v1/storage/get_asset_detail`
+  - `/api/v1/storage/get_asset_location`
+  - `/api/v1/storage/share_asset`
+  - `/api/v1/storage/get_asset_status`
+

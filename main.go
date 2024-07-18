@@ -17,6 +17,9 @@ import (
 	"github.com/spf13/viper"
 )
 
+// @title Titan Explorer API
+// @version 1.0
+// @description This is titan explorer backend server.
 func main() {
 	OsSignal := make(chan os.Signal, 1)
 

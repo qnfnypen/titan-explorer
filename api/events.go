@@ -644,6 +644,15 @@ func DeleteAssetHandler(c *gin.Context) {
 	}))
 }
 
+// ShareAssetsHandler 分享文件
+// @Summary 分享文件
+// @Description 分享文件
+// @Tags storage
+// @Param user_id string true "用户id"
+// @Param area_id string false "节点区域"
+// @Param asset_cid string true "文件cid"
+// @Success 200 {object} JsonObject "{"url": ""}"
+// @Router /api/v1/storage/share_asset [get]
 func ShareAssetsHandler(c *gin.Context) {
 	userId := c.Query("user_id")
 	cid := c.Query("asset_cid")
@@ -676,6 +685,15 @@ func ShareAssetsHandler(c *gin.Context) {
 	}))
 }
 
+// ShareLinkHandler 获取分享链接
+// @Summary 获取分享链接
+// @Description 获取分享链接
+// @Tags storage
+// @Param username string true "用户id"
+// @Param url string true "url"
+// @Param cid string true "文件cid"
+// @Success 200 {object} JsonObject "{"url": ""}"
+// @Router /api/v1/storage/get_link [get]
 func ShareLinkHandler(c *gin.Context) {
 	username := c.Query("username")
 	cid := c.Query("cid")
@@ -936,6 +954,8 @@ func GetAssetCountHandler(c *gin.Context) {
 	}))
 }
 
+// GetAssetDetailHandler 获取文件详情
+
 func GetAssetDetailHandler(c *gin.Context) {
 	cid := c.Query("cid")
 	lang := model.Language(c.GetHeader("Lang"))
@@ -1064,6 +1084,13 @@ func GetLocationHandler(c *gin.Context) {
 	}))
 }
 
+// GetMapByCidHandler 获取cid map
+// @Summary 获取cid map
+// @Description 获取cid map
+// @Tags storage
+// @Param cid string true "文件cid"
+// @Success 200 {object} JsonObject "{"url": ""}"
+// @Router /api/v1/storage/get_map_cid [get]
 func GetMapByCidHandler(c *gin.Context) {
 	//userId := c.Query("user_id")
 	cid := c.Query("cid")
