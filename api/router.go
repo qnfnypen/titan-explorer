@@ -185,7 +185,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_asset_status", GetAssetStatusHandler)
 	storage.GET("/get_fil_storage_list", GetFilStorageListHandler)
 	storage.GET("/get_area_id", GetSchedulerAreaIDs)
-	storage.Use(authMiddleware.MiddlewareFunc())
+	// storage.Use(authMiddleware.MiddlewareFunc())
 	storage.Use(AuthRequired(authMiddleware))
 	storage.GET("/get_locateStorage", GetAllocateStorageHandler)
 	storage.GET("/get_storage_size", GetStorageSizeHandler)          // 获取用户存储空间信息
@@ -237,6 +237,8 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	test1.GET("/node/nums", tnc.GetNodeNums)
 	test1.PUT("/node/delete_offline", tnc.DeleteOffLineNode)
 	test1.PUT("/node/move_back_deleted", tnc.MoveBackDeletedNode)
+
+	apiV1.GET("/country_count", GetCountryCount)
 }
 
 func RegisterRouterWithAPIKey(router *gin.Engine) {

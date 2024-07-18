@@ -1,0 +1,350 @@
+definitions:
+  api.JsonObject:
+    additionalProperties: true
+    type: object
+info:
+  contact: {}
+  description: This is titan explorer backend server.
+  title: Titan Explorer API
+  version: "1.0"
+paths:
+  /api/v1/storage/create_asset:
+    get:
+      description: 上传文件
+      parameters:
+      - description: 节点区域
+        in: query
+        name: area_id
+        type: string
+      - description: 文件名
+        in: query
+        name: asset_name
+        required: true
+        type: string
+      - description: 文件cid
+        in: query
+        name: asset_cid
+        required: true
+        type: string
+      - description: 节点id
+        in: query
+        name: node_id
+        required: true
+        type: string
+      - description: 文件类型
+        in: query
+        name: asset_type
+        required: true
+        type: string
+      - description: 文件大小
+        in: query
+        name: asset_size
+        required: true
+        type: integer
+      - description: group id
+        in: query
+        name: group_id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: '{[]{CandidateAddr:"",Token:""}}'
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      security:
+      - ApiKeyAuth: []
+      summary: 上传文件
+      tags:
+      - storage
+  /api/v1/storage/create_group:
+    get:
+      description: 创建文件夹
+      parameters:
+      - description: name
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: 父级id
+        in: query
+        name: parent
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: '{group:{}}'
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      security:
+      - ApiKeyAuth: []
+      summary: 创建文件夹
+      tags:
+      - storage
+  /api/v1/storage/create_key:
+    get:
+      description: 创建key
+      parameters:
+      - description: key name
+        in: query
+        name: key_name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{key:"",secret:""}'
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      security:
+      - ApiKeyAuth: []
+      summary: 创建key
+      tags:
+      - storage
+  /api/v1/storage/delete_asset:
+    get:
+      description: 删除文件
+      parameters:
+      - description: 节点区域
+        in: query
+        name: area_id
+        type: string
+      - description: 文件cid
+        in: query
+        name: asset_cid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{msg:""}'
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      security:
+      - ApiKeyAuth: []
+      summary: 删除文件
+      tags:
+      - storage
+  /api/v1/storage/delete_key:
+    get:
+      description: 删除key
+      parameters:
+      - description: key name
+        in: query
+        name: key_name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{msg:""}'
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      security:
+      - ApiKeyAuth: []
+      summary: 删除key
+      tags:
+      - storage
+  /api/v1/storage/get_area_id:
+    get:
+      description: 获取调度器的 area id 列表
+      responses:
+        "200":
+          description: '{list:[]}'
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      summary: 获取调度器的 area id 列表
+      tags:
+      - storage
+  /api/v1/storage/get_asset_group_list:
+    get:
+      description: 获取文件夹列表信息，包含其中的文件信息
+      parameters:
+      - description: 父级id
+        in: query
+        name: parent
+        required: true
+        type: integer
+      - description: page_size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      - description: page
+        in: query
+        name: page
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: '{list:{},total:0}'
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取文件夹列表信息，包含其中的文件信息
+      tags:
+      - storage
+  /api/v1/storage/get_asset_info:
+    get:
+      description: 上传文件
+      parameters:
+      - description: 节点区域
+        in: query
+        name: area_id
+        type: string
+      - description: 文件cid
+        in: query
+        name: cid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{{list:[],total:0}}'
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      security:
+      - ApiKeyAuth: []
+      summary: 上传文件
+      tags:
+      - storage
+  /api/v1/storage/get_groups:
+    get:
+      description: 获取文件夹列表
+      parameters:
+      - description: 父级id
+        in: query
+        name: parent
+        required: true
+        type: integer
+      - description: page_size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      - description: page
+        in: query
+        name: page
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: '{list:{},total:0}'
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取文件夹列表
+      tags:
+      - storage
+  /api/v1/storage/get_keys:
+    get:
+      description: 获取key列表
+      responses:
+        "200":
+          description: '{list:[{name:"",key:"",secret:"",time:""}]}'
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取key列表
+      tags:
+      - storage
+  /api/v1/storage/get_link:
+    get:
+      description: 获取分享链接
+      parameters:
+      - description: 用户id
+        in: query
+        name: username
+        required: true
+        type: string
+      - description: url
+        in: query
+        name: url
+        required: true
+        type: string
+      - description: 文件cid
+        in: query
+        name: cid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{url: ""}'
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      summary: 获取分享链接
+      tags:
+      - storage
+  /api/v1/storage/get_map_cid:
+    get:
+      description: 获取cid map
+      parameters:
+      - description: 文件cid
+        in: query
+        name: cid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{url: ""}'
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      summary: 获取cid map
+      tags:
+      - storage
+  /api/v1/storage/get_storage_size:
+    get:
+      description: 获取用户存储空间信息
+      responses:
+        "200":
+          description: '{PeakBandwidth:0,TotalTraffic:0,TotalSize:0,UsedSize:0}'
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取用户存储空间信息
+      tags:
+      - storage
+  /api/v1/storage/get_vip_info:
+    get:
+      description: 判断用户是否是vip
+      responses:
+        "200":
+          description: '{vip:false}'
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      security:
+      - ApiKeyAuth: []
+      summary: 判断用户是否是vip
+      tags:
+      - storage
+  /api/v1/storage/share_asset:
+    get:
+      description: 分享文件
+      parameters:
+      - description: 用户id
+        in: query
+        name: user_id
+        required: true
+        type: string
+      - description: 节点区域
+        in: query
+        name: area_id
+        type: string
+      - description: 文件cid
+        in: query
+        name: asset_cid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{asset_cid: "",redirect:"",url:{}}'
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      summary: 分享文件
+      tags:
+      - storage
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

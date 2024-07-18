@@ -1,0 +1,548 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "This is titan explorer backend server.",
+        "title": "Titan Explorer API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "paths": {
+        "/api/v1/storage/create_asset": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "上传文件",
+                "tags": [
+                    "storage"
+                ],
+                "summary": "上传文件",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "节点区域",
+                        "name": "area_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "文件名",
+                        "name": "asset_name",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "文件cid",
+                        "name": "asset_cid",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "节点id",
+                        "name": "node_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "文件类型",
+                        "name": "asset_type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "文件大小",
+                        "name": "asset_size",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "group id",
+                        "name": "group_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{[]{CandidateAddr:\"\",Token:\"\"}}",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/storage/create_group": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "创建文件夹",
+                "tags": [
+                    "storage"
+                ],
+                "summary": "创建文件夹",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "父级id",
+                        "name": "parent",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{group:{}}",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/storage/create_key": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "创建key",
+                "tags": [
+                    "storage"
+                ],
+                "summary": "创建key",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "key name",
+                        "name": "key_name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{key:\"\",secret:\"\"}",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/storage/delete_asset": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "删除文件",
+                "tags": [
+                    "storage"
+                ],
+                "summary": "删除文件",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "节点区域",
+                        "name": "area_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "文件cid",
+                        "name": "asset_cid",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{msg:\"\"}",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/storage/delete_key": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "删除key",
+                "tags": [
+                    "storage"
+                ],
+                "summary": "删除key",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "key name",
+                        "name": "key_name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{msg:\"\"}",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/storage/get_area_id": {
+            "get": {
+                "description": "获取调度器的 area id 列表",
+                "tags": [
+                    "storage"
+                ],
+                "summary": "获取调度器的 area id 列表",
+                "responses": {
+                    "200": {
+                        "description": "{list:[]}",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/storage/get_asset_group_list": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取文件夹列表信息，包含其中的文件信息",
+                "tags": [
+                    "storage"
+                ],
+                "summary": "获取文件夹列表信息，包含其中的文件信息",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "父级id",
+                        "name": "parent",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page_size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{list:{},total:0}",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/storage/get_asset_info": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "上传文件",
+                "tags": [
+                    "storage"
+                ],
+                "summary": "上传文件",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "节点区域",
+                        "name": "area_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "文件cid",
+                        "name": "cid",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{{list:[],total:0}}",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/storage/get_groups": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取文件夹列表",
+                "tags": [
+                    "storage"
+                ],
+                "summary": "获取文件夹列表",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "父级id",
+                        "name": "parent",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page_size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{list:{},total:0}",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/storage/get_keys": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取key列表",
+                "tags": [
+                    "storage"
+                ],
+                "summary": "获取key列表",
+                "responses": {
+                    "200": {
+                        "description": "{list:[{name:\"\",key:\"\",secret:\"\",time:\"\"}]}",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/storage/get_link": {
+            "get": {
+                "description": "获取分享链接",
+                "tags": [
+                    "storage"
+                ],
+                "summary": "获取分享链接",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "用户id",
+                        "name": "username",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "url",
+                        "name": "url",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "文件cid",
+                        "name": "cid",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{url: \"\"}",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/storage/get_map_cid": {
+            "get": {
+                "description": "获取cid map",
+                "tags": [
+                    "storage"
+                ],
+                "summary": "获取cid map",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "文件cid",
+                        "name": "cid",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{url: \"\"}",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/storage/get_storage_size": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取用户存储空间信息",
+                "tags": [
+                    "storage"
+                ],
+                "summary": "获取用户存储空间信息",
+                "responses": {
+                    "200": {
+                        "description": "{PeakBandwidth:0,TotalTraffic:0,TotalSize:0,UsedSize:0}",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/storage/get_vip_info": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "判断用户是否是vip",
+                "tags": [
+                    "storage"
+                ],
+                "summary": "判断用户是否是vip",
+                "responses": {
+                    "200": {
+                        "description": "{vip:false}",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/storage/share_asset": {
+            "get": {
+                "description": "分享文件",
+                "tags": [
+                    "storage"
+                ],
+                "summary": "分享文件",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "用户id",
+                        "name": "user_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "节点区域",
+                        "name": "area_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "文件cid",
+                        "name": "asset_cid",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{asset_cid: \"\",redirect:\"\",url:{}}",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "api.JsonObject": {
+            "type": "object",
+            "additionalProperties": true
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}

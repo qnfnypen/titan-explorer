@@ -20,6 +20,10 @@ import (
 // @title Titan Explorer API
 // @version 1.0
 // @description This is titan explorer backend server.
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
 func main() {
 	OsSignal := make(chan os.Signal, 1)
 

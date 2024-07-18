@@ -2,7 +2,12 @@ package api
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
@@ -10,13 +15,11 @@ import (
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/core/geo"
 	"github.com/gnasnik/titan-explorer/core/oplog"
+	"github.com/gnasnik/titan-explorer/core/storage"
 	"github.com/gnasnik/titan-explorer/pkg/iptool"
 	"github.com/mssola/user_agent"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/net/context"
-	"net/http"
-	"strings"
-	"time"
 )
 
 const (
@@ -265,6 +268,40 @@ func AuthRequired(authMiddleware *jwt.GinJWTMiddleware) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		claims, e := authMiddleware.GetClaimsFromJWT(ctx)
 		if e == nil {
+			switch v := claims["exp"].(type) {
+			case nil:
+				authMiddleware.Unauthorized(ctx, http.StatusUnauthorized, authMiddleware.HTTPStatusMessageFunc(jwt.ErrMissingExpField, ctx))
+				return
+			case float64:
+				if int64(v) < authMiddleware.TimeFunc().Unix() {
+					authMiddleware.Unauthorized(ctx, http.StatusUnauthorized, authMiddleware.HTTPStatusMessageFunc(jwt.ErrExpiredToken, ctx))
+					return
+				}
+			case json.Number:
+				n, err := v.Int64()
+				if err != nil {
+					authMiddleware.Unauthorized(ctx, http.StatusUnauthorized, authMiddleware.HTTPStatusMessageFunc(jwt.ErrWrongFormatOfExp, ctx))
+					return
+				}
+				if n < authMiddleware.TimeFunc().Unix() {
+					authMiddleware.Unauthorized(ctx, http.StatusUnauthorized, authMiddleware.HTTPStatusMessageFunc(jwt.ErrExpiredToken, ctx))
+					return
+				}
+			default:
+				authMiddleware.Unauthorized(ctx, http.StatusUnauthorized, authMiddleware.HTTPStatusMessageFunc(jwt.ErrWrongFormatOfExp, ctx))
+				return
+			}
+			ctx.Set("JWT_PAYLOAD", claims)
+			identity := authMiddleware.IdentityHandler(ctx)
+
+			if identity != nil {
+				ctx.Set(authMiddleware.IdentityKey, identity)
+			}
+
+			if !authMiddleware.Authorizator(identity, ctx) {
+				authMiddleware.Unauthorized(ctx, http.StatusUnauthorized, authMiddleware.HTTPStatusMessageFunc(jwt.ErrForbidden, ctx))
+				return
+			}
 			if int64(claims["exp"].(float64)-authMiddleware.Timeout.Seconds()/2) < authMiddleware.TimeFunc().Unix() {
 				tokenString, _, e := authMiddleware.RefreshToken(ctx)
 				if e == nil {
@@ -272,6 +309,16 @@ func AuthRequired(authMiddleware *jwt.GinJWTMiddleware) gin.HandlerFunc {
 					ctx.Header("new-token", tokenString)
 				}
 			}
+		} else {
+			apiKey := ctx.GetHeader("apiKey")
+			uid, err := storage.AesDecryptCBCByKey(apiKey)
+			if err != nil {
+				authMiddleware.Unauthorized(ctx, http.StatusUnauthorized, authMiddleware.HTTPStatusMessageFunc(jwt.ErrForbidden, ctx))
+				return
+			}
+			ctx.Set("JWT_PAYLOAD", jwt.MapClaims{
+				identityKey: uid,
+			})
 		}
 		ctx.Next()
 	}

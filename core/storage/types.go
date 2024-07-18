@@ -46,3 +46,9 @@ type UserAPIKeySecretInfo struct {
 	APISecret   string
 	CreatedTime time.Time
 }
+
+// UserKeyInfo 用户key信息
+type UserKeyInfo struct {
+	UID  string
+	Salt string
+}

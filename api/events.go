@@ -245,6 +245,14 @@ func GetAllocateStorageHandler(c *gin.Context) {
 	return
 }
 
+// GetStorageSizeHandler 获取用户存储空间信息
+// ShareAssetsHandler 获取用户存储空间信息
+// @Summary 获取用户存储空间信息
+// @Description 获取用户存储空间信息
+// @Security ApiKeyAuth
+// @Tags storage
+// @Success 200 {object} JsonObject "{PeakBandwidth:0,TotalTraffic:0,TotalSize:0,UsedSize:0}"
+// @Router /api/v1/storage/get_storage_size [get]
 func GetStorageSizeHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	username := claims[identityKey].(string)
@@ -271,6 +279,13 @@ func GetStorageSizeHandler(c *gin.Context) {
 	return
 }
 
+// GetUserVipInfoHandler 判断用户是否是vip
+// @Summary 判断用户是否是vip
+// @Description 判断用户是否是vip
+// @Security ApiKeyAuth
+// @Tags storage
+// @Success 200 {object} JsonObject "{vip:false}"
+// @Router /api/v1/storage/get_vip_info [get]
 func GetUserVipInfoHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	username := claims[identityKey].(string)
@@ -331,6 +346,20 @@ func GetUploadInfoHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(res))
 }
 
+// CreateAssetHandler 上传文件
+// @Summary 上传文件
+// @Description 上传文件
+// @Security ApiKeyAuth
+// @Tags storage
+// @Param area_id query string false "节点区域"
+// @Param asset_name query string true "文件名"
+// @Param asset_cid query string true "文件cid"
+// @Param node_id query string true "节点id"
+// @Param asset_type query string true "文件类型"
+// @Param asset_size query int64 true "文件大小"
+// @Param group_id query int true "group id"
+// @Success 200 {object} JsonObject "{[]{CandidateAddr:"",Token:""}}"
+// @Router /api/v1/storage/create_asset [get]
 func CreateAssetHandler(c *gin.Context) {
 	// userId := c.Query("user_id")
 	claims := jwt.ExtractClaims(c)
@@ -527,6 +556,14 @@ func CreateAssetPostHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(rsp))
 }
 
+// CreateKeyHandler 创建key
+// @Summary 创建key
+// @Description 创建key
+// @Security ApiKeyAuth
+// @Tags storage
+// @Param key_name query string true "key name"
+// @Success 200 {object} JsonObject "{key:"",secret:""}"
+// @Router /api/v1/storage/create_key [get]
 func CreateKeyHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
@@ -558,6 +595,14 @@ func CreateKeyHandler(c *gin.Context) {
 	}))
 }
 
+// DeleteKeyHandler 删除key
+// @Summary 删除key
+// @Description 删除key
+// @Security ApiKeyAuth
+// @Tags storage
+// @Param key_name query string true "key name"
+// @Success 200 {object} JsonObject "{msg:""}"
+// @Router /api/v1/storage/delete_key [get]
 func DeleteKeyHandler(c *gin.Context) {
 	// userId := c.Query("user_id")
 	claims := jwt.ExtractClaims(c)
@@ -597,6 +642,14 @@ func DeleteKeyHandler(c *gin.Context) {
 }
 
 // DeleteAssetHandler 删除文件
+// @Summary 删除文件
+// @Description 删除文件
+// @Security ApiKeyAuth
+// @Tags storage
+// @Param area_id query string false "节点区域"
+// @Param asset_cid query string true "文件cid"
+// @Success 200 {object} JsonObject "{msg:""}"
+// @Router /api/v1/storage/delete_asset [get]
 func DeleteAssetHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	userID := claims[identityKey].(string)
@@ -648,10 +701,10 @@ func DeleteAssetHandler(c *gin.Context) {
 // @Summary 分享文件
 // @Description 分享文件
 // @Tags storage
-// @Param user_id string true "用户id"
-// @Param area_id string false "节点区域"
-// @Param asset_cid string true "文件cid"
-// @Success 200 {object} JsonObject "{"url": ""}"
+// @Param user_id query string true "用户id"
+// @Param area_id query string false "节点区域"
+// @Param asset_cid query string true "文件cid"
+// @Success 200 {object} JsonObject "{asset_cid: "",redirect:"",url:{}}"
 // @Router /api/v1/storage/share_asset [get]
 func ShareAssetsHandler(c *gin.Context) {
 	userId := c.Query("user_id")
@@ -689,10 +742,10 @@ func ShareAssetsHandler(c *gin.Context) {
 // @Summary 获取分享链接
 // @Description 获取分享链接
 // @Tags storage
-// @Param username string true "用户id"
-// @Param url string true "url"
-// @Param cid string true "文件cid"
-// @Success 200 {object} JsonObject "{"url": ""}"
+// @Param username query string true "用户id"
+// @Param url query string true "url"
+// @Param cid query string true "文件cid"
+// @Success 200 {object} JsonObject "{url: ""}"
 // @Router /api/v1/storage/get_link [get]
 func ShareLinkHandler(c *gin.Context) {
 	username := c.Query("username")
@@ -1088,8 +1141,8 @@ func GetLocationHandler(c *gin.Context) {
 // @Summary 获取cid map
 // @Description 获取cid map
 // @Tags storage
-// @Param cid string true "文件cid"
-// @Success 200 {object} JsonObject "{"url": ""}"
+// @Param cid query string true "文件cid"
+// @Success 200 {object} JsonObject "{url: ""}"
 // @Router /api/v1/storage/get_map_cid [get]
 func GetMapByCidHandler(c *gin.Context) {
 	//userId := c.Query("user_id")
@@ -1131,6 +1184,15 @@ func GetMapByCidHandler(c *gin.Context) {
 	}))
 }
 
+// GetAssetInfoHandler 获取文件信息
+// @Summary 上传文件
+// @Description 上传文件
+// @Security ApiKeyAuth
+// @Tags storage
+// @Param area_id query string false "节点区域"
+// @Param cid query string true "文件cid"
+// @Success 200 {object} JsonObject "{{list:[],total:0}}"
+// @Router /api/v1/storage/get_asset_info [get]
 func GetAssetInfoHandler(c *gin.Context) {
 	//userId := c.Query("user_id")
 	cid := c.Query("cid")
@@ -1168,6 +1230,13 @@ func GetAssetInfoHandler(c *gin.Context) {
 	}))
 }
 
+// GetKeyListHandler 获取key列表
+// @Summary 获取key列表
+// @Description 获取key列表
+// @Security ApiKeyAuth
+// @Tags storage
+// @Success 200 {object} JsonObject "{list:[{name:"",key:"",secret:"",time:""}]}"
+// @Router /api/v1/storage/get_keys [get]
 func GetKeyListHandler(c *gin.Context) {
 	// userId := c.Query("user_id")
 	claims := jwt.ExtractClaims(c)
@@ -1325,6 +1394,15 @@ func GetAPIKeyPermsHandler(c *gin.Context) {
 	}))
 }
 
+// CreateGroupHandler 创建文件夹
+// @Summary 创建文件夹
+// @Description 创建文件夹
+// @Security ApiKeyAuth
+// @Tags storage
+// @Param name query string true "name"
+// @Param parent query int true "父级id"
+// @Success 200 {object} JsonObject "{group:{}}"
+// @Router /api/v1/storage/create_group [get]
 func CreateGroupHandler(c *gin.Context) {
 	// userId := c.Query("user_id")
 	claims := jwt.ExtractClaims(c)
@@ -1345,6 +1423,16 @@ func CreateGroupHandler(c *gin.Context) {
 	}))
 }
 
+// GetGroupsHandler 获取文件夹列表
+// @Summary 获取文件夹列表
+// @Description 获取文件夹列表
+// @Security ApiKeyAuth
+// @Tags storage
+// @Param parent query int true "父级id"
+// @Param page_size query int true "page_size"
+// @Param page query int true "page"
+// @Success 200 {object} JsonObject "{list:{},total:0}"
+// @Router /api/v1/storage/get_groups [get]
 func GetGroupsHandler(c *gin.Context) {
 	// userId := c.Query("user_id")
 	claims := jwt.ExtractClaims(c)
@@ -1375,6 +1463,16 @@ type AssetOrGroup struct {
 	Group         interface{}
 }
 
+// GetAssetGroupListHandler 获取文件夹列表信息，包含其中的文件信息
+// @Summary 获取文件夹列表信息，包含其中的文件信息
+// @Description 获取文件夹列表信息，包含其中的文件信息
+// @Security ApiKeyAuth
+// @Tags storage
+// @Param parent query int true "父级id"
+// @Param page_size query int true "page_size"
+// @Param page query int true "page"
+// @Success 200 {object} JsonObject "{list:{},total:0}"
+// @Router /api/v1/storage/get_asset_group_list [get]
 func GetAssetGroupListHandler(c *gin.Context) {
 	// userId := c.Query("user_id")
 	claims := jwt.ExtractClaims(c)
@@ -1516,6 +1614,12 @@ func MoveAssetToGroupHandler(c *gin.Context) {
 }
 
 // GetSchedulerAreaIDs 获取调度器的 area id 列表
+// ShareAssetsHandler 获取调度器的 area id 列表
+// @Summary 获取调度器的 area id 列表
+// @Description 获取调度器的 area id 列表
+// @Tags storage
+// @Success 200 {object} JsonObject "{list:[]}"
+// @Router /api/v1/storage/get_area_id [get]
 func GetSchedulerAreaIDs(c *gin.Context) {
 	var areaIDs []string
 

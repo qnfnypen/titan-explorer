@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 var (
 	apiSecret *jwt.HMACSHA
 	maxAPIKey int = 20
+	cryptoKey     = []byte("7c10a37c75c545daa5cff0387d46f064")
 )
 
 // JWTPayload jwt载体
@@ -110,7 +112,9 @@ func CreateAPIKeySecret(ctx context.Context, userID, keyName string, buf []byte)
 	}
 
 	// 生成api key secret
-	apiKey := random.GenerateRandomString(18)
+	ui := UserKeyInfo{UID: userID, Salt: random.GenerateRandomString(6)}
+	uk, _ := json.Marshal(ui)
+	apiKey, _ := AesEncryptCBC(uk, cryptoKey)
 	apiSecret := fmt.Sprintf("ts-%s", random.GenerateRandomString(48))
 	apiKeys[keyName] = UserAPIKeySecretInfo{
 		APIKey:      apiKey,
@@ -123,4 +127,20 @@ func CreateAPIKeySecret(ctx context.Context, userID, keyName string, buf []byte)
 	}
 
 	return buf, apiKey, apiSecret, err
+}
+
+// AesDecryptCBCByKey 通过key解密aes密文
+func AesDecryptCBCByKey(cstr string) (string, error) {
+	var ukInfo UserKeyInfo
+
+	uk, err := AesDecryptCBC(cstr, cryptoKey)
+	if err != nil {
+		return "", err
+	}
+
+	if err := json.Unmarshal(uk, &ukInfo); err != nil {
+		return "", err
+	}
+
+	return string(ukInfo.UID), nil
 }

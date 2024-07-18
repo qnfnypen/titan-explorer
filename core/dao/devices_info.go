@@ -746,3 +746,16 @@ func SumAllUsersReward(ctx context.Context, eligibleOnlineMinutes int) ([]*model
 
 	return out, nil
 }
+
+// GetCountryCount 获取国家数量
+func GetCountryCount(ctx context.Context) (int64, error) {
+	var out int64
+	query := `SELECT COUNT(DISTINCT(ip_country)) FROM device_info WHERE device_status_code = 1`
+
+	err := DB.GetContext(ctx, &out, query)
+	if err != nil {
+		return 0, err
+	}
+
+	return out, nil
+}
