@@ -647,7 +647,7 @@ func DeleteAssetHandler(c *gin.Context) {
 func ShareAssetsHandler(c *gin.Context) {
 	userId := c.Query("user_id")
 	cid := c.Query("asset_cid")
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := getAreaID(c)
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -939,7 +939,7 @@ func GetAssetCountHandler(c *gin.Context) {
 func GetAssetDetailHandler(c *gin.Context) {
 	cid := c.Query("cid")
 	lang := model.Language(c.GetHeader("Lang"))
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := getAreaID(c)
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -1003,7 +1003,7 @@ func GetLocationHandler(c *gin.Context) {
 	//userId := c.Query("user_id")
 	cid := c.Query("cid")
 	lang := model.Language(c.GetHeader("Lang"))
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := getAreaID(c)
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -1068,7 +1068,7 @@ func GetMapByCidHandler(c *gin.Context) {
 	//userId := c.Query("user_id")
 	cid := c.Query("cid")
 	lang := model.Language(c.GetHeader("Lang"))
-	areaId := GetDefaultTitanCandidateEntrypointInfo()
+	areaId := getAreaID(c)
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
