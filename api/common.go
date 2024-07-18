@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -113,16 +112,19 @@ func getAssetStatus(ctx context.Context, uid, cid, areaID string) (*types.AssetS
 	}
 	resp.IsExist = true
 
-	if aInfo.Expiration.Before(time.Now()) {
-		resp.IsExpiration = true
-		return resp, nil
-	}
+	_ = aInfo
+
+	// TODO
+	// if aInfo.Expiration.Before(time.Now()) {
+	// 	resp.IsExpiration = true
+	// 	return resp, nil
+	// }
 	if uInfo.EnableVIP {
 		return resp, nil
 	}
-	if aInfo.VisitCount >= maxCountOfVisitShareLink {
-		resp.IsVisitOutOfLimit = true
-	}
+	// if aInfo.VisitCount >= maxCountOfVisitShareLink {
+	// 	resp.IsVisitOutOfLimit = true
+	// }
 
 	return resp, nil
 }

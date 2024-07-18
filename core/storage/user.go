@@ -8,11 +8,12 @@ import (
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/terrors"
 	"github.com/gbrlsnchs/jwt/v3"
+	"github.com/gnasnik/titan-explorer/pkg/random"
 )
 
 var (
 	apiSecret *jwt.HMACSHA
-	maxAPIKey int
+	maxAPIKey int = 20
 )
 
 // JWTPayload jwt载体
@@ -87,4 +88,39 @@ func CreateAPIKey(ctx context.Context, userID, keyName string, perms []string, b
 	}
 
 	return buf, tk, nil
+}
+
+// CreateAPIKeySecret 创建api key secret
+func CreateAPIKeySecret(ctx context.Context, userID, keyName string, buf []byte) ([]byte, string, string, error) {
+	var err error
+
+	apiKeys := make(map[string]UserAPIKeySecretInfo)
+	if len(buf) > 0 {
+		apiKeys, err = DecodeAPIKeySecrets(buf)
+		if err != nil {
+			return nil, "", "", fmt.Errorf("decode UserAPIKeySecretInfo error:%w", err)
+		}
+	}
+
+	if _, ok := apiKeys[keyName]; ok {
+		return nil, "", "", &api.ErrWeb{Code: terrors.APPKeyAlreadyExist.Int(), Message: fmt.Sprintf("the API key %s already exist", keyName)}
+	}
+	if len(apiKeys) >= maxAPIKey {
+		return nil, "", "", &api.ErrWeb{Code: terrors.OutOfMaxAPIKeyLimit.Int(), Message: fmt.Sprintf("api key exceeds maximum limit %d", maxAPIKey)}
+	}
+
+	// 生成api key secret
+	apiKey := random.GenerateRandomString(18)
+	apiSecret := fmt.Sprintf("ts-%s", random.GenerateRandomString(48))
+	apiKeys[keyName] = UserAPIKeySecretInfo{
+		APIKey:      apiKey,
+		APISecret:   apiSecret,
+		CreatedTime: time.Now(),
+	}
+	buf, err = EncodeAPIKeySecrets(apiKeys)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("encode UserAPIKeySecretInfo error:%w", err)
+	}
+
+	return buf, apiKey, apiSecret, err
 }

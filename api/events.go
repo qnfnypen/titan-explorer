@@ -520,22 +520,14 @@ func CreateAssetPostHandler(c *gin.Context) {
 func CreateKeyHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
-	// userId := c.Query("user_id")
 	keyName := c.Query("key_name")
-	permsStr := c.Query("perms")
-	// areaId := getAreaID(c)
-	perms := strings.Split(permsStr, ",")
-	acl := make([]types.UserAccessControl, 0, len(perms))
-	for _, perm := range perms {
-		acl = append(acl, types.UserAccessControl(perm))
-	}
 	// 获取apikey
 	info, err := dao.GetUserByUsername(c.Request.Context(), userId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.UserNotFound, c))
 		return
 	}
-	buf, keyStr, err := storage.CreateAPIKey(c.Request.Context(), userId, keyName, perms, info.ApiKeys)
+	buf, keyStr, secretStr, err := storage.CreateAPIKeySecret(c.Request.Context(), userId, keyName, info.ApiKeys)
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
@@ -551,7 +543,8 @@ func CreateKeyHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"key": keyStr,
+		"key":    keyStr,
+		"secret": secretStr,
 	}))
 }
 
@@ -567,7 +560,7 @@ func DeleteKeyHandler(c *gin.Context) {
 		return
 	}
 	if len(info.ApiKeys) > 0 {
-		keyMaps, err := storage.DecodeAPIKeys(info.ApiKeys)
+		keyMaps, err := storage.DecodeAPIKeySecrets(info.ApiKeys)
 		if err != nil {
 			c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 			return
@@ -577,7 +570,7 @@ func DeleteKeyHandler(c *gin.Context) {
 			return
 		}
 		delete(keyMaps, keyName)
-		buf, err := storage.EncodeAPIKeys(keyMaps)
+		buf, err := storage.EncodeAPIKeySecrets(keyMaps)
 		if err != nil {
 			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 			return
@@ -1153,7 +1146,7 @@ func GetKeyListHandler(c *gin.Context) {
 	}
 	var out []map[string]interface{}
 	if len(info.ApiKeys) > 0 {
-		keyResp, err := storage.DecodeAPIKeys(info.ApiKeys)
+		keyResp, err := storage.DecodeAPIKeySecrets(info.ApiKeys)
 		if err != nil {
 			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 			return
@@ -1162,6 +1155,7 @@ func GetKeyListHandler(c *gin.Context) {
 			item := make(map[string]interface{})
 			item["name"] = k
 			item["key"] = v.APIKey
+			item["secret"] = v.APISecret
 			item["time"] = v.CreatedTime
 			out = append(out, item)
 		}
@@ -1479,6 +1473,7 @@ func MoveAssetToGroupHandler(c *gin.Context) {
 
 	err = dao.UpdateAssetGroup(c.Request.Context(), userId, hash, areaId, groupId)
 	if err != nil {
+
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}

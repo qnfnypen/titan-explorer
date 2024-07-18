@@ -39,3 +39,10 @@ type UserAPIKeysInfo struct {
 	CreatedTime time.Time
 	APIKey      string
 }
+
+// UserAPIKeySecretInfo 用户 api key secret信息
+type UserAPIKeySecretInfo struct {
+	APIKey      string
+	APISecret   string
+	CreatedTime time.Time
+}

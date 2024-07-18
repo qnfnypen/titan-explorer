@@ -76,3 +76,28 @@ func EncodeAPIKeys(apiKeys map[string]UserAPIKeysInfo) ([]byte, error) {
 
 	return buffer.Bytes(), nil
 }
+
+// DecodeAPIKeySecrets 解码用户 api key secrets
+func DecodeAPIKeySecrets(buf []byte) (map[string]UserAPIKeySecretInfo, error) {
+	apiKeys := make(map[string]UserAPIKeySecretInfo)
+
+	buffer := bytes.NewBuffer(buf)
+	dec := gob.NewDecoder(buffer)
+	err := dec.Decode(&apiKeys)
+	if err != nil {
+		return nil, err
+	}
+	return apiKeys, nil
+}
+
+// EncodeAPIKeySecrets 编码用户 api key secrets
+func EncodeAPIKeySecrets(apiKeys map[string]UserAPIKeySecretInfo) ([]byte, error) {
+	var buffer bytes.Buffer
+	enc := gob.NewEncoder(&buffer)
+	err := enc.Encode(apiKeys)
+	if err != nil {
+		return nil, err
+	}
+
+	return buffer.Bytes(), nil
+}
