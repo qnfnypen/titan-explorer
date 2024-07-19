@@ -62,6 +62,7 @@ CREATE TABLE user_asset (
 `expiration` DATETIME DEFAULT CURRENT_TIMESTAMP,
 `password` VARCHAR(128) DEFAULT '' ,		
 `group_id` INT DEFAULT 0,
+`is_sync` BOOLEAN DEFAULT true,
 PRIMARY KEY (`hash`,`user_id`,`area_id`),
 KEY `idx_user_id` (`user_id`),
 KEY `idx_group_id` (`group_id`)

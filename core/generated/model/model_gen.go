@@ -621,6 +621,7 @@ type UserAsset struct {
 	TotalSize   int64     `db:"total_size"`
 	Password    string    `db:"password"`
 	GroupID     int64     `db:"group_id"`
+	IsSync 		bool      `db:"is_sync"`
 }
 
 type AssetGroup struct {

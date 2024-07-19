@@ -12,6 +12,8 @@ import (
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/oplog"
+	"github.com/gnasnik/titan-explorer/core/oprds"
+	"github.com/gnasnik/titan-explorer/job"
 	"github.com/gnasnik/titan-explorer/pkg/oss"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/spf13/viper"
@@ -52,12 +54,14 @@ func main() {
 	}
 
 	oplog.Subscribe(context.Background())
+	oprds.Init()
 
 	srv, err := api.NewServer(cfg)
 	if err != nil {
 		log.Fatalf("create api server: %v\n", err)
 	}
 	go srv.Run()
+	job.SyncShedulersAsset()
 
 	signal.Notify(OsSignal, syscall.SIGINT, syscall.SIGTERM)
 	_ = <-OsSignal

@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -42,16 +43,32 @@ type (
 	}
 )
 
+func getgetAreaIDs(c *gin.Context) []string {
+	var aids []string
+
+	areaIDs := c.QueryArray("area_id")
+	for _, v := range areaIDs {
+		if strings.TrimSpace(v) != "" {
+			aids = append(aids, v)
+		}
+	}
+	if len(aids) == 0 {
+		aids = append(aids, GetDefaultTitanCandidateEntrypointInfo(), "NorthAmerica-UnitedStates-Ohio-Columbus")
+	}
+
+	return aids
+}
+
 func getAreaID(c *gin.Context) string {
 	areaID := c.Query("area_id")
-	if areaID == "" {
+	if strings.TrimSpace(areaID) == "" {
 		areaID = GetDefaultTitanCandidateEntrypointInfo()
 	}
 
 	return areaID
 }
 
-func listAssets(ctx context.Context, sCli api.Scheduler, uid string, page, size, groupID int) (*ListAssetRecordRsp, error) {
+func listAssets(ctx context.Context, uid string, page, size, groupID int) (*ListAssetRecordRsp, error) {
 	uInfo, err := dao.GetUserByUsername(ctx, uid)
 	if err != nil {
 		return nil, fmt.Errorf("get user's info error:%w", err)
@@ -66,6 +83,11 @@ func listAssets(ctx context.Context, sCli api.Scheduler, uid string, page, size,
 		// 将 hash 转换为 cid
 		cid, err := storage.HashToCID(info.Hash)
 		if err != nil {
+			continue
+		}
+		sCli, err := getSchedulerClient(ctx, info.AreaID)
+		if err != nil {
+			log.Errorf("getSchedulerClient err: %s", err.Error())
 			continue
 		}
 		record, err := sCli.GetAssetRecord(ctx, cid)
@@ -129,7 +151,7 @@ func getAssetStatus(ctx context.Context, uid, cid, areaID string) (*types.AssetS
 	return resp, nil
 }
 
-func listAssetSummary(ctx context.Context, sCli api.Scheduler, uid string, parent, page, size int) (*ListAssetSummaryRsp, error) {
+func listAssetSummary(ctx context.Context, uid string, parent, page, size int) (*ListAssetSummaryRsp, error) {
 	resp := new(ListAssetSummaryRsp)
 	offset := (page - 1) * size
 	groupRsp, err := dao.ListAssetGroupForUser(ctx, uid, parent, size, offset)
@@ -153,7 +175,7 @@ func listAssetSummary(ctx context.Context, sCli api.Scheduler, uid string, paren
 		aOffset = 0
 	}
 
-	assetRsp, err := listAssets(ctx, sCli, uid, page, size, parent)
+	assetRsp, err := listAssets(ctx, uid, page, size, parent)
 	if err != nil {
 		return nil, err
 	}
@@ -165,4 +187,37 @@ func listAssetSummary(ctx context.Context, sCli api.Scheduler, uid string, paren
 	resp.Total += assetRsp.Total
 
 	return resp, nil
+}
+
+// SyncShedulers 同步调度器数据
+func SyncShedulers(ctx context.Context, sCli api.Scheduler, nodeID, cid string, size int64, areaIds []string) ([]string, error) {
+	zStrs := make([]string, 0)
+	if len(areaIds) == 0 {
+		return zStrs, nil
+	}
+
+	info, err := sCli.GenerateTokenForDownloadSource(ctx, nodeID, cid)
+	if err != nil {
+		log.Errorf("generate token for download source error:%w", err)
+		return zStrs, nil
+	}
+	for _, v := range areaIds {
+		scli, err := getSchedulerClient(ctx, v)
+		if err != nil {
+			log.Errorf("getSchedulerClient error: %v", err)
+			continue
+		}
+		err = scli.CreateSyncAsset(ctx, &types.CreateSyncAssetReq{
+			AssetCID:     cid,
+			AssetSize:    size,
+			DownloadInfo: info,
+		})
+		if err != nil {
+			log.Errorf("GetUserAssetByAreaIDs error: %v", err)
+			continue
+		}
+		zStrs = append(zStrs, v)
+	}
+
+	return zStrs, nil
 }

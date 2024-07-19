@@ -18,6 +18,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/core/oprds"
 	"github.com/gnasnik/titan-explorer/core/statistics"
 	"github.com/gnasnik/titan-explorer/core/storage"
 )
@@ -297,6 +298,7 @@ func GetUserVipInfoHandler(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"vip": user.EnableVIP,
+		"uid": username,
 	}))
 	return
 }
@@ -364,7 +366,7 @@ func CreateAssetHandler(c *gin.Context) {
 	// userId := c.Query("user_id")
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
-	areaId := getAreaID(c)
+	areaIds := getgetAreaIDs(c)
 
 	user, err := dao.GetUserByUsername(c.Request.Context(), userId)
 	if err != nil {
@@ -373,7 +375,7 @@ func CreateAssetHandler(c *gin.Context) {
 		return
 	}
 
-	log.Debugf("CreateAssetHandler clientIP:%s, areaId:%s\n", c.ClientIP(), areaId)
+	log.Debugf("CreateAssetHandler clientIP:%s, areaId:%v\n", c.ClientIP(), areaIds)
 
 	var createAssetReq types.CreateAssetReq
 	createAssetReq.AssetName = c.Query("asset_name")
@@ -384,14 +386,6 @@ func CreateAssetHandler(c *gin.Context) {
 	createAssetReq.AssetSize = formatter.Str2Int64(c.Query("asset_size"))
 	createAssetReq.GroupID, _ = strconv.Atoi(c.Query("group_id"))
 
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	if err != nil {
-		log.Errorf("CreateAssetHandler getSchedulerClient error: %v", err)
-		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-			return
-		}
-	}
 	// 获取文件hash
 	hash, err := storage.CIDToHash(createAssetReq.AssetCID)
 	if err != nil {
@@ -399,8 +393,12 @@ func CreateAssetHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	ainfo, _ := dao.GetUserAsset(c.Request.Context(), hash, userId, areaId)
-	if ainfo != nil && ainfo.UserID != "" {
+	notExistsAids, err := dao.GetUserAssetNotAreaIDs(c.Request.Context(), hash, userId, areaIds)
+	if err != nil {
+		log.Errorf("GetUserAssetByAreaIDs error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	}
+	if len(notExistsAids) == 0 {
 		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
 		return
 	}
@@ -408,6 +406,16 @@ func CreateAssetHandler(c *gin.Context) {
 	if user.TotalStorageSize-user.UsedStorageSize < createAssetReq.AssetSize {
 		c.JSON(http.StatusOK, respErrorCode(int(terrors.UserStorageSizeNotEnough), c))
 		return
+	}
+
+	// 调用调度器
+	schedulerClient, err := getSchedulerClient(c.Request.Context(), notExistsAids[0])
+	if err != nil {
+		log.Errorf("CreateAssetHandler getSchedulerClient error: %v", err)
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			return
+		}
 	}
 	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{
 		UserID: userId,
@@ -430,20 +438,30 @@ func CreateAssetHandler(c *gin.Context) {
 		return
 	}
 	if len(createAssetRsp.List) == 0 {
+		log.Errorf("createAssetRsp.List: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+	// 判断是否需要同步调度器信息
+	if len(notExistsAids) > 1 {
+		err = oprds.GetClient().PushSchedulerInfo(c.Request.Context(), &oprds.Payload{UserID: userId, CID: createAssetReq.AssetCID, Hash: hash, AreaID: notExistsAids[0]})
+		if err != nil {
+			log.Errorf("PushSchedulerInfo error: %v", err)
+		}
+	}
+
+	// aids, _ := syncShedulers(c.Request.Context(), schedulerClient, createAssetReq.NodeID, createAssetReq.AssetCID, createAssetReq.AssetSize, areaIds)
+	// aids = append(aids, areaIds[0])
 
 	if err := dao.AddAssetAndUpdateSize(c.Request.Context(), &model.UserAsset{
 		UserID:      userId,
 		Hash:        hash,
-		AreaID:      areaId,
 		AssetName:   createAssetReq.AssetName,
 		AssetType:   createAssetReq.AssetType,
 		CreatedTime: time.Now(),
 		TotalSize:   createAssetReq.AssetSize,
 		GroupID:     int64(createAssetReq.GroupID),
-	}); err != nil {
+	}, notExistsAids); err != nil {
 		log.Errorf("CreateAssetHandler AddAsset error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -543,7 +561,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 		CreatedTime: time.Now(),
 		TotalSize:   createAssetReq.AssetSize,
 		GroupID:     createAssetReq.GroupID,
-	}); err != nil {
+	}, nil); err != nil {
 		log.Errorf("CreateAssetHandler dao.AddAssetAndUpdateSize() error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -827,12 +845,6 @@ func GetAssetListHandler(c *gin.Context) {
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
-	areaId := getAreaID(c)
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-		return
-	}
 	// createAssetRsp, err := schedulerClient.ListAssets(c.Request.Context(), userId, pageSize, (page-1)*pageSize, groupId)
 	// if err != nil {
 	// 	if webErr, ok := err.(*api.ErrWeb); ok {
@@ -844,7 +856,7 @@ func GetAssetListHandler(c *gin.Context) {
 	// 	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 	// 	return
 	// }
-	createAssetRsp, err := listAssets(c.Request.Context(), schedulerClient, userId, page, pageSize, groupId)
+	createAssetRsp, err := listAssets(c.Request.Context(), userId, page, pageSize, groupId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -878,17 +890,12 @@ func GetAssetAllListHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
-	areaId := getAreaID(c)
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-		return
-	}
+
 	var total int64
 	page, size := 1, 100
 	var listRsp []*AssetOverview
 loop:
-	createAssetRsp, err := listAssets(c.Request.Context(), schedulerClient, userId, size, size, groupId)
+	createAssetRsp, err := listAssets(c.Request.Context(), userId, size, size, groupId)
 	if err != nil {
 		log.Errorf("api ListAssets: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -1225,8 +1232,9 @@ func GetAssetInfoHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list":  deviceIds,
-		"total": len(deviceIds),
+		"list":   deviceIds,
+		"record": assetRsp,
+		"total":  len(deviceIds),
 	}))
 }
 
@@ -1480,13 +1488,8 @@ func GetAssetGroupListHandler(c *gin.Context) {
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 	parentId, _ := strconv.Atoi(c.Query("parent"))
-	areaId := getAreaID(c)
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-		return
-	}
-	assetSummary, err := listAssetSummary(c.Request.Context(), schedulerClient, userId, parentId, page, pageSize)
+
+	assetSummary, err := listAssetSummary(c.Request.Context(), userId, parentId, page, pageSize)
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))

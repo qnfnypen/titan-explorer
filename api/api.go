@@ -3,6 +3,10 @@ package api
 import (
 	"context"
 	"fmt"
+	"image/color"
+	"net/http"
+	"strings"
+
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/client"
 	config2 "github.com/TestsLing/aj-captcha-go/config"
@@ -14,9 +18,6 @@ import (
 	"github.com/gnasnik/titan-explorer/core/statistics"
 	"github.com/go-redis/redis/v9"
 	"github.com/pkg/errors"
-	"image/color"
-	"net/http"
-	"strings"
 )
 
 var (
@@ -111,6 +112,11 @@ func getSchedulerClient(ctx context.Context, areaId string) (api.Scheduler, erro
 	}
 
 	return schedulerClient, nil
+}
+
+// GetSchedulerClient getSchedulerClient的外部调用方式
+func GetSchedulerClient(ctx context.Context, areaId string) (api.Scheduler, error) {
+	return getSchedulerClient(ctx, areaId)
 }
 
 func InitCaptcha() {

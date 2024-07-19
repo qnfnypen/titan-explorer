@@ -32,20 +32,32 @@ type (
 		Password    string    `db:"password"`
 		GroupID     int64     `db:"group_id"`
 		VisitCount  int64     `db:"visit_count"`
+		IsSync      bool      `db:"is_sync" json:"-"`
 	}
 )
 
 // AddAssetAndUpdateSize 添加文件信息并修改使用的storage存储空间
-func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset) error {
+func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset, areaIDs []string) error {
 	tx, err := DB.Beginx()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
+	if len(areaIDs) == 0 && asset.AreaID != "" {
+		areaIDs = []string{asset.AreaID}
+	}
+
 	// 添加文件记录
-	query, args, err := squirrel.Insert(tableUserAsset).Columns("user_id,asset_name,asset_type,total_size,group_id,area_id,hash,created_time,expiration").
-		Values(asset.UserID, asset.AssetName, asset.AssetType, asset.TotalSize, asset.GroupID, asset.AreaID, asset.Hash, asset.CreatedTime, asset.Expiration).ToSql()
+	sbuilder := squirrel.Insert(tableUserAsset).Columns("user_id,asset_name,asset_type,total_size,group_id,area_id,hash,created_time,expiration,is_sync")
+	for i, v := range areaIDs {
+		isSync := false
+		if i == 0 {
+			isSync = true
+		}
+		sbuilder = sbuilder.Values(asset.UserID, asset.AssetName, asset.AssetType, asset.TotalSize, asset.GroupID, v, asset.Hash, asset.CreatedTime, asset.Expiration, isSync)
+	}
+	query, args, err := sbuilder.ToSql()
 	if err != nil {
 		return fmt.Errorf("generate insert asset sql error:%w", err)
 	}
@@ -53,8 +65,9 @@ func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset) error {
 	if err != nil {
 		return err
 	}
+	totolSize := asset.TotalSize * int64(len(areaIDs))
 	// 修改用户storage已使用记录
-	query, args, err = squirrel.Update(tableNameUser).Set("used_storage_size", squirrel.Expr("used_storage_size + ?", asset.TotalSize)).Where("username = ?", asset.UserID).ToSql()
+	query, args, err = squirrel.Update(tableNameUser).Set("used_storage_size", squirrel.Expr("used_storage_size + ?", totolSize)).Where("username = ?", asset.UserID).ToSql()
 	if err != nil {
 		return fmt.Errorf("generate update users sql error:%w", err)
 	}
@@ -310,4 +323,82 @@ func GetUserAsset(ctx context.Context, hash, uid, areaID string) (*UserAssetDeta
 		return nil, err
 	}
 	return &asset, err
+}
+
+// GetUserAssetNotAreaIDs 返回不存在的area_id
+func GetUserAssetNotAreaIDs(ctx context.Context, hash, uid string, areaID []string) ([]string, error) {
+	var (
+		aids, notExistAids []string
+	)
+
+	query, args, err := squirrel.Select("area_id").From(tableUserAsset).Where(squirrel.Eq{
+		"area_id": areaID,
+		"user_id": uid,
+		"hash":    hash,
+	}).ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("generate get asset sql error:%w", err)
+	}
+
+	err = DB.SelectContext(ctx, &aids, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	notExistAids = getNotExists(areaID, aids)
+
+	return notExistAids, nil
+}
+
+func getNotExists(pAids, nAids []string) []string {
+	var (
+		notExistAids []string
+		aidMaps      = make(map[string]int)
+	)
+
+	for _, v := range pAids {
+		aidMaps[v] = 1
+	}
+	for _, v := range nAids {
+		if _, ok := aidMaps[v]; ok {
+			delete(aidMaps, v)
+		}
+	}
+	for k := range aidMaps {
+		notExistAids = append(notExistAids, k)
+	}
+
+	return notExistAids
+}
+
+// GetUnSyncAreaIDs 获取未同步的区域
+func GetUnSyncAreaIDs(ctx context.Context, uid, hash string) ([]string, error) {
+	var aids []string
+
+	query, args, err := squirrel.Select("area_id").From(tableUserAsset).Where("user_id = ? AND hash = ? AND is_sync = false", uid, hash).ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("generate get asset sql error:%w", err)
+	}
+
+	err = DB.SelectContext(ctx, &aids, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return aids, nil
+}
+
+// UpdateUnSyncAreaIDs 更新未同步的区域
+func UpdateUnSyncAreaIDs(ctx context.Context, uid, hash string, aids []string) error {
+	query, args, err := squirrel.Update(tableUserAsset).Set("is_sync", true).Where(squirrel.Eq{
+		"area_id": aids,
+		"user_id": uid,
+		"hash":    hash,
+	}).ToSql()
+	if err != nil {
+		return fmt.Errorf("generate get asset sql error:%w", err)
+	}
+
+	_, err = DB.ExecContext(ctx, query, args...)
+	return err
 }
