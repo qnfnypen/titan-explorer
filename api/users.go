@@ -1097,13 +1097,14 @@ func GetNoticesHandler(c *gin.Context) {
 }
 
 func AdsClickIncrHandler(c *gin.Context) {
-	id := c.GetInt64("id")
+	idStr := c.Query("id")
+	id, _ := strconv.Atoi(idStr)
 	if id == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
-	ads, err := dao.AdsFindOne(c.Request.Context(), id)
+	ads, err := dao.AdsFindOne(c.Request.Context(), int64(id))
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.JSON(http.StatusNotFound, gin.H{"error": "ads not found"})
