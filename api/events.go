@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/terrors"
 	"github.com/Filecoin-Titan/titan/api/types"
+	"github.com/Filecoin-Titan/titan/node/cidutil"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
@@ -710,6 +712,20 @@ func ShareAssetsHandler(c *gin.Context) {
 	userId := c.Query("user_id")
 	cid := c.Query("asset_cid")
 	areaId := getAreaID(c)
+
+	hash, err := cidutil.CIDToHash(cid)
+	if err != nil {
+		log.Error("Invalid asset CID: ", cid)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+	userAsset, err := dao.GetUserAsset(c.Request.Context(), hash, userId, areaId)
+	if err != nil {
+		log.Error("Failed to get user asset: ", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -731,8 +747,14 @@ func ShareAssetsHandler(c *gin.Context) {
 	} else {
 		redirect = true
 	}
+
+	for i := range urls[cid] {
+		urls[cid][i] = fmt.Sprintf("%s&filename=%s", urls[cid][i], userAsset.AssetName)
+	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"asset_cid": cid,
+		"size":      userAsset.TotalSize,
 		"url":       urls[cid],
 		"redirect":  redirect,
 	}))

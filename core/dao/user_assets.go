@@ -313,8 +313,13 @@ func UpdateAssetGroup(ctx context.Context, userID, hash, areaID string, groupID 
 func GetUserAsset(ctx context.Context, hash, uid, areaID string) (*UserAssetDetail, error) {
 	var asset UserAssetDetail
 
-	query, args, err := squirrel.Select("ua.*,IFNULL(uav.count,0) AS visit_count").From(fmt.Sprintf("%s AS ua", tableUserAsset)).LeftJoin(fmt.Sprintf("%s AS uav ON ua.hash=uav.hash", tableUserAssetVisit)).
-		Where("ua.user_id = ? AND ua.hash = ? AND ua.area_id = ?", uid, hash, areaID).ToSql()
+	sb := squirrel.Select("ua.*,IFNULL(uav.count,0) AS visit_count").From(fmt.Sprintf("%s AS ua", tableUserAsset)).LeftJoin(fmt.Sprintf("%s AS uav ON ua.hash=uav.hash", tableUserAssetVisit)).
+		Where("ua.user_id = ? AND ua.hash = ?", uid, hash)
+	if areaID != "" {
+		sb = sb.Where("ua.area_id = ?", areaID)
+	}
+
+	query, args, err := sb.ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("generate get asset sql error:%w", err)
 	}
