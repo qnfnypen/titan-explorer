@@ -377,14 +377,13 @@ func CreateAssetHandler(c *gin.Context) {
 
 	log.Debugf("CreateAssetHandler clientIP:%s, areaId:%v\n", c.ClientIP(), areaIds)
 
-	var createAssetReq types.CreateAssetReq
+	var createAssetReq createAssetRequest
 	createAssetReq.AssetName = c.Query("asset_name")
 	createAssetReq.AssetCID = c.Query("asset_cid")
 	createAssetReq.NodeID = c.Query("node_id")
-	createAssetReq.UserID = userId
 	createAssetReq.AssetType = c.Query("asset_type")
 	createAssetReq.AssetSize = formatter.Str2Int64(c.Query("asset_size"))
-	createAssetReq.GroupID, _ = strconv.Atoi(c.Query("group_id"))
+	createAssetReq.GroupID, _ = strconv.ParseInt(c.Query("group_id"), 10, 64)
 
 	// 获取文件hash
 	hash, err := storage.CIDToHash(createAssetReq.AssetCID)
@@ -418,16 +417,7 @@ func CreateAssetHandler(c *gin.Context) {
 		}
 	}
 	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{
-		UserID: userId,
-		AssetProperty: types.AssetProperty{
-			AssetCID:  createAssetReq.AssetCID,
-			AssetSize: createAssetReq.AssetSize,
-			AssetName: createAssetReq.AssetName,
-			AssetType: createAssetReq.AssetType,
-			NodeID:    createAssetReq.NodeID,
-			Password:  createAssetReq.Password,
-			GroupID:   createAssetReq.GroupID,
-		}})
+		UserID: userId, AssetCID: createAssetReq.AssetCID, AssetSize: createAssetReq.AssetSize, NodeID: createAssetReq.NodeID})
 	if err != nil {
 		log.Errorf("CreateAssetHandler CreateAsset error: %v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
@@ -533,15 +523,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 
 	log.Debugf("CreateAssetHandler clientIP:%s, areaId:%s\n", c.ClientIP(), createAssetReq.AreaID)
 	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{
-		UserID: username,
-		AssetProperty: types.AssetProperty{
-			AssetCID:  createAssetReq.AssetCID,
-			AssetSize: createAssetReq.AssetSize,
-			AssetName: createAssetReq.AssetName,
-			AssetType: createAssetReq.AssetType,
-			NodeID:    createAssetReq.NodeID,
-			GroupID:   int(createAssetReq.GroupID),
-		}})
+		UserID: username, AssetCID: createAssetReq.AssetCID, AssetSize: createAssetReq.AssetSize, NodeID: createAssetReq.NodeID})
 	if err != nil {
 		log.Errorf("CreateAssetHandler schedulerClient.CreateAsset() error: %+v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
