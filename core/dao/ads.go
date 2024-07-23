@@ -77,8 +77,8 @@ func AdsAddCtx(ctx context.Context, ads *model.Ads) error {
 }
 
 func AdsDelCtx(ctx context.Context, id int64) error {
-	query := `DELETE FROM ads where id = :id`
-	_, err := DB.NamedExecContext(ctx, query, map[string]interface{}{"id": id})
+	query := `DELETE FROM ads where id = ?`
+	_, err := DB.NamedExecContext(ctx, query, id)
 	return err
 }
 
@@ -91,7 +91,7 @@ func AdsUpdateCtx(ctx context.Context, ads *model.Ads) error {
 
 func AdsFindOne(ctx context.Context, id int64) (*model.Ads, error) {
 	var out model.Ads
-	query := "SELECT * FROM ads where id = :id"
-	err := DB.GetContext(ctx, &out, query, map[string]interface{}{"id": id})
+	query := "SELECT * FROM ads where id = ?"
+	err := DB.GetContext(ctx, &out, query, id)
 	return &out, err
 }

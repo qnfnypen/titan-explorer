@@ -1110,12 +1110,14 @@ func AdsClickIncrHandler(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "ads not found"})
 			return
 		} else {
+			log.Errorf("Error: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
 			return
 		}
 	}
 	ads.Hits++
 	if err := dao.AdsUpdateCtx(c.Request.Context(), ads); err != nil {
+		log.Errorf("Error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
 		return
 	}
