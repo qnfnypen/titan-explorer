@@ -143,7 +143,11 @@ type DeviceInfo struct {
 	IsTestNode            bool    `db:"is_test_node" json:"is_test_node"`
 	OnlineIncentiveProfit float64 `db:"online_incentive_profit" json:"online_incentive_profit"`
 	OffLineTime           float64 `db:"-" json:"offline_time"`
-	OffLineRate           float64 `db:"-" json:"offline_rate"`
+	OnLineRate            float64 `db:"-" json:"online_rate"`
+	LockProfit            float64 `db:"-" json:"lock_profit"`
+	UnLockProfit          float64 `db:"-" json:"unlock_profit"`
+	Mx 					  float64 `db:"-" json:"mx"`
+	PenaltyProfit         float64 `db:"-" json:"penalty_profit"`
 
 	Location
 }

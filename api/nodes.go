@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Filecoin-Titan/titan/api/types"
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/config"
@@ -382,6 +383,25 @@ func GetQueryInfoHandler(c *gin.Context) {
 		log.Errorf("get device by user id info list: %v", err)
 	}
 
+	for _, device := range deviceInfos {
+		allTime := decimal.NewFromInt(time.Now().Unix() - device.BoundAt.Unix()).Div(decimal.NewFromFloat(60))
+		offLineTime := allTime.Sub(decimal.NewFromFloat(device.OnlineTime))
+		onLineRate := decimal.NewFromFloat(device.OnlineTime).Div(allTime)
+		device.OffLineTime, _ = offLineTime.Round(0).Float64()
+		device.OnLineRate, _ = onLineRate.Round(2).Float64()
+		if device.OnlineTime/24 > 24 {
+			device.UnLockProfit = device.CumulativeProfit
+		} else {
+			device.LockProfit = device.CumulativeProfit
+		}
+		nodeInfo, err := getNodeInfoByScheduler(c.Request.Context(), device.DeviceID, device.AreaID)
+		if err != nil {
+			continue
+		}
+		device.Mx = nodeInfo.Mx
+		device.PenaltyProfit = nodeInfo.PenaltyProfit
+	}
+
 	if total > 0 {
 		c.JSON(http.StatusOK, respJSON(JsonObject{
 			"list":  maskIPAddress(deviceInfos),
@@ -411,9 +431,20 @@ func GetQueryInfoHandler(c *gin.Context) {
 		dao.TranslateIPLocation(c.Request.Context(), device, lang)
 		allTime := decimal.NewFromInt(time.Now().Unix() - device.BoundAt.Unix()).Div(decimal.NewFromFloat(60))
 		offLineTime := allTime.Sub(decimal.NewFromFloat(device.OnlineTime))
-		offLineRate := offLineTime.Div(allTime)
+		onLineRate := decimal.NewFromFloat(device.OnlineTime).Div(allTime)
 		device.OffLineTime, _ = offLineTime.Round(0).Float64()
-		device.OffLineRate, _ = offLineRate.Round(2).Float64()
+		device.OnLineRate, _ = onLineRate.Round(2).Float64()
+		if device.OnlineTime/24 > 24 {
+			device.UnLockProfit = device.CumulativeProfit
+		} else {
+			device.LockProfit = device.CumulativeProfit
+		}
+		nodeInfo, err := getNodeInfoByScheduler(c.Request.Context(), device.DeviceID, device.AreaID)
+		if err != nil {
+			continue
+		}
+		device.Mx = nodeInfo.Mx
+		device.PenaltyProfit = nodeInfo.PenaltyProfit
 
 		maskLocation(device, lang)
 	}
@@ -887,6 +918,24 @@ func getNodeInfoFromScheduler(ctx context.Context, id string, areaId string) (*m
 	}
 
 	return nil, fmt.Errorf("device not found")
+}
+
+func getNodeInfoByScheduler(ctx context.Context, id string, areaId string) (*types.NodeInfo, error) {
+	if areaId == "" {
+		areaId = GetDefaultTitanCandidateEntrypointInfo()
+	}
+
+	schedulerClient, err := getSchedulerClient(ctx, areaId)
+	if err != nil {
+		return nil, err
+	}
+
+	nodeInfo, err := schedulerClient.GetNodeInfo(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &nodeInfo, nil
 }
 
 func GetDeviceProfileHandler(c *gin.Context) {
