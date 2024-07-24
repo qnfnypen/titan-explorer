@@ -142,6 +142,8 @@ type DeviceInfo struct {
 	TitanDiskUsage        float64 `db:"titan_disk_usage" json:"titan_disk_usage"`
 	IsTestNode            bool    `db:"is_test_node" json:"is_test_node"`
 	OnlineIncentiveProfit float64 `db:"online_incentive_profit" json:"online_incentive_profit"`
+	OffLineTime           float64 `db:"-" json:"offline_time"`
+	OffLineRate           float64 `db:"-" json:"offline_rate"`
 
 	Location
 }

@@ -23,6 +23,7 @@ import (
 	"github.com/go-redis/redis/v9"
 	"github.com/golang-module/carbon/v2"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 func CacheAllAreas(ctx context.Context, info []string) error {
@@ -408,6 +409,12 @@ func GetQueryInfoHandler(c *gin.Context) {
 
 	for _, device := range deviceInfos {
 		dao.TranslateIPLocation(c.Request.Context(), device, lang)
+		allTime := decimal.NewFromInt(time.Now().Unix() - device.BoundAt.Unix()).Div(decimal.NewFromFloat(60))
+		offLineTime := allTime.Sub(decimal.NewFromFloat(device.OnlineTime))
+		offLineRate := offLineTime.Div(allTime)
+		device.OffLineTime, _ = offLineTime.Round(0).Float64()
+		device.OffLineRate, _ = offLineRate.Round(2).Float64()
+
 		maskLocation(device, lang)
 	}
 
