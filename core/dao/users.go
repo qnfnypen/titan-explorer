@@ -290,3 +290,16 @@ func AllUsers(ctx context.Context) ([]*model.User, error) {
 	}
 	return users, nil
 }
+
+func UpdateUserTotalSize(ctx context.Context, un string, ts int64) error {
+	query, args, err := squirrel.Update(tableNameUser).Set("total_storage_size", ts).Where("username = ?", un).ToSql()
+	if err != nil {
+		return fmt.Errorf("generate update user sql error:%w", err)
+	}
+	_, err = DB.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -407,3 +407,17 @@ func UpdateUnSyncAreaIDs(ctx context.Context, uid, hash string, aids []string) e
 	_, err = DB.ExecContext(ctx, query, args...)
 	return err
 }
+
+// AddVisitCount 增加文件访问次数
+func AddVisitCount(ctx context.Context, hash string) error {
+	if hash == "" {
+		return nil
+	}
+	query, args, err := squirrel.Insert(tableUserAssetVisit).Columns("hash", "count").Values(hash, 0).Suffix("ON DUPLICATE KEY UPDATE count = count + 1").ToSql()
+	if err != nil {
+		return fmt.Errorf("generate asset's visit count sql error:%w", err)
+	}
+
+	_, err = DB.ExecContext(ctx, query, args...)
+	return err
+}

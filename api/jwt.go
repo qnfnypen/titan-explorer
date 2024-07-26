@@ -214,6 +214,13 @@ func loginByPassword(c *gin.Context, username, password string) (interface{}, er
 		return nil, errors.NewErrorCode(errors.InternalServer, c)
 	}
 
+	if user.TotalStorageSize == 0 {
+		err = dao.UpdateUserTotalSize(c.Request.Context(), user.Username, 100*1024*1024)
+		if err != nil {
+			log.Errorf(err.Error())
+		}
+	}
+
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PassHash), []byte(password)); err != nil {
 		return nil, errors.NewErrorCode(errors.InvalidPassword, c)
 	}

@@ -726,6 +726,8 @@ func ShareAssetsHandler(c *gin.Context) {
 		return
 	}
 
+	dao.AddVisitCount(c.Request.Context(), hash)
+
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -773,6 +775,7 @@ func ShareLinkHandler(c *gin.Context) {
 	username := c.Query("username")
 	cid := c.Query("cid")
 	url := c.Query("url")
+	areaId := getAreaID(c)
 	if cid == "" || url == "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
@@ -783,7 +786,7 @@ func ShareLinkHandler(c *gin.Context) {
 	link.LongLink = url
 	shortLink := dao.GetShortLink(c.Request.Context(), url)
 	if shortLink == "" {
-		link.ShortLink = "/link?" + "cid=" + cid
+		link.ShortLink = "/link?" + "cid=" + cid + "&area_id=" + areaId
 		shortLink = link.ShortLink
 		err := dao.CreateLink(c.Request.Context(), &link)
 		if err != nil {
@@ -791,7 +794,12 @@ func ShareLinkHandler(c *gin.Context) {
 			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 			return
 		}
+	} else {
+		if !strings.Contains(shortLink, "&area_id=") {
+			shortLink = strings.TrimSuffix(shortLink, "&") + "&area_id=" + areaId
+		}
 	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"url": shortLink,
 	}))
@@ -932,6 +940,7 @@ func GetAssetStatusHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"data": statusRsp,
 	}))

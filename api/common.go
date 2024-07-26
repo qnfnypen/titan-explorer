@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	maxCountOfVisitAsset     int64 = 20
-	maxCountOfVisitShareLink int64 = 20
+	maxCountOfVisitAsset     int64 = 10
+	maxCountOfVisitShareLink int64 = 10
 )
 
 type (
@@ -53,7 +53,7 @@ func getgetAreaIDs(c *gin.Context) []string {
 		}
 	}
 	if len(aids) == 0 {
-		aids = append(aids, GetDefaultTitanCandidateEntrypointInfo(), "NorthAmerica-UnitedStates-Ohio-Columbus")
+		aids = append(aids, GetDefaultTitanCandidateEntrypointInfo())
 	}
 
 	return aids
@@ -98,8 +98,6 @@ func listAssets(ctx context.Context, uid string, page, size, groupID int) (*List
 
 		if !uInfo.EnableVIP && info.VisitCount >= maxCountOfVisitAsset {
 			info.ShareStatus = 2
-		} else {
-			info.ShareStatus = 1
 		}
 
 		r := &AssetOverview{
@@ -144,9 +142,9 @@ func getAssetStatus(ctx context.Context, uid, cid, areaID string) (*types.AssetS
 	if uInfo.EnableVIP {
 		return resp, nil
 	}
-	// if aInfo.VisitCount >= maxCountOfVisitShareLink {
-	// 	resp.IsVisitOutOfLimit = true
-	// }
+	if aInfo.VisitCount >= maxCountOfVisitShareLink {
+		resp.IsVisitOutOfLimit = true
+	}
 
 	return resp, nil
 }
