@@ -914,7 +914,13 @@ func getNodeInfoFromScheduler(ctx context.Context, id string, areaId string) (*m
 		}
 
 		return statistics.ToDeviceInfo(nodeInfo, areaId), nil
+	}
 
+	for _, schedulerClient := range statistics.Schedulers {
+		nodeInfo, err := schedulerClient.Api.GetNodeInfo(ctx, id)
+		if err == nil {
+			return statistics.ToDeviceInfo(nodeInfo, areaId), nil
+		}
 	}
 
 	return nil, fmt.Errorf("device not found")

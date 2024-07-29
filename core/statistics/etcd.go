@@ -18,6 +18,8 @@ var (
 	SchedulerConfigKeyPrefix = "TITAN::SCHEDULERCFG"
 )
 
+var Schedulers []*Scheduler
+
 type EtcdClient struct {
 	cli *etcdcli.Client
 	// key is etcd key, value is types.SchedulerCfg pointer
@@ -117,6 +119,8 @@ func FetchSchedulersFromEtcd(etcdClient *EtcdClient) ([]*Scheduler, error) {
 	}
 
 	log.Infof("fetch %d schedulers from Etcd", len(out))
+
+	Schedulers = out
 
 	return out, nil
 }
