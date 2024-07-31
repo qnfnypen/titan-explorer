@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -15,6 +16,7 @@ const (
 	tableNameAssetGroup = "user_asset_group"
 	tableUserAsset      = "user_asset"
 	tableUserAssetVisit = "asset_visit_count"
+	tableUserAssetArea  = "user_asset_area"
 )
 
 type (
@@ -22,7 +24,7 @@ type (
 	UserAssetDetail struct {
 		UserID      string    `db:"user_id"`
 		Hash        string    `db:"hash"`
-		AreaID      string    `db:"area_id"`
+		AreaIDs     []string  `db:"-" json:"area_ids"`
 		AssetName   string    `db:"asset_name"`
 		AssetType   string    `db:"asset_type"`
 		ShareStatus int64     `db:"share_status"`
@@ -32,7 +34,7 @@ type (
 		Password    string    `db:"password"`
 		GroupID     int64     `db:"group_id"`
 		VisitCount  int64     `db:"visit_count"`
-		IsSync      bool      `db:"is_sync" json:"-"`
+		// IsSync      bool      `db:"is_sync" json:"-"`
 	}
 )
 
@@ -44,20 +46,13 @@ func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset, areaIDs 
 	}
 	defer tx.Rollback()
 
-	if len(areaIDs) == 0 && asset.AreaID != "" {
-		areaIDs = []string{asset.AreaID}
+	if len(areaIDs) == 0 {
+		return errors.New("area id can not be empty")
 	}
 
 	// 添加文件记录
-	sbuilder := squirrel.Insert(tableUserAsset).Columns("user_id,asset_name,asset_type,total_size,group_id,area_id,hash,created_time,expiration,is_sync")
-	for i, v := range areaIDs {
-		isSync := false
-		if i == 0 {
-			isSync = true
-		}
-		sbuilder = sbuilder.Values(asset.UserID, asset.AssetName, asset.AssetType, asset.TotalSize, asset.GroupID, v, asset.Hash, asset.CreatedTime, asset.Expiration, isSync)
-	}
-	query, args, err := sbuilder.ToSql()
+	query, args, err := squirrel.Insert(tableUserAsset).Columns("user_id,asset_name,asset_type,total_size,group_id,hash,created_time,expiration").
+		Values(asset.UserID, asset.AssetName, asset.AssetType, asset.TotalSize, asset.GroupID, asset.Hash, asset.CreatedTime, asset.Expiration).ToSql()
 	if err != nil {
 		return fmt.Errorf("generate insert asset sql error:%w", err)
 	}
@@ -65,9 +60,25 @@ func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset, areaIDs 
 	if err != nil {
 		return err
 	}
-	totolSize := asset.TotalSize * int64(len(areaIDs))
+	// 添加文件区域
+	abuiler := squirrel.Insert(tableUserAssetArea).Columns("hash,user_id,area_id,is_sync")
+	for i, v := range areaIDs {
+		isSync := false
+		if i == 0 {
+			isSync = true
+		}
+		abuiler = abuiler.Values(asset.Hash, asset.UserID, v, isSync)
+	}
+	query, args, err = abuiler.ToSql()
+	if err != nil {
+		return fmt.Errorf("generate insert asset's area sql error:%w", err)
+	}
+	_, err = tx.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
 	// 修改用户storage已使用记录
-	query, args, err = squirrel.Update(tableNameUser).Set("used_storage_size", squirrel.Expr("used_storage_size + ?", totolSize)).Where("username = ?", asset.UserID).ToSql()
+	query, args, err = squirrel.Update(tableNameUser).Set("used_storage_size", squirrel.Expr("used_storage_size + ?", asset.TotalSize)).Where("username = ?", asset.UserID).ToSql()
 	if err != nil {
 		return fmt.Errorf("generate update users sql error:%w", err)
 	}
@@ -80,14 +91,41 @@ func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset, areaIDs 
 }
 
 // DelAssetAndUpdateSize 删除文件信息并修改使用的storage存储空间
-func DelAssetAndUpdateSize(ctx context.Context, hash, userID, areaID string, size int64) error {
+func DelAssetAndUpdateSize(ctx context.Context, hash, userID string, areaID []string, isNeedDel bool) error {
 	tx, err := DB.Beginx()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 	// 删除文件记录
-	query, args, err := squirrel.Delete(tableUserAsset).Where("hash = ? AND user_id = ? AND area_id = ?", hash, userID, areaID).ToSql()
+	query, args, err := squirrel.Delete(tableUserAssetArea).Where(squirrel.Eq{
+		"area_id": areaID,
+		"user_id": userID,
+		"hash":    hash,
+	}).ToSql()
+	if err != nil {
+		return fmt.Errorf("generate sql error:%w", err)
+	}
+	_, err = tx.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+	// 判断是否需要删除文件记录
+	if !isNeedDel {
+		return nil
+	}
+	// 获取文件尺寸大小
+	var size int64
+	query, args, err = squirrel.Select("total_size").From(tableUserAsset).Where("hash = ? AND user_id = ?", hash, userID).ToSql()
+	if err != nil {
+		return fmt.Errorf("generate sql error:%w", err)
+	}
+	err = tx.GetContext(ctx, &size, query, args...)
+	if err != nil {
+		return err
+	}
+	// 删除文件记录
+	query, args, err = squirrel.Delete(tableUserAsset).Where("hash = ? AND user_id = ?", hash, userID).ToSql()
 	if err != nil {
 		return fmt.Errorf("generate sql error:%w", err)
 	}
@@ -336,7 +374,7 @@ func GetUserAssetNotAreaIDs(ctx context.Context, hash, uid string, areaID []stri
 		aids, notExistAids []string
 	)
 
-	query, args, err := squirrel.Select("area_id").From(tableUserAsset).Where(squirrel.Eq{
+	query, args, err := squirrel.Select("area_id").From(tableUserAssetArea).Where(squirrel.Eq{
 		"area_id": areaID,
 		"user_id": uid,
 		"hash":    hash,
@@ -380,7 +418,7 @@ func getNotExists(pAids, nAids []string) []string {
 func GetUnSyncAreaIDs(ctx context.Context, uid, hash string) ([]string, error) {
 	var aids []string
 
-	query, args, err := squirrel.Select("area_id").From(tableUserAsset).Where("user_id = ? AND hash = ? AND is_sync = false", uid, hash).ToSql()
+	query, args, err := squirrel.Select("area_id").From(tableUserAssetArea).Where("user_id = ? AND hash = ? AND is_sync = false", uid, hash).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("generate get asset sql error:%w", err)
 	}
@@ -395,7 +433,7 @@ func GetUnSyncAreaIDs(ctx context.Context, uid, hash string) ([]string, error) {
 
 // UpdateUnSyncAreaIDs 更新未同步的区域
 func UpdateUnSyncAreaIDs(ctx context.Context, uid, hash string, aids []string) error {
-	query, args, err := squirrel.Update(tableUserAsset).Set("is_sync", true).Where(squirrel.Eq{
+	query, args, err := squirrel.Update(tableUserAssetArea).Set("is_sync", true).Where(squirrel.Eq{
 		"area_id": aids,
 		"user_id": uid,
 		"hash":    hash,
@@ -420,4 +458,49 @@ func AddVisitCount(ctx context.Context, hash string) error {
 
 	_, err = DB.ExecContext(ctx, query, args...)
 	return err
+}
+
+// CheckUserAseetNeedDel 判断文件是否需要删除
+func CheckUserAseetNeedDel(ctx context.Context, hash, uid string, areaID []string) ([]string, bool, error) {
+	var existAids []string
+
+	// 获取文件所有调度器区域
+	aids, err := GetUserAssetAreaIDs(ctx, hash, uid)
+	if err != nil {
+		return nil, false, err
+	}
+	if len(areaID) == 0 {
+		return aids, true, nil
+	}
+	// 获取指定区域中存在的调度器区域
+	query, args, err := squirrel.Select("area_id").From(tableUserAssetArea).Where(squirrel.Eq{
+		"area_id": areaID,
+		"user_id": uid,
+		"hash":    hash,
+	}).ToSql()
+	if err != nil {
+		return nil, false, fmt.Errorf("generate get asset sql error:%w", err)
+	}
+	err = DB.SelectContext(ctx, &existAids, query, args...)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return existAids, len(aids) == len(existAids), nil
+}
+
+// GetUserAssetAreaIDs 获取用户文件的调度器区域
+func GetUserAssetAreaIDs(ctx context.Context, hash, uid string) ([]string, error) {
+	var aids []string
+
+	query, args, err := squirrel.Select("area_id").From(tableUserAssetArea).Where("user_id = ? AND hash = ?", uid, hash).ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("generate get asset sql error:%w", err)
+	}
+	err = DB.SelectContext(ctx, &aids, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return aids, nil
 }

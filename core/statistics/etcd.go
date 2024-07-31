@@ -43,6 +43,15 @@ func NewEtcdClient(addresses []string) (*EtcdClient, error) {
 	return etcdClient, nil
 }
 
+// func LoadSchedulerConfigs() (map[string][]*types.SchedulerCfg, error) {
+// 	cli, err := NewEtcdClient([]string{"47.236.228.34:2379", "8.211.44.79:2379", "8.209.205.85:2379"})
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return cli.loadSchedulerConfigs()
+// }
+
 func (ec *EtcdClient) loadSchedulerConfigs() (map[string][]*types.SchedulerCfg, error) {
 	resp, err := ec.cli.GetServers(types.NodeScheduler.String())
 	if err != nil {

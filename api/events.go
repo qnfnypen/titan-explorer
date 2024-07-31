@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
@@ -368,7 +369,7 @@ func CreateAssetHandler(c *gin.Context) {
 	// userId := c.Query("user_id")
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
-	areaIds := getgetAreaIDs(c)
+	areaIds := getAreaIDs(c)
 
 	user, err := dao.GetUserByUsername(c.Request.Context(), userId)
 	if err != nil {
@@ -537,15 +538,15 @@ func CreateAssetPostHandler(c *gin.Context) {
 	}
 
 	if err := dao.AddAssetAndUpdateSize(c.Request.Context(), &model.UserAsset{
-		UserID:      username,
-		Hash:        hash,
-		AreaID:      areaId,
+		UserID: username,
+		Hash:   hash,
+		// AreaID:      areaId,
 		AssetName:   createAssetReq.AssetName,
 		AssetType:   createAssetReq.AssetType,
 		CreatedTime: time.Now(),
 		TotalSize:   createAssetReq.AssetSize,
 		GroupID:     createAssetReq.GroupID,
-	}, nil); err != nil {
+	}, []string{areaId}); err != nil {
 		log.Errorf("CreateAssetHandler dao.AddAssetAndUpdateSize() error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -653,10 +654,15 @@ func DeleteKeyHandler(c *gin.Context) {
 // @Success 200 {object} JsonObject "{msg:""}"
 // @Router /api/v1/storage/delete_asset [get]
 func DeleteAssetHandler(c *gin.Context) {
+	var (
+		wg          = new(sync.WaitGroup)
+		mu          = new(sync.Mutex)
+		execAreaIds []string
+	)
 	claims := jwt.ExtractClaims(c)
 	userID := claims[identityKey].(string)
 	cid := c.Query("asset_cid")
-	areaId := getAreaID(c)
+	areaIds := getAreaIDsNoDefault(c)
 	// 获取文件hash
 	hash, err := storage.CIDToHash(cid)
 	if err != nil {
@@ -665,37 +671,55 @@ func DeleteAssetHandler(c *gin.Context) {
 		return
 	}
 	// 获取文件信息
-	asset, err := dao.GetUserAsset(c.Request.Context(), hash, userID, areaId)
+	areaIds, isNeedDel, err := dao.CheckUserAseetNeedDel(c.Request.Context(), hash, userID, areaIds)
 	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	if len(areaIds) == 0 {
 		c.JSON(http.StatusOK, respErrorCode(int(terrors.NotFound), c))
 		return
 	}
-	// TODO: 调用scheduler接口删除文件
-	// areaId := GetDefaultTitanCandidateEntrypointInfo()
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	// if err != nil {
-	// 	c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-	// 	return
-	// }
-	err = schedulerClient.RemoveAssetRecord(c.Request.Context(), cid)
-	if err != nil {
-		log.Errorf("api DeleteAsset: %v", err)
-		if webErr, ok := err.(*api.ErrWeb); ok && webErr.Code != terrors.HashNotFound.Int() {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-			return
+	// 调用scheduler接口删除文件
+	for _, v := range areaIds {
+		wg.Add(1)
+		go func(v string) {
+			defer wg.Done()
+			scli, err := getSchedulerClient(c.Request.Context(), v)
+			if err != nil {
+				return
+			}
+			err = scli.RemoveAssetRecord(c.Request.Context(), cid)
+			if err != nil {
+				if webErr, ok := err.(*api.ErrWeb); ok && webErr.Code == terrors.HashNotFound.Int() {
+					mu.Lock()
+					execAreaIds = append(execAreaIds, v)
+					mu.Unlock()
+				}
+			}
+		}(v)
+	}
+	wg.Wait()
+	if len(execAreaIds) == 0 {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	// 判断是否需要进行删除
+	msg := "delete success"
+	if len(areaIds) != len(execAreaIds) {
+		if isNeedDel {
+			isNeedDel = false
 		}
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
+		msg = "Partially deleted successfully"
 	}
-	err = dao.DelAssetAndUpdateSize(c.Request.Context(), hash, userID, areaId, asset.TotalSize)
+	err = dao.DelAssetAndUpdateSize(c.Request.Context(), hash, userID, execAreaIds, isNeedDel)
 	if err != nil {
 		log.Errorf("api DeleteAsset: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"msg": "delete success",
+		"msg": msg,
 	}))
 }
 
@@ -1630,7 +1654,6 @@ func MoveAssetToGroupHandler(c *gin.Context) {
 }
 
 // GetSchedulerAreaIDs 获取调度器的 area id 列表
-// ShareAssetsHandler 获取调度器的 area id 列表
 // @Summary 获取调度器的 area id 列表
 // @Description 获取调度器的 area id 列表
 // @Tags storage
@@ -1659,4 +1682,50 @@ func GetSchedulerAreaIDs(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"list": areaIDs,
 	}))
+}
+
+// MoveNode 将调度器节点进行迁移
+// @Summary 将调度器节点进行迁移
+func MoveNode(c *gin.Context) {
+	var req MoveNodeReq
+
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	// 将node节点从from area移出
+	fscli, err := getSchedulerClient(c.Request.Context(), req.FromAreaID)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	info, err := fscli.MigrateNodeOut(c.Request.Context(), req.NodeID)
+	if err != nil {
+		log.Errorf("exec MigrateNodeOut error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	tscli, err := getSchedulerClient(c.Request.Context(), req.ToAreaID)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	err = tscli.MigrateNodeIn(c.Request.Context(), info)
+	if err != nil {
+		log.Errorf("exec MigrateNodeIn error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	err = fscli.CleanNode(c.Request.Context(), req.NodeID, info.Key)
+	if err != nil {
+		log.Errorf("exec CleanNode error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"msg": "success",
+	})
 }

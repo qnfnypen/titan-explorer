@@ -618,7 +618,6 @@ type DeviceOnlineIncentive struct {
 type UserAsset struct {
 	UserID      string    `db:"user_id"`
 	Hash        string    `db:"hash"`
-	AreaID      string    `db:"area_id"`
 	AssetName   string    `db:"asset_name"`
 	AssetType   string    `db:"asset_type"`
 	ShareStatus int64     `db:"share_status"`
@@ -627,7 +626,6 @@ type UserAsset struct {
 	TotalSize   int64     `db:"total_size"`
 	Password    string    `db:"password"`
 	GroupID     int64     `db:"group_id"`
-	IsSync 		bool      `db:"is_sync"`
 }
 
 type AssetGroup struct {
@@ -641,4 +639,11 @@ type AssetGroup struct {
 type UserAssetVisitCount struct {
 	Hash  string `db:"hash"`
 	Count int64 `db:"count"`
+}
+
+type UserAssetArea struct {
+	Hash   string `db:"hash"`
+	UserID string `db:"user_id"`
+	AreaID string `db:"area_id"`
+	IsSync bool   `db:"is_sync"`
 }

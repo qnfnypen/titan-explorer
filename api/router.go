@@ -216,6 +216,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/rename_group", RenameGroupHandler)
 	storage.GET("/move_group_to_group", MoveGroupToGroupHandler)
 	storage.GET("/move_asset_to_group", MoveAssetToGroupHandler)
+	storage.POST("/move_node", MoveNode)
 
 	//signature
 	signature := apiV1.Group("/sign")

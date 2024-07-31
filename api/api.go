@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"image/color"
 	"net/http"
@@ -18,7 +19,6 @@ import (
 	"github.com/gnasnik/titan-explorer/core/cleanup"
 	"github.com/gnasnik/titan-explorer/core/statistics"
 	"github.com/go-redis/redis/v9"
-	"github.com/pkg/errors"
 )
 
 var (
@@ -109,6 +109,12 @@ func getSchedulerClient(ctx context.Context, areaId string) (api.Scheduler, erro
 		log.Errorf("no scheduler found")
 		return nil, errors.New("no scheduler found")
 	}
+
+	// maps, err := statistics.LoadSchedulerConfigs()
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// schedulers := maps[areaId]
 
 	schedulerApiUrl := schedulers[0].SchedulerURL
 	schedulerApiToken := schedulers[0].AccessToken

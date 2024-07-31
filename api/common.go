@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -43,7 +44,7 @@ type (
 	}
 )
 
-func getgetAreaIDs(c *gin.Context) []string {
+func getAreaIDs(c *gin.Context) []string {
 	var aids []string
 
 	areaIDs := c.QueryArray("area_id")
@@ -53,7 +54,25 @@ func getgetAreaIDs(c *gin.Context) []string {
 		}
 	}
 	if len(aids) == 0 {
-		aids = append(aids, GetDefaultTitanCandidateEntrypointInfo())
+		areas, _ := GetAllAreasFromCache(c.Request.Context())
+		if len(areas) > 0 {
+			aids = append(aids, areas...)
+		} else {
+			aids = append(aids, GetDefaultTitanCandidateEntrypointInfo())
+		}
+	}
+
+	return aids
+}
+
+func getAreaIDsNoDefault(c *gin.Context) []string {
+	var aids []string
+
+	areaIDs := c.QueryArray("area_id")
+	for _, v := range areaIDs {
+		if strings.TrimSpace(v) != "" {
+			aids = append(aids, v)
+		}
 	}
 
 	return aids
@@ -69,6 +88,10 @@ func getAreaID(c *gin.Context) string {
 }
 
 func listAssets(ctx context.Context, uid string, page, size, groupID int) (*ListAssetRecordRsp, error) {
+	var (
+		wg = new(sync.WaitGroup)
+		mu = new(sync.Mutex)
+	)
 	uInfo, err := dao.GetUserByUsername(ctx, uid)
 	if err != nil {
 		return nil, fmt.Errorf("get user's info error:%w", err)
@@ -79,36 +102,57 @@ func listAssets(ctx context.Context, uid string, page, size, groupID int) (*List
 	}
 
 	list := make([]*AssetOverview, 0)
+
 	for _, info := range infos {
-		// 将 hash 转换为 cid
-		cid, err := storage.HashToCID(info.Hash)
-		if err != nil {
-			continue
-		}
-		sCli, err := getSchedulerClient(ctx, info.AreaID)
-		if err != nil {
-			log.Errorf("getSchedulerClient err: %s", err.Error())
-			continue
-		}
-		record, err := sCli.GetAssetRecord(ctx, cid)
-		if err != nil {
-			log.Errorf("asset LoadAssetRecord err: %s", err.Error())
-			continue
-		}
+		wg.Add(1)
+		go func(info *dao.UserAssetDetail) {
+			defer wg.Done()
 
-		if !uInfo.EnableVIP && info.VisitCount >= maxCountOfVisitAsset {
-			info.ShareStatus = 2
-		}
-
-		r := &AssetOverview{
-			AssetRecord:      record,
-			UserAssetDetail:  info,
-			VisitCount:       info.VisitCount,
-			RemainVisitCount: maxCountOfVisitAsset - info.VisitCount,
-		}
-
-		list = append(list, r)
+			// 获取用户文件所有调度器区域
+			areaIDs, err := dao.GetUserAssetAreaIDs(ctx, info.Hash, uid)
+			if err != nil {
+				log.Errorf("get areaids err: %s", err.Error())
+				return
+			}
+			// 将 hash 转换为 cid
+			cid, err := storage.HashToCID(info.Hash)
+			if err != nil {
+				return
+			}
+			// 获取用户文件分发记录
+			records := new(types.AssetRecord)
+			records.ReplicaInfos = make([]*types.ReplicaInfo, 0)
+			for _, v := range areaIDs {
+				sCli, err := getSchedulerClient(ctx, v)
+				if err != nil {
+					log.Errorf("getSchedulerClient err: %s", err.Error())
+					continue
+				}
+				record, err := sCli.GetAssetRecord(ctx, cid)
+				if err != nil {
+					log.Errorf("asset LoadAssetRecord err: %s", err.Error())
+					continue
+				}
+				records.NeedEdgeReplica += record.NeedEdgeReplica
+				records.NeedCandidateReplicas += record.ReplenishReplicas
+				records.ReplicaInfos = append(records.ReplicaInfos, record.ReplicaInfos...)
+			}
+			if !uInfo.EnableVIP && info.VisitCount >= maxCountOfVisitAsset {
+				info.ShareStatus = 2
+			}
+			info.AreaIDs = append(info.AreaIDs, areaIDs...)
+			r := &AssetOverview{
+				AssetRecord:      records,
+				UserAssetDetail:  info,
+				VisitCount:       info.VisitCount,
+				RemainVisitCount: maxCountOfVisitAsset - info.VisitCount,
+			}
+			mu.Lock()
+			list = append(list, r)
+			mu.Unlock()
+		}(info)
 	}
+	wg.Wait()
 
 	return &ListAssetRecordRsp{Total: total, AssetOverviews: list}, nil
 }
