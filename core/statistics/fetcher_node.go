@@ -274,6 +274,7 @@ func deviceInfoToDailyInfo(deviceInfo *model.DeviceInfo) *model.DeviceInfoDaily 
 		DownstreamTraffic: deviceInfo.DownloadTraffic,
 		RetrievalCount:    deviceInfo.RetrievalCount,
 		BlockCount:        deviceInfo.CacheCount,
+		ExternalIP:        deviceInfo.ExternalIp,
 	}
 }
 

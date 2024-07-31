@@ -183,6 +183,7 @@ type DeviceInfoDaily struct {
 	RetrievalCount    int64     `db:"retrieval_count" json:"retrieval_count"`
 	BlockCount        int64     `db:"block_count" json:"block_count"`
 	IsMobile          int64     `db:"is_mobile" json:"is_mobile"`
+	ExternalIP        string    `db:"external_ip" json:"external_ip"`
 }
 
 type DeviceInfoHour struct {
