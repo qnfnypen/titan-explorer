@@ -181,13 +181,13 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_map_link", GetShareLinkHandler)
 	storage.GET("/get_asset_detail", GetAssetDetailHandler)
 	storage.GET("/get_asset_location", GetLocationHandler)
-	storage.GET("/share_asset", ShareAssetsHandler)
 	storage.GET("/get_asset_status", GetAssetStatusHandler)
 	storage.GET("/get_fil_storage_list", GetFilStorageListHandler)
 	storage.GET("/get_area_id", GetSchedulerAreaIDs)
 	storage.POST("/upload_temp_file", UploadTmepFile)
 	// storage.Use(authMiddleware.MiddlewareFunc())
 	storage.Use(AuthRequired(authMiddleware))
+	storage.GET("/share_asset", ShareAssetsHandler)
 	storage.GET("/get_locateStorage", GetAllocateStorageHandler)
 	storage.GET("/get_storage_size", GetStorageSizeHandler)          // 获取用户存储空间信息
 	storage.GET("/get_vip_info", GetUserVipInfoHandler)              // 判断用户是否为vip

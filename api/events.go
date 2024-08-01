@@ -1778,7 +1778,7 @@ func MoveNode(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	err = fscli.CleanNode(c.Request.Context(), req.NodeID, info.Key)
+	err = fscli.CleanupNode(c.Request.Context(), req.NodeID, info.Key)
 	if err != nil {
 		log.Errorf("exec CleanNode error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
