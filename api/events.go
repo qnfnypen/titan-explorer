@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -430,10 +431,12 @@ func CreateAssetHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	if len(createAssetRsp.List) == 0 {
-		log.Errorf("createAssetRsp.List: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
+	if !createAssetRsp.AlreadyExists {
+		if len(createAssetRsp.List) == 0 {
+			log.Errorf("createAssetRsp.List: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
 	}
 	// 判断是否需要同步调度器信息
 	if len(notExistsAids) > 1 {
@@ -461,8 +464,10 @@ func CreateAssetHandler(c *gin.Context) {
 	}
 
 	rsp := make([]JsonObject, len(createAssetRsp.List))
-	for i, v := range createAssetRsp.List {
-		rsp[i] = JsonObject{"CandidateAddr": v.UploadURL, "Token": v.Token}
+	if !createAssetRsp.AlreadyExists {
+		for i, v := range createAssetRsp.List {
+			rsp[i] = JsonObject{"CandidateAddr": v.UploadURL, "Token": v.Token}
+		}
 	}
 
 	c.JSON(http.StatusOK, respJSON(rsp))
@@ -513,7 +518,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	ainfo, _ := dao.GetUserAsset(c.Request.Context(), hash, username, areaId)
+	ainfo, _ := dao.GetUserAsset(c.Request.Context(), hash, username)
 	if ainfo != nil && ainfo.UserID != "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
 		return
@@ -685,6 +690,17 @@ func DeleteAssetHandler(c *gin.Context) {
 		wg.Add(1)
 		go func(v string) {
 			defer wg.Done()
+			// 判断文件是否为唯一存在的
+			isOnly, err := dao.CheckUserAssetIsOnly(c.Request.Context(), hash, v)
+			if err != nil {
+				return
+			}
+			if !isOnly {
+				mu.Lock()
+				execAreaIds = append(execAreaIds, v)
+				mu.Unlock()
+				return
+			}
 			scli, err := getSchedulerClient(c.Request.Context(), v)
 			if err != nil {
 				return
@@ -696,6 +712,10 @@ func DeleteAssetHandler(c *gin.Context) {
 					execAreaIds = append(execAreaIds, v)
 					mu.Unlock()
 				}
+			} else {
+				mu.Lock()
+				execAreaIds = append(execAreaIds, v)
+				mu.Unlock()
 			}
 		}(v)
 	}
@@ -733,9 +753,11 @@ func DeleteAssetHandler(c *gin.Context) {
 // @Success 200 {object} JsonObject "{asset_cid: "",redirect:"",url:{}}"
 // @Router /api/v1/storage/share_asset [get]
 func ShareAssetsHandler(c *gin.Context) {
-	userId := c.Query("user_id")
+	// userId := c.Query("user_id")
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
 	cid := c.Query("asset_cid")
-	areaId := getAreaID(c)
+	areaId := c.Query("area_id")
 
 	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {
@@ -743,7 +765,45 @@ func ShareAssetsHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
-	userAsset, err := dao.GetUserAsset(c.Request.Context(), hash, userId, areaId)
+	// 如果用户指定了区域，则先判断区域是否存在
+	if areaId != "" {
+		exist, err := dao.CheckUserAssetIsInAreaID(c.Request.Context(), userId, hash, areaId)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+			} else {
+				c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			}
+			return
+		}
+		if !exist {
+			c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+			return
+		}
+	} else {
+		// 获取用户文件所有的区域
+		areaIDs, err := dao.GetUserAssetAreaIDs(c.Request.Context(), hash, userId)
+		if err != nil {
+			log.Errorf("get user assest areaids error:%w", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+		// 获取用户的访问的ip
+		ip, err := GetIPFromRequest(c.Request)
+		if err != nil {
+			log.Errorf("get user's ip of request error:%w", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+		areaId, err = GetNearestAreaID(c.Request.Context(), ip, areaIDs)
+		if err != nil {
+			log.Error(err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+	}
+	// 获取文件信息
+	userAsset, err := dao.GetUserAsset(c.Request.Context(), hash, userId)
 	if err != nil {
 		log.Error("Failed to get user asset: ", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))

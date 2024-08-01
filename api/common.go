@@ -2,7 +2,11 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
+	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 
@@ -10,12 +14,18 @@ import (
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
+	"github.com/gnasnik/titan-explorer/core/geo"
+	"github.com/gnasnik/titan-explorer/core/statistics"
 	"github.com/gnasnik/titan-explorer/core/storage"
 )
 
 var (
 	maxCountOfVisitAsset     int64 = 10
 	maxCountOfVisitShareLink int64 = 10
+	// AreaIDIPMaps 调度器区域id和ip映射
+	AreaIDIPMaps = new(sync.Map)
+	// AreaIPIDMaps 调度器区域ip和id映射
+	AreaIPIDMaps = new(sync.Map)
 )
 
 type (
@@ -174,7 +184,7 @@ func getAssetStatus(ctx context.Context, uid, cid, areaID string) (*types.AssetS
 	if err != nil {
 		return nil, fmt.Errorf("get user's info error:%w", err)
 	}
-	aInfo, err := dao.GetUserAsset(ctx, hash, uid, areaID)
+	aInfo, err := dao.GetUserAsset(ctx, hash, uid)
 	if err != nil {
 		return nil, fmt.Errorf("get asset's info error:%w", err)
 	}
@@ -266,4 +276,120 @@ func SyncShedulers(ctx context.Context, sCli api.Scheduler, nodeID, cid string, 
 	}
 
 	return zStrs, nil
+}
+
+// GetAreaIPByID 根据areaid信息获取调度器的ip
+func GetAreaIPByID(ctx context.Context, areaID string) (string, error) {
+	ip, ok := AreaIDIPMaps.Load(areaID)
+	if ok {
+		return ip.(string), nil
+	}
+
+	schedulers, err := statistics.GetSchedulerConfigs(ctx, fmt.Sprintf("%s::%s", SchedulerConfigKeyPrefix, areaID))
+	if err != nil {
+		return "", err
+	}
+	uri := schedulers[0].SchedulerURL
+	aurl, err := url.Parse(uri)
+	if err != nil {
+		return "", err
+	}
+	uri, _, _ = strings.Cut(aurl.Host, ":")
+	ips, err := net.LookupIP(uri)
+	if err != nil {
+		return "", nil
+	}
+	AreaIDIPMaps.Store(areaID, ips[0].String())
+	AreaIPIDMaps.Store(ips[0].String(), areaID)
+
+	return ips[0].String(), nil
+}
+
+// GetIPFromRequest 根据请求获取ip地址
+func GetIPFromRequest(r *http.Request) (string, error) {
+	// 检查 X-Forwarded-For 头
+	ip := r.Header.Get("X-Forwarded-For")
+	if ip != "" {
+		// X-Forwarded-For 可能包含多个IP地址，取第一个
+		ips := strings.Split(ip, ",")
+		clientIP := strings.TrimSpace(ips[0])
+		if net.ParseIP(clientIP) != nil {
+			return clientIP, nil
+		}
+	}
+
+	// 检查 X-Real-IP 头
+	ip = r.Header.Get("X-Real-IP")
+	if ip != "" {
+		if net.ParseIP(ip) != nil {
+			return ip, nil
+		}
+	}
+
+	// 如果没有代理服务器，则使用 RemoteAddr
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return "", fmt.Errorf("userip: %q is not IP:port,error:%w", r.RemoteAddr, err)
+	}
+
+	return ip, nil
+}
+
+// GetNearestAreaIDByIP 根据ip获取距离用户最近的areaid
+func GetNearestAreaIDByIP(ctx context.Context, ip string, areaIDs []string) (string, error) {
+	var ips []string
+
+	// 将areaid替换为ip
+	for _, v := range areaIDs {
+		ip, err := GetAreaIPByID(ctx, v)
+		if err != nil {
+			continue
+		}
+		ips = append(ips, ip)
+	}
+
+	ip, err := GetUserNearestIP(ctx, ip, ips, NewIPCoordinate())
+	if err != nil {
+		return "", err
+	}
+
+	if areaID, ok := AreaIPIDMaps.Load(ip); ok {
+		return areaID.(string), nil
+	}
+
+	return "", errors.New("not found")
+}
+
+// GetNearestAreaIDByInfo 根据ip的相关位置信息获取距离用户最近的areaid
+func GetNearestAreaIDByInfo(ctx context.Context, ip string, areaIDs []string) (string, error) {
+	var existAreaIDs []string
+	info, err := geo.GetIpLocation(ctx, ip)
+	if err != nil {
+		return "", fmt.Errorf("get info of ip error:%w", err)
+	}
+
+	for _, v := range areaIDs {
+		if strings.Contains(v, info.Continent) {
+			existAreaIDs = append(existAreaIDs, v)
+		}
+	}
+	if len(existAreaIDs) > 0 {
+		for _, v := range existAreaIDs {
+			if strings.Contains(v, info.Country) {
+				return v, nil
+			}
+		}
+	}
+
+	return "", errors.New("not found")
+}
+
+// GetNearestAreaID 聚合获距离用户请求的最近的areaid
+func GetNearestAreaID(ctx context.Context, ip string, areaIDs []string) (string, error) {
+	areaID, err := GetNearestAreaIDByIP(ctx, ip, areaIDs)
+	if err == nil {
+		return areaID, nil
+	}
+
+	return GetNearestAreaIDByInfo(ctx, ip, areaIDs)
 }

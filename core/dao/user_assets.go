@@ -348,16 +348,11 @@ func UpdateAssetGroup(ctx context.Context, userID, hash, areaID string, groupID 
 }
 
 // GetUserAsset 获取用户文件信息
-func GetUserAsset(ctx context.Context, hash, uid, areaID string) (*UserAssetDetail, error) {
+func GetUserAsset(ctx context.Context, hash, uid string) (*UserAssetDetail, error) {
 	var asset UserAssetDetail
 
-	sb := squirrel.Select("ua.*,IFNULL(uav.count,0) AS visit_count").From(fmt.Sprintf("%s AS ua", tableUserAsset)).LeftJoin(fmt.Sprintf("%s AS uav ON ua.hash=uav.hash", tableUserAssetVisit)).
-		Where("ua.user_id = ? AND ua.hash = ?", uid, hash)
-	if areaID != "" {
-		sb = sb.Where("ua.area_id = ?", areaID)
-	}
-
-	query, args, err := sb.ToSql()
+	query, args, err := squirrel.Select("ua.*,IFNULL(uav.count,0) AS visit_count").From(fmt.Sprintf("%s AS ua", tableUserAsset)).LeftJoin(fmt.Sprintf("%s AS uav ON ua.hash=uav.hash", tableUserAssetVisit)).
+		Where("ua.user_id = ? AND ua.hash = ?", uid, hash).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("generate get asset sql error:%w", err)
 	}
@@ -503,4 +498,36 @@ func GetUserAssetAreaIDs(ctx context.Context, hash, uid string) ([]string, error
 	}
 
 	return aids, nil
+}
+
+// CheckUserAssetIsOnly 判断用户文件是否为唯一存在的
+func CheckUserAssetIsOnly(ctx context.Context, hash, areaID string) (bool, error) {
+	var num int64
+
+	query, args, err := squirrel.Select("COUNT(hash)").From(tableUserAssetArea).Where("hash = ? AND area_id = ?", hash, areaID).ToSql()
+	if err != nil {
+		return false, fmt.Errorf("generate get asset sql error:%w", err)
+	}
+	err = DB.GetContext(ctx, &num, query, args...)
+	if err != nil {
+		return false, err
+	}
+
+	return num <= 1, nil
+}
+
+// CheckUserAssetIsInAreaID 判断用户文件是否存在于指定区域
+func CheckUserAssetIsInAreaID(ctx context.Context, userID, hash, areaID string) (bool, error) {
+	var num int64
+
+	query, args, err := squirrel.Select("COUNT(hash)").From(tableUserAssetArea).Where("user_id = ? AND hash = ? AND area_id = ?", userID, hash, areaID).ToSql()
+	if err != nil {
+		return false, fmt.Errorf("generate get asset sql error:%w", err)
+	}
+	err = DB.GetContext(ctx, &num, query, args...)
+	if err != nil {
+		return false, err
+	}
+
+	return num >= 1, nil
 }
