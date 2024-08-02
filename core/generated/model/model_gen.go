@@ -648,3 +648,9 @@ type UserAssetArea struct {
 	AreaID string `db:"area_id"`
 	IsSync bool   `db:"is_sync"`
 }
+
+type TempAsset struct {
+	Hash 			string  `db:"hash"`
+	DownloadCount 	int64 	`db:"download_count"`
+	ShareCount 		int64 	`db:"share_count"`
+}

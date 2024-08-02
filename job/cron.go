@@ -22,7 +22,15 @@ var (
 func SyncShedulersAsset() {
 	c := cron.New(cron.WithLocation(time.Local))
 
-	c.AddFunc("@every 10s", func() {
+	c.AddFunc("@every 10s", syncUserScheduler())
+	c.AddFunc("@every 15s", syncUnLoginAsset())
+
+	c.Start()
+}
+
+// syncUserScheduler 同步登陆后用户的调度器信息
+func syncUserScheduler() func() {
+	return func() {
 		// 获取 schedulers
 		payloads, err := oprds.GetClient().GetAllSchedulerInfos(ctx)
 		if err != nil {
@@ -61,11 +69,52 @@ func SyncShedulersAsset() {
 				err = dao.UpdateUnSyncAreaIDs(ctx, v.UserID, v.Hash, aids)
 				if err != nil {
 					log.Println(fmt.Errorf("UpdateUnSyncAreaIDs error:%w", err))
+					return
 				}
+				oprds.GetClient().DelSchedulerInfo(ctx, v)
 			}(v)
 		}
 		wg.Wait()
-	})
+	}
+}
 
-	c.Start()
+func syncUnLoginAsset() func() {
+	return func() {
+		// 获取 schedulers
+		payloads, err := oprds.GetClient().GetAllAreaIDs(ctx)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		for _, v := range payloads {
+			wg.Add(1)
+			go func(v *oprds.AreaIDPayload) {
+				defer wg.Done()
+
+				scli, err := api.GetSchedulerClient(ctx, v.AreaIDs[0])
+				if err != nil {
+					log.Println(fmt.Errorf("get client of scheduler error:%w", err))
+					return
+				}
+				// 判断L1节点是否同步完成
+				rs, err := scli.GetAssetRecord(ctx, v.CID)
+				if err != nil {
+					log.Println(fmt.Errorf("GetAssetRecord error:%w", err))
+					return
+				}
+				if len(rs.ReplicaInfos) == 0 {
+					return
+				}
+				aids, err := api.SyncAreaIDs(ctx, scli, "", v.CID, 0, v.AreaIDs[1:])
+				if err != nil {
+					log.Println(fmt.Errorf("SyncShedulers error:%w", err))
+					return
+				}
+				aids = append(aids, v.AreaIDs[0])
+				oprds.GetClient().SetUnloginAssetInfo(ctx, v.Hash, &oprds.AreaIDPayload{AreaIDs: aids})
+				oprds.GetClient().DelAreaIDs(ctx, v)
+			}(v)
+		}
+		wg.Wait()
+	}
 }

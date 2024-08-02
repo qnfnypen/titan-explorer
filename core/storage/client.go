@@ -25,16 +25,16 @@ type Client struct {
 }
 
 // NewClient 新建客户端
-func NewClient(areaID string) (*Client, error) {
-	schedulerClient, err := getSchedulerClient(context.Background(), areaID)
-	if err != nil {
-		return nil, fmt.Errorf("new storage client error:%w", err)
-	}
+// func NewClient(areaID string) (*Client, error) {
+// 	schedulerClient, err := getSchedulerClient(context.Background(), areaID)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("new storage client error:%w", err)
+// 	}
 
-	sc, _ := schedulerClient.(*scheduler.Scheduler)
+// 	sc, _ := schedulerClient.(*scheduler.Scheduler)
 
-	return &Client{sc: sc}, nil
-}
+// 	return &Client{sc: sc}, nil
+// }
 
 // getSchedulerClient 获取调度器的 rpc 客户端实例, titan 节点是有区域区分的,不同的节点会连接不同区域的调度器,当需要查询该节点的数据时,需要连接对应的调度器
 // areaId 区域Id在同步的节点的时候会写入到 device_info表,可以查询节点的信息,获得对应的区域ID,如果没有传区域ID,那么会遍历所有的调度器,可能会有性能问题.

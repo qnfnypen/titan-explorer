@@ -5,13 +5,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/go-redis/redis/v9"
 )
 
 const (
-	key = "sync_scheduler_list"
+	schckey    = "sync_scheduler_list"
+	areaKey    = "sync_scheduler_list_unlogin"
+	preUnlogin = "unlogin_hash"
 )
 
 var cli *Client
@@ -27,6 +30,13 @@ type Payload struct {
 	CID    string
 	Hash   string
 	AreaID string
+}
+
+// AreaIDPayload 未登陆上传文件的信息
+type AreaIDPayload struct {
+	CID     string
+	Hash    string
+	AreaIDs []string
 }
 
 // Init 初始化
@@ -50,7 +60,7 @@ func (c *Client) PushSchedulerInfo(ctx context.Context, payload *Payload) error 
 		return fmt.Errorf("json marshal scheduler's info error:%w", err)
 	}
 
-	err = c.rds.LPush(ctx, key, string(body)).Err()
+	err = c.rds.LPush(ctx, schckey, string(body)).Err()
 	if err != nil {
 		return fmt.Errorf("l push info to redis error:%w", err)
 	}
@@ -62,7 +72,7 @@ func (c *Client) PushSchedulerInfo(ctx context.Context, payload *Payload) error 
 func (c *Client) GetAllSchedulerInfos(ctx context.Context) ([]*Payload, error) {
 	var ps []*Payload
 
-	res, err := c.rds.LRange(ctx, key, 0, -1).Result()
+	res, err := c.rds.LRange(ctx, schckey, 0, -1).Result()
 	if err != nil {
 		return nil, fmt.Errorf("get all scheduler's info error:%w", err)
 	}
@@ -87,10 +97,92 @@ func (c *Client) DelSchedulerInfo(ctx context.Context, payload *Payload) error {
 		return fmt.Errorf("json marshal scheduler's info error:%w", err)
 	}
 
-	err = c.rds.LRem(ctx, key, 1, string(body)).Err()
+	err = c.rds.LRem(ctx, schckey, 1, string(body)).Err()
 	if err != nil {
 		return fmt.Errorf("l rem info to redis error:%w", err)
 	}
 
 	return nil
+}
+
+// PushAreaIDs 上传需要同步的文件区域到队列
+func (c *Client) PushAreaIDs(ctx context.Context, payload *AreaIDPayload) error {
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("json marshal scheduler's info error:%w", err)
+	}
+
+	err = c.rds.LPush(ctx, areaKey, string(body)).Err()
+	if err != nil {
+		return fmt.Errorf("l push info to redis error:%w", err)
+	}
+
+	return nil
+}
+
+// GetAllAreaIDs 获取所有节点信息
+func (c *Client) GetAllAreaIDs(ctx context.Context) ([]*AreaIDPayload, error) {
+	var ps []*AreaIDPayload
+
+	res, err := c.rds.LRange(ctx, areaKey, 0, -1).Result()
+	if err != nil {
+		return nil, fmt.Errorf("get all scheduler's info error:%w", err)
+	}
+
+	for _, v := range res {
+		payload := new(AreaIDPayload)
+		err = json.Unmarshal([]byte(v), payload)
+		if err != nil {
+			log.Printf("json unmarshal scheduler's info error:%v\n", err)
+			continue
+		}
+		ps = append(ps, payload)
+	}
+
+	return ps, nil
+}
+
+// DelAreaIDs 从队列删除同步完成文件区域
+func (c *Client) DelAreaIDs(ctx context.Context, payload *AreaIDPayload) error {
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("json marshal scheduler's info error:%w", err)
+	}
+
+	err = c.rds.LRem(ctx, areaKey, 1, string(body)).Err()
+	if err != nil {
+		return fmt.Errorf("l rem info to redis error:%w", err)
+	}
+
+	return nil
+}
+
+// SetUnloginAssetInfo 塞入未登陆文件的hash和区域
+func (c *Client) SetUnloginAssetInfo(ctx context.Context, hash string, payload *AreaIDPayload) error {
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("json marshal scheduler's info error:%w", err)
+	}
+	key := fmt.Sprintf("%s_%s", preUnlogin, hash)
+
+	return c.rds.SetEx(ctx, key, string(body), 24*time.Hour).Err()
+}
+
+// GetUnloginAssetAreaIDs 获取未登陆文件的区域
+func (c *Client) GetUnloginAssetAreaIDs(ctx context.Context, hash string) ([]string, error) {
+	var payload AreaIDPayload
+
+	key := fmt.Sprintf("%s_%s", preUnlogin, hash)
+	value, err := c.rds.Get(ctx, key).Result()
+	switch err {
+	case redis.Nil:
+		return nil, nil
+	case nil:
+		if err := json.Unmarshal([]byte(value), &payload); err != nil {
+			return nil, err
+		}
+		return payload.AreaIDs, nil
+	default:
+		return nil, err
+	}
 }

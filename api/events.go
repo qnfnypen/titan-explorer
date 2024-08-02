@@ -907,7 +907,6 @@ func GetShareLinkHandler(c *gin.Context) {
 func UpdateShareStatusHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
-	areaId := getAreaID(c)
 	cid := c.Query("cid")
 	// 获取文件hash
 	hash, err := storage.CIDToHash(cid)
@@ -916,7 +915,7 @@ func UpdateShareStatusHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	err = dao.UpdateAssetShareStatus(c.Request.Context(), hash, userId, areaId)
+	err = dao.UpdateAssetShareStatus(c.Request.Context(), hash, userId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return

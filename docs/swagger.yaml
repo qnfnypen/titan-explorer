@@ -2,6 +2,27 @@ definitions:
   api.JsonObject:
     additionalProperties: true
     type: object
+  api.UploadTempFileReq:
+    properties:
+      area_ids:
+        items:
+          type: string
+        type: array
+      asset_cid:
+        description: 最多3个
+        type: string
+      asset_name:
+        type: string
+      asset_size:
+        type: integer
+      node_id:
+        type: string
+    required:
+    - area_ids
+    - asset_cid
+    - asset_name
+    - asset_size
+    type: object
 info:
   contact: {}
   description: This is titan explorer backend server.
@@ -342,6 +363,58 @@ paths:
       summary: 分享文件
       tags:
       - storage
+  /api/v1/storage/temp_file/upload:
+    post:
+      description: 首页上传文件，如果返回的为空数组，则不调用上传接口
+      parameters:
+      - description: 文件上传参数
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/api.UploadTempFileReq'
+      responses:
+        "200":
+          description: '{[]{CandidateAddr: “”, Token: “”}}'
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      summary: 首页上传文件
+      tags:
+      - temp_file
+  /temp_file/download/{cid}:
+    get:
+      description: 下载首页上传文件
+      parameters:
+      - description: 文件的cid
+        in: path
+        name: cid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      summary: 下载首页上传文件
+      tags:
+      - temp_file
+  /temp_file/info/{cid}:
+    get:
+      description: 获取上传详情
+      parameters:
+      - description: 文件的cid
+        in: path
+        name: cid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{total:0,cid:"",share_url:[]{}}'
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      summary: 获取上传详情
+      tags:
+      - temp_file
 securityDefinitions:
   ApiKeyAuth:
     in: header

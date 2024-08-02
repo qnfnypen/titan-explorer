@@ -538,12 +538,122 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/v1/storage/temp_file/upload": {
+            "post": {
+                "description": "首页上传文件，如果返回的为空数组，则不调用上传接口",
+                "tags": [
+                    "temp_file"
+                ],
+                "summary": "首页上传文件",
+                "parameters": [
+                    {
+                        "description": "文件上传参数",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.UploadTempFileReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{[]{CandidateAddr: “”, Token: “”}}",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
+            }
+        },
+        "/temp_file/download/{cid}": {
+            "get": {
+                "description": "下载首页上传文件",
+                "tags": [
+                    "temp_file"
+                ],
+                "summary": "下载首页上传文件",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "文件的cid",
+                        "name": "cid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
+            }
+        },
+        "/temp_file/info/{cid}": {
+            "get": {
+                "description": "获取上传详情",
+                "tags": [
+                    "temp_file"
+                ],
+                "summary": "获取上传详情",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "文件的cid",
+                        "name": "cid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{total:0,cid:\"\",share_url:[]{}}",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
         "api.JsonObject": {
             "type": "object",
             "additionalProperties": true
+        },
+        "api.UploadTempFileReq": {
+            "type": "object",
+            "required": [
+                "area_ids",
+                "asset_cid",
+                "asset_name",
+                "asset_size"
+            ],
+            "properties": {
+                "area_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "asset_cid": {
+                    "description": "最多3个",
+                    "type": "string"
+                },
+                "asset_name": {
+                    "type": "string"
+                },
+                "asset_size": {
+                    "type": "integer"
+                },
+                "node_id": {
+                    "type": "string"
+                }
+            }
         }
     },
     "securityDefinitions": {

@@ -2,7 +2,9 @@ package api
 
 import (
 	"context"
+	"io"
 	"net"
+	"net/http"
 	"net/url"
 	"strings"
 	"testing"
@@ -64,4 +66,71 @@ func TestParseHost(t *testing.T) {
 	for _, v := range ips {
 		t.Log(v.String())
 	}
+}
+
+func TestMoveHash(t *testing.T) {
+
+	url := "https://storage-test.titannet.io/api/v1/storage/move_node"
+	method := "POST"
+
+	// Asia-China-Guangdong-Shenzhen
+	payload := strings.NewReader(`{
+	  "from_area_id":"NorthAmerica-UnitedStates-Ohio-Columbus",
+	  "node_id":"c_5d898293-e188-4948-b347-7eb3b1fdd931",
+	  "to_area_id":"Asia-China-Guangdong-Shenzhen"
+  }`)
+
+	client := &http.Client{}
+	req, err := http.NewRequest(method, url, payload)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Add("Jwtauthorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjI1NjkxNjksImlkIjoibTEyNTY2Njg3MjVAZ21haWwuY29tIiwib3JpZ19pYXQiOjE3MjI0ODI3NjksInJvbGUiOjB9.hpzoIH7mxGy4CMFmDDpGmT0ig6RSWL9KVUOHhm2xDZY")
+	req.Header.Add("Content-Type", "application/json")
+
+	res, err := client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal()
+	}
+	t.Log(string(body))
+}
+
+func TestUploadTf(t *testing.T) {
+	url := "https://storage-test.titannet.io/api/v1/storage/temp_file/upload"
+	method := "POST"
+
+	payload := strings.NewReader(`{
+    "area_ids": ["Asia-China-Guangdong-Shenzhen", "NorthAmerica-UnitedStates-Ohio-Columbus"],
+    "asset_cid": "bafkreih2b6puzcjebqijcawavwh2kjucldk7rfubx2xlku67wgcp7mmh4e",
+    "asset_name": "icon_1.png",
+    "asset_size": 73830
+}`)
+
+	client := &http.Client{}
+	req, err := http.NewRequest(method, url, payload)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Add("Jwtauthorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjI1NjkxNjksImlkIjoibTEyNTY2Njg3MjVAZ21haWwuY29tIiwib3JpZ19pYXQiOjE3MjI0ODI3NjksInJvbGUiOjB9.hpzoIH7mxGy4CMFmDDpGmT0ig6RSWL9KVUOHhm2xDZY")
+	req.Header.Add("Content-Type", "application/json")
+
+	res, err := client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(string(body))
 }

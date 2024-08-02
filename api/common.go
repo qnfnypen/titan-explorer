@@ -278,6 +278,45 @@ func SyncShedulers(ctx context.Context, sCli api.Scheduler, nodeID, cid string, 
 	return zStrs, nil
 }
 
+// SyncAreaIDs 同步未登陆用户文件的区域
+func SyncAreaIDs(ctx context.Context, sCli api.Scheduler, nodeID, cid string, size int64, areaIds []string) ([]string, error) {
+	zStrs := make([]string, 0)
+	if len(areaIds) == 0 {
+		return zStrs, nil
+	}
+
+	info, err := sCli.GenerateTokenForDownloadSource(ctx, nodeID, cid)
+	if err != nil {
+		log.Errorf("generate token for download source error:%w", err)
+		return zStrs, nil
+	}
+	for _, v := range areaIds {
+		var repCount int64 = 5
+		if len(areaIds) == 1 {
+			repCount = 10
+		}
+		scli, err := getSchedulerClient(ctx, v)
+		if err != nil {
+			log.Errorf("getSchedulerClient error: %v", err)
+			continue
+		}
+		err = scli.CreateSyncAsset(ctx, &types.CreateSyncAssetReq{
+			AssetCID:     cid,
+			AssetSize:    size,
+			DownloadInfo: info,
+			ReplicaCount: repCount,
+			ExpirationDay: 1,
+		})
+		if err != nil {
+			log.Errorf("GetUserAssetByAreaIDs error: %v", err)
+			continue
+		}
+		zStrs = append(zStrs, v)
+	}
+
+	return zStrs, nil
+}
+
 // GetAreaIPByID 根据areaid信息获取调度器的ip
 func GetAreaIPByID(ctx context.Context, areaID string) (string, error) {
 	ip, ok := AreaIDIPMaps.Load(areaID)

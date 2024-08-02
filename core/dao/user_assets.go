@@ -17,6 +17,7 @@ const (
 	tableUserAsset      = "user_asset"
 	tableUserAssetVisit = "asset_visit_count"
 	tableUserAssetArea  = "user_asset_area"
+	tableTempAsset      = "temp_asset"
 )
 
 type (
@@ -147,8 +148,8 @@ func DelAssetAndUpdateSize(ctx context.Context, hash, userID string, areaID []st
 }
 
 // UpdateAssetShareStatus 修改文件分享状态
-func UpdateAssetShareStatus(ctx context.Context, hash, userID, areaID string) error {
-	query, args, err := squirrel.Update(tableUserAsset).Set("share_status", 1).Where("hash = ? AND user_id = ? AND area_id = ?", hash, userID, areaID).ToSql()
+func UpdateAssetShareStatus(ctx context.Context, hash, userID string) error {
+	query, args, err := squirrel.Update(tableUserAsset).Set("share_status", 1).Where("hash = ? AND user_id = ?", hash, userID).ToSql()
 	if err != nil {
 		return fmt.Errorf("generate update asset sql error:%w", err)
 	}
@@ -530,4 +531,49 @@ func CheckUserAssetIsInAreaID(ctx context.Context, userID, hash, areaID string) 
 	}
 
 	return num >= 1, nil
+}
+
+// GetTempAssetInfo 获取临时文件的信息
+func GetTempAssetInfo(ctx context.Context, hash string) (*model.TempAsset, error) {
+	var info model.TempAsset
+
+	query, args, err := squirrel.Select("*").From(tableTempAsset).Where("hash = ?", hash).ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("generate get asset sql error:%w", err)
+	}
+	err = DB.GetContext(ctx, &info, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &info, nil
+}
+
+// AddTempAssetShareCount 增加临时文件的分享信息
+func AddTempAssetShareCount(ctx context.Context, hash string) error {
+	if hash == "" {
+		return nil
+	}
+	query, args, err := squirrel.Insert(tableTempAsset).Columns("hash").Values(hash).Suffix("ON DUPLICATE KEY UPDATE share_count = share_count + 1").ToSql()
+	if err != nil {
+		return fmt.Errorf("generate asset's temp asset sql error:%w", err)
+	}
+
+	_, err = DB.ExecContext(ctx, query, args...)
+	return err
+}
+
+// AddTempAssetDownloadCount 增加临时文件的下载次数
+func AddTempAssetDownloadCount(ctx context.Context, hash string) error {
+	if hash == "" {
+		return nil
+	}
+
+	query, args, err := squirrel.Update(tableTempAsset).Set("download_count", squirrel.Expr("download_count + ?", 1)).Where("hash = ?", hash).ToSql()
+	if err != nil {
+		return fmt.Errorf("generate asset's temp asset sql error:%w", err)
+	}
+
+	_, err = DB.ExecContext(ctx, query, args...)
+	return err
 }

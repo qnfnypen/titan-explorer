@@ -913,13 +913,13 @@ func getNodeInfoFromScheduler(ctx context.Context, id string, areaId string) (*m
 			return nil, err
 		}
 
-		return statistics.ToDeviceInfo(nodeInfo, areaId), nil
+		return statistics.ToDeviceInfo(*nodeInfo, areaId), nil
 	}
 
 	for _, schedulerClient := range statistics.Schedulers {
 		nodeInfo, err := schedulerClient.Api.GetNodeInfo(ctx, id)
 		if err == nil {
-			return statistics.ToDeviceInfo(nodeInfo, areaId), nil
+			return statistics.ToDeviceInfo(*nodeInfo, areaId), nil
 		}
 	}
 
@@ -941,7 +941,7 @@ func getNodeInfoByScheduler(ctx context.Context, id string, areaId string) (*typ
 		return nil, err
 	}
 
-	return &nodeInfo, nil
+	return nodeInfo, nil
 }
 
 func GetDeviceProfileHandler(c *gin.Context) {
