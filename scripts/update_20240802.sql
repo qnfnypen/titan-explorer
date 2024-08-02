@@ -1,0 +1,1 @@
+ALTER TABLE user_asset ADD COLUMN `password` CHAR(64) NOT NULL DEFAULT '';

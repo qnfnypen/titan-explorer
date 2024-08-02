@@ -13,6 +13,7 @@ import (
 	"github.com/gnasnik/titan-explorer/config"
 
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
+	"github.com/gnasnik/titan-explorer/pkg/rsa"
 
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/terrors"
@@ -330,7 +331,10 @@ func GetUserAccessTokenHandler(c *gin.Context) {
 
 func GetUploadInfoHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
-	username := claims[identityKey].(string)
+	userId := claims[identityKey].(string)
+
+	ts := c.Query("ts")
+	signature := c.Query("signature")
 
 	areaId := getAreaID(c)
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
@@ -339,7 +343,16 @@ func GetUploadInfoHandler(c *gin.Context) {
 		return
 	}
 
-	res, err := schedulerClient.GetNodeUploadInfo(c.Request.Context(), username)
+	var nonce string
+	if ts != "" && signature != "" {
+		nonce, err = dao.RedisCache.Get(c.Request.Context(), userId+ts).Result()
+		if err != nil {
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+	}
+
+	res, err := schedulerClient.GetNodeUploadInfo(c.Request.Context(), userId, nonce)
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
@@ -562,6 +575,91 @@ func CreateAssetPostHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, respJSON(rsp))
+}
+
+type CidArr []string
+
+func CreateAssetFromIPFSHandler(c *gin.Context) {
+	var arr CidArr
+	if err := c.BindJSON(&arr); err != nil {
+		log.Errorf("CreateAssetFromIPFSHandler c.BindJSON() error: %+v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+}
+
+func ExportAssetToIPFSHandler(c *gin.Context) {
+
+}
+
+// func FilePassNonceHandler(c *gin.Context) {
+
+// 	pass := rand.Reader
+// 	claims := jwt.ExtractClaims(c)
+// 	userId := claims[identityKey].(string)
+
+// 	if pass == "" {
+// 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+// 		return
+// 	}
+
+// 	nonce := rsa.EncryptPassWithSalt(pass)
+
+// 	_, err := dao.RedisCache.SetEx(c.Request.Context(), userId+ts, nonce, 60*time.Minute).Result()
+// 	if err != nil {
+// 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+// 	}
+
+// 	c.JSON(http.StatusOK, respJSON(JsonObject{
+// 		"nonce": nonce,
+// 	}))
+// }
+
+// ----- upload process --------
+// 1. pass + timestamp -> nonce
+// 2. metamask + nonce -> signature
+// 3. signature + timestamp -> verify
+// 4. get_upload_node_info + signature + timestamp -> url + token
+// 5. source + token -> L1 -> cid
+// 6. cid + node_id + signature -> create_asset -> nonce + asset -> db
+
+// ----- share process --------
+// 1. expire_time + asset -> token link
+//
+
+func FilePassVerifyHandler(c *gin.Context) {
+	ts := c.Query("ts")
+	signature := c.Query("signature")
+
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
+
+	if ts == "" || signature == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	nonce, err := dao.RedisCache.Get(c.Request.Context(), userId+ts).Result()
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	addr, err := rsa.VerifyAddrSign(nonce, signature)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidSignature, c))
+		return
+	}
+
+	if addr != userId {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"msg": "success",
+	}))
 }
 
 // CreateKeyHandler 创建key
