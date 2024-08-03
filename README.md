@@ -40,4 +40,3 @@ See [MIT](LICENSE-MIT) and [Apache2.0](LICENSE-APACHE) for more information.
   - `/api/v1/storage/get_asset_location`
   - `/api/v1/storage/share_asset`
   - `/api/v1/storage/get_asset_status`
-

@@ -1050,7 +1050,7 @@ func GetAssetCountHandler(c *gin.Context) {
 	// 	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 	// 	return
 	// }
-	total, infos, err := dao.ListAssets(c.Request.Context(), userId, page, pageSize, groupId)
+	total, infos, err := dao.ListAssets(c.Request.Context(), userId, pageSize, (page-1)*pageSize, groupId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return

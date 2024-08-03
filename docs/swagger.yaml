@@ -363,25 +363,7 @@ paths:
       summary: 分享文件
       tags:
       - storage
-  /api/v1/storage/temp_file/upload:
-    post:
-      description: 首页上传文件，如果返回的为空数组，则不调用上传接口
-      parameters:
-      - description: 文件上传参数
-        in: body
-        name: req
-        required: true
-        schema:
-          $ref: '#/definitions/api.UploadTempFileReq'
-      responses:
-        "200":
-          description: '{[]{CandidateAddr: “”, Token: “”}}'
-          schema:
-            $ref: '#/definitions/api.JsonObject'
-      summary: 首页上传文件
-      tags:
-      - temp_file
-  /temp_file/download/{cid}:
+  /api/v1/storage/temp_file/download/{cid}:
     get:
       description: 下载首页上传文件
       parameters:
@@ -398,7 +380,7 @@ paths:
       summary: 下载首页上传文件
       tags:
       - temp_file
-  /temp_file/info/{cid}:
+  /api/v1/storage/temp_file/info/{cid}:
     get:
       description: 获取上传详情
       parameters:
@@ -413,6 +395,24 @@ paths:
           schema:
             $ref: '#/definitions/api.JsonObject'
       summary: 获取上传详情
+      tags:
+      - temp_file
+  /api/v1/storage/temp_file/upload:
+    post:
+      description: 首页上传文件，如果返回的为空数组，则不调用上传接口
+      parameters:
+      - description: 文件上传参数
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/api.UploadTempFileReq'
+      responses:
+        "200":
+          description: '{[]{CandidateAddr: “”, Token: “”}}'
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      summary: 首页上传文件
       tags:
       - temp_file
 securityDefinitions:

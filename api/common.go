@@ -97,7 +97,7 @@ func getAreaID(c *gin.Context) string {
 	return areaID
 }
 
-func listAssets(ctx context.Context, uid string, page, size, groupID int) (*ListAssetRecordRsp, error) {
+func listAssets(ctx context.Context, uid string, limit, offset, groupID int) (*ListAssetRecordRsp, error) {
 	var (
 		wg = new(sync.WaitGroup)
 		mu = new(sync.Mutex)
@@ -106,7 +106,7 @@ func listAssets(ctx context.Context, uid string, page, size, groupID int) (*List
 	if err != nil {
 		return nil, fmt.Errorf("get user's info error:%w", err)
 	}
-	total, infos, err := dao.ListAssets(ctx, uid, page, size, groupID)
+	total, infos, err := dao.ListAssets(ctx, uid, limit, offset, groupID)
 	if err != nil {
 		return nil, fmt.Errorf("get list of asset error:%w", err)
 	}
@@ -221,7 +221,6 @@ func listAssetSummary(ctx context.Context, uid string, parent, page, size int) (
 		resp.List = append(resp.List, i)
 	}
 	resp.Total = groupRsp.Total
-
 	aLimit := size - len(groupRsp.AssetGroups)
 	if aLimit < 0 {
 		aLimit = 0
@@ -231,7 +230,7 @@ func listAssetSummary(ctx context.Context, uid string, parent, page, size int) (
 		aOffset = 0
 	}
 
-	assetRsp, err := listAssets(ctx, uid, page, size, parent)
+	assetRsp, err := listAssets(ctx, uid, aLimit, aOffset, parent)
 	if err != nil {
 		return nil, err
 	}
@@ -301,10 +300,10 @@ func SyncAreaIDs(ctx context.Context, sCli api.Scheduler, nodeID, cid string, si
 			continue
 		}
 		err = scli.CreateSyncAsset(ctx, &types.CreateSyncAssetReq{
-			AssetCID:     cid,
-			AssetSize:    size,
-			DownloadInfo: info,
-			ReplicaCount: repCount,
+			AssetCID:      cid,
+			AssetSize:     size,
+			DownloadInfo:  info,
+			ReplicaCount:  repCount,
 			ExpirationDay: 1,
 		})
 		if err != nil {

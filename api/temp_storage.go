@@ -10,8 +10,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
+	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/core/oprds"
 	"github.com/gnasnik/titan-explorer/core/storage"
+	"github.com/rs/xid"
 )
 
 const (
@@ -62,21 +64,23 @@ func UploadTmepFile(c *gin.Context) {
 	}
 	// 判断文件是否已经存在
 	aids, err := oprds.GetClient().GetUnloginAssetAreaIDs(c.Request.Context(), hash)
-	if err == nil && len(aids) != 0 {
+	if len(aids) != 0 {
 		c.JSON(http.StatusOK, respJSON(rsp))
 		return
 	}
 
 	// 判断文件是否已经被上传分享60次了
 	taInfo, err := dao.GetTempAssetInfo(c.Request.Context(), hash)
-	if err != nil && err != sql.ErrNoRows {
+	switch err {
+	case sql.ErrNoRows:
+	case nil:
+		if taInfo.ShareCount >= maxTempAssetShareCount {
+			c.JSON(http.StatusOK, respErrorCode(errors.TempAssetUploadErr, c))
+			return
+		}
+	default:
 		log.Errorf("GetTempAssetInfo error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
-	if taInfo.ShareCount >= maxTempAssetShareCount {
-		c.JSON(http.StatusOK, respErrorCode(errors.TempAssetUploadErr, c))
-		return
 	}
 
 	schCli, err := getSchedulerClient(c.Request.Context(), req.AreaIDs[0])
@@ -89,6 +93,7 @@ func UploadTmepFile(c *gin.Context) {
 		AssetSize:     req.AssetSize,
 		NodeID:        req.NodeID,
 		ExpirationDay: 1,
+		UserID:        xid.New().String(),
 	}
 	if len(req.AreaIDs) == 1 {
 		careq.ReplicaCount = 20
@@ -116,6 +121,8 @@ func UploadTmepFile(c *gin.Context) {
 		}
 	}
 
+	dao.AddTempAssetShareCount(c.Request.Context(), hash)
+
 	c.JSON(http.StatusOK, respJSON(rsp))
 }
 
@@ -132,18 +139,24 @@ func ShareTempFile(c *gin.Context) {
 	}
 	// 判断文件是否已经被上传分享60次了
 	taInfo, err := dao.GetTempAssetInfo(c.Request.Context(), hash)
-	if err != nil && err != sql.ErrNoRows {
+	switch err {
+	case sql.ErrNoRows:
+		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+		return
+	case nil:
+		if taInfo.ShareCount >= maxTempAssetShareCount {
+			c.JSON(http.StatusOK, respErrorCode(errors.TempAssetUploadErr, c))
+			return
+		}
+	default:
 		log.Errorf("ShareTempFile error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	if taInfo.ShareCount >= maxTempAssetShareCount {
-		c.JSON(http.StatusOK, respErrorCode(errors.TempAssetUploadErr, c))
-		return
-	}
+
 	// 获取文件所有区域
 	aids, err := oprds.GetClient().GetUnloginAssetAreaIDs(c.Request.Context(), hash)
-	if err == nil || len(aids) == 0 {
+	if len(aids) == 0 {
 		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 		return
 	}
@@ -188,7 +201,7 @@ func ShareTempFile(c *gin.Context) {
 // @Tags temp_file
 // @Param cid path string true "文件的cid"
 // @Success 200 {object} JsonObject ""
-// @Router /temp_file/download/{cid} [get]
+// @Router /api/v1/storage/temp_file/download/{cid} [get]
 func DownloadTempFile(c *gin.Context) {
 	cid := c.Param("cid")
 
@@ -201,18 +214,25 @@ func DownloadTempFile(c *gin.Context) {
 	}
 	// 判断文件是否已经被下载20次了
 	taInfo, err := dao.GetTempAssetInfo(c.Request.Context(), hash)
-	if err != nil && err != sql.ErrNoRows {
+	switch err {
+	case sql.ErrNoRows:
+		log.Debug("get no rows")
+		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+		return
+	case nil:
+		if taInfo.DownloadCount >= maxTempAssetDownloadCount {
+			c.JSON(http.StatusOK, respErrorCode(errors.TempAssetDownErr, c))
+			return
+		}
+	default:
 		log.Errorf("ShareTempFile error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	if taInfo.DownloadCount >= maxTempAssetDownloadCount {
-		c.JSON(http.StatusOK, respErrorCode(errors.TempAssetDownErr, c))
-		return
-	}
+
 	// 获取文件所有区域
 	aids, err := oprds.GetClient().GetUnloginAssetAreaIDs(c.Request.Context(), hash)
-	if err == nil || len(aids) == 0 {
+	if len(aids) == 0 {
 		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 		return
 	}
@@ -247,7 +267,7 @@ func DownloadTempFile(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	dao.AddTempAssetShareCount(c.Request.Context(), hash)
+	dao.AddTempAssetDownloadCount(c.Request.Context(), hash)
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"asset_cid": cid,
 		"url":       urls[cid],
@@ -260,8 +280,13 @@ func DownloadTempFile(c *gin.Context) {
 // @Tags temp_file
 // @Param cid path string true "文件的cid"
 // @Success 200 {object} JsonObject "{total:0,cid:"",share_url:[]{}}"
-// @Router /temp_file/info/{cid} [get]
+// @Router /api/v1/storage/temp_file/info/{cid} [get]
 func GetUploadInfo(c *gin.Context) {
+	var (
+		deviceIds []string
+		complete  int64
+	)
+	lang := model.Language(c.GetHeader("Lang"))
 	cid := c.Param("cid")
 
 	// 获取文件hash
@@ -273,7 +298,7 @@ func GetUploadInfo(c *gin.Context) {
 	}
 	// 获取调度器区域
 	aids, err := oprds.GetClient().GetUnloginAssetAreaIDs(c.Request.Context(), hash)
-	if err == nil && len(aids) != 0 {
+	if err != nil || len(aids) == 0 {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
@@ -294,10 +319,23 @@ func GetUploadInfo(c *gin.Context) {
 		resp.Total += rsp.Total
 		resp.ReplicaInfos = append(resp.ReplicaInfos, rsp.ReplicaInfos...)
 	}
+	for _, v := range resp.ReplicaInfos {
+		if v.Status == types.ReplicaStatusSucceeded {
+			complete++
+		}
+		deviceIds = append(deviceIds, v.NodeID)
+	}
+	deviceInfos, err := dao.GetDeviceInfoListByIds(c.Request.Context(), deviceIds)
+	if err != nil {
+		log.Errorf("GetAssetList err: %v", err)
+	}
+	mapList := dao.GenerateDeviceMapInfo(deviceInfos, lang, true)
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"total":     resp.Total,
+		"complete":  complete,
 		"share_url": fmt.Sprintf("https://storage-test.titannet.io/api/v1/storage/temp_file/share/%s", cid),
+		"maplist":   mapList,
 		"list":      resp.ReplicaInfos,
 	}))
 }

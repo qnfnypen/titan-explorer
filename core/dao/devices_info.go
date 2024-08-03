@@ -302,7 +302,7 @@ func ContactIPLocation(loc model.Location, lang model.Language) string {
 	return fmt.Sprintf("%s-%s-%s-%s", cf(loc.Continent), cf(loc.Country), cf(loc.Province), cf(loc.City))
 }
 
-func GenerateDeviceMapInfo(infos []*model.DeviceInfo, lang model.Language) []map[string]interface{} {
+func GenerateDeviceMapInfo(infos []*model.DeviceInfo, lang model.Language, noHideIP ...bool) []map[string]interface{} {
 	var out []map[string]interface{}
 	mapLocationExit := make(map[float64]float64)
 	for _, info := range infos {
@@ -323,7 +323,9 @@ func GenerateDeviceMapInfo(infos []*model.DeviceInfo, lang model.Language) []map
 		}
 
 		//TranslateIPLocation(context.Background(), info, lang)
-		maskDeviceIPAddress(info)
+		if len(noHideIP) == 0 {
+			maskDeviceIPAddress(info)
+		}
 
 		out = append(out, map[string]interface{}{
 			"name":     info.IpCity,

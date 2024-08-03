@@ -162,7 +162,7 @@ func UpdateAssetShareStatus(ctx context.Context, hash, userID string) error {
 }
 
 // ListAssets 获取对应文件夹的文件列表
-func ListAssets(ctx context.Context, uid string, page, size, groupID int) (int64, []*UserAssetDetail, error) {
+func ListAssets(ctx context.Context, uid string, limit, offset, groupID int) (int64, []*UserAssetDetail, error) {
 	var (
 		total int64
 		infos []*UserAssetDetail
@@ -175,7 +175,7 @@ func ListAssets(ctx context.Context, uid string, page, size, groupID int) (int64
 
 	query, args, err := squirrel.Select("ua.*,IFNULL(uav.count,0) AS visit_count").From(fmt.Sprintf("%s AS ua", tableUserAsset)).LeftJoin(fmt.Sprintf("%s AS uav ON ua.hash=uav.hash", tableUserAssetVisit)).
 		Where("ua.user_id = ? AND ua.group_id = ?", uid, groupID).OrderBy("ua.created_time desc").
-		Limit(uint64(size)).Offset(uint64((page - 1) * size)).ToSql()
+		Limit(uint64(limit)).Offset(uint64(offset)).ToSql()
 	if err != nil {
 		return 0, nil, fmt.Errorf("generate get asset sql error:%w", err)
 	}

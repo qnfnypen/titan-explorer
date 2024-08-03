@@ -6,8 +6,11 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
+
+	"github.com/gnasnik/titan-explorer/core/storage"
 )
 
 var (
@@ -75,10 +78,9 @@ func TestMoveHash(t *testing.T) {
 
 	// Asia-China-Guangdong-Shenzhen
 	payload := strings.NewReader(`{
-	  "from_area_id":"NorthAmerica-UnitedStates-Ohio-Columbus",
-	  "node_id":"c_5d898293-e188-4948-b347-7eb3b1fdd931",
-	  "to_area_id":"Asia-China-Guangdong-Shenzhen"
-  }`)
+	  "from_area_id":"Asia-China-Guangdong-Shenzhen",
+	  "node_id":"c_7c7bd97b-6742-4f74-abd6-5b2c2a4b2744",
+	  "to_area_id":"NorthAmerica-UnitedStates"}`)
 
 	client := &http.Client{}
 	req, err := http.NewRequest(method, url, payload)
@@ -86,7 +88,7 @@ func TestMoveHash(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req.Header.Add("Jwtauthorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjI1NjkxNjksImlkIjoibTEyNTY2Njg3MjVAZ21haWwuY29tIiwib3JpZ19pYXQiOjE3MjI0ODI3NjksInJvbGUiOjB9.hpzoIH7mxGy4CMFmDDpGmT0ig6RSWL9KVUOHhm2xDZY")
+	req.Header.Add("Jwtauthorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjI2NTA1NjYsImlkIjoibTEyNTY2Njg3MjVAZ21haWwuY29tIiwib3JpZ19pYXQiOjE3MjI1NjQxNjYsInJvbGUiOjB9.6Ow4tDNx5ga47hc9RbU4X4PELW_eNEmJihSthLryrnw")
 	req.Header.Add("Content-Type", "application/json")
 
 	res, err := client.Do(req)
@@ -133,4 +135,46 @@ func TestUploadTf(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(string(body))
+}
+
+func TestMove(t *testing.T) {
+	os.Setenv("ETCD_USERNAME", "web")
+	os.Setenv("ETCD_PASSWORD", "web_123")
+	var req MoveNodeReq
+	req.FromAreaID = "Asia-HongKong"
+	req.NodeID = "c_0ed193d6-8cce-49a1-8dd2-fdb4210cbfde"
+	req.ToAreaID = "NorthAmerica-UnitedStates"
+	// 将node节点从from area移出
+	fscli, err := getSchedulerClient(ctx, req.FromAreaID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	info, err := fscli.MigrateNodeOut(ctx, req.NodeID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tscli, err := getSchedulerClient(ctx, req.ToAreaID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = tscli.MigrateNodeIn(ctx, info)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = fscli.CleanupNode(ctx, req.NodeID, info.Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log("success")
+}
+
+func TestChange(t *testing.T) {
+	cid := "bafkreicfnhjjtgihpix2ec2mnz7p6k2kh5ra73eij4sk5hhzrvvlkfmx4e"
+	hash, err := storage.CIDToHash(cid)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(hash)
 }

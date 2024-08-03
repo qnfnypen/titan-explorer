@@ -539,35 +539,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/storage/temp_file/upload": {
-            "post": {
-                "description": "首页上传文件，如果返回的为空数组，则不调用上传接口",
-                "tags": [
-                    "temp_file"
-                ],
-                "summary": "首页上传文件",
-                "parameters": [
-                    {
-                        "description": "文件上传参数",
-                        "name": "req",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/api.UploadTempFileReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "{[]{CandidateAddr: “”, Token: “”}}",
-                        "schema": {
-                            "$ref": "#/definitions/api.JsonObject"
-                        }
-                    }
-                }
-            }
-        },
-        "/temp_file/download/{cid}": {
+        "/api/v1/storage/temp_file/download/{cid}": {
             "get": {
                 "description": "下载首页上传文件",
                 "tags": [
@@ -593,7 +565,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/temp_file/info/{cid}": {
+        "/api/v1/storage/temp_file/info/{cid}": {
             "get": {
                 "description": "获取上传详情",
                 "tags": [
@@ -612,6 +584,34 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "{total:0,cid:\"\",share_url:[]{}}",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/storage/temp_file/upload": {
+            "post": {
+                "description": "首页上传文件，如果返回的为空数组，则不调用上传接口",
+                "tags": [
+                    "temp_file"
+                ],
+                "summary": "首页上传文件",
+                "parameters": [
+                    {
+                        "description": "文件上传参数",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.UploadTempFileReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{[]{CandidateAddr: “”, Token: “”}}",
                         "schema": {
                             "$ref": "#/definitions/api.JsonObject"
                         }
