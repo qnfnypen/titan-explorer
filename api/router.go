@@ -192,6 +192,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	// storage.Use(authMiddleware.MiddlewareFunc())
 	storage.Use(AuthRequired(authMiddleware))
 	storage.GET("/share_asset", ShareAssetsHandler)
+	storage.GET("/share_encrypted", ShareEncryptedAssetsHandler)
 	storage.GET("/get_locateStorage", GetAllocateStorageHandler)
 	storage.GET("/get_storage_size", GetStorageSizeHandler)          // 获取用户存储空间信息
 	storage.GET("/get_vip_info", GetUserVipInfoHandler)              // 判断用户是否为vip

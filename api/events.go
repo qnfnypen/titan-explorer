@@ -1,6 +1,7 @@
 package api
 
 import (
+	"crypto/md5"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -333,8 +334,8 @@ func GetUploadInfoHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
 
-	ts := c.Query("ts")
-	signature := c.Query("signature")
+	// ts := c.Query("ts")
+	// signature := c.Query("signature")
 
 	areaId := getAreaID(c)
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
@@ -343,16 +344,26 @@ func GetUploadInfoHandler(c *gin.Context) {
 		return
 	}
 
-	var nonce string
-	if ts != "" && signature != "" {
-		nonce, err = dao.RedisCache.Get(c.Request.Context(), userId+ts).Result()
-		if err != nil {
+	// var nonce string
+	// if ts != "" && signature != "" {
+	// 	nonce, err = dao.RedisCache.Get(c.Request.Context(), userId+ts).Result()
+	// 	if err != nil {
+	// 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	// 		return
+	// 	}
+	// }
+
+	var randomPassNonce string
+	if c.Query("encrypted") == "true" {
+		passKey := fmt.Sprintf("TITAN::FILE::PASS::%s", userId)
+		randomPassNonce = string(md5.New().Sum([]byte(userId + time.Now().String())))
+		if _, err = dao.RedisCache.SetEx(c.Request.Context(), passKey, randomPassNonce, 24*time.Hour).Result(); err != nil {
 			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 			return
 		}
 	}
 
-	res, err := schedulerClient.GetNodeUploadInfo(c.Request.Context(), userId, nonce)
+	res, err := schedulerClient.GetNodeUploadInfo(c.Request.Context(), userId, randomPassNonce)
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
@@ -390,6 +401,20 @@ func CreateAssetHandler(c *gin.Context) {
 		log.Errorf("CreateAssetHandler GetUserByUsername error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
+	}
+
+	var randomPassNonce string
+	if c.Query("encrypted") == "true" {
+		passKey := fmt.Sprintf("TITAN::FILE::PASS::%s", userId)
+		randomPassNonce = dao.RedisCache.Get(c.Request.Context(), passKey).String()
+		if randomPassNonce == "" {
+			log.Error("CreateAssetHandler randomPassNonce not found")
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		}
+
+		defer func() {
+			dao.RedisCache.Del(c.Request.Context(), passKey)
+		}()
 	}
 
 	log.Debugf("CreateAssetHandler clientIP:%s, areaId:%v\n", c.ClientIP(), areaIds)
@@ -469,6 +494,7 @@ func CreateAssetHandler(c *gin.Context) {
 		AssetType:   createAssetReq.AssetType,
 		CreatedTime: time.Now(),
 		TotalSize:   createAssetReq.AssetSize,
+		Password:    randomPassNonce,
 		GroupID:     int64(createAssetReq.GroupID),
 	}, notExistsAids); err != nil {
 		log.Errorf("CreateAssetHandler AddAsset error: %v", err)
@@ -942,6 +968,20 @@ func ShareAssetsHandler(c *gin.Context) {
 		"url":       urls[cid],
 		"redirect":  redirect,
 	}))
+}
+
+func ShareEncryptedAssetsHandler(c *gin.Context) {
+	// claims := jwt.ExtractClaims(c)
+	// userId := claims[identityKey].(string)
+	// cid := c.Query("asset_cid")
+	// areaId := c.Query("area_id")
+
+	// hash, err := cidutil.CIDToHash(cid)
+	// if err != nil {
+	// 	log.Error("Invalid asset CID: ", cid)
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+	// 	return
+	// }
 }
 
 // ShareLinkHandler 获取分享链接

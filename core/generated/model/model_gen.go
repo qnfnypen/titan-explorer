@@ -626,6 +626,7 @@ type UserAsset struct {
 	CreatedTime time.Time `db:"created_time"`
 	TotalSize   int64     `db:"total_size"`
 	Password    string    `db:"password"`
+	ShortPass 	string 	  `db:"short_pass"`
 	GroupID     int64     `db:"group_id"`
 }
 
