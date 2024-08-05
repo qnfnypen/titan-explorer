@@ -1149,9 +1149,8 @@ loop:
 func GetAssetStatusHandler(c *gin.Context) {
 	userId := c.Query("username")
 	cid := c.Query("cid")
-	areaID := getAreaID(c)
 
-	statusRsp, err := getAssetStatus(c.Request.Context(), userId, cid, areaID)
+	statusRsp, err := getAssetStatus(c.Request.Context(), userId, cid)
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
@@ -1253,23 +1252,37 @@ func GetAssetCountHandler(c *gin.Context) {
 func GetAssetDetailHandler(c *gin.Context) {
 	cid := c.Query("cid")
 	lang := model.Language(c.GetHeader("Lang"))
-	areaId := getAreaID(c)
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-		return
-	}
+	resp := new(types.AssetRecord)
 
-	resp, err := schedulerClient.GetAssetRecord(c.Request.Context(), cid)
+	// 获取文件hash
+	hash, err := storage.CIDToHash(cid)
 	if err != nil {
-		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-			return
-		}
-
-		log.Errorf("api GetAssetRecord: %v", err)
+		log.Errorf("CreateAssetHandler CIDToHash error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
+	}
+	// 获取调度器区域
+	areaIds, err := dao.GetAreaIDsByHash(c.Request.Context(), hash)
+	if err != nil {
+		log.Error(err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	for i, v := range areaIds {
+		schedulerClient, err := getSchedulerClient(c.Request.Context(), v)
+		if err != nil {
+			log.Errorf("getSchedulerClient: %v", err)
+			continue
+		}
+		record, err := schedulerClient.GetAssetRecord(c.Request.Context(), cid)
+		if err != nil {
+			log.Errorf("api GetAssetRecord: %v", err)
+			continue
+		}
+		if i == 0 {
+			resp.CID = record.CID
+		}
+		resp.ReplicaInfos = append(resp.ReplicaInfos, record.ReplicaInfos...)
 	}
 
 	cityMap := make(map[string]struct{})
@@ -1314,30 +1327,46 @@ func GetAssetDetailHandler(c *gin.Context) {
 }
 
 func GetLocationHandler(c *gin.Context) {
+	var resp = new(types.ListReplicaRsp)
 	//userId := c.Query("user_id")
 	cid := c.Query("cid")
 	lang := model.Language(c.GetHeader("Lang"))
-	areaId := getAreaID(c)
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-		return
-	}
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 
 	limit := pageSize
 	offset := (page - 1) * pageSize
+	if offset < 0 {
+		offset = 0
+	}
 
-	resp, err := schedulerClient.GetReplicas(c.Request.Context(), cid, limit, offset)
+	// 获取文件hash
+	hash, err := storage.CIDToHash(cid)
 	if err != nil {
-		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-			return
-		}
-		log.Errorf("api GetReplicas: %v", err)
+		log.Errorf("CreateAssetHandler CIDToHash error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
+	}
+	// 获取调度器区域
+	areaIds, err := dao.GetAreaIDsByHash(c.Request.Context(), hash)
+	if err != nil {
+		log.Error(err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	for _, v := range areaIds {
+		schedulerClient, err := getSchedulerClient(c.Request.Context(), v)
+		if err != nil {
+			log.Errorf("getSchedulerClient: %v", err)
+			continue
+		}
+		record, err := schedulerClient.GetAssetRecord(c.Request.Context(), cid)
+		if err != nil {
+			log.Errorf("api GetAssetRecord: %v", err)
+			continue
+		}
+		resp.Total += len(record.ReplicaInfos)
+		resp.ReplicaInfos = append(resp.ReplicaInfos, record.ReplicaInfos...)
 	}
 	var deviceIds []string
 	if len(resp.ReplicaInfos) > 0 {
@@ -1363,7 +1392,6 @@ func GetLocationHandler(c *gin.Context) {
 			if lErr == nil && loc != nil {
 				nodeInfo.Location = *loc
 			}
-
 			assetInfos = append(assetInfos, &DeviceInfoRes{
 				DeviceId:   nodeInfo.DeviceID,
 				IpLocation: dao.ContactIPLocation(nodeInfo.Location, lang),
@@ -1371,10 +1399,18 @@ func GetLocationHandler(c *gin.Context) {
 			})
 		}
 	}
+	nodeList := make([]*DeviceInfoRes, 0)
+	if offset < resp.Total {
+		if offset+limit >= resp.Total {
+			nodeList = assetInfos[offset:]
+		} else {
+			nodeList = assetInfos[offset : offset+limit]
+		}
+	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"total":     resp.Total,
-		"node_list": assetInfos,
+		"node_list": nodeList,
 	}))
 }
 

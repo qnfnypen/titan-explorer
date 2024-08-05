@@ -35,7 +35,6 @@ type (
 		Password    string    `db:"password"`
 		GroupID     int64     `db:"group_id"`
 		VisitCount  int64     `db:"visit_count"`
-		SharePass   string    `db:"share_pass"`
 		// IsSync      bool      `db:"is_sync" json:"-"`
 	}
 )
@@ -174,7 +173,8 @@ func ListAssets(ctx context.Context, uid string, limit, offset, groupID int) (in
 		return 0, nil, err
 	}
 
-	query, args, err := squirrel.Select("ua.*,IFNULL(uav.count,0) AS visit_count").From(fmt.Sprintf("%s AS ua", tableUserAsset)).LeftJoin(fmt.Sprintf("%s AS uav ON ua.hash=uav.hash", tableUserAssetVisit)).
+	query, args, err := squirrel.Select("ua.user_id,ua.hash,ua.asset_name,ua.asset_type,ua.share_status,ua.expiration,ua.created_time,ua.total_size,ua.password,ua.group_id,IFNULL(uav.count,0) AS visit_count").
+		From(fmt.Sprintf("%s AS ua", tableUserAsset)).LeftJoin(fmt.Sprintf("%s AS uav ON ua.hash=uav.hash", tableUserAssetVisit)).
 		Where("ua.user_id = ? AND ua.group_id = ?", uid, groupID).OrderBy("ua.created_time desc").
 		Limit(uint64(limit)).Offset(uint64(offset)).ToSql()
 	if err != nil {
@@ -353,7 +353,8 @@ func UpdateAssetGroup(ctx context.Context, userID, hash, areaID string, groupID 
 func GetUserAsset(ctx context.Context, hash, uid string) (*UserAssetDetail, error) {
 	var asset UserAssetDetail
 
-	query, args, err := squirrel.Select("ua.*,IFNULL(uav.count,0) AS visit_count").From(fmt.Sprintf("%s AS ua", tableUserAsset)).LeftJoin(fmt.Sprintf("%s AS uav ON ua.hash=uav.hash", tableUserAssetVisit)).
+	query, args, err := squirrel.Select("ua.user_id,ua.hash,ua.asset_name,ua.asset_type,ua.share_status,ua.expiration,ua.created_time,ua.total_size,ua.password,ua.group_id,IFNULL(uav.count,0) AS visit_count").
+		From(fmt.Sprintf("%s AS ua", tableUserAsset)).LeftJoin(fmt.Sprintf("%s AS uav ON ua.hash=uav.hash", tableUserAssetVisit)).
 		Where("ua.user_id = ? AND ua.hash = ?", uid, hash).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("generate get asset sql error:%w", err)
@@ -577,4 +578,21 @@ func AddTempAssetDownloadCount(ctx context.Context, hash string) error {
 
 	_, err = DB.ExecContext(ctx, query, args...)
 	return err
+}
+
+// GetAreaIDsByHash 通过hash获取areaids
+func GetAreaIDsByHash(ctx context.Context, hash string) ([]string, error) {
+	var areaIDs []string
+
+	query, args, err := squirrel.Select("DISTINCT(area_id)").From(tableUserAssetArea).Where("hash = ?", hash).ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("generate asset's areaid sql error:%w", err)
+	}
+
+	err = DB.SelectContext(ctx, &areaIDs, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("get asset's areaids error:%w", err)
+	}
+
+	return areaIDs, nil
 }

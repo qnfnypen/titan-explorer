@@ -171,7 +171,7 @@ func listAssets(ctx context.Context, uid string, limit, offset, groupID int) (*L
 	return &ListAssetRecordRsp{Total: total, AssetOverviews: list}, nil
 }
 
-func getAssetStatus(ctx context.Context, uid, cid, areaID string) (*types.AssetStatus, error) {
+func getAssetStatus(ctx context.Context, uid, cid string) (*types.AssetStatus, error) {
 	resp := new(types.AssetStatus)
 
 	// 将cid转换为hash
