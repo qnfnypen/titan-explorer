@@ -29,5 +29,6 @@ func VerifyAddrSign(nonce, sign string) (string, error) {
 }
 
 func EncryptPassWithSalt(pass string) string {
-	return string(crypto.Keccak256([]byte(pass + FilePassSalt)))
+	bs := crypto.Keccak256([]byte(pass + FilePassSalt))
+	return hexutil.Encode(bs)
 }

@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"database/sql"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
@@ -330,6 +331,8 @@ func GetUserAccessTokenHandler(c *gin.Context) {
 	}))
 }
 
+const FileUploadPassKey = "TITAN::FILE::PASS::%s"
+
 func GetUploadInfoHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
@@ -337,8 +340,9 @@ func GetUploadInfoHandler(c *gin.Context) {
 	// ts := c.Query("ts")
 	// signature := c.Query("signature")
 
-	areaId := getAreaID(c)
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	areaId := getAreaIDs(c)
+
+	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId[0])
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
 		return
@@ -355,7 +359,7 @@ func GetUploadInfoHandler(c *gin.Context) {
 
 	var randomPassNonce string
 	if c.Query("encrypted") == "true" {
-		passKey := fmt.Sprintf("TITAN::FILE::PASS::%s", userId)
+		passKey := fmt.Sprintf(FileUploadPassKey, userId)
 		randomPassNonce = string(md5.New().Sum([]byte(userId + time.Now().String())))
 		if _, err = dao.RedisCache.SetEx(c.Request.Context(), passKey, randomPassNonce, 24*time.Hour).Result(); err != nil {
 			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -405,8 +409,8 @@ func CreateAssetHandler(c *gin.Context) {
 
 	var randomPassNonce string
 	if c.Query("encrypted") == "true" {
-		passKey := fmt.Sprintf("TITAN::FILE::PASS::%s", userId)
-		randomPassNonce = dao.RedisCache.Get(c.Request.Context(), passKey).String()
+		passKey := fmt.Sprintf(FileUploadPassKey, userId)
+		randomPassNonce = dao.RedisCache.Get(c.Request.Context(), passKey).Val()
 		if randomPassNonce == "" {
 			log.Error("CreateAssetHandler randomPassNonce not found")
 			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -557,7 +561,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	ainfo, _ := dao.GetUserAsset(c.Request.Context(), hash, username)
+	ainfo, _ := dao.GetUserAssetDetail(c.Request.Context(), hash, username)
 	if ainfo != nil && ainfo.UserID != "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
 		return
@@ -654,6 +658,13 @@ func ExportAssetToIPFSHandler(c *gin.Context) {
 // 1. expire_time + asset -> token link
 //
 
+// ----- upload process --------
+//  1. encrypted ? -> get_upload_info
+//     yes -> randomPassNonce -> token -> savePass2redis
+//     no -> upload_file_without_encryption
+//  2. upload with token
+//
+// 3.
 func FilePassVerifyHandler(c *gin.Context) {
 	ts := c.Query("ts")
 	signature := c.Query("signature")
@@ -927,7 +938,7 @@ func ShareAssetsHandler(c *gin.Context) {
 		}
 	}
 	// 获取文件信息
-	userAsset, err := dao.GetUserAsset(c.Request.Context(), hash, userId)
+	userAsset, err := dao.GetUserAssetDetail(c.Request.Context(), hash, userId)
 	if err != nil {
 		log.Error("Failed to get user asset: ", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -960,6 +971,9 @@ func ShareAssetsHandler(c *gin.Context) {
 
 	for i := range urls[cid] {
 		urls[cid][i] = fmt.Sprintf("%s&filename=%s", urls[cid][i], userAsset.AssetName)
+		if userAsset.Password != "" {
+			urls[cid][i] = fmt.Sprintf("%s&password=%s", urls[cid][i], userAsset.Password)
+		}
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -1002,6 +1016,67 @@ func ShareLinkHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
+
+	hash, err := cidutil.CIDToHash(cid)
+	if err != nil {
+		log.Errorf("cidToHash: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+	}
+
+	asset, err := dao.GetUserAsset(c.Request.Context(), hash, username)
+	if err != nil {
+		log.Errorf("database getUserAsset: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	signature := c.Query("signature")
+	if signature != "" {
+		nonce := dao.RedisCache.Get(c.Request.Context(), fmt.Sprintf(FilePassNonceVerifyKey, username)).Val()
+		if nonce == "" {
+			log.Errorf("nonce not found")
+			c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		}
+		addr, err := rsa.VerifyAddrSign(nonce, signature)
+		if err != nil {
+			log.Errorf("VerifyAddrSign: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		}
+		if addr != username {
+			log.Errorf("addr not match")
+			c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		}
+	}
+
+	access_pass := c.Query("access_pass")
+	if signature != "" && access_pass == "" {
+		access_pass = genRandomStr(6)
+	}
+
+	if access_pass != "" {
+		asset.ShortPass = access_pass
+	}
+
+	expireTime, err := strconv.Atoi(c.Query("expire_time"))
+	if err != nil {
+		log.Errorf("expire_time invalid")
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+	}
+
+	if expireTime > 0 {
+		if time.Now().Unix() > int64(expireTime) {
+			log.Errorf("file expired")
+			c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		}
+		exp := time.Unix(int64(expireTime), 0)
+		asset.Expiration = exp
+	}
+
+	if err := dao.UpdateUserAsset(c.Request.Context(), asset); err != nil {
+		log.Errorf("database updateUserAsset: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	}
+
 	var link model.Link
 	link.UserName = username
 	link.Cid = cid
@@ -1024,6 +1099,38 @@ func ShareLinkHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"url": shortLink,
+	}))
+
+}
+
+const (
+	charset                = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	FilePassNonceVerifyKey = "TITAN::FILEPASS_NONCE_VERIFY_%s"
+)
+
+func genRandomStr(length int64) string {
+	rand.Seed(time.Now().UnixNano())
+	randomStr := make([]byte, length)
+	for i := range randomStr {
+		randomStr[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(randomStr)
+}
+
+func ShareBeforeHandler(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
+
+	key := fmt.Sprintf(FilePassNonceVerifyKey, userId)
+	nonce := rsa.EncryptPassWithSalt(key + time.Now().String())
+
+	_, err := dao.RedisCache.SetEx(c.Request.Context(), key, nonce, 5*time.Minute).Result()
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"nonce": nonce,
 	}))
 }
 
