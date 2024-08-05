@@ -35,6 +35,7 @@ type (
 		Password    string    `db:"password"`
 		GroupID     int64     `db:"group_id"`
 		VisitCount  int64     `db:"visit_count"`
+		SharePass   string    `db:"share_pass"`
 		// IsSync      bool      `db:"is_sync" json:"-"`
 	}
 )

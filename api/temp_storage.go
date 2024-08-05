@@ -41,8 +41,9 @@ type (
 // @Router /api/v1/storage/temp_file/upload [post]
 func UploadTmepFile(c *gin.Context) {
 	var (
-		req UploadTempFileReq
-		rsp = make([]JsonObject, 0)
+		req     UploadTempFileReq
+		rsp     = make([]JsonObject, 0)
+		payload = oprds.UnLoginSyncArea{}
 	)
 
 	err := c.ShouldBindJSON(&req)
@@ -114,6 +115,15 @@ func UploadTmepFile(c *gin.Context) {
 	if len(req.AreaIDs) > 1 {
 		oprds.GetClient().PushAreaIDs(c.Request.Context(), &oprds.AreaIDPayload{CID: req.AssetCID, Hash: hash, AreaIDs: req.AreaIDs})
 	}
+	// 不管是否成功，都先塞到redis中去
+	for i, v := range req.AreaIDs {
+		isSync := false
+		if i == 0 {
+			isSync = true
+		}
+		payload.List = append(payload.List, oprds.UnloginSyncAreaDetail{AreaID: v, IsSync: isSync})
+	}
+	oprds.GetClient().SetUnloginAssetInfo(c.Request.Context(), hash, &payload)
 
 	if !createAssetRsp.AlreadyExists {
 		for _, v := range createAssetRsp.List {

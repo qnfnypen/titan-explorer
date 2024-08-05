@@ -111,7 +111,11 @@ func syncUnLoginAsset() func() {
 					return
 				}
 				aids = append(aids, v.AreaIDs[0])
-				oprds.GetClient().SetUnloginAssetInfo(ctx, v.Hash, &oprds.AreaIDPayload{AreaIDs: aids})
+				payload := oprds.UnLoginSyncArea{}
+				for _, v := range aids {
+					payload.List = append(payload.List, oprds.UnloginSyncAreaDetail{AreaID: v, IsSync: true})
+				}
+				oprds.GetClient().SetUnloginAssetInfo(ctx, v.Hash, &payload)
 				oprds.GetClient().DelAreaIDs(ctx, v)
 			}(v)
 		}

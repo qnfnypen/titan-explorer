@@ -39,6 +39,17 @@ type AreaIDPayload struct {
 	AreaIDs []string
 }
 
+// UnLoginSyncArea 未登陆同步调度器区域
+type UnLoginSyncArea struct {
+	List []UnloginSyncAreaDetail
+}
+
+// UnloginSyncAreaDetail 未登陆同步
+type UnloginSyncAreaDetail struct {
+	AreaID string
+	IsSync bool
+}
+
 // Init 初始化
 func Init() {
 	rCli := redis.NewClient(&redis.Options{
@@ -158,7 +169,7 @@ func (c *Client) DelAreaIDs(ctx context.Context, payload *AreaIDPayload) error {
 }
 
 // SetUnloginAssetInfo 塞入未登陆文件的hash和区域
-func (c *Client) SetUnloginAssetInfo(ctx context.Context, hash string, payload *AreaIDPayload) error {
+func (c *Client) SetUnloginAssetInfo(ctx context.Context, hash string, payload *UnLoginSyncArea) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("json marshal scheduler's info error:%w", err)
@@ -170,7 +181,10 @@ func (c *Client) SetUnloginAssetInfo(ctx context.Context, hash string, payload *
 
 // GetUnloginAssetAreaIDs 获取未登陆文件的区域
 func (c *Client) GetUnloginAssetAreaIDs(ctx context.Context, hash string) ([]string, error) {
-	var payload AreaIDPayload
+	var (
+		payload UnLoginSyncArea
+		areaIDs []string
+	)
 
 	key := fmt.Sprintf("%s_%s", preUnlogin, hash)
 	value, err := c.rds.Get(ctx, key).Result()
@@ -181,7 +195,12 @@ func (c *Client) GetUnloginAssetAreaIDs(ctx context.Context, hash string) ([]str
 		if err := json.Unmarshal([]byte(value), &payload); err != nil {
 			return nil, err
 		}
-		return payload.AreaIDs, nil
+		for _, v := range payload.List {
+			if v.IsSync {
+				areaIDs = append(areaIDs, v.AreaID)
+			}
+		}
+		return areaIDs, nil
 	default:
 		return nil, err
 	}
