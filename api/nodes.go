@@ -19,6 +19,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/filecoin"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/core/oprds"
 	"github.com/gnasnik/titan-explorer/core/statistics"
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/go-redis/redis/v9"
@@ -910,10 +911,17 @@ func getNodeInfoFromScheduler(ctx context.Context, id string, areaId string) (*m
 
 		nodeInfo, err := schedulerClient.GetNodeInfo(ctx, id)
 		if err != nil {
+			log.Errorf("get node info error:%w", err)
 			return nil, err
 		}
 
 		return statistics.ToDeviceInfo(*nodeInfo, areaId), nil
+	}
+
+	// 判断节点是否存在
+	next, _ := oprds.GetClient().CheckUnSyncNodeID(ctx, id)
+	if !next {
+		return nil, fmt.Errorf("device not found")
 	}
 
 	for _, schedulerClient := range statistics.Schedulers {
@@ -921,7 +929,10 @@ func getNodeInfoFromScheduler(ctx context.Context, id string, areaId string) (*m
 		if err == nil {
 			return statistics.ToDeviceInfo(*nodeInfo, areaId), nil
 		}
+		log.Errorf("get node info error:%w", err)
 	}
+
+	oprds.GetClient().IncrUnSyncNodeID(ctx, id)
 
 	return nil, fmt.Errorf("device not found")
 }
@@ -938,6 +949,7 @@ func getNodeInfoByScheduler(ctx context.Context, id string, areaId string) (*typ
 
 	nodeInfo, err := schedulerClient.GetNodeInfo(ctx, id)
 	if err != nil {
+		log.Errorf("get node info error:%w", err)
 		return nil, err
 	}
 

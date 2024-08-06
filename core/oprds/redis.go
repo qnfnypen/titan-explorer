@@ -15,6 +15,7 @@ const (
 	schckey    = "sync_scheduler_list"
 	areaKey    = "sync_scheduler_list_unlogin"
 	preUnlogin = "unlogin_hash"
+	preNodeID  = "unsync_nodeid"
 )
 
 var cli *Client
@@ -204,4 +205,27 @@ func (c *Client) GetUnloginAssetAreaIDs(ctx context.Context, hash string) ([]str
 	default:
 		return nil, err
 	}
+}
+
+// IncrUnSyncNodeID 增加未同步的节点次数
+func (c *Client) IncrUnSyncNodeID(ctx context.Context, nodeID string) error {
+	key := fmt.Sprintf("%s_%s", preNodeID, nodeID)
+
+	if err := c.rds.Incr(ctx, key).Err(); err != nil {
+		return fmt.Errorf("incr key(%v) error:%w", key, err)
+	}
+
+	return nil
+}
+
+// CheckUnSyncNodeID 判断未同步的节点是否要跳过
+func (c *Client) CheckUnSyncNodeID(ctx context.Context, nodeID string) (bool, error) {
+	key := fmt.Sprintf("%s_%s", preNodeID, nodeID)
+
+	num, err := c.rds.Get(ctx, key).Int()
+	if err != nil {
+		return false, fmt.Errorf("get value of key(%v) error:%w", key, err)
+	}
+
+	return num <= 5, nil
 }
