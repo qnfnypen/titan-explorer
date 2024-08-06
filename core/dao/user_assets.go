@@ -35,7 +35,7 @@ type (
 		Password    string    `db:"password"`
 		GroupID     int64     `db:"group_id"`
 		VisitCount  int64     `db:"visit_count"`
-		ShortPass   string    `db:"short_pass"`
+		// ShortPass   string    `db:"short_pass"`
 		// IsSync      bool      `db:"is_sync" json:"-"`
 	}
 )
@@ -174,7 +174,7 @@ func ListAssets(ctx context.Context, uid string, limit, offset, groupID int) (in
 		return 0, nil, err
 	}
 
-	query, args, err := squirrel.Select("ua.user_id,ua.hash,ua.asset_name,ua.asset_type,ua.share_status,ua.expiration,ua.created_time,ua.total_size,ua.password,ua.short_pass,ua.group_id,IFNULL(uav.count,0) AS visit_count").
+	query, args, err := squirrel.Select("ua.user_id,ua.hash,ua.asset_name,ua.asset_type,ua.share_status,ua.expiration,ua.created_time,ua.total_size,ua.password,ua.group_id,IFNULL(uav.count,0) AS visit_count").
 		From(fmt.Sprintf("%s AS ua", tableUserAsset)).LeftJoin(fmt.Sprintf("%s AS uav ON ua.hash=uav.hash", tableUserAssetVisit)).
 		Where("ua.user_id = ? AND ua.group_id = ?", uid, groupID).OrderBy("ua.created_time desc").
 		Limit(uint64(limit)).Offset(uint64(offset)).ToSql()
@@ -354,7 +354,7 @@ func UpdateAssetGroup(ctx context.Context, userID, hash, areaID string, groupID 
 func GetUserAssetDetail(ctx context.Context, hash, uid string) (*UserAssetDetail, error) {
 	var asset UserAssetDetail
 
-	query, args, err := squirrel.Select("ua.user_id,ua.hash,ua.asset_name,ua.asset_type,ua.share_status,ua.expiration,ua.created_time,ua.total_size,ua.password,ua.group_id,ua.short_pass,IFNULL(uav.count,0) AS visit_count").
+	query, args, err := squirrel.Select("ua.user_id,ua.hash,ua.asset_name,ua.asset_type,ua.share_status,ua.expiration,ua.created_time,ua.total_size,ua.password,ua.group_id,IFNULL(uav.count,0) AS visit_count").
 		From(fmt.Sprintf("%s AS ua", tableUserAsset)).LeftJoin(fmt.Sprintf("%s AS uav ON ua.hash=uav.hash", tableUserAssetVisit)).
 		Where("ua.user_id = ? AND ua.hash = ?", uid, hash).ToSql()
 	if err != nil {
@@ -380,11 +380,11 @@ func UpdateUserAsset(ctx context.Context, asset *model.UserAsset) error {
 		"asset_name":   asset.AssetName,
 		"asset_type":   asset.AssetType,
 		"share_status": asset.ShareStatus,
-		"expire_time":  asset.Expiration,
+		"expiration":   asset.Expiration,
 		"total_size":   asset.TotalSize,
 		"password":     asset.Password,
-		"short_pass":   asset.ShortPass,
-		"group_id":     asset.GroupID,
+		// "short_pass":   asset.ShortPass,
+		"group_id": asset.GroupID,
 	}).Where("hash = ? AND user_id = ?", asset.Hash, asset.UserID).ToSql()
 	if err != nil {
 		return fmt.Errorf("generate update asset sql error:%w", err)

@@ -72,6 +72,8 @@ const (
 	TempAssetUploadErr
 	TempAssetDownErr
 
+	ShareLinkExpired
+
 	Unknown     = -1
 	GenericCode = 1
 )
@@ -156,6 +158,7 @@ var ErrMap = map[int]string{
 	LimitExceeded:                            "Limit Exceeded: 超出访问限制",
 	TempAssetUploadErr:                       "Exceeding upload or sharing restrictions:超出上传或分享限制",
 	TempAssetDownErr:                         "Exceeding download limit:超出下载限制",
+	ShareLinkExpired:                         "share link was expired:分享链接过期",
 }
 
 type GenericError struct {

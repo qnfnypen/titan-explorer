@@ -3,6 +3,7 @@ package api
 import (
 	"crypto/md5"
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Masterminds/squirrel"
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gnasnik/titan-explorer/config"
 
@@ -360,7 +362,7 @@ func GetUploadInfoHandler(c *gin.Context) {
 	var randomPassNonce string
 	if c.Query("encrypted") == "true" {
 		passKey := fmt.Sprintf(FileUploadPassKey, userId)
-		randomPassNonce = string(md5.New().Sum([]byte(userId + time.Now().String())))
+		randomPassNonce = string(md5Str(userId + time.Now().String()))
 		if _, err = dao.RedisCache.SetEx(c.Request.Context(), passKey, randomPassNonce, 24*time.Hour).Result(); err != nil {
 			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 			return
@@ -378,6 +380,13 @@ func GetUploadInfoHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, respJSON(res))
+}
+
+func md5Str(s string) string {
+	hash := md5.New()
+	hash.Write([]byte(s))
+	hashBytes := hash.Sum(nil)
+	return hex.EncodeToString(hashBytes)
 }
 
 // CreateAssetHandler 上传文件
@@ -952,15 +961,7 @@ func ShareAssetsHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
 		return
 	}
-	urls, err := schedulerClient.ShareAssets(c.Request.Context(), userId, []string{cid})
-	if err != nil {
-		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-			return
-		}
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
+
 	// todo: remove this
 	var redirect bool
 	if userId == "f1hl7vbopivazgion4ql25opmjnoj2ldfsvm5fuzi" {
@@ -969,17 +970,40 @@ func ShareAssetsHandler(c *gin.Context) {
 		redirect = true
 	}
 
-	for i := range urls[cid] {
-		urls[cid][i] = fmt.Sprintf("%s&filename=%s", urls[cid][i], userAsset.AssetName)
-		if userAsset.Password != "" {
-			urls[cid][i] = fmt.Sprintf("%s&password=%s", urls[cid][i], userAsset.Password)
+	var ret []string
+	if userAsset.Password != "" {
+		urls, err := schedulerClient.ShareEncryptedAsset(c.Request.Context(), userId, cid, userAsset.Password, time.Now().Add(time.Hour*24))
+		if err != nil {
+			if webErr, ok := err.(*api.ErrWeb); ok {
+				c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+				return
+			}
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
 		}
+		ret = urls
+	} else {
+		urls, err := schedulerClient.ShareAssets(c.Request.Context(), userId, []string{cid})
+		if err != nil {
+			if webErr, ok := err.(*api.ErrWeb); ok {
+				c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+				return
+			}
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+
+		ret = urls[cid]
+	}
+
+	for i := range ret {
+		ret[i] = fmt.Sprintf("%s&filename=%s", ret[i], userAsset.AssetName)
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"asset_cid": cid,
 		"size":      userAsset.TotalSize,
-		"url":       urls[cid],
+		"url":       ret,
 		"redirect":  redirect,
 	}))
 }
@@ -1053,9 +1077,9 @@ func ShareLinkHandler(c *gin.Context) {
 		access_pass = genRandomStr(6)
 	}
 
-	if access_pass != "" {
-		asset.ShortPass = access_pass
-	}
+	// if access_pass != "" {
+	// 	asset.ShortPass = access_pass
+	// }
 
 	expireTime, err := strconv.Atoi(c.Query("expire_time"))
 	if err != nil {
@@ -1063,13 +1087,13 @@ func ShareLinkHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 	}
 
+	var expireAt time.Time
 	if expireTime > 0 {
 		if time.Now().Unix() > int64(expireTime) {
 			log.Errorf("file expired")
 			c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		}
-		exp := time.Unix(int64(expireTime), 0)
-		asset.Expiration = exp
+		expireAt = time.Unix(int64(expireTime), 0)
 	}
 
 	if err := dao.UpdateUserAsset(c.Request.Context(), asset); err != nil {
@@ -1081,6 +1105,8 @@ func ShareLinkHandler(c *gin.Context) {
 	link.UserName = username
 	link.Cid = cid
 	link.LongLink = url
+	link.ShortPass = access_pass
+	link.ExpireAt = expireAt
 	shortLink := dao.GetShortLink(c.Request.Context(), url)
 	if shortLink == "" {
 		link.ShortLink = "/link?" + "cid=" + cid + "&area_id=" + areaId
@@ -1099,6 +1125,37 @@ func ShareLinkHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"url": shortLink,
+	}))
+
+}
+
+func CheckShareLinkHandler(c *gin.Context) {
+	longLink := c.PostForm("link")
+	pass := c.PostForm("pass")
+	if longLink == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No link provided"})
+		return
+	}
+	sb := squirrel.Select("*").Where("long_link = ?", longLink).Where("short_pass = ?", pass)
+
+	link, err := dao.GetLink(c.Request.Context(), sb)
+	if err != nil && err != sql.ErrNoRows {
+		log.Errorf("Error while getting link: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+		return
+	}
+
+	if link.ExpireAt.After(time.Now()) {
+		c.JSON(http.StatusOK, respErrorCode(errors.ShareLinkExpired, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"msg": "success",
 	}))
 
 }

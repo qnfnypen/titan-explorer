@@ -360,6 +360,8 @@ type Link struct {
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 	DeletedAt time.Time `db:"deleted_at" json:"deleted_at"`
+	ShortPass string 	`db:"short_pass" json:"short_pass"`
+	ExpireAt  time.Time `db:"expire_at" json:"expire_at"`
 }
 
 type ValidationEvent struct {
@@ -626,7 +628,7 @@ type UserAsset struct {
 	CreatedTime time.Time `db:"created_time"`
 	TotalSize   int64     `db:"total_size"`
 	Password    string    `db:"password"`
-	ShortPass 	string 	  `db:"short_pass"`
+	// ShortPass 	string 	  `db:"short_pass"`
 	GroupID     int64     `db:"group_id"`
 }
 

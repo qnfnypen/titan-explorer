@@ -3,10 +3,12 @@ package dao
 import (
 	"context"
 	"fmt"
+	"time"
+
+	"github.com/Masterminds/squirrel"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/golang-module/carbon/v2"
-	"time"
 )
 
 const tableNameCacheEvent = "cache_event"
@@ -17,8 +19,8 @@ var (
 
 func CreateLink(ctx context.Context, link *model.Link) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s (username, cid, short_link, long_link)
-			VALUES (:username, :cid, :short_link, :long_link);`, tableNameLink,
+		`INSERT INTO %s (username, cid, short_link, long_link, short_pass, expire_at)
+			VALUES (:username, :cid, :short_link, :long_link, :short_pass, :expire_at);`, tableNameLink,
 	), link)
 	return err
 }
@@ -37,6 +39,19 @@ func GetLongLink(ctx context.Context, cid string) string {
 		`SELECT long_link FROM %s where cid = '%s' order by id desc limit 1`, tableNameLink, cid,
 	))
 	return areaID
+}
+
+func GetLink(ctx context.Context, sb squirrel.SelectBuilder) (*model.Link, error) {
+	sb = sb.From("link").Limit(1).OrderBy("id desc")
+
+	query, args, err := sb.ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	var link model.Link
+	err = DB.GetContext(ctx, &link, query, args...)
+	return &link, err
 }
 
 func QueryCacheHour(deviceID, startTime, endTime string) []*CacheStatistics {
