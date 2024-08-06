@@ -177,6 +177,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.POST("/logout", authMiddleware.LogoutHandler)
 	link.GET("/", GetShareLinkHandler)
 	storage.GET("/get_link", ShareLinkHandler)
+	storage.POST("/check_share", CheckShareLinkHandler)
 	storage.GET("/get_map_cid", GetMapByCidHandler)
 	storage.GET("/get_map_link", GetShareLinkHandler)
 	storage.GET("/get_asset_detail", GetAssetDetailHandler)
