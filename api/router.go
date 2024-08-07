@@ -195,7 +195,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/temp_file/download/:cid", DownloadTempFile)
 	// storage.Use(authMiddleware.MiddlewareFunc())
 	storage.Use(AuthRequired(authMiddleware))
-	storage.GET("/share_before", ShareBeforeHandler)
+	// storage.GET("/share_before", ShareBeforeHandler)
 	storage.GET("/share_asset", ShareAssetsHandler)
 	storage.GET("/share_encrypted", ShareEncryptedAssetsHandler)
 	storage.GET("/get_locateStorage", GetAllocateStorageHandler)

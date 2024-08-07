@@ -5,7 +5,6 @@ go 1.22.0
 toolchain go1.22.3
 
 require (
-	cosmossdk.io/api v0.7.5
 	github.com/Filecoin-Titan/titan v0.0.0-20230414233209-f4fad7df425f
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/TestsLing/aj-captcha-go v0.0.0-20240518053305-e20480a6396a
@@ -37,6 +36,8 @@ require (
 	github.com/shopspring/decimal v1.4.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.18.2
+	github.com/swaggo/files v1.0.1
+	github.com/swaggo/gin-swagger v1.6.0
 	github.com/swaggo/swag v1.16.3
 	github.com/tealeg/xlsx/v3 v3.3.6
 	go.etcd.io/etcd/api/v3 v3.5.10
@@ -93,6 +94,7 @@ require (
 )
 
 require (
+	cosmossdk.io/api v0.7.5 // indirect
 	cosmossdk.io/collections v0.4.0 // indirect
 	cosmossdk.io/core v0.11.0 // indirect
 	cosmossdk.io/depinject v1.0.0-alpha.4 // indirect
