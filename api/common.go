@@ -116,11 +116,11 @@ func listAssets(ctx context.Context, uid string, limit, offset, groupID int) (*L
 		return nil, fmt.Errorf("get list of asset error:%w", err)
 	}
 
-	list := make([]*AssetOverview, 0)
+	list := make([]*AssetOverview, len(infos))
 
-	for _, info := range infos {
+	for i, info := range infos {
 		wg.Add(1)
-		go func(info *dao.UserAssetDetail) {
+		go func(i int, info *dao.UserAssetDetail) {
 			defer wg.Done()
 
 			// 获取用户文件所有调度器区域
@@ -167,9 +167,9 @@ func listAssets(ctx context.Context, uid string, limit, offset, groupID int) (*L
 				RemainVisitCount: maxCountOfVisitAsset - info.VisitCount,
 			}
 			mu.Lock()
-			list = append(list, r)
+			list[i] = r
 			mu.Unlock()
-		}(info)
+		}(i, info)
 	}
 	wg.Wait()
 
