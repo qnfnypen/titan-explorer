@@ -116,7 +116,6 @@ func GetValidationListHandler(c *gin.Context) {
 		"list":  resp.ValidationResultInfos,
 		"total": resp.Total,
 	}))
-	return
 }
 
 func GetReplicaListHandler(c *gin.Context) {
@@ -1034,6 +1033,131 @@ func ShareEncryptedAssetsHandler(c *gin.Context) {
 func ShareLinkHandler(c *gin.Context) {
 	username := c.Query("username")
 	cid := c.Query("cid")
+	// url := c.Query("url")
+	sb := squirrel.Select("*").Where("cid = ?", cid).Where("username = ?", username)
+	link, err := dao.GetLink(c.Request.Context(), sb)
+	if err != nil {
+		log.Errorf("database getLink: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	// areaId := getAreaID(c)
+	// if cid == "" || url == "" {
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+	// 	return
+	// }
+
+	// hash, err := cidutil.CIDToHash(cid)
+	// if err != nil {
+	// 	log.Errorf("cidToHash: %v", err)
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+	// 	return
+	// }
+
+	// asset, err := dao.GetUserAsset(c.Request.Context(), hash, username)
+	// if err != nil {
+	// 	log.Errorf("database getUserAsset: %v", err)
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+	// 	return
+	// }
+
+	// signature := c.Query("signature")
+	// if signature != "" {
+	// 	fmt.Println("signature:", signature)
+	// 	fmt.Println("username:", username)
+	// 	nonce := dao.RedisCache.Get(c.Request.Context(), fmt.Sprintf(FilePassNonceVerifyKey, username)).Val()
+	// 	if nonce == "" {
+	// 		log.Errorf("nonce not found")
+	// 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+	// 		return
+	// 	}
+	// 	fmt.Println("nonce:", nonce)
+	// 	addr, err := rsa.VerifyAddrSign(nonce, signature)
+	// 	if err != nil {
+	// 		log.Errorf("VerifyAddrSign: %v", err)
+	// 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+	// 		return
+	// 	}
+	// 	if !strings.EqualFold(addr, username) {
+	// 		log.Errorf("addr not match")
+	// 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+	// 		return
+	// 	}
+	// }
+
+	// access_pass := c.Query("access_pass")
+	// if signature != "" && access_pass == "" {
+	// 	access_pass = genRandomStr(6)
+	// }
+
+	// // if access_pass != "" {
+	// // 	asset.ShortPass = access_pass
+	// // }
+
+	// expireTime, err := strconv.Atoi(c.Query("expire_time"))
+	// if err != nil {
+	// 	log.Errorf("expire_time invalid")
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+	// 	return
+	// }
+
+	// var expireAt time.Time
+	// if expireTime > 0 {
+	// 	if time.Now().Unix() > int64(expireTime) {
+	// 		log.Errorf("file expired")
+	// 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+	// 		return
+	// 	}
+	// 	expireAt = time.Unix(int64(expireTime), 0)
+	// }
+
+	// if err := dao.UpdateUserAsset(c.Request.Context(), asset); err != nil {
+	// 	log.Errorf("database updateUserAsset: %v", err)
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	// 	return
+	// }
+
+	// var link model.Link
+	// link.UserName = username
+	// link.Cid = cid
+	// link.LongLink = url
+	// link.ShortPass = access_pass
+	// link.ExpireAt = expireAt
+	// shortLink := dao.GetShortLink(c.Request.Context(), url)
+	// if shortLink == "" {
+	// 	link.ShortLink = "/link?" + "cid=" + cid + "&area_id=" + areaId
+	// 	shortLink = link.ShortLink
+	// 	err := dao.CreateLink(c.Request.Context(), &link)
+	// 	if err != nil {
+	// 		log.Errorf("database createLink: %v", err)
+	// 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	// 		return
+	// 	}
+	// } else {
+	// 	if !strings.Contains(shortLink, "&area_id=") {
+	// 		shortLink = strings.TrimSuffix(shortLink, "&") + "&area_id=" + areaId
+	// 	}
+	// }
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"url": link.ShortLink,
+	}))
+
+}
+
+// CreateShareLinkHandler 获取分享链接
+// @Summary 获取分享链接
+// @Description 获取分享链接
+// @Tags storage
+// @Param username query string true "用户id"
+// @Param url query string true "url"
+// @Param cid query string true "文件cid"
+// @Success 200 {object} JsonObject "{url: ""}"
+// @Router /api/v1/storage/create_link [get]
+func CreateShareLinkHandler(c *gin.Context) {
+	username := c.Query("username")
+	cid := c.Query("cid")
 	url := c.Query("url")
 	areaId := getAreaID(c)
 	if cid == "" || url == "" {
@@ -1045,6 +1169,7 @@ func ShareLinkHandler(c *gin.Context) {
 	if err != nil {
 		log.Errorf("cidToHash: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
 	}
 
 	asset, err := dao.GetUserAsset(c.Request.Context(), hash, username)
@@ -1056,19 +1181,25 @@ func ShareLinkHandler(c *gin.Context) {
 
 	signature := c.Query("signature")
 	if signature != "" {
+		fmt.Println("signature:", signature)
+		fmt.Println("username:", username)
 		nonce := dao.RedisCache.Get(c.Request.Context(), fmt.Sprintf(FilePassNonceVerifyKey, username)).Val()
 		if nonce == "" {
 			log.Errorf("nonce not found")
 			c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+			return
 		}
+		fmt.Println("nonce:", nonce)
 		addr, err := rsa.VerifyAddrSign(nonce, signature)
 		if err != nil {
 			log.Errorf("VerifyAddrSign: %v", err)
 			c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+			return
 		}
-		if addr != username {
+		if !strings.EqualFold(addr, username) {
 			log.Errorf("addr not match")
 			c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+			return
 		}
 	}
 
@@ -1077,14 +1208,11 @@ func ShareLinkHandler(c *gin.Context) {
 		access_pass = genRandomStr(6)
 	}
 
-	// if access_pass != "" {
-	// 	asset.ShortPass = access_pass
-	// }
-
 	expireTime, err := strconv.Atoi(c.Query("expire_time"))
 	if err != nil {
 		log.Errorf("expire_time invalid")
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
 	}
 
 	var expireAt time.Time
@@ -1092,6 +1220,7 @@ func ShareLinkHandler(c *gin.Context) {
 		if time.Now().Unix() > int64(expireTime) {
 			log.Errorf("file expired")
 			c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+			return
 		}
 		expireAt = time.Unix(int64(expireTime), 0)
 	}
@@ -1099,6 +1228,7 @@ func ShareLinkHandler(c *gin.Context) {
 	if err := dao.UpdateUserAsset(c.Request.Context(), asset); err != nil {
 		log.Errorf("database updateUserAsset: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
 	}
 
 	var link model.Link
@@ -1118,9 +1248,8 @@ func ShareLinkHandler(c *gin.Context) {
 			return
 		}
 	} else {
-		if !strings.Contains(shortLink, "&area_id=") {
-			shortLink = strings.TrimSuffix(shortLink, "&") + "&area_id=" + areaId
-		}
+		c.JSON(http.StatusOK, respErrorCode(errors.LinkAlreadyExist, c))
+		return
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -1129,14 +1258,39 @@ func ShareLinkHandler(c *gin.Context) {
 
 }
 
-func CheckShareLinkHandler(c *gin.Context) {
-	longLink := c.PostForm("link")
-	pass := c.PostForm("pass")
-	if longLink == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "No link provided"})
+func ShareNeedPassHandler(c *gin.Context) {
+	cid := c.Query("cid")
+	username := c.Query("username")
+
+	sb := squirrel.Select("*").Where("cid = ?", cid).Where("username = ?", username)
+	lk, err := dao.GetLink(c.Request.Context(), sb)
+	if err != nil && err != sql.ErrNoRows {
+		log.Errorf("Error while getting link: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	sb := squirrel.Select("*").Where("long_link = ?", longLink).Where("short_pass = ?", pass)
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+		return
+	}
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"NeedPass": lk.ShortPass != "",
+	}))
+}
+
+type CheckShareReq struct {
+	Cid      string `json:"cid"`
+	Username string `json:"username"`
+	Pass     string `json:"pass"`
+}
+
+func CheckShareLinkHandler(c *gin.Context) {
+	var req CheckShareReq
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+	sb := squirrel.Select("*").Where("cid = ?", req.Cid).Where("username = ?", req.Username)
 
 	link, err := dao.GetLink(c.Request.Context(), sb)
 	if err != nil && err != sql.ErrNoRows {
@@ -1149,8 +1303,18 @@ func CheckShareLinkHandler(c *gin.Context) {
 		return
 	}
 
-	if link.ExpireAt.After(time.Now()) {
+	if link.ExpireAt.Before(time.Now()) {
 		c.JSON(http.StatusOK, respErrorCode(errors.ShareLinkExpired, c))
+		return
+	}
+
+	if link.ShortPass != "" && req.Pass == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.ShareLinkPassRequired, c))
+		return
+	}
+
+	if link.ShortPass != req.Pass {
+		c.JSON(http.StatusOK, respErrorCode(errors.ShareLinkPassIncorrect, c))
 		return
 	}
 
