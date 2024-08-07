@@ -2194,7 +2194,6 @@ func MoveAssetToGroupHandler(c *gin.Context) {
 	userId := claims[identityKey].(string)
 	assetCid := c.Query("asset_cid")
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
-	areaId := getAreaID(c)
 
 	// 获取文件hash
 	hash, err := storage.CIDToHash(assetCid)
@@ -2204,7 +2203,7 @@ func MoveAssetToGroupHandler(c *gin.Context) {
 		return
 	}
 
-	err = dao.UpdateAssetGroup(c.Request.Context(), userId, hash, areaId, groupId)
+	err = dao.UpdateAssetGroup(c.Request.Context(), userId, hash,groupId)
 	if err != nil {
 		log.Errorf("UpdateAssetGroup error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))

@@ -340,8 +340,8 @@ func MoveAssetGroup(ctx context.Context, userID string, groupID, targetGroupID i
 }
 
 // UpdateAssetGroup update user asset group
-func UpdateAssetGroup(ctx context.Context, userID, hash, areaID string, groupID int) error {
-	query, args, err := squirrel.Update(tableUserAsset).Set("group_id", groupID).Where("user_id=? AND hash=? AND area_id=?", userID, hash, areaID).ToSql()
+func UpdateAssetGroup(ctx context.Context, userID, hash string, groupID int) error {
+	query, args, err := squirrel.Update(tableUserAsset).Set("group_id", groupID).Where("user_id=? AND hash=?", userID, hash).ToSql()
 	if err != nil {
 		return fmt.Errorf("generate update asset sql error:%w", err)
 	}
