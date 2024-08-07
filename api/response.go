@@ -1,10 +1,11 @@
 package api
 
 import (
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	err "github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
-	"strings"
 )
 
 type JsonObject map[string]interface{}
@@ -25,7 +26,7 @@ func respErrorCode(code int, c *gin.Context) gin.H {
 	if len(messages) == 0 {
 		msg = err.ErrMap[code]
 	} else {
-		if lang == model.LanguageCN {
+		if lang == model.LanguageCN && len(messages) > 1 {
 			msg = messages[1]
 		} else {
 			msg = messages[0]

@@ -1179,32 +1179,32 @@ func CreateShareLinkHandler(c *gin.Context) {
 		return
 	}
 
-	signature := c.Query("signature")
-	if signature != "" {
-		fmt.Println("signature:", signature)
-		fmt.Println("username:", username)
-		nonce := dao.RedisCache.Get(c.Request.Context(), fmt.Sprintf(FilePassNonceVerifyKey, username)).Val()
-		if nonce == "" {
-			log.Errorf("nonce not found")
-			c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
-			return
-		}
-		fmt.Println("nonce:", nonce)
-		addr, err := rsa.VerifyAddrSign(nonce, signature)
-		if err != nil {
-			log.Errorf("VerifyAddrSign: %v", err)
-			c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
-			return
-		}
-		if !strings.EqualFold(addr, username) {
-			log.Errorf("addr not match")
-			c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
-			return
-		}
-	}
+	// signature := c.Query("signature")
+	// if signature != "" {
+	// 	fmt.Println("signature:", signature)
+	// 	fmt.Println("username:", username)
+	// 	nonce := dao.RedisCache.Get(c.Request.Context(), fmt.Sprintf(FilePassNonceVerifyKey, username)).Val()
+	// 	if nonce == "" {
+	// 		log.Errorf("nonce not found")
+	// 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+	// 		return
+	// 	}
+	// 	fmt.Println("nonce:", nonce)
+	// 	addr, err := rsa.VerifyAddrSign(nonce, signature)
+	// 	if err != nil {
+	// 		log.Errorf("VerifyAddrSign: %v", err)
+	// 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+	// 		return
+	// 	}
+	// 	if !strings.EqualFold(addr, username) {
+	// 		log.Errorf("addr not match")
+	// 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+	// 		return
+	// 	}
+	// }
 
 	access_pass := c.Query("access_pass")
-	if signature != "" && access_pass == "" {
+	if access_pass == "" {
 		access_pass = genRandomStr(6)
 	}
 
