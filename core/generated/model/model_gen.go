@@ -353,6 +353,7 @@ type User struct {
 
 type Link struct {
 	ID        int64     `db:"id" json:"id"`
+	UserId    string 	`db:"user_id" json:"user_id"`
 	UserName  string    `db:"username" json:"username"`
 	Cid       string    `db:"cid" json:"cid"`
 	LongLink  string    `db:"long_link" json:"long_link"`

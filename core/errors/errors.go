@@ -73,6 +73,9 @@ const (
 	TempAssetDownErr
 
 	ShareLinkExpired
+	ShareLinkPassRequired
+	ShareLinkPassIncorrect
+	LinkAlreadyExist
 
 	Unknown     = -1
 	GenericCode = 1
@@ -159,6 +162,9 @@ var ErrMap = map[int]string{
 	TempAssetUploadErr:                       "Exceeding upload or sharing restrictions:超出上传或分享限制",
 	TempAssetDownErr:                         "Exceeding download limit:超出下载限制",
 	ShareLinkExpired:                         "share link was expired:分享链接过期",
+	ShareLinkPassRequired:                    "share link requires password:分享链接需要密码",
+	ShareLinkPassIncorrect:                   "share link password is incorrect:分享链接密码错误",
+	LinkAlreadyExist:                         "link already exists:链接已存在",
 }
 
 type GenericError struct {
