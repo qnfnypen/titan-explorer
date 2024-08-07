@@ -117,6 +117,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	user.POST("/logout", authMiddleware.LogoutHandler)
 	user.GET("/ads/banners", GetBannersHandler)
 	user.GET("/ads/notices", GetNoticesHandler)
+	user.GET("/ads/history", GetAdsHistoryHandler)
 	user.GET("ads/click", AdsClickIncrHandler)
 	user.POST("/upload", FileUploadHandler)
 	user.POST("/bugs/report", BugReportHandler)
@@ -197,7 +198,10 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.Use(AuthRequired(authMiddleware))
 	storage.GET("/share_before", ShareBeforeHandler)
 	storage.GET("/share_asset", ShareAssetsHandler)
-	storage.GET("/share_encrypted", ShareEncryptedAssetsHandler)
+
+	storage.GET("/share_info", ShareInfoHandler)
+	storage.POST("/share_update", ShareUpdateHandler)
+
 	storage.GET("/get_locateStorage", GetAllocateStorageHandler)
 	storage.GET("/get_storage_size", GetStorageSizeHandler)          // 获取用户存储空间信息
 	storage.GET("/get_vip_info", GetUserVipInfoHandler)              // 判断用户是否为vip

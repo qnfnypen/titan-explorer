@@ -1009,18 +1009,12 @@ func ShareAssetsHandler(c *gin.Context) {
 	}))
 }
 
-func ShareEncryptedAssetsHandler(c *gin.Context) {
-	// claims := jwt.ExtractClaims(c)
-	// userId := claims[identityKey].(string)
-	// cid := c.Query("asset_cid")
-	// areaId := c.Query("area_id")
+func ShareInfoHandler(c *gin.Context) {
+	
+}
 
-	// hash, err := cidutil.CIDToHash(cid)
-	// if err != nil {
-	// 	log.Error("Invalid asset CID: ", cid)
-	// 	c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
-	// 	return
-	// }
+func ShareUpdateHandler(c *gin.Context) {
+
 }
 
 // ShareLinkHandler 获取分享链接

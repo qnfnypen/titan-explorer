@@ -1104,6 +1104,25 @@ func GetNoticesHandler(c *gin.Context) {
 	}))
 }
 
+func GetAdsHistoryHandler(c *gin.Context) {
+	size, _ := strconv.Atoi(c.Query("size"))
+	page, _ := strconv.Atoi(c.Query("page"))
+
+	sb := squirrel.Select().Where("state = ?", 1).OrderBy("created_at DESC")
+
+	list, n, err := dao.AdsListPageCtx(c, page, size, sb)
+	if err != nil {
+		log.Errorf("GetAdsHistoryHandler: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list":  list,
+		"total": n,
+	}))
+}
+
 func AdsClickIncrHandler(c *gin.Context) {
 	idStr := c.Query("id")
 	id, _ := strconv.Atoi(idStr)
