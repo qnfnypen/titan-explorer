@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/Filecoin-Titan/titan/api"
+	"github.com/Filecoin-Titan/titan/api/terrors"
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
@@ -53,6 +54,12 @@ func UploadTmepFile(c *gin.Context) {
 	}
 	if len(req.AreaIDs) > 3 {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	// 最多只能是100M
+	if req.AssetSize > 100*1024*1024 {
+		c.JSON(http.StatusOK, respErrorCode(int(terrors.UserStorageSizeNotEnough), c))
 		return
 	}
 
