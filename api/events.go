@@ -1291,7 +1291,7 @@ func ShareNeedPassHandler(c *gin.Context) {
 type CheckShareReq struct {
 	Cid      string `json:"cid"`
 	Username string `json:"username"`
-	Pass     string `json:"pass"`
+	Password string `json:"password"`
 }
 
 func CheckShareLinkHandler(c *gin.Context) {
@@ -1318,12 +1318,12 @@ func CheckShareLinkHandler(c *gin.Context) {
 		return
 	}
 
-	if link.ShortPass != "" && req.Pass == "" {
+	if link.ShortPass != "" && req.Password == "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.ShareLinkPassRequired, c))
 		return
 	}
 
-	if link.ShortPass != req.Pass {
+	if link.ShortPass != req.Password {
 		c.JSON(http.StatusOK, respErrorCode(errors.ShareLinkPassIncorrect, c))
 		return
 	}
@@ -2220,7 +2220,7 @@ func MoveAssetToGroupHandler(c *gin.Context) {
 		return
 	}
 
-	err = dao.UpdateAssetGroup(c.Request.Context(), userId, hash,groupId)
+	err = dao.UpdateAssetGroup(c.Request.Context(), userId, hash, groupId)
 	if err != nil {
 		log.Errorf("UpdateAssetGroup error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
