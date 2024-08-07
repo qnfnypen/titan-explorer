@@ -423,6 +423,7 @@ func CreateAssetHandler(c *gin.Context) {
 		if randomPassNonce == "" {
 			log.Error("CreateAssetHandler randomPassNonce not found")
 			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
 		}
 
 		defer func() {
@@ -1214,9 +1215,9 @@ func CreateShareLinkHandler(c *gin.Context) {
 	// }
 
 	access_pass := c.Query("access_pass")
-	if access_pass == "" {
-		access_pass = genRandomStr(6)
-	}
+	// if access_pass == "" {
+	// 	access_pass = genRandomStr(6)
+	// }
 
 	expireTime, err := strconv.Atoi(c.Query("expire_time"))
 	if err != nil {

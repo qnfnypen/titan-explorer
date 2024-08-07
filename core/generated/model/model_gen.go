@@ -572,6 +572,7 @@ type Ads struct {
 	Platform    int64     `db:"platform" json:"platform"`
 	Lang        string    `db:"lang" json:"lang"`
 	Desc        string    `db:"desc" json:"desc"`
+	IsText      bool      `db:"is_text" json:"is_text"`
 	Weight      int64     `db:"weight" json:"weight"`
 	State       int64     `db:"state" json:"state"`
 	Hits 		int64 	  `db:"hits" json:"hits"`

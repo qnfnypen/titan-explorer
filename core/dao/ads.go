@@ -70,8 +70,8 @@ func AdsListPageCtx(ctx context.Context, page, size int, sb squirrel.SelectBuild
 }
 
 func AdsAddCtx(ctx context.Context, ads *model.Ads) error {
-	query := "INSERT INTO ads (name, ads_type, redirect_url, platform, lang, `desc`, weight, state, invalid_from, invalid_to, created_at, updated_at)" +
-		"VALUES (:name, :ads_type, :redirect_url, :platform, :lang, :desc, :weight, :state, :invalid_from, :invalid_to, :created_at, :updated_at)"
+	query := "INSERT INTO ads (name, ads_type, redirect_url, platform, lang, `desc`, is_text, weight, state, invalid_from, invalid_to, created_at, updated_at)" +
+		"VALUES (:name, :ads_type, :redirect_url, :platform, :lang, :desc, :is_text, :weight, :state, :invalid_from, :invalid_to, :created_at, :updated_at)"
 	_, err := DB.NamedExecContext(ctx, query, ads)
 	return err
 }
@@ -84,7 +84,7 @@ func AdsDelCtx(ctx context.Context, id int64) error {
 
 func AdsUpdateCtx(ctx context.Context, ads *model.Ads) error {
 	query := "UPDATE ads SET name = :name, ads_type = :ads_type, redirect_url = :redirect_url, platform = :platform, lang = :lang, " +
-		"`desc` = :desc, weight = :weight, state = :state, hits = :hits, invalid_from = :invalid_from, invalid_to = :invalid_to, updated_at = :updated_at WHERE id = :id"
+		"`desc` = :desc, is_text = :is_text ,weight = :weight, state = :state, hits = :hits, invalid_from = :invalid_from, invalid_to = :invalid_to, updated_at = :updated_at WHERE id = :id"
 	_, err := DB.NamedExecContext(ctx, query, ads)
 	return err
 }
