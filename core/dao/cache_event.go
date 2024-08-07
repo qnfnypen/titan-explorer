@@ -54,6 +54,13 @@ func GetLink(ctx context.Context, sb squirrel.SelectBuilder) (*model.Link, error
 	return &link, err
 }
 
+func UpdateLinkPassAndExpiration(ctx context.Context, link *model.Link) error {
+	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
+		`UPDATE %s SET short_pass = :short_pass, expire_at = :expire_at WHERE id = :id`, tableNameLink,
+	), link)
+	return err
+}
+
 func QueryCacheHour(deviceID, startTime, endTime string) []*CacheStatistics {
 	option := QueryOption{
 		StartTime: startTime,

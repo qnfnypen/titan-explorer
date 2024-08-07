@@ -1009,12 +1009,66 @@ func ShareAssetsHandler(c *gin.Context) {
 	}))
 }
 
-func ShareInfoHandler(c *gin.Context) {
-	
+func ShareLinkInfoHandler(c *gin.Context) {
+	username := c.Query("username")
+	cid := c.Query("cid")
+	sb := squirrel.Select("*").Where("cid = ?", cid).Where("username = ?", username)
+	link, err := dao.GetLink(c.Request.Context(), sb)
+	if err != nil && err != sql.ErrNoRows {
+		log.Errorf("GetLink error %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(gin.H{"link": link}))
 }
 
-func ShareUpdateHandler(c *gin.Context) {
+func ShareLinkUpdateHandler(c *gin.Context) {
+	var req model.Link
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
 
+	link, err := dao.GetLink(c.Request.Context(), squirrel.Select("*").Where("id = ?", req.ID).Where("user_id = ?", req.UserId))
+	if err != nil && err != sql.ErrNoRows {
+		log.Errorf("GetLink error %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+		return
+	}
+
+	if req.ExpireAt.Unix() > 0 {
+		if time.Now().Unix() > req.ExpireAt.Unix() {
+			log.Errorf("file expired")
+			c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+			return
+		}
+		link.ExpireAt = req.ExpireAt
+	}
+
+	if req.ShortPass != "" && req.ShortPass != link.ShortPass {
+		link.ShortPass = req.ShortPass
+	}
+
+	link.UpdatedAt = time.Now()
+
+	if err := dao.UpdateLinkPassAndExpiration(c.Request.Context(), link); err != nil {
+		log.Errorf("UpdateLink error %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"msg": "success",
+	}))
 }
 
 // ShareLinkHandler 获取分享链接

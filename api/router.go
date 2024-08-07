@@ -199,8 +199,8 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/share_before", ShareBeforeHandler)
 	storage.GET("/share_asset", ShareAssetsHandler)
 
-	storage.GET("/share_info", ShareInfoHandler)
-	storage.POST("/share_update", ShareUpdateHandler)
+	storage.GET("/share_link_info", ShareLinkInfoHandler)
+	storage.POST("/share_link_update", ShareLinkUpdateHandler)
 
 	storage.GET("/get_locateStorage", GetAllocateStorageHandler)
 	storage.GET("/get_storage_size", GetStorageSizeHandler)          // 获取用户存储空间信息
