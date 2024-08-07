@@ -2220,7 +2220,7 @@ func MoveAssetToGroupHandler(c *gin.Context) {
 		return
 	}
 
-	err = dao.UpdateAssetGroup(c.Request.Context(), userId, hash,groupId)
+	err = dao.UpdateAssetGroup(c.Request.Context(), userId, hash, groupId)
 	if err != nil {
 		log.Errorf("UpdateAssetGroup error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -2323,10 +2323,17 @@ func GetMonitor(c *gin.Context) {
 		return
 	}
 
+	fil, err := GetFILPrice(c.Request.Context())
+	if err != nil {
+		log.Error(err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
 	c.JSON(http.StatusOK, respJSON(gin.H{
 		"online":   online,
 		"country":  country,
 		"filecoin": "100+",
-		"deposit":  100,
+		"deposit":  1200 * 5.7 * fil,
 	}))
 }

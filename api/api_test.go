@@ -142,7 +142,7 @@ func TestMove(t *testing.T) {
 	os.Setenv("ETCD_PASSWORD", "web_123")
 	var req MoveNodeReq
 	req.FromAreaID = "Asia-SouthKorea-Seoul-Seoul"
-	req.NodeID = "c_fcacb995-f14c-445b-924e-7a55ccbe6363"
+	req.NodeID = "c_7ceddfd2-ecab-4b0f-96de-b0169d00c9b5"
 	req.ToAreaID = "Asia-Vietnam-Hanoi-Hanoi"
 	// 将node节点从from area移出
 	fscli, err := getSchedulerClient(ctx, req.FromAreaID)

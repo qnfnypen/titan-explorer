@@ -60,9 +60,14 @@ func Init() {
 	cli = &Client{rds: rCli}
 }
 
-// GetClient 获取redis客户端
+// GetClient 获取客户端
 func GetClient() *Client {
 	return cli
+}
+
+// RedisClient 获取redis客户端
+func (c *Client) RedisClient() *redis.Client {
+	return c.rds
 }
 
 // PushSchedulerInfo 插入调度器信息

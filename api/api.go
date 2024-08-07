@@ -2,8 +2,6 @@ package api
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"image/color"
 	"net/http"
 	"strings"
@@ -18,7 +16,6 @@ import (
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/cleanup"
 	"github.com/gnasnik/titan-explorer/core/statistics"
-	"github.com/go-redis/redis/v9"
 )
 
 var (
@@ -100,21 +97,21 @@ func getSchedulerClient(ctx context.Context, areaId string) (api.Scheduler, erro
 	if ok {
 		return v.(api.Scheduler), nil
 	}
-	schedulers, err := statistics.GetSchedulerConfigs(ctx, fmt.Sprintf("%s::%s", SchedulerConfigKeyPrefix, areaId))
-	if err == redis.Nil && areaId != DefaultAreaId {
-		return getSchedulerClient(ctx, DefaultAreaId)
-	}
-
-	if err != nil || len(schedulers) == 0 {
-		log.Errorf("no scheduler found")
-		return nil, errors.New("no scheduler found")
-	}
-
-	// maps, err := statistics.LoadSchedulerConfigs()
-	// if err != nil {
-	// 	return nil, err
+	// schedulers, err := statistics.GetSchedulerConfigs(ctx, fmt.Sprintf("%s::%s", SchedulerConfigKeyPrefix, areaId))
+	// if err == redis.Nil && areaId != DefaultAreaId {
+	// 	return getSchedulerClient(ctx, DefaultAreaId)
 	// }
-	// schedulers := maps[areaId]
+
+	// if err != nil || len(schedulers) == 0 {
+	// 	log.Errorf("no scheduler found")
+	// 	return nil, errors.New("no scheduler found")
+	// }
+
+	maps, err := statistics.LoadSchedulerConfigs()
+	if err != nil {
+		return nil, err
+	}
+	schedulers := maps[areaId]
 
 	schedulerApiUrl := schedulers[0].SchedulerURL
 	schedulerApiToken := schedulers[0].AccessToken

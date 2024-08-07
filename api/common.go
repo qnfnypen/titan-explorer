@@ -2,21 +2,26 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/geo"
+	"github.com/gnasnik/titan-explorer/core/oprds"
 	"github.com/gnasnik/titan-explorer/core/statistics"
 	"github.com/gnasnik/titan-explorer/core/storage"
+	"github.com/shopspring/decimal"
 )
 
 var (
@@ -430,4 +435,48 @@ func GetNearestAreaID(ctx context.Context, ip string, areaIDs []string) (string,
 	}
 
 	return GetNearestAreaIDByInfo(ctx, ip, areaIDs)
+}
+
+// GetFILPrice 获取filecoin的价格
+func GetFILPrice(ctx context.Context) (float64, error) {
+	var priceMap = make(map[string]interface{})
+
+	key := "FIL_price"
+	// 先从redis缓存中获取，获取不到再请求url
+	price, _ := oprds.GetClient().RedisClient().Get(ctx, key).Float64()
+	if price != 0 {
+		return price, nil
+	}
+
+	resp, err := http.Get("https://api.coincap.io/v2/assets/filecoin")
+	if err != nil {
+		return 0, fmt.Errorf("get price of filecoin error:%w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, fmt.Errorf("read body of response error:%w", err)
+	}
+
+	err = json.Unmarshal(body, &priceMap)
+	if err != nil {
+		return 0, fmt.Errorf("json unmarshal error:%w", err)
+	}
+
+	if dataMap, ok := priceMap["data"]; ok {
+		if data, ok := dataMap.(map[string]interface{}); ok {
+			if priceStr, ok := data["priceUsd"].(string); ok {
+				dc, err := decimal.NewFromString(priceStr)
+				if err != nil {
+					return 0, fmt.Errorf("decimal error:%w", err)
+				}
+				price, _ := dc.Round(2).Float64()
+				oprds.GetClient().RedisClient().SetEx(ctx, key, price, 5*time.Minute)
+				return price, nil
+			}
+		}
+	}
+
+	return 0, errors.New("get price of filecoin error")
 }
