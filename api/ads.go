@@ -56,7 +56,7 @@ func AddAdsHandler(c *gin.Context) {
 		return
 	}
 
-	if ads.AdsType != dao.AdsPlatformPC && ads.AdsType != dao.AdsPlatformAPP {
+	if ads.AdsType != dao.AdsTypeBanner && ads.AdsType != dao.AdsTypeNotice {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
