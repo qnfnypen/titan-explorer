@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -1156,11 +1157,20 @@ func ShareLinkHandler(c *gin.Context) {
 // @Success 200 {object} JsonObject "{url: ""}"
 // @Router /api/v1/storage/create_link [get]
 func CreateShareLinkHandler(c *gin.Context) {
+	var err error
 	username := c.Query("username")
 	cid := c.Query("cid")
-	url := c.Query("url")
+	u := c.Query("url")
+
+	u, err = url.QueryUnescape(u)
+	if err != nil {
+		log.Errorf("url decode: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
 	areaId := getAreaID(c)
-	if cid == "" || url == "" {
+	if cid == "" || u == "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
@@ -1234,10 +1244,10 @@ func CreateShareLinkHandler(c *gin.Context) {
 	var link model.Link
 	link.UserName = username
 	link.Cid = cid
-	link.LongLink = url
+	link.LongLink = u
 	link.ShortPass = access_pass
 	link.ExpireAt = expireAt
-	shortLink := dao.GetShortLink(c.Request.Context(), url)
+	shortLink := dao.GetShortLink(c.Request.Context(), u)
 	if shortLink == "" {
 		link.ShortLink = "/link?" + "cid=" + cid + "&area_id=" + areaId
 		shortLink = link.ShortLink
@@ -1366,7 +1376,14 @@ func GetShareLinkHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
-	c.Redirect(http.StatusMovedPermanently, link)
+	// 解码 URL
+	decodedLink, err := url.QueryUnescape(link)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode URL"})
+		return
+	}
+
+	c.Redirect(http.StatusMovedPermanently, decodedLink)
 
 }
 
