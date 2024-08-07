@@ -17,6 +17,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/oplog"
 	"github.com/gnasnik/titan-explorer/core/storage"
 	"github.com/gnasnik/titan-explorer/pkg/iptool"
+	"github.com/gnasnik/titan-explorer/pkg/opcheck"
 	"github.com/mssola/user_agent"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/net/context"
@@ -33,6 +34,7 @@ type login struct {
 	VerifyCode string `form:"verify_code" json:"verify_code"`
 	Sign       string `form:"sign" json:"sign"`
 	Address    string `form:"address" json:"address"`
+	PublicKey  string `form:"publicKey" json:"publicKey"`
 }
 
 type loginResponse struct {
@@ -148,7 +150,7 @@ func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
 			}()
 
 			if loginParams.Sign != "" {
-				return loginBySignature(c, loginParams.Username, loginParams.Address, loginParams.Sign)
+				return loginBySignature(c, loginParams.Username, loginParams.Address, loginParams.Sign, loginParams.PublicKey)
 			}
 
 			if loginParams.VerifyCode != "" {
@@ -228,7 +230,7 @@ func loginByPassword(c *gin.Context, username, password string) (interface{}, er
 	return &model.User{Uuid: user.Uuid, Username: user.Username, Role: user.Role}, nil
 }
 
-func loginBySignature(c *gin.Context, username, address, msg string) (interface{}, error) {
+func loginBySignature(c *gin.Context, username, address, msg, pk string) (interface{}, error) {
 	nonce, err := getNonceFromCache(c.Request.Context(), username, NonceStringTypeSignature)
 	if err != nil {
 		return nil, errors.NewErrorCode(errors.InvalidParams, c)
@@ -239,9 +241,16 @@ func loginBySignature(c *gin.Context, username, address, msg string) (interface{
 	if address == "" {
 		address = username
 	}
-	recoverAddress, err := VerifyMessage(nonce, msg)
-	if strings.ToUpper(recoverAddress) != strings.ToUpper(address) {
-		return nil, errors.NewErrorCode(errors.PassWordNotAllowed, c)
+	if strings.TrimSpace(pk) == "" {
+		recoverAddress, _ := VerifyMessage(nonce, msg)
+		if !strings.EqualFold(recoverAddress, address) {
+			return nil, errors.NewErrorCode(errors.PassWordNotAllowed, c)
+		}
+	} else {
+		match, _ := opcheck.VerifyComosSign(address, nonce, msg, pk)
+		if !match {
+			return nil, errors.NewErrorCode(errors.PassWordNotAllowed, c)
+		}
 	}
 	return &model.User{Username: username, Role: 0}, nil
 }

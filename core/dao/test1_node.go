@@ -236,3 +236,19 @@ func GetInviteCreditByUn(ctx context.Context, un string) (int64, error) {
 
 	return credit, nil
 }
+
+// GetOnlineNodes 获取在线的节点数量
+func GetOnlineNodes(ctx context.Context) (int64, error) {
+	var online int64
+
+	query, args, err := squirrel.Select("COUNT(device_id)").From(test1NodeTable).Where("device_status_code = 1 AND deleted_at = ?", zeroTime).ToSql()
+	if err != nil {
+		return 0, fmt.Errorf("generate sql error:%w", err)
+	}
+	err = DB.GetContext(ctx, &online, query, args...)
+	if err != nil {
+		return 0, fmt.Errorf("get online node error:%w", err)
+	}
+
+	return online, nil
+}

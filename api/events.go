@@ -2126,3 +2126,26 @@ func MoveNode(c *gin.Context) {
 		"msg": "success",
 	})
 }
+
+// GetMonitor 获取在线的数据
+func GetMonitor(c *gin.Context) {
+	online, err := dao.GetOnlineNodes(c.Request.Context())
+	if err != nil {
+		log.Error(err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	country, err := dao.GetCountryCount(c.Request.Context())
+	if err != nil {
+		log.Error(err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"online":   online,
+		"country":  country,
+		"filecoin": "100+",
+		"deposit":  100,
+	})
+}
