@@ -78,7 +78,7 @@ func AdsAddCtx(ctx context.Context, ads *model.Ads) error {
 
 func AdsDelCtx(ctx context.Context, id int64) error {
 	query := `DELETE FROM ads where id = ?`
-	_, err := DB.NamedExecContext(ctx, query, id)
+	_, err := DB.ExecContext(ctx, query, id)
 	return err
 }
 
