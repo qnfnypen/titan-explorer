@@ -27,6 +27,7 @@ type Config struct {
 	SpecifyCandidate         SpecifyCandidateConfig
 	URL                      URLConfig
 	Oss                      OssConfig
+	Locators                 []string
 }
 
 type EmailConfig struct {

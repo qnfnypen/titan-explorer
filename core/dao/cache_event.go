@@ -19,8 +19,8 @@ var (
 
 func CreateLink(ctx context.Context, link *model.Link) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s (username, cid, short_link, long_link, short_pass, expire_at)
-			VALUES (:username, :cid, :short_link, :long_link, :short_pass, :expire_at);`, tableNameLink,
+		`INSERT INTO %s (username, cid, short_link, long_link, short_pass,created_at, updated_at, expire_at)
+			VALUES (:username, :cid, :short_link, :long_link, :short_pass, :created_at, :updated_at, :expire_at);`, tableNameLink,
 	), link)
 	return err
 }
@@ -56,7 +56,7 @@ func GetLink(ctx context.Context, sb squirrel.SelectBuilder) (*model.Link, error
 
 func UpdateLinkPassAndExpiration(ctx context.Context, link *model.Link) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`UPDATE %s SET short_pass = :short_pass, expire_at = :expire_at WHERE id = :id`, tableNameLink,
+		`UPDATE %s SET short_pass = :short_pass, updated_at = :updated_at, expire_at = :expire_at WHERE id = :id`, tableNameLink,
 	), link)
 	return err
 }

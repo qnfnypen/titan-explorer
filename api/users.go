@@ -19,6 +19,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gin-gonic/gin"
+	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
@@ -1245,5 +1246,11 @@ func MyBugReportListHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"list":  list,
 		"total": n,
+	}))
+}
+
+func LocatorFromConfigHandler(c *gin.Context) {
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list": config.Cfg.Locators,
 	}))
 }

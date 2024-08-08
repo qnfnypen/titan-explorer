@@ -1037,8 +1037,14 @@ func ShareLinkInfoHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(gin.H{"link": link, "expire_days": days}))
 }
 
+type ShareLinkUpdateReq struct {
+	ID        int64  `json:"id"`
+	ShortPass string `json:"short_pass"`
+	ExpireAt  int64  `json:"expire_at"`
+}
+
 func ShareLinkUpdateHandler(c *gin.Context) {
-	var req model.Link
+	var req ShareLinkUpdateReq
 	if err := c.BindJSON(&req); err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
@@ -1064,19 +1070,19 @@ func ShareLinkUpdateHandler(c *gin.Context) {
 		return
 	}
 
-	if req.ExpireAt.Unix() > 0 {
-		if time.Now().Unix() > req.ExpireAt.Unix() {
+	if req.ExpireAt > 0 {
+		if time.Now().Unix() > req.ExpireAt {
 			log.Errorf("file expired")
 			c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 			return
 		}
-		link.ExpireAt = req.ExpireAt
+		link.ExpireAt = time.Unix(req.ExpireAt, 0)
 		link.UpdatedAt = time.Now() // 只有更新过期时间，才更新updated_at, 防止expire_at - updated_at < 0
 	}
 
-	if req.ShortPass != "" && req.ShortPass != link.ShortPass {
-		link.ShortPass = req.ShortPass
-	}
+	// if req.ShortPass != "" && req.ShortPass != link.ShortPass {
+	link.ShortPass = req.ShortPass
+	// }
 
 	if err := dao.UpdateLinkPassAndExpiration(c.Request.Context(), link); err != nil {
 		log.Errorf("UpdateLink error %v", err)
@@ -1104,7 +1110,7 @@ func ShareLinkHandler(c *gin.Context) {
 	// url := c.Query("url")
 	sb := squirrel.Select("*").Where("cid = ?", cid).Where("username = ?", username)
 	link, err := dao.GetLink(c.Request.Context(), sb)
-	if err != nil {
+	if err != nil { 
 		log.Errorf("database getLink: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return

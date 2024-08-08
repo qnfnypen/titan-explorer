@@ -122,6 +122,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	user.POST("/upload", FileUploadHandler)
 	user.POST("/bugs/report", BugReportHandler)
 	user.GET("/bugs/list", MyBugReportListHandler)
+	user.GET("/locators", LocatorFromConfigHandler)
 	user.Use(authMiddleware.MiddlewareFunc())
 	user.GET("/refresh_token", authMiddleware.RefreshHandler)
 	user.POST("/info", GetUserInfoHandler)
