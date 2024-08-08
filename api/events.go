@@ -1034,7 +1034,7 @@ func ShareLinkUpdateHandler(c *gin.Context) {
 		return
 	}
 
-	link, err := dao.GetLink(c.Request.Context(), squirrel.Select("*").Where("id = ?", req.ID).Where("user_id = ?", req.UserId))
+	link, err := dao.GetLink(c.Request.Context(), squirrel.Select("*").Where("id = ?", req.ID))
 	if err != nil && err != sql.ErrNoRows {
 		log.Errorf("GetLink error %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -1042,6 +1042,15 @@ func ShareLinkUpdateHandler(c *gin.Context) {
 	}
 	if err == sql.ErrNoRows {
 		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+		return
+	}
+
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
+
+	if link.UserName != userId {
+		log.Errorf("user not match")
+		c.JSON(http.StatusOK, respErrorCode(errors.LinkUserNotMatch, c))
 		return
 	}
 
