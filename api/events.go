@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -1009,6 +1010,11 @@ func ShareAssetsHandler(c *gin.Context) {
 	}))
 }
 
+// type ShareLinkInfoResp struct {
+// 	*model.Link
+// 	ExpireDays int64 `json:"expire_days"`
+// }
+
 func ShareLinkInfoHandler(c *gin.Context) {
 	username := c.Query("username")
 	cid := c.Query("cid")
@@ -1024,7 +1030,11 @@ func ShareLinkInfoHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, respJSON(gin.H{"link": link}))
+	duration := link.ExpireAt.Sub(link.UpdatedAt)
+
+	days := math.Round(duration.Hours() / 24)
+
+	c.JSON(http.StatusOK, respJSON(gin.H{"link": link, "expire_days": days}))
 }
 
 func ShareLinkUpdateHandler(c *gin.Context) {
@@ -1061,13 +1071,12 @@ func ShareLinkUpdateHandler(c *gin.Context) {
 			return
 		}
 		link.ExpireAt = req.ExpireAt
+		link.UpdatedAt = time.Now() // 只有更新过期时间，才更新updated_at, 防止expire_at - updated_at < 0
 	}
 
 	if req.ShortPass != "" && req.ShortPass != link.ShortPass {
 		link.ShortPass = req.ShortPass
 	}
-
-	link.UpdatedAt = time.Now()
 
 	if err := dao.UpdateLinkPassAndExpiration(c.Request.Context(), link); err != nil {
 		log.Errorf("UpdateLink error %v", err)
@@ -1305,6 +1314,8 @@ func CreateShareLinkHandler(c *gin.Context) {
 	link.LongLink = u
 	link.ShortPass = access_pass
 	link.ExpireAt = expireAt
+	link.CreatedAt = time.Now()
+	link.UpdatedAt = time.Now()
 	shortLink := dao.GetShortLink(c.Request.Context(), u)
 	if shortLink == "" {
 		link.ShortLink = "/link?" + "cid=" + cid + "&area_id=" + areaId
