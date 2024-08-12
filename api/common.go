@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,6 +18,7 @@ import (
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
+	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/core/geo"
 	"github.com/gnasnik/titan-explorer/core/oprds"
 	"github.com/gnasnik/titan-explorer/core/statistics"
@@ -186,16 +188,22 @@ func getAssetStatus(ctx context.Context, uid, cid string) (*types.AssetStatus, e
 	}
 
 	uInfo, err := dao.GetUserByUsername(ctx, uid)
-	if err != nil {
+	switch err {
+	case sql.ErrNoRows:
+		uInfo = new(model.User)
+	case nil:
+	default:
 		return nil, fmt.Errorf("get user's info error:%w", err)
 	}
 	aInfo, err := dao.GetUserAssetDetail(ctx, hash, uid)
-	if err != nil {
+	switch err {
+	case sql.ErrNoRows:
+		aInfo = new(dao.UserAssetDetail)
+	case nil:
+		resp.IsExist = true
+	default:
 		return nil, fmt.Errorf("get asset's info error:%w", err)
 	}
-	resp.IsExist = true
-
-	_ = aInfo
 
 	// TODO
 	// if aInfo.Expiration.Before(time.Now()) {

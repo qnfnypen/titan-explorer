@@ -2420,6 +2420,6 @@ func GetMonitor(c *gin.Context) {
 		"online":   online,
 		"country":  country,
 		"filecoin": "100+",
-		"deposit":  1200 * 5.7 * fil,
+		"deposit":  1200 * 5.7 * fil * 1024,
 	}))
 }
