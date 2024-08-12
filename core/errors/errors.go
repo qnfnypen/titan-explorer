@@ -78,6 +78,8 @@ const (
 	LinkAlreadyExist
 	LinkUserNotMatch
 
+	MissingUserId
+
 	Unknown     = -1
 	GenericCode = 1
 )
@@ -167,6 +169,7 @@ var ErrMap = map[int]string{
 	ShareLinkPassIncorrect:                   "share link password is incorrect:分享链接密码错误",
 	LinkAlreadyExist:                         "link already exists:链接已存在",
 	LinkUserNotMatch:                         "link user not match:链接用户不匹配",
+	MissingUserId:                            "missing user id:缺少用户ID",
 }
 
 type GenericError struct {

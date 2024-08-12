@@ -198,10 +198,11 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/temp_file/share/:cid", ShareTempFile)
 	storage.GET("/temp_file/download/:cid", DownloadTempFile)
 	// storage.Use(authMiddleware.MiddlewareFunc())
+	storage.GET("/open_asset", OpenAssetHandler) // 打开公共的文件，需要统计访问次数
 	storage.Use(AuthRequired(authMiddleware))
 	storage.GET("/share_before", ShareBeforeHandler)
 	storage.GET("/share_asset", ShareAssetsHandler) //
-	// storage.GET("/open_asset", OpenAssetHandler)    //用户自己打开文件， 无需增加visit_count
+
 	storage.GET("/share_link_info", ShareLinkInfoHandler)
 	storage.POST("/share_link_update", ShareLinkUpdateHandler)
 

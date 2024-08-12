@@ -195,13 +195,10 @@ func getAssetStatus(ctx context.Context, uid, cid string) (*types.AssetStatus, e
 	}
 	resp.IsExist = true
 
-	_ = aInfo
-
-	// TODO
-	// if aInfo.Expiration.Before(time.Now()) {
-	// 	resp.IsExpiration = true
-	// 	return resp, nil
-	// }
+	if aInfo.Expiration.Before(time.Now()) {
+		resp.IsExpiration = true
+		return resp, nil
+	}
 	if uInfo.EnableVIP {
 		return resp, nil
 	}

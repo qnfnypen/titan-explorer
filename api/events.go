@@ -484,6 +484,7 @@ func CreateAssetHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+
 	if !createAssetRsp.AlreadyExists {
 		if len(createAssetRsp.List) == 0 {
 			log.Errorf("createAssetRsp.List: %v", err)
@@ -956,22 +957,12 @@ func ShareAssetsHandler(c *gin.Context) {
 		return
 	}
 
-	// if userId != userAsset.UserID {
-	dao.AddVisitCount(c.Request.Context(), hash)
-	// }
+	// dao.AddVisitCount(c.Request.Context(), hash)
 
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
 		return
-	}
-
-	// todo: remove this
-	var redirect bool
-	if userId == "f1hl7vbopivazgion4ql25opmjnoj2ldfsvm5fuzi" {
-		redirect = false
-	} else {
-		redirect = true
 	}
 
 	var ret []string
@@ -1008,18 +999,117 @@ func ShareAssetsHandler(c *gin.Context) {
 		"asset_cid": cid,
 		"size":      userAsset.TotalSize,
 		"url":       ret,
-		"redirect":  redirect,
+		"redirect":  false,
 	}))
 }
 
-// func OpenAssetHandler(c *gin.Context) {
+func OpenAssetHandler(c *gin.Context) {
+	cid := c.Query("asset_cid")
+	areaId := c.Query("area_id")
+	userId := c.Query("user_id")
 
-// }
+	if userId == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.MissingUserId, c))
+		return
+	}
 
-// type ShareLinkInfoResp struct {
-// 	*model.Link
-// 	ExpireDays int64 `json:"expire_days"`
-// }
+	hash, err := cidutil.CIDToHash(cid)
+	if err != nil {
+		log.Error("Invalid asset CID: ", cid)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	// 如果用户指定了区域，则先判断区域是否存在
+	if areaId != "" {
+		exist, err := dao.CheckUserAssetIsInAreaID(c.Request.Context(), userId, hash, areaId)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+			} else {
+				c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			}
+			return
+		}
+		if !exist {
+			c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+			return
+		}
+	} else {
+		// 获取用户文件所有的区域
+		areaIDs, err := dao.GetUserAssetAreaIDs(c.Request.Context(), hash, userId)
+		if err != nil {
+			log.Errorf("get user assest areaids error:%w", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+		// 获取用户的访问的ip
+		ip, err := GetIPFromRequest(c.Request)
+		if err != nil {
+			log.Errorf("get user's ip of request error:%w", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+		areaId, err = GetNearestAreaID(c.Request.Context(), ip, areaIDs)
+		if err != nil {
+			log.Error(err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+	}
+	// 获取文件信息
+	userAsset, err := dao.GetUserAssetDetail(c.Request.Context(), hash, userId)
+	if err != nil {
+		log.Error("Failed to get user asset: ", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	dao.AddVisitCount(c.Request.Context(), hash)
+
+	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+		return
+	}
+
+	var ret []string
+	if userAsset.Password != "" {
+		urls, err := schedulerClient.ShareEncryptedAsset(c.Request.Context(), userId, cid, userAsset.Password, time.Now().Add(time.Hour*24))
+		if err != nil {
+			if webErr, ok := err.(*api.ErrWeb); ok {
+				c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+				return
+			}
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+		ret = urls
+	} else {
+		urls, err := schedulerClient.ShareAssets(c.Request.Context(), userId, []string{cid})
+		if err != nil {
+			if webErr, ok := err.(*api.ErrWeb); ok {
+				c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+				return
+			}
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+
+		ret = urls[cid]
+	}
+
+	for i := range ret {
+		ret[i] = fmt.Sprintf("%s&filename=%s", ret[i], userAsset.AssetName)
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"asset_cid": cid,
+		"size":      userAsset.TotalSize,
+		"url":       ret,
+		"redirect":  false,
+	}))
+}
 
 func ShareLinkInfoHandler(c *gin.Context) {
 	username := c.Query("username")
