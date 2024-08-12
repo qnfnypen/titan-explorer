@@ -956,7 +956,9 @@ func ShareAssetsHandler(c *gin.Context) {
 		return
 	}
 
+	// if userId != userAsset.UserID {
 	dao.AddVisitCount(c.Request.Context(), hash)
+	// }
 
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
@@ -1009,6 +1011,10 @@ func ShareAssetsHandler(c *gin.Context) {
 		"redirect":  redirect,
 	}))
 }
+
+// func OpenAssetHandler(c *gin.Context) {
+
+// }
 
 // type ShareLinkInfoResp struct {
 // 	*model.Link
@@ -1110,7 +1116,7 @@ func ShareLinkHandler(c *gin.Context) {
 	// url := c.Query("url")
 	sb := squirrel.Select("*").Where("cid = ?", cid).Where("username = ?", username)
 	link, err := dao.GetLink(c.Request.Context(), sb)
-	if err != nil { 
+	if err != nil {
 		log.Errorf("database getLink: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return

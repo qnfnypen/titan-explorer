@@ -594,6 +594,7 @@ type Bug struct {
 	Feedback     string    `db:"feedback" json:"feedback"`
 	Pics         string    `db:"pics" json:"pics"`
 	Log          string    `db:"log" json:"log"`
+	BenefitLog   string    `db:"benefit_log" json:"benefit_log"`
 	Platform     int64     `db:"platform" json:"platform"`
 	Version      string    `db:"version" json:"version"`
 	State        int64     `db:"state" json:"state"`
@@ -609,6 +610,13 @@ type Acme struct {
 	PrivateKey  string    `db:"private_key" json:"private_key"`
 	CreatedAt   time.Time `db:"created_at" json:"created_at"`
 	ExpireAt    time.Time `db:"expire_at" json:"expire_at"`
+}
+
+type EdgeConfig struct {
+	NodeId    string    `db:"node_id" json:"node_id"`
+	Config    string    `db:"config" json:"config"`
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 }
 
 type DeviceOnlineIncentive struct {
