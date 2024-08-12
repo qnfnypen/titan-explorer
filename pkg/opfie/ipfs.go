@@ -54,14 +54,12 @@ func (c *IPFSClient) GetInfoByCID(ctx context.Context, cid string) error {
 		return fmt.Errorf("new path by cid error:%w", err)
 	}
 
-	node, err := c.node.Object().Get(ctx, p)
+	name, err := c.node.Name().Publish(ctx, p)
 	if err != nil {
-		return fmt.Errorf("get info of cid error:%w", err)
+		return fmt.Errorf("get stat of cid error:%w", err)
 	}
-	if len(node.Links()) > 0 {
-		link := node.Links()[0]
-		log.Println(link.Name)
-	}
+
+	log.Println(name.String())
 
 	return nil
 }
