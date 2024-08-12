@@ -16,6 +16,7 @@ import (
 
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/types"
+	"github.com/Masterminds/squirrel"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
@@ -206,10 +207,12 @@ func getAssetStatus(ctx context.Context, uid, cid string) (*types.AssetStatus, e
 	}
 	resp.IsExist = true
 
-	if aInfo.Expiration.Before(time.Now()) {
-		resp.IsExpiration = true
-		return resp, nil
+	linkInfo, err := dao.GetLink(ctx, squirrel.Select("*").Where("user_name = ?", uid).Where("cid = ?", cid))
+	if err != nil {
+		return nil, fmt.Errorf("get link info error:%w", err)
 	}
+	resp.IsExpiration = aInfo.Expiration.Before(time.Now()) && linkInfo.ExpireAt.Before(time.Now())
+
 	if uInfo.EnableVIP {
 		return resp, nil
 	}
