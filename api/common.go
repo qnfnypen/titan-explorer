@@ -207,7 +207,7 @@ func getAssetStatus(ctx context.Context, uid, cid string) (*types.AssetStatus, e
 	}
 	resp.IsExist = true
 
-	linkInfo, err := dao.GetLink(ctx, squirrel.Select("*").Where("user_name = ?", uid).Where("cid = ?", cid))
+	linkInfo, err := dao.GetLink(ctx, squirrel.Select("*").Where("username = ?", uid).Where("cid = ?", cid))
 	if err != nil {
 		return nil, fmt.Errorf("get link info error:%w", err)
 	}
