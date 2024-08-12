@@ -124,6 +124,7 @@ var ErrMap = map[int]string{
 	int(terrors.GroupNotExist):               "The group is not exist:分组不存在",
 	int(terrors.GroupLimit):                  "The group is limit:分组限制",
 	int(terrors.GenerateAccessToken):         "generating access token: 正在生成凭证",
+	int(terrors.NodeOffline):                 "storage's nodes not found:存储节点不在线",
 	InvalidAPPKey:                            "invalid key:无效的key",
 	NoBearerToken:                            "No bearer token found in request: 请求未找到 Bearer token",
 	GetVCFrequently:                          "frequently request not allowed. please try again later.:请勿频繁获取验证码。请等待一段时间后再试。",

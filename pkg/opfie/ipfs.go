@@ -3,7 +3,6 @@ package opfie
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/ipfs/boxo/path"
@@ -47,19 +46,11 @@ func (c *IPFSClient) AddFileByCID(ctx context.Context, cid string) error {
 }
 
 // GetInfoByCID 通过cid获取文件信息
-func (c *IPFSClient) GetInfoByCID(ctx context.Context, cid string) error {
-	cid = fmt.Sprintf("/ipfs/%s", cid)
-	p, err := path.NewPath(cid)
-	if err != nil {
-		return fmt.Errorf("new path by cid error:%w", err)
-	}
-
-	name, err := c.node.Name().Publish(ctx, p)
-	if err != nil {
-		return fmt.Errorf("get stat of cid error:%w", err)
-	}
-
-	log.Println(name.String())
-
+func (c *IPFSClient) GetInfoByCID(ctx context.Context, cidStr string) error {
+	cidStr = fmt.Sprintf("/ipfs/%s", cidStr)
+	// p, err := path.NewPath(cid)
+	// if err != nil {
+	// 	return fmt.Errorf("new path by cid error:%w", err)
+	// }
 	return nil
 }
