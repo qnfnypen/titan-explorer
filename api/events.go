@@ -1110,7 +1110,7 @@ func ShareLinkHandler(c *gin.Context) {
 	// url := c.Query("url")
 	sb := squirrel.Select("*").Where("cid = ?", cid).Where("username = ?", username)
 	link, err := dao.GetLink(c.Request.Context(), sb)
-	if err != nil { 
+	if err != nil {
 		log.Errorf("database getLink: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
@@ -2330,6 +2330,11 @@ func GetSchedulerAreaIDs(c *gin.Context) {
 
 	for _, v := range schedulers {
 		areaIDs = append(areaIDs, v.AreaId)
+	}
+
+	// 判断缓存中是否有areaid的缓存
+	if aids, _ := GetAllAreasFromCache(c.Request.Context()); len(aids) == 0 {
+		CacheAllAreas(c.Request.Context(), areaIDs)
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{

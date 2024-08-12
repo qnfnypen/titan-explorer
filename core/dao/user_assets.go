@@ -114,7 +114,7 @@ func DelAssetAndUpdateSize(ctx context.Context, hash, userID string, areaID []st
 	}
 	// 判断是否需要删除文件记录
 	if !isNeedDel {
-		return nil
+		return tx.Commit()
 	}
 	// 获取文件尺寸大小
 	var size int64
