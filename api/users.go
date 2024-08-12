@@ -1254,3 +1254,48 @@ func LocatorFromConfigHandler(c *gin.Context) {
 		"list": config.Cfg.Locators,
 	}))
 }
+
+func GetEdgeConfigHandler(c *gin.Context) {
+	node_id := c.Query("node_id")
+	if node_id == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	config, err := dao.GetEdgeConfig(c.Request.Context(), node_id)
+	if err != nil && err != sql.ErrNoRows {
+		log.Errorf("GetEdgeConfigHandler: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"config": config,
+	}))
+}
+
+func SetEdgeConfigHandler(c *gin.Context) {
+	var cfg *model.EdgeConfig
+
+	if err := c.BindJSON(&cfg); err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	cfg.CreatedAt = time.Now()
+	cfg.UpdatedAt = time.Now()
+
+	if err := dao.SetEdgeConfig(c.Request.Context(), cfg); err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"msg": "success",
+	}))
+}

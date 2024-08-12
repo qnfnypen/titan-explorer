@@ -28,8 +28,8 @@ func BugsCountByBuilderCtx(ctx context.Context, cb squirrel.SelectBuilder) (int6
 }
 
 func BugsAddCtx(ctx context.Context, b *model.Bug) error {
-	query := "insert into bugs (username, code, node_id, email, telegram_id, description, feedback_type, feedback, pics, log, platform, version, state, reward, reward_type, operator, created_at, updated_at) " +
-		"values (:username, :code, :node_id, :email, :telegram_id, :description, :feedback_type, :feedback, :pics, :log, :platform, :version, :state, :reward, :reward_type, :operator, :created_at, :updated_at)"
+	query := "insert into bugs (username, code, node_id, email, telegram_id, description, feedback_type, feedback, pics, log, benefit_log, platform, version, state, reward, reward_type, operator, created_at, updated_at) " +
+		"values (:username, :code, :node_id, :email, :telegram_id, :description, :feedback_type, :feedback, :pics, :log, :benefit_log, :platform, :version, :state, :reward, :reward_type, :operator, :created_at, :updated_at)"
 	_, err := DB.NamedExecContext(ctx, query, b)
 	return err
 }
@@ -65,7 +65,7 @@ func BugsListPageCtx(ctx context.Context, page, size int, sb squirrel.SelectBuil
 
 func BugUpdateCtx(ctx context.Context, b *model.Bug) error {
 	query := "update bugs set username=:username, node_id=:node_id, email=:email, telegram_id=:telegram_id, description=:description, feedback_type=:feedback_type, " +
-		"feedback=:feedback, pics=:pics, log=:log, platform=:platform, version=:version, state=:state, reward=:reward, reward_type=:reward_type, operator=:operator where id=:id"
+		"feedback=:feedback, pics=:pics, log=:log, benefit_log=:benefit_log, platform=:platform, version=:version, state=:state, reward=:reward, reward_type=:reward_type, operator=:operator where id=:id"
 	_, err := DB.NamedExecContext(ctx, query, b)
 	return err
 }

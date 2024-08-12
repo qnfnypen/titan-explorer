@@ -123,6 +123,8 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	user.POST("/bugs/report", BugReportHandler)
 	user.GET("/bugs/list", MyBugReportListHandler)
 	user.GET("/locators", LocatorFromConfigHandler)
+	user.GET("/edge/config", GetEdgeConfigHandler)
+	user.POST("/edge/config", SetEdgeConfigHandler)
 	user.Use(authMiddleware.MiddlewareFunc())
 	user.GET("/refresh_token", authMiddleware.RefreshHandler)
 	user.POST("/info", GetUserInfoHandler)
@@ -198,8 +200,8 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	// storage.Use(authMiddleware.MiddlewareFunc())
 	storage.Use(AuthRequired(authMiddleware))
 	storage.GET("/share_before", ShareBeforeHandler)
-	storage.GET("/share_asset", ShareAssetsHandler)
-
+	storage.GET("/share_asset", ShareAssetsHandler) //
+	// storage.GET("/open_asset", OpenAssetHandler)    //用户自己打开文件， 无需增加visit_count
 	storage.GET("/share_link_info", ShareLinkInfoHandler)
 	storage.POST("/share_link_update", ShareLinkUpdateHandler)
 

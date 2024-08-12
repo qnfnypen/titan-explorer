@@ -956,7 +956,9 @@ func ShareAssetsHandler(c *gin.Context) {
 		return
 	}
 
+	// if userId != userAsset.UserID {
 	dao.AddVisitCount(c.Request.Context(), hash)
+	// }
 
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
@@ -1009,6 +1011,10 @@ func ShareAssetsHandler(c *gin.Context) {
 		"redirect":  redirect,
 	}))
 }
+
+// func OpenAssetHandler(c *gin.Context) {
+
+// }
 
 // type ShareLinkInfoResp struct {
 // 	*model.Link

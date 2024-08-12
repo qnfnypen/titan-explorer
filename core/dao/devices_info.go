@@ -328,6 +328,7 @@ func GenerateDeviceMapInfo(infos []*model.DeviceInfo, lang model.Language, noHid
 		}
 
 		out = append(out, map[string]interface{}{
+			"node_id":  info.DeviceID,
 			"name":     info.IpCity,
 			"nodeType": info.NodeType,
 			"ip":       info.ExternalIp,
