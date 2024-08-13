@@ -73,10 +73,6 @@ func UploadTmepFile(c *gin.Context) {
 	}
 	// 判断文件是否已经存在
 	aids, err := oprds.GetClient().GetUnloginAssetAreaIDs(c.Request.Context(), hash)
-	if len(aids) != 0 {
-		c.JSON(http.StatusOK, respJSON(rsp))
-		return
-	}
 
 	// 判断文件是否已经被上传分享60次了
 	taInfo, err := dao.GetTempAssetInfo(c.Request.Context(), hash)
@@ -87,9 +83,15 @@ func UploadTmepFile(c *gin.Context) {
 			c.JSON(http.StatusOK, respErrorCode(errors.TempAssetUploadErr, c))
 			return
 		}
+		if len(aids) != 0 {
+			dao.AddTempAssetShareCount(c.Request.Context(), hash)
+			c.JSON(http.StatusOK, respJSON(rsp))
+			return
+		}
 	default:
 		log.Errorf("GetTempAssetInfo error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
 	}
 
 	schCli, err := getSchedulerClient(c.Request.Context(), req.AreaIDs[0])
@@ -200,7 +202,7 @@ func ShareTempFile(c *gin.Context) {
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-			return	
+			return
 		}
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -213,7 +215,7 @@ func ShareTempFile(c *gin.Context) {
 	c.Redirect(301, urls[cid][0])
 }
 
-// DownloadTempFile 下载 ·　
+// DownloadTempFile 下载 ·
 // @Summary 下载首页上传文件
 // @Description 下载首页上传文件
 // @Tags temp_file

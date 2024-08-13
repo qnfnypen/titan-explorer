@@ -1734,18 +1734,8 @@ func GetAssetCountHandler(c *gin.Context) {
 		cid, _ := storage.HashToCID(data.Hash)
 		assetRsp, err := schedulerClient.GetAssetRecord(c.Request.Context(), cid)
 		if err != nil {
-			if webErr, ok := err.(*api.ErrWeb); ok {
-				c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-				return
-			}
-
-			if err == sql.ErrNoRows {
-				continue
-			}
-
 			log.Errorf("api GetAssetRecord: %v", err)
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			return
+			continue
 		}
 		if len(assetRsp.ReplicaInfos) > 0 {
 			for _, rep := range assetRsp.ReplicaInfos {

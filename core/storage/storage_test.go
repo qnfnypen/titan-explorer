@@ -51,3 +51,14 @@ func TestGet(t *testing.T) {
 
 	t.Log(string(body))
 }
+
+func TestCIDToHash(t *testing.T) {
+	cid := "bafkreihw7z4jwoadf56waklalk3dyjn44aoaaj4mxhkdf7gcug3pebcaam"
+
+	hash, err := CIDToHash(cid)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(hash)
+}
