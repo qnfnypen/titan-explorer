@@ -477,13 +477,25 @@ func AddVisitCount(ctx context.Context, hash string, user_id string) error {
 	if hash == "" {
 		return nil
 	}
-	query, args, err := squirrel.Insert(tableUserAssetVisit).Columns("hash", "count", "user_id").Values(hash, 0, user_id).Suffix("ON DUPLICATE KEY UPDATE count = count + 1").ToSql()
+	query, args, err := squirrel.Insert(tableUserAssetVisit).Columns("hash", "count", "user_id").Values(hash, 1, user_id).Suffix("ON DUPLICATE KEY UPDATE count = count + 1").ToSql()
 	if err != nil {
 		return fmt.Errorf("generate asset's visit count sql error:%w", err)
 	}
 
 	_, err = DB.ExecContext(ctx, query, args...)
 	return err
+}
+
+func GetVisitCount(ctx context.Context, hash, user_id string) (int64, error) {
+	var count int64
+
+	query, args, err := squirrel.Select("count").From(tableUserAssetVisit).Where("hash = ? AND user_id = ?", hash, user_id).ToSql()
+	if err != nil {
+		return 0, fmt.Errorf("generate get asset sql error:%w", err)
+	}
+	err = DB.GetContext(ctx, &count, query, args...)
+
+	return count, err
 }
 
 // CheckUserAseetNeedDel 判断文件是否需要删除

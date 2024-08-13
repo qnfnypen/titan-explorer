@@ -653,6 +653,7 @@ type AssetGroup struct {
 type UserAssetVisitCount struct {
 	Hash  string `db:"hash"`
 	Count int64 `db:"count"`
+	UserId string `db:"user_id"`
 }
 
 type UserAssetArea struct {
