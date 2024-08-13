@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/terrors"
@@ -195,11 +196,11 @@ func ShareTempFile(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
 		return
 	}
-	urls, err := schedulerClient.ShareAssets(c.Request.Context(), "", []string{cid})
+	urls, err := schedulerClient.ShareAssets(c.Request.Context(), "", []string{cid}, time.Time{})
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-			return
+			return	
 		}
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -212,7 +213,7 @@ func ShareTempFile(c *gin.Context) {
 	c.Redirect(301, urls[cid][0])
 }
 
-// DownloadTempFile 下载
+// DownloadTempFile 下载 ·　
 // @Summary 下载首页上传文件
 // @Description 下载首页上传文件
 // @Tags temp_file
@@ -271,7 +272,7 @@ func DownloadTempFile(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
 		return
 	}
-	urls, err := schedulerClient.ShareAssets(c.Request.Context(), "", []string{cid})
+	urls, err := schedulerClient.ShareAssets(c.Request.Context(), "", []string{cid}, time.Time{})
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))

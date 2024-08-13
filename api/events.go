@@ -969,7 +969,7 @@ func ShareAssetsHandler(c *gin.Context) {
 
 	var ret []string
 	if userAsset.Password != "" {
-		urls, err := schedulerClient.ShareEncryptedAsset(c.Request.Context(), userId, cid, userAsset.Password, time.Now().Add(time.Hour*24))
+		urls, err := schedulerClient.ShareEncryptedAsset(c.Request.Context(), userId, cid, userAsset.Password, time.Time{})
 		if err != nil {
 			if webErr, ok := err.(*api.ErrWeb); ok {
 				c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
@@ -980,7 +980,7 @@ func ShareAssetsHandler(c *gin.Context) {
 		}
 		ret = urls
 	} else {
-		urls, err := schedulerClient.ShareAssets(c.Request.Context(), userId, []string{cid})
+		urls, err := schedulerClient.ShareAssets(c.Request.Context(), userId, []string{cid}, time.Time{})
 		if err != nil {
 			if webErr, ok := err.(*api.ErrWeb); ok {
 				c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
@@ -1069,6 +1069,12 @@ func OpenAssetHandler(c *gin.Context) {
 
 	dao.AddVisitCount(c.Request.Context(), hash, userId)
 
+	n, _ := dao.GetVisitCount(c.Request.Context(), hash, userId)
+	if n > maxCountOfVisitShareLink {
+		c.JSON(http.StatusOK, respErrorCode(errors.AssetVisitOutOfLimit, c))
+		return
+	}
+
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
@@ -1077,7 +1083,7 @@ func OpenAssetHandler(c *gin.Context) {
 
 	var ret []string
 	if userAsset.Password != "" {
-		urls, err := schedulerClient.ShareEncryptedAsset(c.Request.Context(), userId, cid, userAsset.Password, time.Now().Add(time.Hour*24))
+		urls, err := schedulerClient.ShareEncryptedAsset(c.Request.Context(), userId, cid, userAsset.Password, time.Now().Add(time.Hour*2))
 		if err != nil {
 			if webErr, ok := err.(*api.ErrWeb); ok {
 				c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
@@ -1088,7 +1094,7 @@ func OpenAssetHandler(c *gin.Context) {
 		}
 		ret = urls
 	} else {
-		urls, err := schedulerClient.ShareAssets(c.Request.Context(), userId, []string{cid})
+		urls, err := schedulerClient.ShareAssets(c.Request.Context(), userId, []string{cid}, time.Now().Add(2*time.Hour))
 		if err != nil {
 			if webErr, ok := err.(*api.ErrWeb); ok {
 				c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
