@@ -175,7 +175,7 @@ func ListAssets(ctx context.Context, uid string, limit, offset, groupID int) (in
 	}
 
 	query, args, err := squirrel.Select("ua.user_id,ua.hash,ua.asset_name,ua.asset_type,ua.share_status,ua.expiration,ua.created_time,ua.total_size,ua.password,ua.group_id,IFNULL(uav.count,0) AS visit_count").
-		From(fmt.Sprintf("%s AS ua", tableUserAsset)).LeftJoin(fmt.Sprintf("%s AS uav ON ua.hash=uav.hash", tableUserAssetVisit)).
+		From(fmt.Sprintf("%s AS ua", tableUserAsset)).LeftJoin(fmt.Sprintf("%s AS uav ON ua.hash=uav.hash and ua.user_id = uav.user_id", tableUserAssetVisit)).
 		Where("ua.user_id = ? AND ua.group_id = ?", uid, groupID).OrderBy("ua.created_time desc").
 		Limit(uint64(limit)).Offset(uint64(offset)).ToSql()
 	if err != nil {
@@ -355,7 +355,7 @@ func GetUserAssetDetail(ctx context.Context, hash, uid string) (*UserAssetDetail
 	var asset UserAssetDetail
 
 	query, args, err := squirrel.Select("ua.user_id,ua.hash,ua.asset_name,ua.asset_type,ua.share_status,ua.expiration,ua.created_time,ua.total_size,ua.password,ua.group_id,IFNULL(uav.count,0) AS visit_count").
-		From(fmt.Sprintf("%s AS ua", tableUserAsset)).LeftJoin(fmt.Sprintf("%s AS uav ON ua.hash=uav.hash", tableUserAssetVisit)).
+		From(fmt.Sprintf("%s AS ua", tableUserAsset)).LeftJoin(fmt.Sprintf("%s AS uav ON ua.hash=uav.hash and ua.user_id = uav.user_id", tableUserAssetVisit)).
 		Where("ua.user_id = ? AND ua.hash = ?", uid, hash).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("generate get asset sql error:%w", err)
@@ -473,11 +473,11 @@ func UpdateUnSyncAreaIDs(ctx context.Context, uid, hash string, aids []string) e
 }
 
 // AddVisitCount 增加文件访问次数
-func AddVisitCount(ctx context.Context, hash string) error {
+func AddVisitCount(ctx context.Context, hash string, user_id string) error {
 	if hash == "" {
 		return nil
 	}
-	query, args, err := squirrel.Insert(tableUserAssetVisit).Columns("hash", "count").Values(hash, 0).Suffix("ON DUPLICATE KEY UPDATE count = count + 1").ToSql()
+	query, args, err := squirrel.Insert(tableUserAssetVisit).Columns("hash", "count", "user_id").Values(hash, 0, user_id).Suffix("ON DUPLICATE KEY UPDATE count = count + 1").ToSql()
 	if err != nil {
 		return fmt.Errorf("generate asset's visit count sql error:%w", err)
 	}

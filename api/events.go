@@ -1065,7 +1065,7 @@ func OpenAssetHandler(c *gin.Context) {
 		return
 	}
 
-	dao.AddVisitCount(c.Request.Context(), hash)
+	dao.AddVisitCount(c.Request.Context(), hash, userId)
 
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 	if err != nil {
