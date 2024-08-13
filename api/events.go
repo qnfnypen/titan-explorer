@@ -917,6 +917,7 @@ func ShareAssetsHandler(c *gin.Context) {
 		exist, err := dao.CheckUserAssetIsInAreaID(c.Request.Context(), userId, hash, areaId)
 		if err != nil {
 			if err == sql.ErrNoRows {
+				log.Errorf("sql error no rows")
 				c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 			} else {
 				c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -924,6 +925,7 @@ func ShareAssetsHandler(c *gin.Context) {
 			return
 		}
 		if !exist {
+			log.Errorf("no exist")
 			c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 			return
 		}

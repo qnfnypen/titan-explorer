@@ -36,8 +36,8 @@ func CacheAllAreas(ctx context.Context, info []string) error {
 		return err
 	}
 
-	expiration := time.Minute * 5
-	_, err = dao.RedisCache.Set(ctx, key, data, expiration).Result()
+	// expiration := time.Minute * 5
+	_, err = dao.RedisCache.Set(ctx, key, data, 0).Result()
 	if err != nil {
 		log.Errorf("set areas info: %v", err)
 	}

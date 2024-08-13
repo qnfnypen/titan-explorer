@@ -401,11 +401,13 @@ func GetNearestAreaIDByIP(ctx context.Context, ip string, areaIDs []string) (str
 		}
 		ips = append(ips, ip)
 	}
+	log.Errorf("user ip:%s ips:%v", ip, ips)
 
 	ip, err := GetUserNearestIP(ctx, ip, ips, NewIPCoordinate())
 	if err != nil {
 		return "", err
 	}
+	log.Errorf("nearest ip:%s", ip)
 
 	if areaID, ok := AreaIPIDMaps.Load(ip); ok {
 		return areaID.(string), nil
@@ -421,6 +423,7 @@ func GetNearestAreaIDByInfo(ctx context.Context, ip string, areaIDs []string) (s
 	if err != nil {
 		return "", fmt.Errorf("get info of ip error:%w", err)
 	}
+	log.Error(info.Continent, info.Country)
 
 	for _, v := range areaIDs {
 		if strings.Contains(v, info.Continent) {
@@ -444,6 +447,7 @@ func GetNearestAreaID(ctx context.Context, ip string, areaIDs []string) (string,
 	if err == nil {
 		return areaID, nil
 	}
+	log.Errorf("get nearest areaid error:%v", err)
 
 	return GetNearestAreaIDByInfo(ctx, ip, areaIDs)
 }
