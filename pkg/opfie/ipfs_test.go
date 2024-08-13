@@ -6,9 +6,9 @@ import (
 )
 
 var (
-	cli *IPFSClient
-	ctx = context.Background()
-	cid = "bafkreidtuosuw37f5xmn65b3ksdiikajy7pwjjslzj2lxxz2vc4wdy3zku"
+	cli    *IPFSClient
+	ctx    = context.Background()
+	cidStr = "bafkreidtuosuw37f5xmn65b3ksdiikajy7pwjjslzj2lxxz2vc4wdy3zku"
 )
 
 func TestMain(m *testing.M) {
@@ -24,16 +24,23 @@ func TestMain(m *testing.M) {
 }
 
 func TestAddFileByCID(t *testing.T) {
-	cid = "QmXeKtRSz7SVKp8Qh6tXtv6whRF5wxwQPwsgA38houakhz"
-	err := cli.AddFileByCID(ctx, cid)
+	cidStr = "QmXeKtRSz7SVKp8Qh6tXtv6whRF5wxwQPwsgA38houakhz"
+	err := cli.AddFileByCID(ctx, cidStr)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestGetInfoByCID(t *testing.T) {
-	err := cli.GetInfoByCID(ctx, cid)
+	cidStr = "bafybeicpifbyoqndom3usp55ojqu4mei3anhusgto2fpyyerftlfkzcuky"
+	links, size, err := cli.GetInfoByCID(ctx, cidStr)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	for _, v := range links {
+		t.Log(*v)
+	}
+
+	t.Log(size)
 }
