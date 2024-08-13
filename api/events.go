@@ -370,7 +370,7 @@ func GetUploadInfoHandler(c *gin.Context) {
 		}
 	}
 
-	res, err := schedulerClient.GetNodeUploadInfo(c.Request.Context(), userId, randomPassNonce)
+	res, err := schedulerClient.GetNodeUploadInfo(c.Request.Context(), userId, randomPassNonce, false)
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
