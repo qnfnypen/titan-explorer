@@ -1733,6 +1733,10 @@ func GetAssetCountHandler(c *gin.Context) {
 				return
 			}
 
+			if err == sql.ErrNoRows {
+				continue
+			}
+
 			log.Errorf("api GetAssetRecord: %v", err)
 			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 			return
