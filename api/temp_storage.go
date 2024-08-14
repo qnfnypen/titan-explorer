@@ -10,6 +10,7 @@ import (
 	"github.com/Filecoin-Titan/titan/api/terrors"
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/gin-gonic/gin"
+	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
@@ -354,7 +355,7 @@ func GetUploadInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"total":     resp.Total,
 		"complete":  complete,
-		"share_url": fmt.Sprintf("https://storage-test.titannet.io/api/v1/storage/temp_file/share/%s", cid),
+		"share_url": fmt.Sprintf("%s/api/v1/storage/temp_file/share/%s", config.Cfg.BaseURL, cid),
 		"maplist":   mapList,
 		"list":      resp.ReplicaInfos,
 	}))

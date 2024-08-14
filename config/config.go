@@ -28,6 +28,7 @@ type Config struct {
 	URL                      URLConfig
 	Oss                      OssConfig
 	Locators                 []string
+	BaseURL                  string
 }
 
 type EmailConfig struct {
