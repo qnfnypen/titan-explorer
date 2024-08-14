@@ -426,7 +426,7 @@ func GetNearestAreaIDByIP(ctx context.Context, ip string, areaIDs []string) (str
 	}
 	log.Errorf("user ip:%s ips:%v", ip, ips)
 
-	ip, err := GetUserNearestIP(ctx, ip, ips, NewIPCoordinate())
+	ip, err := GetUserFixedNearestIP(ctx, ip, ips, NewIPCoordinate())
 	if err != nil {
 		return "", err
 	}

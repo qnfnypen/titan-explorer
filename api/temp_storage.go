@@ -3,7 +3,6 @@ package api
 import (
 	"database/sql"
 	"fmt"
-	"math"
 	"net/http"
 	"strings"
 	"time"
@@ -389,45 +388,11 @@ func GetIP(c *gin.Context) {
 	}
 
 	// 获取用户ip的经纬度
-	coordinate := NewIPCoordinate()
-	lat1, lon1, err := coordinate.GetLatLng(c.Request.Context(), ip)
-	if err != nil {
-		c.JSON(http.StatusOK, respJSON(gin.H{
-			"err": err.Error(),
-		}))
-		return
-	}
-	ipDistanceMap := make(map[string]float64)
-	for _, ip := range ips {
-		lat2, lon2, err := coordinate.GetLatLng(c.Request.Context(), ip)
-		if err != nil {
-			c.JSON(http.StatusOK, respJSON(gin.H{
-				"err": fmt.Sprintf("get %s latLng error %s", ip, err.Error()),
-			}))
-			return
-		}
-		distance := calculateDistance(lat1, lon1, lat2, lon2)
-		ipDistanceMap[ip] = distance
-		ipmaps[ip] = fmt.Sprintf("%s %v:%v", ipmaps[ip], lat2, lon2)
-	}
-	if len(ipDistanceMap) == 0 {
-		c.JSON(http.StatusOK, respJSON(gin.H{
-			"err": "can not get any ip distance",
-		}))
-		return
-	}
-	var nearestIP string
-	minDistance := math.MaxFloat64
-	for ip, distance := range ipDistanceMap {
-		if distance < minDistance {
-			minDistance = distance
-			nearestIP = ip
-		}
-	}
+	nearestIP, _ := GetUserFixedNearestIP(c.Request.Context(), ip, ips, NewIPCoordinate())
 	if areaID, ok := AreaIPIDMaps.Load(nearestIP); ok {
 		c.JSON(http.StatusOK, respJSON(gin.H{
 			"nearest": areaID,
-			"ip":      fmt.Sprintf("%s %v:%v", ip, lat1, lon1),
+			"ip":      ip,
 			"maps":    ipmaps,
 		}))
 		return

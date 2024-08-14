@@ -3,13 +3,14 @@ package api
 import (
 	"context"
 	"fmt"
+	"math"
+	"net/http"
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/core/geo"
-	"math"
-	"net/http"
-	"strconv"
 
 	"github.com/golang/geo/s2"
 )
@@ -95,6 +96,42 @@ func GetUserNearestIP(ctx context.Context, userIP string, ipList []string, coord
 	return nearestIP, nil
 }
 
+func GetUserFixedNearestIP(ctx context.Context, userIP string, ipList []string, coordinate IPCoordinate) (string, error) {
+	var nips []float64
+
+	lat1, lon1, err := coordinate.GetLatLng(ctx, userIP)
+	if err != nil {
+		return "", err
+	}
+
+	ipList = distinctIPs(ipList)
+	for _, ip := range ipList {
+		lat2, lon2, err := coordinate.GetLatLng(ctx, ip)
+		if err != nil {
+			log.Errorf("get %s latLng error %s", ip, err.Error())
+			continue
+		}
+
+		distance := calculateDistance(lat1, lon1, lat2, lon2)
+		nips = append(nips, distance)
+	}
+
+	if len(nips) == 0 {
+		return "", fmt.Errorf("can not get any ip distance")
+	}
+
+	var nearestIP string
+	minDistance := math.MaxFloat64
+	for ip, distance := range nips {
+		if distance < minDistance {
+			minDistance = distance
+			nearestIP = ipList[ip]
+		}
+	}
+
+	return nearestIP, nil
+}
+
 func GetIPLocationHandler(c *gin.Context) {
 	ip := c.Query("ip")
 	lang := model.Language(c.Query("lang"))
@@ -111,4 +148,21 @@ func GetIPLocationHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, respJSON(loc))
+}
+
+func distinctIPs(ips []string) []string {
+	var (
+		maps = make(map[string]bool)
+		nips []string
+	)
+
+	for _, v := range ips {
+		maps[v] = true
+	}
+
+	for k := range maps {
+		nips = append(nips, k)
+	}
+
+	return ips
 }
