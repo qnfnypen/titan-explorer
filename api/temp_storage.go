@@ -363,14 +363,43 @@ func GetUploadInfo(c *gin.Context) {
 }
 
 func GetIP(c *gin.Context) {
-	var naids []string
+	var naids, ips []string
 	areas, _ := GetAllAreasFromCache(c.Request.Context())
+
+	ipmaps := make(map[string]string)
 
 	// 获取用户的访问的ip
 	ip, err := GetIPFromRequest(c.Request)
 	if err != nil {
 		c.JSON(http.StatusOK, respJSON(gin.H{
 			"msg": err.Error(),
+		}))
+		return
+	}
+
+	// 将areaid替换为ip
+	for _, v := range areas {
+		ip, err := GetAreaIPByID(c.Request.Context(), v)
+		if err != nil {
+			continue
+		}
+		ips = append(ips, ip)
+		ipmaps[v] = ip
+	}
+
+	nip, err := GetUserNearestIP(c.Request.Context(), ip, ips, NewIPCoordinate())
+	if err != nil {
+		c.JSON(http.StatusOK, respJSON(gin.H{
+			"msg": err.Error(),
+		}))
+		return
+	}
+
+	if areaID, ok := AreaIPIDMaps.Load(nip); ok {
+		c.JSON(http.StatusOK, respJSON(gin.H{
+			"nearest": areaID,
+			"ip":      ip,
+			"maps":    ipmaps,
 		}))
 		return
 	}
@@ -393,5 +422,6 @@ func GetIP(c *gin.Context) {
 		"ip":       ip,
 		"oldAreas": areas,
 		"areas":    naids,
+		"maps":     ipmaps,
 	}))
 }
