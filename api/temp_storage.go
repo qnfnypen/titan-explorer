@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api"
@@ -358,5 +359,39 @@ func GetUploadInfo(c *gin.Context) {
 		"share_url": fmt.Sprintf("%s/api/v1/storage/temp_file/share/%s", config.Cfg.BaseURL, cid),
 		"maplist":   mapList,
 		"list":      resp.ReplicaInfos,
+	}))
+}
+
+func GetIP(c *gin.Context) {
+	var naids []string
+	areas, _ := GetAllAreasFromCache(c.Request.Context())
+
+	// 获取用户的访问的ip
+	ip, err := GetIPFromRequest(c.Request)
+	if err != nil {
+		c.JSON(http.StatusOK, respJSON(gin.H{
+			"msg": err.Error(),
+		}))
+		return
+	}
+
+	areaID, err := GetNearestAreaID(c.Request.Context(), ip, areas)
+	if err != nil {
+		c.JSON(http.StatusOK, respJSON(gin.H{
+			"msg": err.Error(),
+		}))
+		return
+	}
+	naids = append(naids, areaID)
+	for _, v := range areas {
+		if !strings.EqualFold(v, areaID) {
+			naids = append(naids, v)
+		}
+	}
+
+	c.JSON(http.StatusOK, respJSON(gin.H{
+		"ip":       ip,
+		"oldAreas": areas,
+		"areas":    naids,
 	}))
 }

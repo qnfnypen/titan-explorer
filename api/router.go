@@ -197,6 +197,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/temp_file/info/:cid", GetUploadInfo)
 	storage.GET("/temp_file/share/:cid", ShareTempFile)
 	storage.GET("/temp_file/download/:cid", DownloadTempFile)
+	storage.GET("/get_ip", GetIP)
 	// storage.Use(authMiddleware.MiddlewareFunc())
 	storage.GET("/open_asset", OpenAssetHandler) // 打开公共的文件，需要统计访问次数
 	storage.Use(AuthRequired(authMiddleware))
