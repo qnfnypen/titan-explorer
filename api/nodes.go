@@ -903,6 +903,12 @@ func getDeviceInfoFromSchedulerAndInsert(ctx context.Context, nodeId string, are
 }
 
 func getNodeInfoFromScheduler(ctx context.Context, id string, areaId string) (*model.DeviceInfo, error) {
+	// 判断节点是否存在
+	next, _ := oprds.GetClient().CheckUnSyncNodeID(ctx, id)
+	if !next {
+		return nil, fmt.Errorf("device not found")
+	}
+
 	if areaId != "" {
 		schedulerClient, err := getSchedulerClient(ctx, areaId)
 		if err != nil {
@@ -911,17 +917,12 @@ func getNodeInfoFromScheduler(ctx context.Context, id string, areaId string) (*m
 
 		nodeInfo, err := schedulerClient.GetNodeInfo(ctx, id)
 		if err != nil {
+			oprds.GetClient().IncrUnSyncNodeID(ctx, id)
 			log.Errorf("get node info error:%w", err)
 			return nil, err
 		}
 
 		return statistics.ToDeviceInfo(*nodeInfo, areaId), nil
-	}
-
-	// 判断节点是否存在
-	next, _ := oprds.GetClient().CheckUnSyncNodeID(ctx, id)
-	if !next {
-		return nil, fmt.Errorf("device not found")
 	}
 
 	for _, schedulerClient := range statistics.Schedulers {
@@ -938,6 +939,12 @@ func getNodeInfoFromScheduler(ctx context.Context, id string, areaId string) (*m
 }
 
 func getNodeInfoByScheduler(ctx context.Context, id string, areaId string) (*types.NodeInfo, error) {
+	// 判断节点是否存在
+	next, _ := oprds.GetClient().CheckUnSyncNodeID(ctx, id)
+	if !next {
+		return nil, fmt.Errorf("device not found")
+	}
+
 	if areaId == "" {
 		areaId = GetDefaultTitanCandidateEntrypointInfo()
 	}
@@ -949,6 +956,7 @@ func getNodeInfoByScheduler(ctx context.Context, id string, areaId string) (*typ
 
 	nodeInfo, err := schedulerClient.GetNodeInfo(ctx, id)
 	if err != nil {
+		oprds.GetClient().IncrUnSyncNodeID(ctx, id)
 		log.Errorf("get node info error:%w", err)
 		return nil, err
 	}
