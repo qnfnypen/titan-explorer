@@ -80,6 +80,10 @@ func getAreaIDs(c *gin.Context) []string {
 		}
 	}
 
+	if len(aids) == 1 {
+		return aids
+	}
+
 	// 获取用户的访问的ip
 	ip, err := GetIPFromRequest(c.Request)
 	if err != nil {
