@@ -63,7 +63,7 @@ type (
 )
 
 func getAreaIDs(c *gin.Context) []string {
-	var aids []string
+	var aids, naids []string
 
 	areaIDs := c.QueryArray("area_id")
 	for _, v := range areaIDs {
@@ -77,6 +77,25 @@ func getAreaIDs(c *gin.Context) []string {
 			aids = append(aids, areas...)
 		} else {
 			aids = append(aids, GetDefaultTitanCandidateEntrypointInfo())
+		}
+	}
+
+	// 获取用户的访问的ip
+	ip, err := GetIPFromRequest(c.Request)
+	if err != nil {
+		log.Errorf("get user's ip of request error:%w", err)
+	} else {
+		areaID, err := GetNearestAreaID(c.Request.Context(), ip, aids)
+		if err != nil {
+			log.Error(err)
+		} else {
+			naids = append(naids, areaID)
+			for _, v := range aids {
+				if !strings.EqualFold(v, areaID) {
+					naids = append(naids, v)
+				}
+			}
+			return naids
 		}
 	}
 
