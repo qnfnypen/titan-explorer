@@ -124,6 +124,7 @@ func getSchedulerClient(ctx context.Context, areaId string) (api.Scheduler, erro
 	schedulerClient, _, err := client.NewScheduler(ctx, SchedulerURL, headers)
 	if err != nil {
 		log.Errorf("create scheduler rpc client: %v", err)
+		return nil, err
 	}
 
 	areaSchMaps.Store(areaId, schedulerClient)
