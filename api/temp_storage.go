@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"fmt"
+	"math"
 	"net/http"
 	"strings"
 	"time"
@@ -384,21 +385,49 @@ func GetIP(c *gin.Context) {
 			continue
 		}
 		ips = append(ips, ip)
-		ipmaps[v] = ip
+		ipmaps[ip] = v
 	}
 
-	nip, err := GetUserNearestIP(c.Request.Context(), ip, ips, NewIPCoordinate())
+	// 获取用户ip的经纬度
+	coordinate := NewIPCoordinate()
+	lat1, lon1, err := coordinate.GetLatLng(c.Request.Context(), ip)
 	if err != nil {
 		c.JSON(http.StatusOK, respJSON(gin.H{
-			"msg": err.Error(),
+			"err": err.Error(),
 		}))
 		return
 	}
-
-	if areaID, ok := AreaIPIDMaps.Load(nip); ok {
+	ipDistanceMap := make(map[string]float64)
+	for _, ip := range ips {
+		lat2, lon2, err := coordinate.GetLatLng(c.Request.Context(), ip)
+		if err != nil {
+			c.JSON(http.StatusOK, respJSON(gin.H{
+				"err": fmt.Sprintf("get %s latLng error %s", ip, err.Error()),
+			}))
+			return
+		}
+		distance := calculateDistance(lat1, lon1, lat2, lon2)
+		ipDistanceMap[ip] = distance
+		ipmaps[ip] = fmt.Sprintf("%s %v:%v", ipmaps[ip], lat2, lon2)
+	}
+	if len(ipDistanceMap) == 0 {
+		c.JSON(http.StatusOK, respJSON(gin.H{
+			"err": "can not get any ip distance",
+		}))
+		return
+	}
+	var nearestIP string
+	minDistance := math.MaxFloat64
+	for ip, distance := range ipDistanceMap {
+		if distance < minDistance {
+			minDistance = distance
+			nearestIP = ip
+		}
+	}
+	if areaID, ok := AreaIPIDMaps.Load(nearestIP); ok {
 		c.JSON(http.StatusOK, respJSON(gin.H{
 			"nearest": areaID,
-			"ip":      ip,
+			"ip":      fmt.Sprintf("%s %v:%v", ip, lat1, lon1),
 			"maps":    ipmaps,
 		}))
 		return
