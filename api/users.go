@@ -251,9 +251,8 @@ func GetNonceStringHandler(c *gin.Context) {
 	}
 
 	info, err := dao.GetUserByUsername(c.Request.Context(), username)
-	if err == sql.ErrNoRows {
-		//c.JSON(http.StatusOK, respErrorCode(errors.UserNotFound, c))
-		//return
+	switch err {
+	case sql.ErrNoRows:
 		user := &model.User{
 			Username:         username,
 			CreatedAt:        time.Now(),
@@ -266,18 +265,16 @@ func GetNonceStringHandler(c *gin.Context) {
 			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 			return
 		}
-	}
-
-	if err != nil {
+	case nil:
+		if info.TotalStorageSize == 0 {
+			err = dao.UpdateUserTotalSize(c.Request.Context(), info.Username, 100*1024*1024)
+			if err != nil {
+				log.Errorf(err.Error())
+			}
+		}
+	default:
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
-	}
-
-	if info.TotalStorageSize == 0 {
-		err = dao.UpdateUserTotalSize(c.Request.Context(), info.Username, 100*1024*1024)
-		if err != nil {
-			log.Errorf(err.Error())
-		}
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{

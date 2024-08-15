@@ -23,8 +23,8 @@ func CreateUser(ctx context.Context, user *model.User) error {
 	defer tx.Rollback()
 
 	_, err = DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s (uuid, username, pass_hash, user_email, wallet_address, role, referrer, referrer_user_id, created_at)
-			VALUES (:uuid, :username, :pass_hash, :user_email, :wallet_address, :role, :referrer, :referrer_user_id, :created_at);`, tableNameUser,
+		`INSERT INTO %s (uuid, username, pass_hash, user_email, wallet_address, role, referrer, referrer_user_id, created_at, total_storage_size)
+			VALUES (:uuid, :username, :pass_hash, :user_email, :wallet_address, :role, :referrer, :referrer_user_id, :created_at, :total_storage_size);`, tableNameUser,
 	), user)
 
 	referralCode := &model.ReferralCode{
