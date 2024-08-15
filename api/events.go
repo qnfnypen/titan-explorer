@@ -1072,10 +1072,17 @@ func OpenAssetHandler(c *gin.Context) {
 		return
 	}
 
+	user, err := dao.GetUserByUsername(c.Request.Context(), userId)
+	if err != nil {
+		log.Errorf("Failed to get user: %w", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
 	dao.AddVisitCount(c.Request.Context(), hash, userId)
 
 	n, _ := dao.GetVisitCount(c.Request.Context(), hash, userId)
-	if n > maxCountOfVisitShareLink {
+	if !user.EnableVIP && n > maxCountOfVisitShareLink {
 		c.JSON(http.StatusOK, respErrorCode(errors.AssetVisitOutOfLimit, c))
 		return
 	}
