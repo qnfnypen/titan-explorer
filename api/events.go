@@ -470,7 +470,7 @@ func CreateAssetHandler(c *gin.Context) {
 	}
 
 	// 调用调度器
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), notExistsAids[0])
+	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaIds[0])
 	if err != nil {
 		log.Errorf("CreateAssetHandler getSchedulerClient error: %v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
