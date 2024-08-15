@@ -5,11 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+	"time"
+
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/statistics"
 	"github.com/spf13/viper"
-	"log"
 )
 
 func main() {
@@ -97,12 +99,12 @@ func main() {
 	for _, schedulerClient := range schedulers {
 
 		for area, cid := range cids {
-			_, err := schedulerClient.Api.ShareAssets(context.Background(), userId, []string{cid})
+			_, err := schedulerClient.Api.ShareAssets(context.Background(), userId, []string{cid}, time.Time{})
 			if err != nil {
 				continue
 			}
 
-			url := fmt.Sprintf(`https://api-test1.container1.titannet.io/api/v1/storage/share_asset?user_id=%s&asset_cid=%s&area_id=%s`, userId, cid, schedulerClient.AreaId)
+			url := fmt.Sprintf(`https://api-test1.container1.titannet.io/api/v1/storage/open_asset?user_id=%s&asset_cid=%s&area_id=%s`, userId, cid, schedulerClient.AreaId)
 
 			download := downloadInfo{
 				Url:    url,

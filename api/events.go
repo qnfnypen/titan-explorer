@@ -385,7 +385,11 @@ func GetUploadInfoHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, respJSON(res))
+	c.JSON(http.StatusOK, respJSON(gin.H{
+		"AlreadyExists": res.AlreadyExists,
+		"List":          res.List,
+		"AreaID":        areaId[0],
+	}))
 }
 
 func md5Str(s string) string {
