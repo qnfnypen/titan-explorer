@@ -163,6 +163,8 @@ func listAssets(ctx context.Context, uid string, limit, offset, groupID int) (*L
 			// 获取用户文件分发记录
 			records := new(types.AssetRecord)
 			records.ReplicaInfos = make([]*types.ReplicaInfo, 0)
+			records.CID = cid
+			records.Hash = info.Hash
 			for i, v := range areaIDs {
 				sCli, err := getSchedulerClient(ctx, v)
 				if err != nil {
@@ -181,9 +183,7 @@ func listAssets(ctx context.Context, uid string, limit, offset, groupID int) (*L
 					records.NeedCandidateReplicas += record.ReplenishReplicas
 					records.ReplicaInfos = append(records.ReplicaInfos, record.ReplicaInfos...)
 				}
-				if records.CID == "" {
-					records.CID = record.CID
-					records.Hash = record.Hash
+				if records.TotalSize == 0 {
 					records.CreatedTime = record.CreatedTime
 					records.EndTime = record.EndTime
 					records.Expiration = record.Expiration
