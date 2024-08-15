@@ -341,6 +341,12 @@ func GetUploadInfo(c *gin.Context) {
 		resp.Total += rsp.Total
 		resp.ReplicaInfos = append(resp.ReplicaInfos, rsp.ReplicaInfos...)
 	}
+	if resp.Total > 20 {
+		resp.Total = 20
+	}
+	if len(resp.ReplicaInfos) > 20 {
+		resp.ReplicaInfos = resp.ReplicaInfos[:20]
+	}
 	for _, v := range resp.ReplicaInfos {
 		if v.Status == types.ReplicaStatusSucceeded {
 			complete++

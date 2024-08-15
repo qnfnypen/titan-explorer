@@ -181,6 +181,19 @@ func listAssets(ctx context.Context, uid string, limit, offset, groupID int) (*L
 					records.NeedCandidateReplicas += record.ReplenishReplicas
 					records.ReplicaInfos = append(records.ReplicaInfos, record.ReplicaInfos...)
 				}
+				if records.CID == "" {
+					records.CID = record.CID
+					records.Hash = record.Hash
+					records.CreatedTime = record.CreatedTime
+					records.EndTime = record.EndTime
+					records.Expiration = record.Expiration
+					records.Note = record.Note
+					records.ServerID = record.ServerID
+					records.State = record.State
+					records.Source = record.Source
+					records.TotalBlocks = record.TotalBlocks
+					records.TotalSize = record.TotalSize
+				}
 			}
 			if !uInfo.EnableVIP && info.VisitCount >= maxCountOfVisitAsset {
 				info.ShareStatus = 2
