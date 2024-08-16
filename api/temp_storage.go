@@ -48,6 +48,7 @@ func UploadTmepFile(c *gin.Context) {
 		req     UploadTempFileReq
 		rsp     = make([]JsonObject, 0)
 		payload = oprds.UnLoginSyncArea{}
+		areaIDs []string
 	)
 
 	err := c.ShouldBindJSON(&req)
@@ -59,6 +60,19 @@ func UploadTmepFile(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
+
+	_, maps, err := getAndStoreAreaIDs()
+	if err != nil {
+		log.Error(err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+	for _, v := range req.AreaIDs {
+		if len(maps[v]) > 0 {
+			areaIDs = append(areaIDs, maps[v][0])
+		}
+	}
+	req.AreaIDs = areaIDs
 
 	// 最多只能是100M
 	if req.AssetSize > 100*1024*1024 {

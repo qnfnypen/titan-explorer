@@ -30,7 +30,6 @@ import (
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/core/oprds"
-	"github.com/gnasnik/titan-explorer/core/statistics"
 	"github.com/gnasnik/titan-explorer/core/storage"
 )
 
@@ -418,6 +417,11 @@ func CreateAssetHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
 	areaIds := getAreaIDs(c)
+
+	if len(areaIds) == 0 {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
 
 	user, err := dao.GetUserByUsername(c.Request.Context(), userId)
 	if err != nil {
@@ -2427,32 +2431,14 @@ func MoveAssetToGroupHandler(c *gin.Context) {
 // @Success 200 {object} JsonObject "{list:[]}"
 // @Router /api/v1/storage/get_area_id [get]
 func GetSchedulerAreaIDs(c *gin.Context) {
-	var areaIDs []string
-
-	etcdClient, err := statistics.NewEtcdClient(config.Cfg.EtcdAddresses)
+	keys, _, err := getAndStoreAreaIDs()
 	if err != nil {
-		log.Errorf("New etcdClient Failed: %v", err)
+		log.Error(err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
-	schedulers, err := statistics.FetchSchedulersFromEtcd(etcdClient)
-	if err != nil {
-		log.Errorf("fetch scheduler from etcd Failed: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
-
-	for _, v := range schedulers {
-		areaIDs = append(areaIDs, v.AreaId)
-	}
-
-	// 判断缓存中是否有areaid的缓存
-	if aids, _ := GetAllAreasFromCache(c.Request.Context()); len(aids) == 0 {
-		CacheAllAreas(c.Request.Context(), areaIDs)
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list": areaIDs,
+		"list": keys,
 	}))
 }
 

@@ -138,8 +138,6 @@ func TestUploadTf(t *testing.T) {
 }
 
 func TestMove(t *testing.T) {
-	os.Setenv("ETCD_USERNAME", "web")
-	os.Setenv("ETCD_PASSWORD", "web_123")
 	var req MoveNodeReq
 	req.FromAreaID = "Asia-SouthKorea-Seoul-Seoul"
 	req.NodeID = "c_7ceddfd2-ecab-4b0f-96de-b0169d00c9b5"
@@ -177,4 +175,17 @@ func TestChange(t *testing.T) {
 	}
 
 	t.Log(hash)
+}
+
+func TestGetAndStoreAreaIDs(t *testing.T) {
+	os.Setenv("ETCD_USERNAME", "web")
+	os.Setenv("ETCD_PASSWORD", "web_123")
+
+	keys, maps, err := getAndStoreAreaIDs()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(keys)
+	t.Log(maps)
 }

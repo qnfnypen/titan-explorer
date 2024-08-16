@@ -18,6 +18,7 @@ import (
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Masterminds/squirrel"
 	"github.com/gin-gonic/gin"
+	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/core/geo"
@@ -34,6 +35,11 @@ var (
 	AreaIDIPMaps = new(sync.Map)
 	// AreaIPIDMaps 调度器区域ip和id映射
 	AreaIPIDMaps = new(sync.Map)
+	// CityAreaIDMaps 国家地区映射
+	CityAreaIDMaps = new(sync.Map)
+	// lastSyncTimeStamp 上次同步时间
+	lastSyncTimeStamp time.Time
+	syncTimeMu        = new(sync.Mutex)
 )
 
 type (
@@ -65,18 +71,21 @@ type (
 func getAreaIDs(c *gin.Context) []string {
 	var aids, naids []string
 
+	_, maps, err := getAndStoreAreaIDs()
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+
 	areaIDs := c.QueryArray("area_id")
 	for _, v := range areaIDs {
 		if strings.TrimSpace(v) != "" {
-			aids = append(aids, v)
+			aids = append(aids, maps[v]...)
 		}
 	}
 	if len(aids) == 0 {
-		areas, _ := GetAllAreasFromCache(c.Request.Context())
-		if len(areas) > 0 {
-			aids = append(aids, areas...)
-		} else {
-			aids = append(aids, GetDefaultTitanCandidateEntrypointInfo())
+		for _, v := range maps {
+			aids = append(aids, v...)
 		}
 	}
 
@@ -530,4 +539,64 @@ func GetFILPrice(ctx context.Context) (float64, error) {
 	}
 
 	return 0, errors.New("get price of filecoin error")
+}
+
+// getAndStoreAreaIDs 获取或存储节点地区信息
+func getAndStoreAreaIDs() ([]string, map[string][]string, error) {
+	tn := time.Now()
+	syncTimeMu.Lock()
+	if lastSyncTimeStamp.IsZero() {
+		lastSyncTimeStamp = time.Now()
+	} else {
+		if lastSyncTimeStamp.Add(5 * time.Minute).After(tn) {
+			keys, maps := rangeCityAidMaps()
+			return keys, maps, nil
+		}
+	}
+
+	etcdClient, err := statistics.NewEtcdClient(config.Cfg.EtcdAddresses)
+	if err != nil {
+		return nil, nil, fmt.Errorf("New etcdClient Failed: %w", err)
+	}
+	schedulers, err := statistics.FetchSchedulersFromEtcd(etcdClient)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fetch scheduler from etcd Failed: %w", err)
+	}
+	for _, v := range schedulers {
+		as := strings.Split(v.AreaId, "-")
+		if len(as) < 2 {
+			continue
+		}
+		if aids, ok := CityAreaIDMaps.Load(as[1]); ok {
+			aslic, ok := aids.([]string)
+			if ok {
+				aslic = append(aslic, v.AreaId)
+				CityAreaIDMaps.Store(as[1], aslic)
+			}
+			continue
+		}
+		CityAreaIDMaps.Store(as[1], []string{v.AreaId})
+	}
+
+	keys, maps := rangeCityAidMaps()
+	return keys, maps, nil
+}
+
+func rangeCityAidMaps() ([]string, map[string][]string) {
+	var (
+		keys []string
+		maps = make(map[string][]string)
+	)
+
+	CityAreaIDMaps.Range(func(key, value any) bool {
+		if kv, ok := key.(string); ok {
+			if vv, ok := value.([]string); ok {
+				keys = append(keys, kv)
+				maps[kv] = vv
+			}
+		}
+		return true
+	})
+
+	return keys, maps
 }
