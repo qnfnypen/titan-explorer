@@ -336,6 +336,7 @@ func GetUserAccessTokenHandler(c *gin.Context) {
 const FileUploadPassKey = "TITAN::FILE::PASS::%s"
 
 func GetUploadInfoHandler(c *gin.Context) {
+	var aid string
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
 
@@ -384,10 +385,17 @@ func GetUploadInfoHandler(c *gin.Context) {
 		return
 	}
 
+	as := strings.Split(areaId[0], "-")
+	if len(as) < 2 {
+		aid = areaId[0]
+	} else {
+		aid = as[1]
+	}
+
 	c.JSON(http.StatusOK, respJSON(gin.H{
 		"AlreadyExists": res.AlreadyExists,
 		"List":          res.List,
-		"AreaID":        areaId[0],
+		"AreaID":        aid,
 	}))
 }
 
@@ -942,6 +950,11 @@ func ShareAssetsHandler(c *gin.Context) {
 			c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 			return
 		}
+		areaId, err = dao.GetOneAreaIDByAreaID(c.Request.Context(), userId, hash, areaId)
+		if err != nil {
+			log.Errorf("get one areaid error:%v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+		}
 	} else {
 		// 获取用户文件所有的区域
 		areaIDs, err := dao.GetUserAssetAreaIDs(c.Request.Context(), hash, userId)
@@ -1049,6 +1062,11 @@ func OpenAssetHandler(c *gin.Context) {
 		if !exist {
 			c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 			return
+		}
+		areaId, err = dao.GetOneAreaIDByAreaID(c.Request.Context(), userId, hash, areaId)
+		if err != nil {
+			log.Errorf("get one areaid error:%v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 		}
 	} else {
 		// 获取用户文件所有的区域
@@ -2328,6 +2346,9 @@ func GetAssetGroupListHandler(c *gin.Context) {
 			VisitCount:       asset.VisitCount,
 			RemainVisitCount: asset.RemainVisitCount,
 			FilcoinCount:     filReplicas,
+		}
+		if ao.UserAssetDetail != nil {
+			ao.UserAssetDetail.AreaIDs = operateAreaIDs(ao.UserAssetDetail.AreaIDs)
 		}
 
 		list = append(list, &AssetOrGroup{AssetOverview: ao})

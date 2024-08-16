@@ -228,7 +228,7 @@ func (c *Client) CheckUnSyncNodeID(ctx context.Context, nodeID string) (bool, er
 	key := fmt.Sprintf("%s_%s", preNodeID, nodeID)
 
 	num, err := c.rds.Get(ctx, key).Int()
-	if err != nil {
+	if err != nil && err != redis.Nil {
 		return false, fmt.Errorf("get value of key(%v) error:%w", key, err)
 	}
 

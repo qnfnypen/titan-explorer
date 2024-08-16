@@ -563,7 +563,7 @@ func CheckUserAssetIsOnly(ctx context.Context, hash, areaID string) (bool, error
 func CheckUserAssetIsInAreaID(ctx context.Context, userID, hash, areaID string) (bool, error) {
 	var num int64
 
-	query, args, err := squirrel.Select("COUNT(hash)").From(tableUserAssetArea).Where("user_id = ? AND hash = ? AND area_id = ?", userID, hash, areaID).ToSql()
+	query, args, err := squirrel.Select("COUNT(hash)").From(tableUserAssetArea).Where("user_id = ? AND hash = ? AND area_id LIKE ?", userID, hash, `%`+areaID+`%`).ToSql()
 	if err != nil {
 		return false, fmt.Errorf("generate get asset sql error:%w", err)
 	}
@@ -573,6 +573,22 @@ func CheckUserAssetIsInAreaID(ctx context.Context, userID, hash, areaID string) 
 	}
 
 	return num >= 1, nil
+}
+
+// GetOneAreaIDByAreaID 根据给定的areaID模糊获取一个准确的areaid
+func GetOneAreaIDByAreaID(ctx context.Context, userID, hash, areaID string) (string, error) {
+	var areaIDs []string
+
+	query, args, err := squirrel.Select("area_id").From(tableUserAssetArea).Where("user_id = ? AND hash = ? AND area_id LIKE ?", userID, hash, `%`+areaID+`%`).ToSql()
+	if err != nil {
+		return "", fmt.Errorf("generate get asset sql error:%w", err)
+	}
+	err = DB.SelectContext(ctx, &areaIDs, query, args...)
+	if err != nil {
+		return "", err
+	}
+
+	return areaIDs[0], nil
 }
 
 // GetTempAssetInfo 获取临时文件的信息

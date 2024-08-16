@@ -202,7 +202,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/open_asset", OpenAssetHandler) // 打开公共的文件，需要统计访问次数
 	storage.Use(AuthRequired(authMiddleware))
 	storage.GET("/share_before", ShareBeforeHandler)
-	storage.GET("/share_asset", ShareAssetsHandler) //
+	storage.GET("/share_asset", ShareAssetsHandler)
 
 	storage.GET("/share_link_info", ShareLinkInfoHandler)
 	storage.POST("/share_link_update", ShareLinkUpdateHandler)

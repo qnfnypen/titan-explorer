@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"testing"
 
@@ -175,17 +174,4 @@ func TestChange(t *testing.T) {
 	}
 
 	t.Log(hash)
-}
-
-func TestGetAndStoreAreaIDs(t *testing.T) {
-	os.Setenv("ETCD_USERNAME", "web")
-	os.Setenv("ETCD_PASSWORD", "web_123")
-
-	keys, maps, err := getAndStoreAreaIDs()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Log(keys)
-	t.Log(maps)
 }

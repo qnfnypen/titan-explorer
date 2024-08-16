@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -372,6 +373,9 @@ func GetUploadInfo(c *gin.Context) {
 		log.Errorf("GetAssetList err: %v", err)
 	}
 	mapList := dao.GenerateDeviceMapInfo(deviceInfos, lang, true)
+	sort.Slice(mapList, func(i, j int) bool {
+		return mapList[i]["nodeType"].(int64) > mapList[j]["nodeType"].(int64)
+	})
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"total":     resp.Total,

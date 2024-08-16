@@ -118,10 +118,17 @@ func getAreaIDs(c *gin.Context) []string {
 func getAreaIDsNoDefault(c *gin.Context) []string {
 	var aids []string
 
+	_, maps, err := getAndStoreAreaIDs()
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+
 	areaIDs := c.QueryArray("area_id")
 	for _, v := range areaIDs {
-		if strings.TrimSpace(v) != "" {
-			aids = append(aids, v)
+		v := strings.TrimSpace(v)
+		if v != "" {
+			aids = append(aids, maps[v]...)
 		}
 	}
 
@@ -547,8 +554,11 @@ func getAndStoreAreaIDs() ([]string, map[string][]string, error) {
 	syncTimeMu.Lock()
 	if lastSyncTimeStamp.IsZero() {
 		lastSyncTimeStamp = time.Now()
+		syncTimeMu.Unlock()
 	} else {
-		if lastSyncTimeStamp.Add(5 * time.Minute).After(tn) {
+		lt := lastSyncTimeStamp.Add(5 * time.Minute)
+		syncTimeMu.Unlock()
+		if lt.After(tn) {
 			keys, maps := rangeCityAidMaps()
 			return keys, maps, nil
 		}
@@ -599,4 +609,19 @@ func rangeCityAidMaps() ([]string, map[string][]string) {
 	})
 
 	return keys, maps
+}
+
+func operateAreaIDs(areaIDs []string) []string {
+	var aids []string
+
+	for _, v := range areaIDs {
+		as := strings.Split(v, "-")
+		if len(as) < 2 {
+			aids = append(aids, v)
+		} else {
+			aids = append(aids, as[1])
+		}
+	}
+
+	return aids
 }
