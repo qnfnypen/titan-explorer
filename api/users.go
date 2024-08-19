@@ -1106,11 +1106,11 @@ func GetAdsHistoryHandler(c *gin.Context) {
 	size, _ := strconv.Atoi(c.Query("size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 
-	sb := squirrel.Select().Where("state = ?", 1).OrderBy("created_at DESC")
+	sb := squirrel.Select().OrderBy("created_at DESC")
 
 	list, n, err := dao.AdsListPageCtx(c, page, size, sb)
 	if err != nil {
-		log.Errorf("GetAdsHistoryHandler: %v", err)
+		log.Errorf("GetAdsHistoryHandler: %v", err) 
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
