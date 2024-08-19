@@ -1637,6 +1637,7 @@ func GetAssetListHandler(c *gin.Context) {
 	// userId := c.Query("user_id")
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
+	lan := c.Request.Header.Get("Lang")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
@@ -1651,7 +1652,7 @@ func GetAssetListHandler(c *gin.Context) {
 	// 	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 	// 	return
 	// }
-	createAssetRsp, err := listAssets(c.Request.Context(), userId, page, pageSize, groupId)
+	createAssetRsp, err := listAssets(c.Request.Context(), userId, lan, page, pageSize, groupId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -1683,6 +1684,7 @@ func GetAssetListHandler(c *gin.Context) {
 func GetAssetAllListHandler(c *gin.Context) {
 	// userId := c.Query("user_id")
 	claims := jwt.ExtractClaims(c)
+	lan := c.Request.Header.Get("Lang")
 	userId := claims[identityKey].(string)
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
 
@@ -1690,7 +1692,7 @@ func GetAssetAllListHandler(c *gin.Context) {
 	page, size := 1, 100
 	var listRsp []*AssetOverview
 loop:
-	createAssetRsp, err := listAssets(c.Request.Context(), userId, size, size, groupId)
+	createAssetRsp, err := listAssets(c.Request.Context(), userId, lan, size, size, groupId)
 	if err != nil {
 		log.Errorf("api ListAssets: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -2311,11 +2313,12 @@ func GetAssetGroupListHandler(c *gin.Context) {
 	// userId := c.Query("user_id")
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
+	lan := c.Request.Header.Get("Lang")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 	parentId, _ := strconv.Atoi(c.Query("parent"))
 
-	assetSummary, err := listAssetSummary(c.Request.Context(), userId, parentId, page, pageSize)
+	assetSummary, err := listAssetSummary(c.Request.Context(), userId, lan, parentId, page, pageSize)
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))

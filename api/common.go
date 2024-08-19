@@ -71,6 +71,8 @@ type (
 func getAreaIDs(c *gin.Context) []string {
 	var aids, naids []string
 
+	lan := c.Request.Header.Get("Lang")
+
 	_, maps, err := getAndStoreAreaIDs()
 	if err != nil {
 		log.Error(err)
@@ -78,6 +80,13 @@ func getAreaIDs(c *gin.Context) []string {
 	}
 
 	areaIDs := c.QueryArray("area_id")
+	if lan == "cn" {
+		areaIDs, err = dao.GetAreaEnByAreaCn(c.Request.Context(), areaIDs)
+		if err != nil {
+			log.Error(err)
+			return nil
+		}
+	}
 	for _, v := range areaIDs {
 		if strings.TrimSpace(v) != "" {
 			aids = append(aids, maps[v]...)
@@ -118,6 +127,8 @@ func getAreaIDs(c *gin.Context) []string {
 func getAreaIDsNoDefault(c *gin.Context) []string {
 	var aids []string
 
+	lan := c.Request.Header.Get("Lang")
+
 	_, maps, err := getAndStoreAreaIDs()
 	if err != nil {
 		log.Error(err)
@@ -125,6 +136,13 @@ func getAreaIDsNoDefault(c *gin.Context) []string {
 	}
 
 	areaIDs := c.QueryArray("area_id")
+	if lan == "cn" {
+		areaIDs, err = dao.GetAreaEnByAreaCn(c.Request.Context(), areaIDs)
+		if err != nil {
+			log.Error(err)
+			return nil
+		}
+	}
 	for _, v := range areaIDs {
 		v := strings.TrimSpace(v)
 		if v != "" {
@@ -144,7 +162,7 @@ func getAreaID(c *gin.Context) string {
 	return areaID
 }
 
-func listAssets(ctx context.Context, uid string, limit, offset, groupID int) (*ListAssetRecordRsp, error) {
+func listAssets(ctx context.Context, uid, lan string, limit, offset, groupID int) (*ListAssetRecordRsp, error) {
 	var (
 		wg = new(sync.WaitGroup)
 		mu = new(sync.Mutex)
@@ -214,6 +232,14 @@ func listAssets(ctx context.Context, uid string, limit, offset, groupID int) (*L
 			if !uInfo.EnableVIP && info.VisitCount >= maxCountOfVisitAsset {
 				info.ShareStatus = 2
 			}
+			if lan == "cn" {
+				aids, err := dao.GetAreaEnByAreaCn(ctx, areaIDs)
+				if err != nil {
+					log.Error(err)
+				} else {
+					areaIDs = aids
+				}
+			}
 			info.AreaIDs = append(info.AreaIDs, areaIDs...)
 			r := &AssetOverview{
 				AssetRecord:      records,
@@ -275,7 +301,7 @@ func getAssetStatus(ctx context.Context, uid, cid string) (*types.AssetStatus, e
 	return resp, nil
 }
 
-func listAssetSummary(ctx context.Context, uid string, parent, page, size int) (*ListAssetSummaryRsp, error) {
+func listAssetSummary(ctx context.Context, uid, lan string, parent, page, size int) (*ListAssetSummaryRsp, error) {
 	resp := new(ListAssetSummaryRsp)
 	offset := (page - 1) * size
 	groupRsp, err := dao.ListAssetGroupForUser(ctx, uid, parent, size, offset)
@@ -298,7 +324,7 @@ func listAssetSummary(ctx context.Context, uid string, parent, page, size int) (
 		aOffset = 0
 	}
 
-	assetRsp, err := listAssets(ctx, uid, aLimit, aOffset, parent)
+	assetRsp, err := listAssets(ctx, uid, lan, aLimit, aOffset, parent)
 	if err != nil {
 		return nil, err
 	}
