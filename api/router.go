@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"io"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/config"
@@ -18,15 +19,33 @@ func RegisterRouters(route *gin.Engine, cfg config.Config) {
 
 func RequestLoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var buf bytes.Buffer
-		tee := io.TeeReader(c.Request.Body, &buf)
-		body, _ := io.ReadAll(tee)
-		c.Request.Body = io.NopCloser(&buf)
-		log.Debug(string(body))
+
+		if strings.Contains(c.Request.URL.Path, "storage") {
+			var buf bytes.Buffer
+			tee := io.TeeReader(c.Request.Body, &buf)
+			body, _ := io.ReadAll(tee)
+			c.Request.Body = io.NopCloser(&buf)
+			if string(body) != "" {
+				log.Debug(string(body))
+			}
+		}
 		//log.Debug(c.Request.Header)
 		c.Next()
 	}
 }
+
+// var ignoreRouterMap = map[string]bool{
+// 	"/api/v1/user/ads/banners": true,
+// 	"/api/v2/app_version":      true,
+// 	"/api/v2/device":           true,
+// }
+
+// func IgnoreSpecificRouter(c *gin.Context) {
+// 	if ignoreRouterMap[c.Request.URL.Path] {
+// 		c.Next()
+
+// 	}
+// }
 
 func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	apiV1 := router.Group("/api/v1")
@@ -169,6 +188,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 
 	// storage
 	storage := apiV1.Group("/storage")
+	storage.Use(gin.Logger())
 	storage.GET("/get_map_info", GetMapInfoHandler)
 	// Deprecated: use /user/verify_code instead
 	storage.POST("/get_verify_code", GetNumericVerifyCodeHandler)

@@ -254,7 +254,6 @@ func GetAllocateStorageHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"msg": "success",
 	}))
-	return
 }
 
 // GetStorageSizeHandler 获取用户存储空间信息
@@ -269,7 +268,11 @@ func GetStorageSizeHandler(c *gin.Context) {
 	var fInfo = new(dao.UserStorageFlowInfo)
 
 	claims := jwt.ExtractClaims(c)
-	username := claims[identityKey].(string)
+	username, ok := claims[identityKey].(string)
+	if !ok {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
 	user, err := dao.GetUserByUsername(c.Request.Context(), username)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -295,7 +298,6 @@ func GetStorageSizeHandler(c *gin.Context) {
 		"TotalSize":     user.TotalStorageSize,
 		"UsedSize":      user.UsedStorageSize,
 	}))
-	return
 }
 
 // GetUserVipInfoHandler 判断用户是否是vip
@@ -405,6 +407,7 @@ func GetUploadInfoHandler(c *gin.Context) {
 		"AlreadyExists": res.AlreadyExists,
 		"List":          res.List,
 		"AreaID":        aid,
+		"Log":           areaId[0],
 	}))
 }
 
@@ -499,7 +502,12 @@ func CreateAssetHandler(c *gin.Context) {
 	if err != nil {
 		log.Errorf("CreateAssetHandler getSchedulerClient error: %v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			c.JSON(http.StatusOK, gin.H{
+				"code": -1,
+				"err":  webErr.Code,
+				"msg":  webErr.Message,
+				"Log":  areaIds[0],
+			})
 			return
 		}
 	}
@@ -508,10 +516,20 @@ func CreateAssetHandler(c *gin.Context) {
 	if err != nil {
 		log.Errorf("CreateAssetHandler CreateAsset error: %v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			c.JSON(http.StatusOK, gin.H{
+				"code": -1,
+				"err":  webErr.Code,
+				"msg":  webErr.Message,
+				"Log":  areaIds[0],
+			})
 			return
 		}
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			// "err":  webErr.Code,
+			// "msg":  webErr.Message,
+			"Log": areaIds[0],
+		})
 		return
 	}
 
