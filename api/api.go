@@ -45,7 +45,9 @@ type Server struct {
 
 func NewServer(cfg config.Config) (*Server, error) {
 	gin.SetMode(cfg.Mode)
-	router := gin.Default()
+	// router := gin.Default()
+	router := gin.New()
+	router.Use(gin.Recovery())
 
 	//	router.Use(Cors())
 
