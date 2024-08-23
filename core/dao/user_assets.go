@@ -54,6 +54,11 @@ type (
 		PeakBandwidth  int64  `db:"peak_bandwidth" json:"PeakBandwidth"`
 		TotalBandwidth int64  `db:"total_traffic" json:"TotalBandwidth"`
 	}
+	// UserStorageFlowInfo 用户存储流量信息
+	UserStorageFlowInfo struct {
+		TotalTraffic  int64 `db:"total_traffic"`
+		PeakBandwidth int64 `db:"peak_bandwidth"`
+	}
 )
 
 // AddAssetAndUpdateSize 添加文件信息并修改使用的storage存储空间
@@ -766,4 +771,23 @@ func GetHashAreaIDList(ctx context.Context, uid string) (map[string][]string, er
 	}
 
 	return areaHashs, nil
+}
+
+// GetUserStorageFlowInfo 获取用户存储流量信息
+func GetUserStorageFlowInfo(ctx context.Context, uid string) (*UserStorageFlowInfo, error) {
+	var info = new(UserStorageFlowInfo)
+
+	query, args, err := squirrel.Select("IFNULL(SUM(total_traffic),0) AS total_traffic,IFNULL(MAX(peak_bandwidth),0) AS peak_bandwidth").From(tableAssetStorageHour).
+		Where(squirrel.Expr("hash IN (?)", squirrel.Select("hash").From(tableUserAsset).Where("user_id = ?", uid))).
+		Where("timestamp < ?", time.Now().Unix()).ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("generate sql of get storage flow error:%w", err)
+	}
+
+	err = DB.GetContext(ctx, info, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("get storage flow error:%w", err)
+	}
+
+	return info, nil
 }

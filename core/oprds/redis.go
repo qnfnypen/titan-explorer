@@ -12,10 +12,11 @@ import (
 )
 
 const (
-	schckey    = "sync_scheduler_list"
-	areaKey    = "sync_scheduler_list_unlogin"
-	preUnlogin = "unlogin_hash"
-	preNodeID  = "unsync_nodeid"
+	schckey        = "sync_scheduler_list"
+	areaKey        = "sync_scheduler_list_unlogin"
+	preUnlogin     = "unlogin_hash"
+	preNodeID      = "unsync_nodeid"
+	preStorageFlow = "storage_flow"
 )
 
 var cli *Client
@@ -260,4 +261,18 @@ func (c *Client) GetAssetHourDownload(ctx context.Context, hash string, ts time.
 		c.rds.Del(ctx, key)
 		return 0, fmt.Errorf("get key error:%w", err)
 	}
+}
+
+// StoreUserStorageFlowInfo 存储用户存储流量
+func (c *Client) StoreUserStorageFlowInfo(ctx context.Context, uid string, value string) error {
+	key := fmt.Sprintf("%s_%s", preStorageFlow, uid)
+
+	return c.rds.Set(ctx, key, value, 10*time.Minute).Err()
+}
+
+// GetUserStorageFlowInfo 获取用户存储流量
+func (c *Client) GetUserStorageFlowInfo(ctx context.Context, uid string) (string, error) {
+	key := fmt.Sprintf("%s_%s", preStorageFlow, uid)
+
+	return c.rds.Get(ctx, key).Result()
 }

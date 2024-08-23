@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math"
 	"math/rand"
@@ -265,6 +266,8 @@ func GetAllocateStorageHandler(c *gin.Context) {
 // @Success 200 {object} JsonObject "{PeakBandwidth:0,TotalTraffic:0,TotalSize:0,UsedSize:0}"
 // @Router /api/v1/storage/get_storage_size [get]
 func GetStorageSizeHandler(c *gin.Context) {
+	var fInfo = new(dao.UserStorageFlowInfo)
+
 	claims := jwt.ExtractClaims(c)
 	username := claims[identityKey].(string)
 	user, err := dao.GetUserByUsername(c.Request.Context(), username)
@@ -272,18 +275,23 @@ func GetStorageSizeHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	peakBandwidth := GetUserInfo(c.Request.Context(), username)
-	if peakBandwidth > user.PeakBandwidth {
-		user.PeakBandwidth = peakBandwidth
+	value, err := oprds.GetClient().GetUserStorageFlowInfo(c.Request.Context(), username)
+	if err != nil {
+		fInfo, err = dao.GetUserStorageFlowInfo(c.Request.Context(), username)
+		if err != nil {
+			fInfo = new(dao.UserStorageFlowInfo)
+			log.Error(err)
+		} else {
+			ib, _ := json.Marshal(fInfo)
+			oprds.GetClient().StoreUserStorageFlowInfo(c.Request.Context(), username, string(ib))
+		}
 	} else {
-		var expireTime time.Duration
-		expireTime = time.Hour
-		// update redis data
-		_ = SetUserInfo(c.Request.Context(), username, user.PeakBandwidth, expireTime)
+		json.Unmarshal([]byte(value), fInfo)
 	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"PeakBandwidth": user.PeakBandwidth,
-		"TotalTraffic":  user.TotalTraffic,
+		"PeakBandwidth": fInfo.PeakBandwidth,
+		"TotalTraffic":  fInfo.TotalTraffic,
 		"TotalSize":     user.TotalStorageSize,
 		"UsedSize":      user.UsedStorageSize,
 	}))
@@ -457,7 +465,7 @@ func CreateAssetHandler(c *gin.Context) {
 	log.Debugf("CreateAssetHandler clientIP:%s, areaId:%v\n", c.ClientIP(), areaIds)
 
 	var createAssetReq createAssetRequest
-	createAssetReq.AssetName, _ = url.QueryUnescape("asset_name")
+	createAssetReq.AssetName = c.Query("asset_name")
 	createAssetReq.AssetCID = c.Query("asset_cid")
 	createAssetReq.NodeID = c.Query("node_id")
 	createAssetReq.AssetType = c.Query("asset_type")
