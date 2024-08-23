@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Masterminds/squirrel"
@@ -456,7 +457,7 @@ func CreateAssetHandler(c *gin.Context) {
 	log.Debugf("CreateAssetHandler clientIP:%s, areaId:%v\n", c.ClientIP(), areaIds)
 
 	var createAssetReq createAssetRequest
-	createAssetReq.AssetName = c.Query("asset_name")
+	createAssetReq.AssetName, _ = url.QueryUnescape("asset_name")
 	createAssetReq.AssetCID = c.Query("asset_cid")
 	createAssetReq.NodeID = c.Query("node_id")
 	createAssetReq.AssetType = c.Query("asset_type")
@@ -1023,6 +1024,9 @@ func ShareAssetsHandler(c *gin.Context) {
 		ret[i] = fmt.Sprintf("%s&filename=%s", ret[i], userAsset.AssetName)
 	}
 
+	// 成功的时候，下载量+1
+	oprds.GetClient().IncrAssetHourDownload(c.Request.Context(), hash, time.Now())
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"asset_cid": cid,
 		"size":      userAsset.TotalSize,
@@ -1033,8 +1037,8 @@ func ShareAssetsHandler(c *gin.Context) {
 
 func OpenAssetHandler(c *gin.Context) {
 	cid := c.Query("asset_cid")
-	areaId := c.Query("area_id")
 	userId := c.Query("user_id")
+	areaId := c.Query("area_id")
 
 	if userId == "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.MissingUserId, c))
@@ -1148,6 +1152,9 @@ func OpenAssetHandler(c *gin.Context) {
 	for i := range ret {
 		ret[i] = fmt.Sprintf("%s&filename=%s", ret[i], userAsset.AssetName)
 	}
+
+	// 成功的时候，下载量+1
+	oprds.GetClient().IncrAssetHourDownload(c.Request.Context(), hash, time.Now())
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"asset_cid": cid,
@@ -1637,7 +1644,6 @@ func GetAssetListHandler(c *gin.Context) {
 	// userId := c.Query("user_id")
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
-	lan := c.Request.Header.Get("Lang")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
@@ -1652,7 +1658,7 @@ func GetAssetListHandler(c *gin.Context) {
 	// 	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 	// 	return
 	// }
-	createAssetRsp, err := listAssets(c.Request.Context(), userId, lan, page, pageSize, groupId)
+	createAssetRsp, err := listAssets(c.Request.Context(), userId, page, pageSize, groupId)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -1684,7 +1690,6 @@ func GetAssetListHandler(c *gin.Context) {
 func GetAssetAllListHandler(c *gin.Context) {
 	// userId := c.Query("user_id")
 	claims := jwt.ExtractClaims(c)
-	lan := c.Request.Header.Get("Lang")
 	userId := claims[identityKey].(string)
 	groupId, _ := strconv.Atoi(c.Query("group_id"))
 
@@ -1692,7 +1697,7 @@ func GetAssetAllListHandler(c *gin.Context) {
 	page, size := 1, 100
 	var listRsp []*AssetOverview
 loop:
-	createAssetRsp, err := listAssets(c.Request.Context(), userId, lan, size, size, groupId)
+	createAssetRsp, err := listAssets(c.Request.Context(), userId, size, size, groupId)
 	if err != nil {
 		log.Errorf("api ListAssets: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -1731,77 +1736,63 @@ func GetAssetStatusHandler(c *gin.Context) {
 }
 
 func GetAssetCountHandler(c *gin.Context) {
-	// userId := c.Query("user_id")
+	var (
+		candidateCount, edgeCount = new(atomic.Int64), new(atomic.Int64)
+		wg                        = new(sync.WaitGroup)
+		deviceExists              = make(map[string]int)
+	)
+
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
-	groupId, _ := strconv.Atoi(c.Query("group_id"))
-	pageSize, _ := strconv.Atoi(c.Query("page_size"))
-	page, _ := strconv.Atoi(c.Query("page"))
-	pageSize = 100
-	page = 1
-	areaId := getAreaID(c)
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	// if err != nil {
-	// 	c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-	// 	return
-	// }
-	// createAssetRsp, err := schedulerClient.ListAssets(c.Request.Context(), userId, pageSize, (page-1)*pageSize, groupId)
-	// if err != nil {
-	// 	log.Errorf("api ListAssets: %v", err)
-	// 	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-	// 	return
-	// }
-	total, infos, err := dao.ListAssets(c.Request.Context(), userId, pageSize, (page-1)*pageSize, groupId)
+
+	// 获取用户的调度器id信息
+	areaHashs, err := dao.GetHashAreaIDList(c.Request.Context(), userId)
 	if err != nil {
+		log.Error(err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	if total == 0 {
-		c.JSON(http.StatusOK, respJSON(JsonObject{
-			"area_count":      0,
-			"candidate_count": 0,
-			"edge_count":      0,
-		}))
-		return
-	}
-	//
 
-	var deviceIds []string
-	deviceExists := make(map[string]int)
-	var candidateCount int64
-	var edgeCount int64
-	for _, data := range infos {
-		cid, _ := storage.HashToCID(data.Hash)
-		assetRsp, err := schedulerClient.GetAssetRecord(c.Request.Context(), cid)
-		if err != nil {
-			log.Errorf("api GetAssetRecord: %v", err)
-			continue
-		}
-		if len(assetRsp.ReplicaInfos) > 0 {
-			for _, rep := range assetRsp.ReplicaInfos {
-				if _, ok := deviceExists[rep.NodeID]; ok {
+	for areaId, hashs := range areaHashs {
+		wg.Add(1)
+		go func(areaId string, hashs []string) {
+			defer wg.Done()
+
+			schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
+			if err != nil {
+				log.Errorf("get scheduler client error: %v", err)
+				return
+			}
+			for _, hash := range hashs {
+				cid, _ := storage.HashToCID(hash)
+				assetRsp, err := schedulerClient.GetAssetRecord(c.Request.Context(), cid)
+				if err != nil {
+					log.Errorf("api GetAssetRecord: %v", err)
 					continue
 				}
-				deviceExists[rep.NodeID] = 1
-				deviceIds = append(deviceIds, rep.NodeID)
-				switch rep.IsCandidate {
-				case true:
-					candidateCount += 1
-				default:
-					edgeCount += 1
+				if len(assetRsp.ReplicaInfos) > 0 {
+					for _, rep := range assetRsp.ReplicaInfos {
+						if _, ok := deviceExists[rep.NodeID]; ok {
+							continue
+						}
+						deviceExists[rep.NodeID] = 1
+						switch rep.IsCandidate {
+						case true:
+							candidateCount.Add(1)
+						default:
+							edgeCount.Add(1)
+						}
+					}
 				}
 			}
-		}
+		}(areaId, hashs)
 	}
+	wg.Wait()
 
-	countArea, e := dao.GetAreaCount(c.Request.Context(), deviceIds)
-	if e != nil {
-		log.Errorf("GetAssetList err: %v", e)
-	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"area_count":      countArea,
-		"candidate_count": candidateCount,
-		"edge_count":      edgeCount,
+		"area_count":      len(areaHashs),
+		"candidate_count": candidateCount.Load(),
+		"edge_count":      edgeCount.Load(),
 	}))
 }
 
@@ -2318,7 +2309,7 @@ func GetAssetGroupListHandler(c *gin.Context) {
 	page, _ := strconv.Atoi(c.Query("page"))
 	parentId, _ := strconv.Atoi(c.Query("parent"))
 
-	assetSummary, err := listAssetSummary(c.Request.Context(), userId, lan, parentId, page, pageSize)
+	assetSummary, err := listAssetSummary(c.Request.Context(), userId, parentId, page, pageSize)
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
@@ -2351,7 +2342,9 @@ func GetAssetGroupListHandler(c *gin.Context) {
 			FilcoinCount:     filReplicas,
 		}
 		if ao.UserAssetDetail != nil {
-			ao.UserAssetDetail.AreaIDs = operateAreaIDs(ao.UserAssetDetail.AreaIDs)
+			aids := operateAreaIDs(c.Request.Context(), ao.UserAssetDetail.AreaIDs)
+			ao.UserAssetDetail.AreaIDs = aids
+			ao.UserAssetDetail.AreaIDMaps = operateAreaMaps(c.Request.Context(), aids, lan)
 		}
 
 		list = append(list, &AssetOrGroup{AssetOverview: ao})
@@ -2455,14 +2448,43 @@ func MoveAssetToGroupHandler(c *gin.Context) {
 // @Success 200 {object} JsonObject "{list:[]}"
 // @Router /api/v1/storage/get_area_id [get]
 func GetSchedulerAreaIDs(c *gin.Context) {
-	keys, _, err := getAndStoreAreaIDs()
-	if err != nil {
-		log.Error(err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	var (
+		keys []string
+		err  error
+	)
+
+	lan := c.Request.Header.Get("Lang")
+	cid := strings.TrimSpace(c.Query("cid"))
+	uid := strings.TrimSpace(c.Query("user_id"))
+
+	if cid != "" {
+		hash, err := storage.CIDToHash(cid)
+		if err != nil {
+			log.Errorf("CreateAssetHandler CIDToHash error: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+		aids, err := dao.UserAssetAreaIDs(c.Request.Context(), uid, hash)
+		if err != nil {
+			log.Errorf("get area_ids error: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+		keys = operateAreaIDs(c.Request.Context(), aids)
+	} else {
+		keys, _, err = GetAndStoreAreaIDs()
+		if err != nil {
+			log.Error(err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
 	}
 
+	maps := operateAreaMaps(c.Request.Context(), keys, lan)
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list": keys,
+		"list":      keys,
+		"area_maps": maps,
 	}))
 }
 

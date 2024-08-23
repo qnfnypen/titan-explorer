@@ -6,10 +6,12 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/gnasnik/titan-explorer/core/storage"
+	"github.com/golang-module/carbon/v2"
 )
 
 var (
@@ -167,11 +169,52 @@ func TestMove(t *testing.T) {
 }
 
 func TestChange(t *testing.T) {
-	cid := "bafybeiffpbdgfo732a4erbxdimyw7p5bvdpylvdthqggxa2r2uz6tlgmy4"
+	cid := "bafybeidbxzqtup75susdrcwf4kmbnbgvkndfxgjh3v2dgupdt76vwdazm4"
 	hash, err := storage.CIDToHash(cid)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	t.Log(hash)
+}
+
+func TestDeleteAsset(t *testing.T) {
+	os.Setenv("ETCD_USERNAME", "web")
+	os.Setenv("ETCD_PASSWORD", "web_123")
+
+	// hash := "1220e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+	cid := "bafkreihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku"
+	areaIds := []string{
+		"Asia-HongKong",
+		"Asia-China-Guangdong-Shenzhen",
+		"Asia-Japan-Tokyo-Tokyo",
+		"Asia-Singapore",
+		"Asia-SouthKorea-Seoul-Seoul",
+		"Asia-Vietnam-Hanoi-Hanoi",
+		"Europe-Germany-Hesse-FrankfurtamMain",
+		"Europe-UnitedKingdom-England-London",
+		"NorthAmerica-Canada",
+		"NorthAmerica-UnitedStates",
+		"NorthAmerica-UnitedStates-California",
+	}
+
+	for _, v := range areaIds {
+		scli, err := getSchedulerClient(ctx, v)
+		if err != nil {
+			t.Fatal(v, err)
+		}
+
+		err = scli.RemoveAssetRecord(ctx, cid)
+		if err != nil {
+			t.Fatal(v, err)
+		}
+
+		t.Log(v)
+	}
+}
+
+func TestGetNow(t *testing.T) {
+	t.Log(carbon.Now().StartOfHour().SubHours(25).String())
+
+	t.Log(carbon.Now().String())
 }

@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -71,22 +72,13 @@ type (
 func getAreaIDs(c *gin.Context) []string {
 	var aids, naids []string
 
-	lan := c.Request.Header.Get("Lang")
-
-	_, maps, err := getAndStoreAreaIDs()
+	_, maps, err := GetAndStoreAreaIDs()
 	if err != nil {
 		log.Error(err)
 		return nil
 	}
 
 	areaIDs := c.QueryArray("area_id")
-	if lan == "cn" {
-		areaIDs, err = dao.GetAreaEnByAreaCn(c.Request.Context(), areaIDs)
-		if err != nil {
-			log.Error(err)
-			return nil
-		}
-	}
 	for _, v := range areaIDs {
 		if strings.TrimSpace(v) != "" {
 			aids = append(aids, maps[v]...)
@@ -102,12 +94,24 @@ func getAreaIDs(c *gin.Context) []string {
 		return aids
 	}
 
+	sort.Slice(aids, func(i, j int) bool {
+		return aids[i] < aids[j]
+	})
+
 	// 获取用户的访问的ip
 	ip, err := GetIPFromRequest(c.Request)
 	if err != nil {
 		log.Errorf("get user's ip of request error:%w", err)
 	} else {
-		areaID, err := GetNearestAreaID(c.Request.Context(), ip, aids)
+		tadis := aids
+		// 获取区域里的调度器
+		info, err := geo.GetIpLocation(c.Request.Context(), ip)
+		if err == nil {
+			if v, ok := maps[info.Country]; ok {
+				tadis = v
+			}
+		}
+		areaID, err := GetNearestAreaID(c.Request.Context(), ip, tadis)
 		if err != nil {
 			log.Error(err)
 		} else {
@@ -127,22 +131,13 @@ func getAreaIDs(c *gin.Context) []string {
 func getAreaIDsNoDefault(c *gin.Context) []string {
 	var aids []string
 
-	lan := c.Request.Header.Get("Lang")
-
-	_, maps, err := getAndStoreAreaIDs()
+	_, maps, err := GetAndStoreAreaIDs()
 	if err != nil {
 		log.Error(err)
 		return nil
 	}
 
 	areaIDs := c.QueryArray("area_id")
-	if lan == "cn" {
-		areaIDs, err = dao.GetAreaEnByAreaCn(c.Request.Context(), areaIDs)
-		if err != nil {
-			log.Error(err)
-			return nil
-		}
-	}
 	for _, v := range areaIDs {
 		v := strings.TrimSpace(v)
 		if v != "" {
@@ -154,15 +149,16 @@ func getAreaIDsNoDefault(c *gin.Context) []string {
 }
 
 func getAreaID(c *gin.Context) string {
-	areaID := c.Query("area_id")
-	if strings.TrimSpace(areaID) == "" {
+	areaID := strings.TrimSpace(c.Query("area_id"))
+
+	if areaID == "" {
 		areaID = GetDefaultTitanCandidateEntrypointInfo()
 	}
 
 	return areaID
 }
 
-func listAssets(ctx context.Context, uid, lan string, limit, offset, groupID int) (*ListAssetRecordRsp, error) {
+func listAssets(ctx context.Context, uid string, limit, offset, groupID int) (*ListAssetRecordRsp, error) {
 	var (
 		wg = new(sync.WaitGroup)
 		mu = new(sync.Mutex)
@@ -232,14 +228,6 @@ func listAssets(ctx context.Context, uid, lan string, limit, offset, groupID int
 			if !uInfo.EnableVIP && info.VisitCount >= maxCountOfVisitAsset {
 				info.ShareStatus = 2
 			}
-			if lan == "cn" {
-				aids, err := dao.GetAreaEnByAreaCn(ctx, areaIDs)
-				if err != nil {
-					log.Error(err)
-				} else {
-					areaIDs = aids
-				}
-			}
 			info.AreaIDs = append(info.AreaIDs, areaIDs...)
 			r := &AssetOverview{
 				AssetRecord:      records,
@@ -301,7 +289,7 @@ func getAssetStatus(ctx context.Context, uid, cid string) (*types.AssetStatus, e
 	return resp, nil
 }
 
-func listAssetSummary(ctx context.Context, uid, lan string, parent, page, size int) (*ListAssetSummaryRsp, error) {
+func listAssetSummary(ctx context.Context, uid string, parent, page, size int) (*ListAssetSummaryRsp, error) {
 	resp := new(ListAssetSummaryRsp)
 	offset := (page - 1) * size
 	groupRsp, err := dao.ListAssetGroupForUser(ctx, uid, parent, size, offset)
@@ -324,7 +312,7 @@ func listAssetSummary(ctx context.Context, uid, lan string, parent, page, size i
 		aOffset = 0
 	}
 
-	assetRsp, err := listAssets(ctx, uid, lan, aLimit, aOffset, parent)
+	assetRsp, err := listAssets(ctx, uid, aLimit, aOffset, parent)
 	if err != nil {
 		return nil, err
 	}
@@ -574,8 +562,8 @@ func GetFILPrice(ctx context.Context) (float64, error) {
 	return 0, errors.New("get price of filecoin error")
 }
 
-// getAndStoreAreaIDs 获取或存储节点地区信息
-func getAndStoreAreaIDs() ([]string, map[string][]string, error) {
+// GetAndStoreAreaIDs 获取或存储节点地区信息
+func GetAndStoreAreaIDs() ([]string, map[string][]string, error) {
 	tn := time.Now()
 	syncTimeMu.Lock()
 	if lastSyncTimeStamp.IsZero() {
@@ -637,7 +625,7 @@ func rangeCityAidMaps() ([]string, map[string][]string) {
 	return keys, maps
 }
 
-func operateAreaIDs(areaIDs []string) []string {
+func operateAreaIDs(ctx context.Context, areaIDs []string) []string {
 	var aids []string
 
 	for _, v := range areaIDs {
@@ -650,4 +638,27 @@ func operateAreaIDs(areaIDs []string) []string {
 	}
 
 	return aids
+}
+
+func operateAreaMaps(ctx context.Context, aids []string, lan string) []dao.KVMap {
+	var kvs = make([]dao.KVMap, 0)
+
+	if lan == "cn" {
+		maps, _ := dao.GetAreaMapByEn(ctx, aids)
+		for _, v := range maps {
+			kvs = append(kvs, dao.KVMap{
+				Key:   v.AreaCn,
+				Value: v.AreaEn,
+			})
+		}
+	} else {
+		for _, v := range aids {
+			kvs = append(kvs, dao.KVMap{
+				Key:   v,
+				Value: v,
+			})
+		}
+	}
+
+	return kvs
 }

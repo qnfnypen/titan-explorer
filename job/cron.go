@@ -9,12 +9,12 @@ import (
 
 	"github.com/gnasnik/titan-explorer/api"
 	"github.com/gnasnik/titan-explorer/core/dao"
+	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/core/oprds"
 	"github.com/robfig/cron/v3"
 )
 
 var (
-	wg  = new(sync.WaitGroup)
 	ctx = context.Background()
 )
 
@@ -24,6 +24,7 @@ func SyncShedulersAsset() {
 
 	c.AddFunc("@every 10s", syncUserScheduler())
 	c.AddFunc("@every 15s", syncUnLoginAsset())
+	c.AddFunc("@hourly", syncDashboard())
 
 	c.Start()
 }
@@ -37,6 +38,7 @@ func syncUserScheduler() func() {
 			log.Println(err)
 			return
 		}
+		wg := new(sync.WaitGroup)
 		for _, v := range payloads {
 			wg.Add(1)
 			go func(v *oprds.Payload) {
@@ -86,6 +88,7 @@ func syncUnLoginAsset() func() {
 			log.Println(err)
 			return
 		}
+		wg := new(sync.WaitGroup)
 		for _, v := range payloads {
 			wg.Add(1)
 			go func(v *oprds.AreaIDPayload) {
@@ -121,4 +124,100 @@ func syncUnLoginAsset() func() {
 		}
 		wg.Wait()
 	}
+}
+
+func syncDashboard() func() {
+	return func() {
+		var (
+			areaIDs       []string
+			wg            = new(sync.WaitGroup)
+			trafficMaps   = new(sync.Map)
+			bandwidthMaps = new(sync.Map)
+		)
+
+		// 获取当前时间
+		now := time.Now()
+		pendTime := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
+		startTime := pendTime.Add(-1 * time.Hour)
+		endTime := pendTime.Add(-1 * time.Second)
+
+		_, maps, err := api.GetAndStoreAreaIDs()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		for _, v := range maps {
+			areaIDs = append(areaIDs, v...)
+		}
+
+		for _, v := range areaIDs {
+			wg.Add(1)
+			go func(v string) {
+				defer wg.Done()
+
+				scli, err := api.GetSchedulerClient(ctx, v)
+				if err != nil {
+					log.Println(fmt.Errorf("get client of scheduler error:%w", err))
+					return
+				}
+				infos, err := scli.GetDownloadResultsFromAssets(ctx, nil, startTime, endTime)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+				// 取出每个hash的最大值
+				for _, v := range infos {
+					storeTfOrBw(trafficMaps, v.Hash, v.TotalTraffic)
+					storeTfOrBw(bandwidthMaps, v.Hash, v.PeakBandwidth)
+				}
+			}(v)
+		}
+		wg.Wait()
+
+		err = storeAssetHourStorages(trafficMaps, bandwidthMaps, pendTime)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+}
+
+func storeTfOrBw(maps *sync.Map, key string, value int64) {
+	if oldValue, ok := maps.Load(key); ok {
+		ov, _ := oldValue.(int64)
+		if ov >= value {
+			return
+		}
+	}
+
+	maps.Store(key, value)
+}
+
+func storeAssetHourStorages(tmaps, bmaps *sync.Map, ts time.Time) error {
+	var ahss []model.AssetStorageHour
+
+	tmaps.Range(func(key, value any) bool {
+		ahs := model.AssetStorageHour{TimeStamp: ts.Unix()}
+		hash, ok := key.(string)
+		if !ok {
+			return true
+		}
+		ahs.DownloadCount, _ = oprds.GetClient().GetAssetHourDownload(ctx, hash, ts)
+		ahs.Hash = hash
+		tf, ok := value.(int64)
+		if !ok {
+			return true
+		}
+		ahs.TotalTraffic = tf
+		if bv, ok := bmaps.LoadAndDelete(hash); ok {
+			if bd, ok := bv.(int64); ok {
+				ahs.PeakBandwidth = bd
+			}
+		}
+		tmaps.Delete(hash)
+		ahss = append(ahss, ahs)
+
+		return true
+	})
+
+	return dao.AddAssetHourStorages(ctx, ahss)
 }

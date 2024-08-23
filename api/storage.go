@@ -3,8 +3,10 @@ package api
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
@@ -15,6 +17,14 @@ import (
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/golang-module/carbon/v2"
 	errs "github.com/pkg/errors"
+)
+
+type (
+	// SyncHourDataReq 同步小时时间请求
+	SyncHourDataReq struct {
+		Start int64 `json:"start"`
+		End   int64 `json:"end"`
+	}
 )
 
 func GetStorageHourHandler(c *gin.Context) {
@@ -172,4 +182,118 @@ func ListStorageStats(c *gin.Context) {
 		"list":    list,
 		"total":   count,
 	}))
+}
+
+// GetStorageHourV2Handler 获取存储每小时的信息
+func GetStorageHourV2Handler(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
+
+	// 获取用户的文件hash
+	list, err := dao.GetUserDashboardInfos(c.Request.Context(), userId, time.Now())
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"series_data": list,
+	}))
+}
+
+// SyncHourData 同步小时数据
+func SyncHourData(c *gin.Context) {
+	var (
+		req           SyncHourDataReq
+		areaIDs       []string
+		wg            = new(sync.WaitGroup)
+		trafficMaps   = new(sync.Map)
+		bandwidthMaps = new(sync.Map)
+		ahss          []model.AssetStorageHour
+	)
+
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"msg": err,
+		})
+		return
+	}
+
+	startTime := time.Unix(req.Start, 0)
+	endTime := time.Unix(req.End, 0)
+
+	_, maps, err := GetAndStoreAreaIDs()
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"msg": err,
+		})
+		return
+	}
+	for _, v := range maps {
+		areaIDs = append(areaIDs, v...)
+	}
+
+	for _, v := range areaIDs {
+		wg.Add(1)
+		go func(v string) {
+			defer wg.Done()
+
+			scli, err := GetSchedulerClient(c, v)
+			if err != nil {
+				log.Error(fmt.Errorf("get client of scheduler error:%w", err))
+				return
+			}
+			infos, err := scli.GetDownloadResultsFromAssets(c, nil, startTime, endTime)
+			if err != nil {
+				log.Error(err)
+				return
+			}
+			log.Debug("length of infos", len(infos))
+			// 取出每个hash的最大值
+			for _, v := range infos {
+				log.Debug(v.Hash, v.PeakBandwidth, v.TotalTraffic)
+				storeTfOrBw(trafficMaps, v.Hash, v.TotalTraffic)
+				storeTfOrBw(bandwidthMaps, v.Hash, v.PeakBandwidth)
+			}
+		}(v)
+	}
+	wg.Wait()
+
+	trafficMaps.Range(func(key, value any) bool {
+		ahs := model.AssetStorageHour{TimeStamp: startTime.Add(time.Hour).Unix()}
+		hash, ok := key.(string)
+		if !ok {
+			return true
+		}
+		ahs.Hash = hash
+		tf, ok := value.(int64)
+		if !ok {
+			return true
+		}
+		ahs.TotalTraffic = tf
+		if bv, ok := bandwidthMaps.LoadAndDelete(hash); ok {
+			if bd, ok := bv.(int64); ok {
+				ahs.PeakBandwidth = bd
+			}
+		}
+		ahss = append(ahss, ahs)
+
+		return true
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"msg": ahss,
+	})
+}
+
+func storeTfOrBw(maps *sync.Map, key string, value int64) {
+	if oldValue, ok := maps.Load(key); ok {
+		ov, _ := oldValue.(int64)
+		if ov >= value {
+			return
+		}
+	}
+
+	maps.Store(key, value)
 }

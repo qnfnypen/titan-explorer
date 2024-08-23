@@ -234,3 +234,30 @@ func (c *Client) CheckUnSyncNodeID(ctx context.Context, nodeID string) (bool, er
 
 	return num <= 5, nil
 }
+
+// IncrAssetHourDownload 对该时间段内文件下载量加1
+func (c *Client) IncrAssetHourDownload(ctx context.Context, hash string, ts time.Time) error {
+	ts = ts.Add(1 * time.Hour)
+	ts = time.Date(ts.Year(), ts.Month(), ts.Day(), ts.Hour(), 0, 0, 0, ts.Location())
+
+	key := fmt.Sprintf("%s_%d", hash, ts.Unix())
+
+	return c.rds.Incr(ctx, key).Err()
+}
+
+// GetAssetHourDownload 获取该时间段内文件下载数量
+func (c *Client) GetAssetHourDownload(ctx context.Context, hash string, ts time.Time) (int64, error) {
+	key := fmt.Sprintf("%s_%d", hash, ts.Unix())
+
+	v, err := c.rds.Get(ctx, key).Int64()
+	switch err {
+	case redis.Nil:
+		return 0, nil
+	case nil:
+		c.rds.Del(ctx, key)
+		return v, nil
+	default:
+		c.rds.Del(ctx, key)
+		return 0, fmt.Errorf("get key error:%w", err)
+	}
+}

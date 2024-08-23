@@ -13,19 +13,26 @@ import (
 )
 
 const (
-	tableNameAssetGroup = "user_asset_group"
-	tableUserAsset      = "user_asset"
-	tableUserAssetVisit = "asset_visit_count"
-	tableUserAssetArea  = "user_asset_area"
-	tableTempAsset      = "temp_asset"
+	tableNameAssetGroup   = "user_asset_group"
+	tableUserAsset        = "user_asset"
+	tableUserAssetVisit   = "asset_visit_count"
+	tableUserAssetArea    = "user_asset_area"
+	tableTempAsset        = "temp_asset"
+	tableAssetStorageHour = "asset_storage_hour"
 )
 
 type (
+	// KVMap 键值映射
+	KVMap struct {
+		Key   string `json:"key"`
+		Value string `json:"value"`
+	}
 	// UserAssetDetail 用户表详情
 	UserAssetDetail struct {
 		UserID      string    `db:"user_id"`
 		Hash        string    `db:"hash"`
 		AreaIDs     []string  `db:"-" json:"area_ids"`
+		AreaIDMaps  []KVMap   `db:"-" json:"area_maps"`
 		AssetName   string    `db:"asset_name"`
 		AssetType   string    `db:"asset_type"`
 		ShareStatus int64     `db:"share_status"`
@@ -37,6 +44,15 @@ type (
 		VisitCount  int64     `db:"visit_count"`
 		// ShortPass   string    `db:"short_pass"`
 		// IsSync      bool      `db:"is_sync" json:"-"`
+	}
+
+	// DashBoardInfo 仪表盘数据信息
+	DashBoardInfo struct {
+		Date           int64  `db:"timestamp" json:"-"`
+		DateStr        string `db:"-" json:"date"`
+		DownloadCount  int64  `db:"download_count" json:"DownloadCount"`
+		PeakBandwidth  int64  `db:"peak_bandwidth" json:"PeakBandwidth"`
+		TotalBandwidth int64  `db:"total_traffic" json:"TotalBandwidth"`
 	}
 )
 
@@ -651,4 +667,103 @@ func GetAreaIDsByHash(ctx context.Context, hash string) ([]string, error) {
 	}
 
 	return areaIDs, nil
+}
+
+// AddAssetHourStorages 批量存储文件小时数据
+func AddAssetHourStorages(ctx context.Context, ahss []model.AssetStorageHour) error {
+	sq := squirrel.Insert(tableAssetStorageHour).Columns("hash,total_traffic,peak_bandwidth,download_count,timestamp")
+
+	for _, v := range ahss {
+		sq = sq.Values(v.Hash, v.TotalTraffic, v.PeakBandwidth, v.DownloadCount, v.TimeStamp)
+	}
+
+	query, args, err := sq.ToSql()
+	if err != nil {
+		return fmt.Errorf("generate insert asset_storage_hour error:%w", err)
+	}
+
+	_, err = DB.ExecContext(ctx, query, args...)
+	return err
+}
+
+// GetUserDashboardInfos 通过用户id获取最近24小时的信息
+func GetUserDashboardInfos(ctx context.Context, uid string, ts time.Time) ([]DashBoardInfo, error) {
+	var (
+		list, nlist []DashBoardInfo
+		timeMaps    = make(map[int64]DashBoardInfo)
+	)
+
+	query, args, err := squirrel.Select("timestamp,SUM(download_count) AS download_count,max(peak_bandwidth) AS peak_bandwidth,max(total_traffic) AS total_traffic").
+		From(tableAssetStorageHour).Where(squirrel.Expr("hash IN (?)", squirrel.Select("hash").From(tableUserAsset).Where("user_id = ?", uid))).
+		Where("timestamp < ?", ts.Unix()).GroupBy("timestamp").OrderBy("timestamp DESC").Limit(24).ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("generate sql of get user storage hour info error:%w", err)
+	}
+
+	err = DB.SelectContext(ctx, &list, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("get user storage hour info error:%w", err)
+	}
+
+	for i, v := range list {
+		list[i].DateStr = fmt.Sprintf("%d:00", time.Unix(v.Date, 0).Hour())
+		timeMaps[v.Date] = list[i]
+	}
+
+	ht := time.Date(ts.Year(), ts.Month(), ts.Day(), ts.Hour(), 0, 0, 0, ts.Location())
+	for i := 23; i >= 0; i-- {
+		tn := ht.Add(time.Hour * time.Duration(-i))
+		if v, ok := timeMaps[tn.Unix()]; ok {
+			nlist = append(nlist, v)
+		} else {
+			nlist = append(nlist, DashBoardInfo{DateStr: fmt.Sprintf("%d:00", tn.Hour())})
+		}
+	}
+
+	return nlist, nil
+}
+
+// UserAssetAreaIDs 获取用户文件的区域id
+func UserAssetAreaIDs(ctx context.Context, uid, hash string) ([]string, error) {
+	var areaIds []string
+
+	query, args, err := squirrel.Select("DISTINCT(area_id)").From(tableUserAssetArea).Where("hash = ? AND user_id = ?", hash, uid).ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("generate sql of get area_id error:%w", err)
+	}
+
+	err = DB.SelectContext(ctx, &areaIds, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("get area_id error:%w", err)
+	}
+
+	return areaIds, nil
+}
+
+// GetHashAreaIDList 根据用户信息获取区域hash列表
+func GetHashAreaIDList(ctx context.Context, uid string) (map[string][]string, error) {
+	var (
+		areaInfos []model.UserAssetArea
+		areaHashs = make(map[string][]string)
+	)
+
+	query, args, err := squirrel.Select("*").From(tableUserAssetArea).Where("user_id = ? AND is_sync = 1", uid).ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("generate sql of get asset_areas error:%w", err)
+	}
+
+	err = DB.SelectContext(ctx, &areaInfos, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("get asset_areas error:%w", err)
+	}
+
+	for _, v := range areaInfos {
+		if _, ok := areaHashs[v.AreaID]; ok {
+			areaHashs[v.AreaID] = append(areaHashs[v.AreaID], v.Hash)
+		} else {
+			areaHashs[v.AreaID] = []string{v.Hash}
+		}
+	}
+
+	return areaHashs, nil
 }

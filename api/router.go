@@ -197,9 +197,10 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/temp_file/info/:cid", GetUploadInfo)
 	storage.GET("/temp_file/share/:cid", ShareTempFile)
 	storage.GET("/temp_file/download/:cid", DownloadTempFile)
-	storage.GET("/get_ip", GetIP)
 	// storage.Use(authMiddleware.MiddlewareFunc())
 	storage.GET("/open_asset", OpenAssetHandler) // 打开公共的文件，需要统计访问次数
+	storage.POST("/sync_data", SyncHourData)
+	storage.GET("/count", GetStorageCount)
 	storage.Use(AuthRequired(authMiddleware))
 	storage.GET("/share_before", ShareBeforeHandler)
 	storage.GET("/share_asset", ShareAssetsHandler)
@@ -208,9 +209,9 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.POST("/share_link_update", ShareLinkUpdateHandler)
 
 	storage.GET("/get_locateStorage", GetAllocateStorageHandler)
-	storage.GET("/get_storage_size", GetStorageSizeHandler)          // 获取用户存储空间信息
-	storage.GET("/get_vip_info", GetUserVipInfoHandler)              // 判断用户是否为vip
-	storage.GET("/get_user_access_token", GetUserAccessTokenHandler) // TODO: 获取用户的 access token，需要重新商定如何生存sdk的access_token
+	storage.GET("/get_storage_size", GetStorageSizeHandler) // 获取用户存储空间信息
+	storage.GET("/get_vip_info", GetUserVipInfoHandler)     // 判断用户是否为vip
+	storage.GET("/get_user_access_token", GetUserAccessTokenHandler)
 	storage.GET("/get_upload_info", GetUploadInfoHandler)
 	storage.GET("/create_asset", CreateAssetHandler)
 	storage.POST("/create_asset", CreateAssetPostHandler)
@@ -225,7 +226,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_keys", GetKeyListHandler)
 	storage.GET("/delete_key", DeleteKeyHandler)
 	storage.GET("/get_asset_count", GetAssetCountHandler)
-	storage.GET("/get_user_info_hour", GetStorageHourHandler)
+	storage.GET("/get_user_info_hour", GetStorageHourV2Handler)
 	storage.GET("/get_user_info_daily", GetStorageDailyHandler)
 	storage.GET("/refresh_token", authMiddleware.RefreshHandler)
 	storage.GET("/new_secret", CreateNewSecretKeyHandler)

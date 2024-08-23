@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api"
@@ -33,7 +32,7 @@ type (
 		AssetCID  string   `json:"asset_cid" binding:"required"` // 最多3个
 		NodeID    string   `json:"node_id"`
 		AssetSize int64    `json:"asset_size" binding:"required"`
-		AreaIDs   []string `json:"area_ids" binding:"required"`
+		AreaIDs   []string `json:"area_ids"`
 	}
 )
 
@@ -57,23 +56,45 @@ func UploadTmepFile(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
-	if len(req.AreaIDs) > 3 {
-		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
-		return
-	}
-
-	_, maps, err := getAndStoreAreaIDs()
+	// 获取可用的调度器区域列表
+	_, maps, err := GetAndStoreAreaIDs()
 	if err != nil {
 		log.Error(err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
-	for _, v := range req.AreaIDs {
-		if len(maps[v]) > 0 {
-			areaIDs = append(areaIDs, maps[v][0])
+	// 对调度器区域进行判断
+	switch {
+	case len(req.AreaIDs) > 3:
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	case len(req.AreaIDs) == 0:
+		aids := make([]string, 0)
+		// 获取用户的访问的ip
+		ip, err := GetIPFromRequest(c.Request)
+		if err != nil {
+			log.Errorf("get request's ip error:%v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
 		}
+		for _, v := range maps {
+			aids = append(aids, v...)
+		}
+		areaID, err := GetNearestAreaID(c.Request.Context(), ip, aids)
+		if err != nil {
+			log.Errorf("get nearest's scheduler error:%v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+		req.AreaIDs = append(req.AreaIDs, areaID)
+	default:
+		for _, v := range req.AreaIDs {
+			if len(maps[v]) > 0 {
+				areaIDs = append(areaIDs, maps[v][0])
+			}
+		}
+		req.AreaIDs = areaIDs
 	}
-	req.AreaIDs = areaIDs
 
 	// 最多只能是100M
 	if req.AssetSize > 100*1024*1024 {
@@ -386,60 +407,11 @@ func GetUploadInfo(c *gin.Context) {
 	}))
 }
 
-func GetIP(c *gin.Context) {
-	var naids, ips []string
-	areas, _ := GetAllAreasFromCache(c.Request.Context())
-
-	ipmaps := make(map[string]string)
-
-	// 获取用户的访问的ip
-	ip, err := GetIPFromRequest(c.Request)
-	if err != nil {
-		c.JSON(http.StatusOK, respJSON(gin.H{
-			"msg": err.Error(),
-		}))
-		return
-	}
-
-	// 将areaid替换为ip
-	for _, v := range areas {
-		ip, err := GetAreaIPByID(c.Request.Context(), v)
-		if err != nil {
-			continue
-		}
-		ips = append(ips, ip)
-		ipmaps[ip] = v
-	}
-
-	// 获取用户ip的经纬度
-	nearestIP, _ := GetUserFixedNearestIP(c.Request.Context(), ip, ips, NewIPCoordinate())
-	if areaID, ok := AreaIPIDMaps.Load(nearestIP); ok {
-		c.JSON(http.StatusOK, respJSON(gin.H{
-			"nearest": areaID,
-			"ip":      ip,
-			"maps":    ipmaps,
-		}))
-		return
-	}
-
-	areaID, err := GetNearestAreaID(c.Request.Context(), ip, areas)
-	if err != nil {
-		c.JSON(http.StatusOK, respJSON(gin.H{
-			"msg": err.Error(),
-		}))
-		return
-	}
-	naids = append(naids, areaID)
-	for _, v := range areas {
-		if !strings.EqualFold(v, areaID) {
-			naids = append(naids, v)
-		}
-	}
-
-	c.JSON(http.StatusOK, respJSON(gin.H{
-		"ip":       ip,
-		"oldAreas": areas,
-		"areas":    naids,
-		"maps":     ipmaps,
+// GetStorageCount 获取首页
+func GetStorageCount(c *gin.Context) {
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"hot":  1000,
+		"warm": 15000,
+		"cold": 2.5,
 	}))
 }
