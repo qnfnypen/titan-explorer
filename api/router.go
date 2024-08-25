@@ -142,6 +142,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	user.POST("/bugs/report", BugReportHandler)
 	user.GET("/bugs/list", MyBugReportListHandler)
 	user.GET("/locators", LocatorFromConfigHandler)
+	user.POST("/edge/batch/report", BatchReportHandler)
 	user.GET("/edge/config", GetEdgeConfigHandler)
 	user.POST("/edge/config", SetEdgeConfigHandler)
 	user.Use(authMiddleware.MiddlewareFunc())
@@ -185,7 +186,12 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	admin.POST("/bugs/edit", BugEditHandler)
 	// acme
 	admin.POST("/acme/add", AcmeAddHandler)
-
+	// batch
+	admin.GET("/batch/edge", BatchGetHandler)
+	admin.POST("/batch/edge", BatchReportHandler)
+	admin.POST("/batch/address", BatchAddressSetHandler)
+	admin.GET("/batch/address", BatchAddressListHandler)
+	admin.DELETE("/batch/address", BatchAddressDelHandler)
 	// storage
 	storage := apiV1.Group("/storage")
 	storage.Use(gin.Logger())

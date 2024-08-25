@@ -1308,3 +1308,254 @@ func SetEdgeConfigHandler(c *gin.Context) {
 		"msg": "success",
 	}))
 }
+
+type EdgeBatchX struct {
+	PhoneModel string
+	OS         string
+	Mac        string
+	Time       time.Time
+	Operation  string
+	UrlConfig  map[string]BatchUrlConfig
+}
+
+type BatchUrlConfig struct {
+	Like   bool
+	Follow bool
+}
+
+const BatchUrlZsetKey = "titan:edge:bacth:set"
+
+type BatchSetReq struct {
+	LoggedIn bool       `json:"loggedIn"`
+	Config   EdgeBatchX `json:"config"`
+}
+
+func BatchReportHandler(c *gin.Context) {
+	var req BatchSetReq
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+	if req.LoggedIn {
+		if _, err := dao.RedisCache.ZRem(c.Request.Context(), BatchUrlZsetKey, req.Config.Mac).Result(); err != nil {
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+		c.JSON(http.StatusOK, respJSON(JsonObject{"msg": "success"}))
+		return
+	}
+
+	data, err := json.Marshal(req.Config)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	if _, err := dao.RedisCache.ZAdd(c.Request.Context(), BatchUrlZsetKey, redis.Z{
+		Score:  float64(req.Config.Time.Unix()),
+		Member: data,
+	}).Result(); err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{"msg": "success"}))
+}
+
+func BatchGetHandler(c *gin.Context) {
+	// 获取分页参数
+	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if size <= 0 {
+		size = 10
+	}
+	if page <= 0 {
+		page = 1
+	}
+
+	start := int64((page - 1) * size)
+	stop := int64(page*size - 1)
+
+	// 获取 ZSET 的总元素数量
+	total, err := dao.RedisCache.ZCard(c.Request.Context(), BatchUrlZsetKey).Result()
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	results, err := dao.RedisCache.ZRangeWithScores(c.Request.Context(), BatchUrlZsetKey, start, stop).Result()
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	// 存储反序列化后的数据
+	var batchConfigs []EdgeBatchX
+
+	for _, z := range results {
+		var config EdgeBatchX
+		// 反序列化数据
+		err := json.Unmarshal([]byte(z.Member.(string)), &config)
+		if err != nil {
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+		batchConfigs = append(batchConfigs, config)
+	}
+
+	// 返回分页数据
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"data":  batchConfigs,
+		"total": total,
+		"page":  page,
+		"size":  size,
+	}))
+}
+
+type BatchAddress struct {
+	Name    string
+	Url     string
+	AddTime time.Time
+	Enable  bool
+}
+
+const BatchAddressZsetKey = "titan:batch:address:set"
+
+func BatchAddressSetHandler(c *gin.Context) {
+	var address BatchAddress
+	if err := c.BindJSON(&address); err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	data, err := json.Marshal(address)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	address.AddTime = time.Now()
+	score := float64(address.AddTime.Unix())
+
+	_, err = dao.RedisCache.TxPipelined(c.Request.Context(), func(pipe redis.Pipeliner) error {
+		members, err := pipe.ZRangeByScore(c.Request.Context(), BatchAddressZsetKey, &redis.ZRangeBy{
+			Min: "-inf", Max: "+inf",
+		}).Result()
+		if err != nil {
+			return err
+		}
+
+		for _, member := range members {
+			var existing BatchAddress
+			if err := json.Unmarshal([]byte(member), &existing); err != nil {
+				continue
+			}
+			if existing.Url == address.Url {
+				_, err = pipe.ZRem(c.Request.Context(), BatchAddressZsetKey, member).Result()
+				if err != nil {
+					return err
+				}
+				break
+			}
+		}
+
+		// 新增新的 BatchAddress
+		_, err = pipe.ZAdd(c.Request.Context(), BatchAddressZsetKey, redis.Z{
+			Score:  score,
+			Member: data,
+		}).Result()
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{"msg": "success"}))
+}
+
+func BatchAddressDelHandler(c *gin.Context) {
+	url := c.Query("url")
+	if url == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	// 使用管道进行事务处理
+	_, err := dao.RedisCache.TxPipelined(c.Request.Context(), func(pipe redis.Pipeliner) error {
+		// 删除具有指定 URL 的成员
+		_, err := pipe.ZRem(c.Request.Context(), BatchAddressZsetKey, url).Result()
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{"msg": "success"}))
+}
+
+func BatchAddressListHandler(c *gin.Context) {
+	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if size <= 0 {
+		size = 10
+	}
+	if page <= 0 {
+		page = 1
+	}
+
+	start := int64((page - 1) * size)
+	stop := int64(page*size - 1)
+
+	rdb := dao.RedisCache
+
+	total, err := rdb.ZCard(c.Request.Context(), BatchAddressZsetKey).Result()
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	if total == 0 {
+		c.JSON(http.StatusOK, respJSON(JsonObject{
+			"data":  []BatchAddress{},
+			"page":  page,
+			"size":  size,
+			"total": total,
+		}))
+		return
+	}
+
+	members, err := rdb.ZRange(c.Request.Context(), BatchAddressZsetKey, start, stop).Result()
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	var addresses []BatchAddress
+
+	for _, member := range members {
+		var address BatchAddress
+		if err := json.Unmarshal([]byte(member), &address); err != nil {
+			continue
+		}
+		addresses = append(addresses, address)
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"data":  addresses,
+		"page":  page,
+		"size":  size,
+		"total": total,
+	}))
+}
