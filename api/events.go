@@ -1825,6 +1825,7 @@ func GetAssetCountHandler(c *gin.Context) {
 // GetAssetDetailHandler 获取文件详情
 
 func GetAssetDetailHandler(c *gin.Context) {
+	uid := c.Query("user_id")
 	cid := c.Query("cid")
 	lang := model.Language(c.GetHeader("Lang"))
 	resp := new(types.AssetRecord)
@@ -1836,6 +1837,17 @@ func GetAssetDetailHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+	info, err := dao.GetUserAsset(c.Request.Context(), hash, uid)
+	switch err {
+	case sql.ErrNoRows:
+		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+		return
+	case nil:
+	default:
+		log.Errorf("get user asset info error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
 	// 获取调度器区域
 	areaIds, err := dao.GetAreaIDsByHash(c.Request.Context(), hash)
 	if err != nil {
@@ -1843,7 +1855,7 @@ func GetAssetDetailHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	for i, v := range areaIds {
+	for _, v := range areaIds {
 		schedulerClient, err := getSchedulerClient(c.Request.Context(), v)
 		if err != nil {
 			log.Errorf("getSchedulerClient: %v", err)
@@ -1853,9 +1865,6 @@ func GetAssetDetailHandler(c *gin.Context) {
 		if err != nil {
 			log.Errorf("api GetAssetRecord: %v", err)
 			continue
-		}
-		if i == 0 {
-			resp.CID = record.CID
 		}
 		resp.ReplicaInfos = append(resp.ReplicaInfos, record.ReplicaInfos...)
 	}
@@ -1890,8 +1899,8 @@ func GetAssetDetailHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"cid":               resp.CID,
-		"cid_name":          "",
+		"cid":               cid,
+		"cid_name":          info.AssetName,
 		"ReplicaInfo_count": len(deviceIds),
 		"area_count":        len(cityMap),
 		"titan_count":       len(deviceIds),
