@@ -314,6 +314,17 @@ func UpdateAssetGroupName(ctx context.Context, uid, rename string, groupID int) 
 	return err
 }
 
+// UpdateAssetName 更新用户文件名
+func UpdateAssetName(ctx context.Context, newName, uid, hash string) error {
+	query, args, err := squirrel.Update(tableUserAsset).Set("asset_name", newName).Where("user_id = ? AND hash = ?", uid, hash).ToSql()
+	if err != nil {
+		return fmt.Errorf("generate update asset's sql error:%w", err)
+	}
+	_, err = DB.ExecContext(ctx, query, args...)
+
+	return err
+}
+
 // MoveAssetGroup move a asset group
 func MoveAssetGroup(ctx context.Context, userID string, groupID, targetGroupID int) error {
 	if groupID == 0 {

@@ -200,7 +200,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_map_info", GetMapInfoHandler)
 	// Deprecated: use /user/verify_code instead
 	storage.POST("/get_verify_code", GetNumericVerifyCodeHandler)
-	// Deprecated: use /user/register instead	
+	// Deprecated: use /user/register instead
 	storage.POST("/register", UserRegister)
 	// Deprecated: use /user/password_reset instead
 	storage.POST("/password_reset", PasswordRest)
@@ -264,6 +264,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_asset_group_list", GetAssetGroupListHandler)
 	storage.GET("/delete_group", DeleteGroupHandler)
 	storage.GET("/rename_group", RenameGroupHandler)
+	storage.POST("rename_asset", RenameAssetHandler)
 	storage.GET("/move_group_to_group", MoveGroupToGroupHandler)
 	storage.GET("/move_asset_to_group", MoveAssetToGroupHandler)
 	storage.POST("/move_node", MoveNode)

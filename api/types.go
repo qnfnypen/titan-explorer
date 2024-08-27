@@ -17,3 +17,9 @@ type MoveNodeReq struct {
 	FromAreaID string `json:"from_area_id" binding:"required"`
 	ToAreaID   string `json:"to_area_id" binding:"required"`
 }
+
+// RenameAssetReq 重命名文件请求
+type RenameAssetReq struct {
+	AssetCID string `json:"asset_cid" binding:"required"`
+	NewName  string `json:"new_name" binding:"required"`
+}

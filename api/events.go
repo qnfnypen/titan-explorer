@@ -2428,6 +2428,47 @@ func RenameGroupHandler(c *gin.Context) {
 	}))
 }
 
+// RenameAssetHandler 文件重命名
+// @Summary 文件重命名
+// @Description 文件重命名
+// @Security ApiKeyAuth
+// @Tags storage
+// @Pamam req body RenameAssetReq true "文件重命名请求参数"
+// @Success 200 {object} JsonObject "{"msg":"success"}"
+// @Router /api/v1/storage/rename_asset [post]
+func RenameAssetHandler(c *gin.Context) {
+	var req RenameAssetReq
+
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
+
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		log.Errorf("params error:%w", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	// 获取文件hash
+	hash, err := storage.CIDToHash(req.AssetCID)
+	if err != nil {
+		log.Errorf("CreateAssetHandler CIDToHash error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	err = dao.UpdateAssetName(c.Request.Context(), req.NewName, userId, hash)
+	if err != nil {
+		log.Errorf("update asset name error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"msg": "success",
+	}))
+}
+
 func MoveGroupToGroupHandler(c *gin.Context) {
 	// userId := c.Query("user_id")
 	claims := jwt.ExtractClaims(c)
