@@ -143,6 +143,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	user.GET("/bugs/list", MyBugReportListHandler)
 	user.GET("/locators", LocatorFromConfigHandler)
 	user.POST("/edge/batch/report", BatchReportHandler)
+	user.GET("/edge/batch/address", UserBatchAddressHandler)
 	user.GET("/edge/config", GetEdgeConfigHandler)
 	user.POST("/edge/config", SetEdgeConfigHandler)
 	user.Use(authMiddleware.MiddlewareFunc())
@@ -188,6 +189,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	admin.POST("/acme/add", AcmeAddHandler)
 	// batch
 	admin.GET("/batch/edge", BatchGetHandler)
+	admin.DELETE("/batch/edge", BatchDelHandler)
 	admin.POST("/batch/edge", BatchReportHandler)
 	admin.POST("/batch/address", BatchAddressSetHandler)
 	admin.GET("/batch/address", BatchAddressListHandler)
@@ -198,7 +200,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_map_info", GetMapInfoHandler)
 	// Deprecated: use /user/verify_code instead
 	storage.POST("/get_verify_code", GetNumericVerifyCodeHandler)
-	// Deprecated: use /user/register instead
+	// Deprecated: use /user/register instead	
 	storage.POST("/register", UserRegister)
 	// Deprecated: use /user/password_reset instead
 	storage.POST("/password_reset", PasswordRest)

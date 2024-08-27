@@ -1309,6 +1309,15 @@ func SetEdgeConfigHandler(c *gin.Context) {
 	}))
 }
 
+const (
+	BatchUrlZsetKey = "titan:edge:bacth:set"
+	BatchUrlHSetKey = "titan:edge:bacth:hset"
+)
+
+type BatchSetReq struct {
+	LoggedIn bool       `json:"loggedIn"`
+	Config   EdgeBatchX `json:"config"`
+}
 type EdgeBatchX struct {
 	PhoneModel string
 	OS         string
@@ -1323,38 +1332,44 @@ type BatchUrlConfig struct {
 	Follow bool
 }
 
-const BatchUrlZsetKey = "titan:edge:bacth:set"
-
-type BatchSetReq struct {
-	LoggedIn bool       `json:"loggedIn"`
-	Config   EdgeBatchX `json:"config"`
-}
-
 func BatchReportHandler(c *gin.Context) {
 	var req BatchSetReq
 	if err := c.BindJSON(&req); err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
-	if req.LoggedIn {
-		if _, err := dao.RedisCache.ZRem(c.Request.Context(), BatchUrlZsetKey, req.Config.Mac).Result(); err != nil {
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			return
-		}
-		c.JSON(http.StatusOK, respJSON(JsonObject{"msg": "success"}))
+	// if req.LoggedIn {
+	// 	if _, err := dao.RedisCache.ZRem(c.Request.Context(), BatchUrlZsetKey, req.Config.Mac).Result(); err != nil {
+	// 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	// 		return
+	// 	}
+	// 	c.JSON(http.StatusOK, respJSON(JsonObject{"msg": "success"}))
+	// 	return
+	// }
+
+	req.Config.Time = time.Now()
+	data, err := json.Marshal(req)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
 
-	data, err := json.Marshal(req.Config)
+	_, err = dao.RedisCache.ZRem(c.Request.Context(), BatchUrlZsetKey, req.Config.Mac).Result()
 	if err != nil {
+		log.Errorf("Failed to remove %s: %v", req.Config.Mac, err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
 	if _, err := dao.RedisCache.ZAdd(c.Request.Context(), BatchUrlZsetKey, redis.Z{
 		Score:  float64(req.Config.Time.Unix()),
-		Member: data,
+		Member: req.Config.Mac,
 	}).Result(); err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	if err := dao.RedisCache.HSet(c.Request.Context(), BatchUrlHSetKey, req.Config.Mac, data).Err(); err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
@@ -1364,38 +1379,52 @@ func BatchReportHandler(c *gin.Context) {
 
 func BatchGetHandler(c *gin.Context) {
 	// 获取分页参数
-	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	if size <= 0 {
-		size = 10
-	}
-	if page <= 0 {
-		page = 1
-	}
+	// size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
+	// page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	// if size <= 0 {
+	// 	size = 10
+	// }
+	// if page <= 0 {
+	// 	page = 1
+	// }
 
-	start := int64((page - 1) * size)
-	stop := int64(page*size - 1)
+	// start := int64((page - 1) * size)
+	// stop := int64(page*size - 1)
 
 	// 获取 ZSET 的总元素数量
-	total, err := dao.RedisCache.ZCard(c.Request.Context(), BatchUrlZsetKey).Result()
+	// total, err := dao.RedisCache.ZCard(c.Request.Context(), BatchUrlZsetKey).Result()
+	// if err != nil {
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	// 	return
+	// }
+
+	// results, err := dao.RedisCache.ZRangeWithScores(c.Request.Context(), BatchUrlZsetKey, start, stop).Result()
+	// if err != nil {
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	// 	return
+	// }
+	// 获取所有 zset 中的成员
+	members, err := dao.RedisCache.ZRange(c.Request.Context(), BatchUrlZsetKey, 0, -1).Result()
 	if err != nil {
+		log.Errorf("ZRange error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-
-	results, err := dao.RedisCache.ZRangeWithScores(c.Request.Context(), BatchUrlZsetKey, start, stop).Result()
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
-
 	// 存储反序列化后的数据
-	var batchConfigs []EdgeBatchX
+	var batchConfigs []BatchSetReq
 
-	for _, z := range results {
-		var config EdgeBatchX
+	for _, mac := range members {
+
+		data, err := dao.RedisCache.HGet(c.Request.Context(), BatchUrlHSetKey, mac).Result()
+		if err != nil {
+			log.Errorf("HGet error: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+
+		var config BatchSetReq
 		// 反序列化数据
-		err := json.Unmarshal([]byte(z.Member.(string)), &config)
+		err = json.Unmarshal([]byte(data), &config)
 		if err != nil {
 			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 			return
@@ -1405,11 +1434,33 @@ func BatchGetHandler(c *gin.Context) {
 
 	// 返回分页数据
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"data":  batchConfigs,
-		"total": total,
-		"page":  page,
-		"size":  size,
+		"list": batchConfigs,
 	}))
+}
+
+func BatchDelHandler(c *gin.Context) {
+	mac := c.Query("mac")
+	if mac == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+
+	}
+
+	_, err := dao.RedisCache.ZRem(c.Request.Context(), BatchUrlZsetKey, mac).Result()
+	if err != nil {
+		log.Errorf("Failed to remove %s: %v", mac, err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	if _, err := dao.RedisCache.HDel(c.Request.Context(), BatchUrlHSetKey, mac).Result(); err != nil {
+		log.Errorf("Failed to remove %s: %v", mac, err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{"msg": "success"}))
+
 }
 
 type BatchAddress struct {
@@ -1428,17 +1479,17 @@ func BatchAddressSetHandler(c *gin.Context) {
 		return
 	}
 
+	address.AddTime = time.Now()
 	data, err := json.Marshal(address)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
-	address.AddTime = time.Now()
 	score := float64(address.AddTime.Unix())
 
 	_, err = dao.RedisCache.TxPipelined(c.Request.Context(), func(pipe redis.Pipeliner) error {
-		members, err := pipe.ZRangeByScore(c.Request.Context(), BatchAddressZsetKey, &redis.ZRangeBy{
+		members, err := dao.RedisCache.ZRangeByScore(c.Request.Context(), BatchAddressZsetKey, &redis.ZRangeBy{
 			Min: "-inf", Max: "+inf",
 		}).Result()
 		if err != nil {
@@ -1455,7 +1506,6 @@ func BatchAddressSetHandler(c *gin.Context) {
 				if err != nil {
 					return err
 				}
-				break
 			}
 		}
 
@@ -1486,12 +1536,30 @@ func BatchAddressDelHandler(c *gin.Context) {
 		return
 	}
 
-	// 使用管道进行事务处理
+	// 开始事务删除
 	_, err := dao.RedisCache.TxPipelined(c.Request.Context(), func(pipe redis.Pipeliner) error {
-		// 删除具有指定 URL 的成员
-		_, err := pipe.ZRem(c.Request.Context(), BatchAddressZsetKey, url).Result()
+		// 查找所有 BatchAddress
+		members, err := dao.RedisCache.ZRangeByScore(c.Request.Context(), BatchAddressZsetKey, &redis.ZRangeBy{
+			Min: "-inf", Max: "+inf",
+		}).Result()
 		if err != nil {
 			return err
+		}
+
+		// 遍历找到匹配的 URL 条目
+		for _, member := range members {
+			var existing BatchAddress
+			if err := json.Unmarshal([]byte(member), &existing); err != nil {
+				log.Errorf("Unmarshal BatchAddress fail: %v, err: %v", existing, err)
+				continue
+			}
+			if existing.Url == url {
+				// 删除匹配的条目
+				_, err = pipe.ZRem(c.Request.Context(), BatchAddressZsetKey, member).Result()
+				if err != nil {
+					return err
+				}
+			}
 		}
 
 		return nil
@@ -1503,6 +1571,33 @@ func BatchAddressDelHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{"msg": "success"}))
+}
+
+func UserBatchAddressHandler(c *gin.Context) {
+	var res = make([]BatchAddress, 0)
+	members, err := dao.RedisCache.ZRangeByScore(c.Request.Context(), BatchAddressZsetKey, &redis.ZRangeBy{
+		Min: "-inf", Max: "+inf",
+	}).Result()
+	if err != nil {
+		log.Errorf("load redis %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	for _, member := range members {
+		var existing BatchAddress
+		if err := json.Unmarshal([]byte(member), &existing); err != nil {
+			log.Errorf("parse redis %v: %v", member, err)
+			continue
+		}
+		if existing.Enable {
+			res = append(res, existing)
+		}
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list": res,
+	}))
 }
 
 func BatchAddressListHandler(c *gin.Context) {
