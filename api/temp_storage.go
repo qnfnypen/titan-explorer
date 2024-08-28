@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api"
@@ -413,5 +414,58 @@ func GetStorageCount(c *gin.Context) {
 		"hot":  1000,
 		"warm": 15000,
 		"cold": 2.5,
+	}))
+}
+
+// UploadTempFileCar 首页上传，后台切car
+func UploadTempFileCar(c *gin.Context) {
+	var (
+		randomPassNonce, aid string
+		urlModel             bool
+	)
+
+	areaId := getAreaIDs(c)
+	userId := xid.New().String()
+
+	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId[0])
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+		return
+	}
+
+	if c.Query("encrypted") == "true" {
+		passKey := fmt.Sprintf(FileUploadPassKey, userId)
+		randomPassNonce = string(md5Str(userId + time.Now().String()))
+		if _, err = dao.RedisCache.SetEx(c.Request.Context(), passKey, randomPassNonce, 24*time.Hour).Result(); err != nil {
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+	}
+	if c.Query("urlModel") == "true" {
+		urlModel = true
+	}
+
+	res, err := schedulerClient.GetNodeUploadInfo(c.Request.Context(), userId, randomPassNonce, urlModel)
+	if err != nil {
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			return
+		}
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	as := strings.Split(areaId[0], "-")
+	if len(as) < 2 {
+		aid = areaId[0]
+	} else {
+		aid = as[1]
+	}
+
+	c.JSON(http.StatusOK, respJSON(gin.H{
+		"AlreadyExists": res.AlreadyExists,
+		"List":          res.List,
+		"AreaID":        aid,
+		"Log":           areaId[0],
 	}))
 }

@@ -987,7 +987,7 @@ func ShareAssetsHandler(c *gin.Context) {
 		areaIDs, err := dao.GetUserAssetAreaIDs(c.Request.Context(), hash, userId)
 		if err != nil {
 			log.Errorf("get user assest areaids error:%w", err)
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 			return
 		}
 		// 获取用户的访问的ip
@@ -1659,7 +1659,7 @@ func UpdateShareStatusHandler(c *gin.Context) {
 }
 
 type AccessOverview struct {
-	AssetRecord      *types.AssetRecord
+	AssetRecord      *AssetRecord
 	UserAssetDetail  *dao.UserAssetDetail
 	VisitCount       int64
 	RemainVisitCount int64
@@ -2411,18 +2411,49 @@ func DeleteGroupHandler(c *gin.Context) {
 	}))
 }
 
+// RenameGroupHandler 文件重命名
+// @Summary 文件重命名
+// @Description 文件重命名
+// @Security ApiKeyAuth
+// @Tags storage
+// @Pamam req body RenameAssetReq true "文件重命名请求参数"
+// @Success 200 {object} JsonObject "{"msg":"success"}"
+// @Router /api/v1/storage/rename_group [post]
 func RenameGroupHandler(c *gin.Context) {
-	// userId := c.Query("user_id")
+	var req RenameAssetReq
+
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
-	newName := c.Query("new_name")
-	groupId, _ := strconv.Atoi(c.Query("group_id"))
 
-	err := dao.UpdateAssetGroupName(c.Request.Context(), userId, newName, groupId)
+	err := c.ShouldBindJSON(&req)
 	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		log.Errorf("params error:%w", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
+
+	if req.AssetCID != "" {
+		// 获取文件hash
+		hash, err := storage.CIDToHash(req.AssetCID)
+		if err != nil {
+			log.Errorf("CreateAssetHandler CIDToHash error: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+		err = dao.UpdateAssetName(c.Request.Context(), req.NewName, userId, hash)
+		if err != nil {
+			log.Errorf("update asset name error: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+	} else {
+		err = dao.UpdateAssetGroupName(c.Request.Context(), userId, req.NewName, req.GroupID)
+		if err != nil {
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"msg": "success",
 	}))

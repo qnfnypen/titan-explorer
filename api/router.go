@@ -221,6 +221,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_asset_status", GetAssetStatusHandler)
 	storage.GET("/get_fil_storage_list", GetFilStorageListHandler)
 	storage.GET("/get_area_id", GetSchedulerAreaIDs)
+	storage.GET("/temp_file/get_upload_file", UploadTempFileCar)
 	storage.POST("/temp_file/upload", UploadTmepFile)
 	storage.GET("/temp_file/info/:cid", GetUploadInfo)
 	storage.GET("/temp_file/share/:cid", ShareTempFile)
@@ -263,8 +264,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_groups", GetGroupsHandler)         // 获取文件夹信息
 	storage.GET("/get_asset_group_list", GetAssetGroupListHandler)
 	storage.GET("/delete_group", DeleteGroupHandler)
-	storage.GET("/rename_group", RenameGroupHandler)
-	storage.POST("rename_asset", RenameAssetHandler)
+	storage.POST("/rename_group", RenameGroupHandler)
 	storage.GET("/move_group_to_group", MoveGroupToGroupHandler)
 	storage.GET("/move_asset_to_group", MoveAssetToGroupHandler)
 	storage.POST("/move_node", MoveNode)

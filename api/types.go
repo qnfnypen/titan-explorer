@@ -20,6 +20,7 @@ type MoveNodeReq struct {
 
 // RenameAssetReq 重命名文件请求
 type RenameAssetReq struct {
-	AssetCID string `json:"asset_cid" binding:"required"`
+	AssetCID string `json:"asset_cid"`
 	NewName  string `json:"new_name" binding:"required"`
+	GroupID  int    `json:"group_id"`
 }

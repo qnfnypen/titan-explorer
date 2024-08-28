@@ -44,9 +44,31 @@ var (
 )
 
 type (
+	AssetRecord struct {
+		CID                   string    `db:"cid"`
+		Hash                  string    `db:"hash"`
+		NeedEdgeReplica       int64     `db:"edge_replicas"`
+		TotalSize             int64     `db:"total_size"`
+		TotalBlocks           int64     `db:"total_blocks"`
+		Expiration            time.Time `db:"expiration"`
+		CreatedTime           time.Time `db:"created_time"`
+		EndTime               time.Time `db:"end_time"`
+		NeedCandidateReplicas int64     `db:"candidate_replicas"`
+		ServerID              string    `db:"scheduler_sid"`
+		State                 string    `db:"state"`
+		NeedBandwidth         int64     `db:"bandwidth"` // unit:MiB/
+		Note                  string    `db:"note"`
+		Source                int64     `db:"source"`
+
+		RetryCount        int64 `db:"retry_count"`
+		ReplenishReplicas int64 `db:"replenish_replicas"`
+		ReplicaNums       int64 `json:"replica_num"`
+
+		SPCount int64
+	}
 	// AssetOverview 文件概览
 	AssetOverview struct {
-		AssetRecord      *types.AssetRecord
+		AssetRecord      *AssetRecord
 		UserAssetDetail  *dao.UserAssetDetail
 		VisitCount       int64
 		RemainVisitCount int64
@@ -191,11 +213,10 @@ func listAssets(ctx context.Context, uid string, limit, offset, groupID int) (*L
 				return
 			}
 			// 获取用户文件分发记录
-			records := new(types.AssetRecord)
-			records.ReplicaInfos = make([]*types.ReplicaInfo, 0)
+			records := new(AssetRecord)
 			records.CID = cid
 			records.Hash = info.Hash
-			for i, v := range areaIDs {
+			for _, v := range areaIDs {
 				sCli, err := getSchedulerClient(ctx, v)
 				if err != nil {
 					log.Errorf("getSchedulerClient err: %s", err.Error())
@@ -206,19 +227,20 @@ func listAssets(ctx context.Context, uid string, limit, offset, groupID int) (*L
 					log.Errorf("asset LoadAssetRecord err: %s", err.Error())
 					continue
 				}
-				if i == 0 {
-					records = record
-				} else {
-					records.NeedEdgeReplica += record.NeedEdgeReplica
-					records.NeedCandidateReplicas += record.ReplenishReplicas
-					records.ReplicaInfos = append(records.ReplicaInfos, record.ReplicaInfos...)
+				records.NeedEdgeReplica += record.NeedEdgeReplica
+				records.NeedCandidateReplicas += record.ReplenishReplicas
+				// records.ReplicaInfos = append(records.ReplicaInfos, record.ReplicaInfos...)
+				for _, vv := range record.ReplicaInfos {
+					if vv.Status == 3 {
+						records.ReplicaNums++
+					}
 				}
 				if records.TotalSize == 0 {
 					records.CreatedTime = record.CreatedTime
 					records.EndTime = record.EndTime
 					records.Expiration = record.Expiration
 					records.Note = record.Note
-					records.ServerID = record.ServerID
+					records.ServerID = fmt.Sprintf("%v", record.ServerID)
 					records.State = record.State
 					records.Source = record.Source
 					records.TotalBlocks = record.TotalBlocks
