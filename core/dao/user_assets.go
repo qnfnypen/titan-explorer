@@ -8,6 +8,7 @@ import (
 
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/terrors"
+	"github.com/Filecoin-Titan/titan/node/cidutil"
 	"github.com/Masterminds/squirrel"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 )
@@ -160,6 +161,20 @@ func DelAssetAndUpdateSize(ctx context.Context, hash, userID string, areaID []st
 	query, args, err = squirrel.Update(tableNameUser).Set("used_storage_size", squirrel.Expr("used_storage_size - ?", size)).Where("username = ?", userID).ToSql()
 	if err != nil {
 		return fmt.Errorf("generate update users sql error:%w", err)
+	}
+	_, err = tx.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+
+	// 删除该文件的分享
+	cid, err := cidutil.HashToCID(hash)
+	if err != nil {
+		return err
+	}
+	query, args, err = squirrel.Delete(tableNameLink).Where("username = ?", userID).Where("cid = ?", cid).ToSql()
+	if err != nil {
+		return fmt.Errorf("generate delete links sql error:%w", err)
 	}
 	_, err = tx.ExecContext(ctx, query, args...)
 	if err != nil {
