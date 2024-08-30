@@ -128,8 +128,13 @@ func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string]
 		// 获取区域里的调度器
 		info, err := geo.GetIpLocation(c.Request.Context(), ip)
 		if err == nil {
-			if v, ok := maps[info.Country]; ok {
-				tadis = v
+			for _, v := range areaIDs {
+				if strings.EqualFold(v, info.Country) {
+					if vv, ok := maps[v]; ok {
+						tadis = vv
+					}
+					break
+				}
 			}
 		}
 		areaID, err := GetNearestAreaID(c.Request.Context(), ip, tadis)
