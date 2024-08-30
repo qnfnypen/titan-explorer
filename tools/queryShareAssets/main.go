@@ -5,11 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/gnasnik/titan-explorer/core/dao"
 	"log"
 	"time"
 
 	"github.com/gnasnik/titan-explorer/config"
-	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/statistics"
 	"github.com/spf13/viper"
 )
@@ -59,6 +59,11 @@ func main() {
 		Cli     []cliInfo      `json:"cli"`
 	}
 
+	type userAsset struct {
+		UserId string
+		Cid    string
+	}
+
 	out := &response{
 		Android: make([]downloadInfo, 0),
 		MacOs:   make([]downloadInfo, 0),
@@ -71,12 +76,10 @@ func main() {
 		},
 	}
 
-	userId := "0x7803c1e839a8101b37c90e42e440a837b192ae9e"
-
-	cids := map[string]string{
-		"android": "bafybeiecvk3yk3qq6iyn5rj3s5rt3zsb3vuxrh2g527j5aihszicj2sdtu",
-		"mac":     "bafybeibz4nj72svea2goowncunmmukt3q67kfw4tvud52unkiutifpy5du",
-		"windows": "bafybeibry7lqb5soj52vl77fqp2wigbnwrklwaa5w77y2tvsthksldymsa",
+	cids := map[string]userAsset{
+		"android": {UserId: "titan17ljevhtqu4vx6y7k743jyca0w8gyfu2466e8x3", Cid: "bafybeicznvslgyuhdwnrw5epabcp7nppbzkn6kjhcjumfb2ulhmay4pixy"},
+		"mac":     {UserId: "0x7803c1e839a8101b37c90e42e440a837b192ae9e", Cid: "bafybeibz4nj72svea2goowncunmmukt3q67kfw4tvud52unkiutifpy5du"},
+		"windows": {UserId: "0x7803c1e839a8101b37c90e42e440a837b192ae9e", Cid: "bafybeibry7lqb5soj52vl77fqp2wigbnwrklwaa5w77y2tvsthksldymsa"},
 	}
 
 	areasName := map[string]struct {
@@ -98,13 +101,13 @@ func main() {
 
 	for _, schedulerClient := range schedulers {
 
-		for area, cid := range cids {
-			_, err := schedulerClient.Api.ShareAssets(context.Background(), userId, []string{cid}, time.Time{})
+		for area, ua := range cids {
+			_, err := schedulerClient.Api.ShareAssets(context.Background(), ua.UserId, []string{ua.Cid}, time.Time{})
 			if err != nil {
 				continue
 			}
 
-			url := fmt.Sprintf(`https://api-test1.container1.titannet.io/api/v1/storage/open_asset?user_id=%s&asset_cid=%s&area_id=%s`, userId, cid, schedulerClient.AreaId)
+			url := fmt.Sprintf(`https://api-test1.container1.titannet.io/api/v1/storage/open_asset?user_id=%s&asset_cid=%s&area_id=%s`, ua.UserId, ua.Cid, schedulerClient.AreaId)
 
 			download := downloadInfo{
 				Url:    url,
