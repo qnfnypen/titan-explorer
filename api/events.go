@@ -949,13 +949,16 @@ func DeleteAssetHandler(c *gin.Context) {
 // @Router /api/v1/storage/share_asset [get]
 func ShareAssetsHandler(c *gin.Context) {
 	var (
-		areaId string
+		areaId  string
+		areaIds []string
 	)
 	// userId := c.Query("user_id")
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
 	cid := c.Query("asset_cid")
-	areaIds := getAreaIDs(c)
+	if len(c.QueryArray("area_id")) == 1 {
+		areaIds = getAreaIDs(c)
+	}
 
 	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {
@@ -1068,9 +1071,13 @@ func OpenAssetHandler(c *gin.Context) {
 	var (
 		cid     = c.Query("asset_cid")
 		userId  = c.Query("user_id")
-		areaIds = getAreaIDs(c)
+		areaIds []string
 		areaId  string
 	)
+
+	if len(c.QueryArray("area_id")) == 1 {
+		areaIds = getAreaIDs(c)
+	}
 
 	if userId == "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.MissingUserId, c))

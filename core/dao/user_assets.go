@@ -587,7 +587,7 @@ func CheckUserAseetNeedDel(ctx context.Context, hash, uid string, areaID []strin
 func GetUserAssetAreaIDs(ctx context.Context, hash, uid string) ([]string, error) {
 	var aids []string
 
-	query, args, err := squirrel.Select("area_id").From(tableUserAssetArea).Where("user_id = ? AND hash = ?", uid, hash).ToSql()
+	query, args, err := squirrel.Select("area_id").From(tableUserAssetArea).Where("user_id = ? AND hash = ? AND is_sync = 1", uid, hash).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("generate get asset sql error:%w", err)
 	}
@@ -619,7 +619,7 @@ func CheckUserAssetIsOnly(ctx context.Context, hash, areaID string) (bool, error
 func CheckUserAssetIsInAreaID(ctx context.Context, userID, hash, areaID string) (bool, error) {
 	var num int64
 
-	query, args, err := squirrel.Select("COUNT(hash)").From(tableUserAssetArea).Where("user_id = ? AND hash = ? AND area_id LIKE ?", userID, hash, `%`+areaID+`%`).ToSql()
+	query, args, err := squirrel.Select("COUNT(hash)").From(tableUserAssetArea).Where("user_id = ? AND hash = ? AND area_id LIKE ? AND is_sync = 1", userID, hash, `%`+areaID+`%`).ToSql()
 	if err != nil {
 		return false, fmt.Errorf("generate get asset sql error:%w", err)
 	}
