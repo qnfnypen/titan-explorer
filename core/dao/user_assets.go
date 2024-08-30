@@ -180,6 +180,15 @@ func DelAssetAndUpdateSize(ctx context.Context, hash, userID string, areaID []st
 	if err != nil {
 		return err
 	}
+	// 删除下载次数记录
+	query, args, err = squirrel.Delete(tableUserAssetVisit).Where("user_id = ? AND hash = ?", userID, hash).ToSql()
+	if err != nil {
+		return fmt.Errorf("generate delete assest_visit_count sql error:%w", err)
+	}
+	_, err = tx.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
 
 	return tx.Commit()
 }
