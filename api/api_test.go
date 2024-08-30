@@ -140,9 +140,11 @@ func TestUploadTf(t *testing.T) {
 
 func TestMove(t *testing.T) {
 	var req MoveNodeReq
-	req.FromAreaID = "Asia-SouthKorea-Seoul-Seoul"
-	req.NodeID = "c_7ceddfd2-ecab-4b0f-96de-b0169d00c9b5"
-	req.ToAreaID = "Asia-Vietnam-Hanoi-Hanoi"
+	os.Setenv("ETCD_USERNAME", "web")
+	os.Setenv("ETCD_PASSWORD", "web_123")
+	req.FromAreaID = "Asia-China-Guangdong-Shenzhen"
+	req.NodeID = "c_e908199f-39cc-495a-9abb-becb4d8798b7"
+	req.ToAreaID = "Asia-HongKong"
 	// 将node节点从from area移出
 	fscli, err := getSchedulerClient(ctx, req.FromAreaID)
 	if err != nil {
@@ -169,7 +171,7 @@ func TestMove(t *testing.T) {
 }
 
 func TestChange(t *testing.T) {
-	cid := "bafkreid3l2geiqz52jgww272fhcpjazzcd7use4xoufvp7o66zlgtqf6hu"
+	cid := "bafybeicznvslgyuhdwnrw5epabcp7nppbzkn6kjhcjumfb2ulhmay4pixy"
 	hash, err := storage.CIDToHash(cid)
 	if err != nil {
 		t.Fatal(err)
