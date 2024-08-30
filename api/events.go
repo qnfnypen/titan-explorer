@@ -948,11 +948,14 @@ func DeleteAssetHandler(c *gin.Context) {
 // @Success 200 {object} JsonObject "{asset_cid: "",redirect:"",url:{}}"
 // @Router /api/v1/storage/share_asset [get]
 func ShareAssetsHandler(c *gin.Context) {
+	var (
+		areaId string
+	)
 	// userId := c.Query("user_id")
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
 	cid := c.Query("asset_cid")
-	areaId := c.Query("area_id")
+	areaIds := getAreaIDs(c)
 
 	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {
@@ -961,8 +964,8 @@ func ShareAssetsHandler(c *gin.Context) {
 		return
 	}
 	// 如果用户指定了区域，则先判断区域是否存在
-	if areaId != "" {
-		exist, err := dao.CheckUserAssetIsInAreaID(c.Request.Context(), userId, hash, areaId)
+	if len(areaIds) > 0 {
+		exist, err := dao.CheckUserAssetIsInAreaID(c.Request.Context(), userId, hash, areaIds[0])
 		if err != nil {
 			if err == sql.ErrNoRows {
 				log.Errorf("sql error no rows")
@@ -1062,9 +1065,12 @@ func ShareAssetsHandler(c *gin.Context) {
 }
 
 func OpenAssetHandler(c *gin.Context) {
-	cid := c.Query("asset_cid")
-	userId := c.Query("user_id")
-	areaId := c.Query("area_id")
+	var (
+		cid     = c.Query("asset_cid")
+		userId  = c.Query("user_id")
+		areaIds = getAreaIDs(c)
+		areaId  string
+	)
 
 	if userId == "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.MissingUserId, c))
@@ -1079,8 +1085,8 @@ func OpenAssetHandler(c *gin.Context) {
 	}
 
 	// 如果用户指定了区域，则先判断区域是否存在
-	if areaId != "" {
-		exist, err := dao.CheckUserAssetIsInAreaID(c.Request.Context(), userId, hash, areaId)
+	if len(areaIds) > 0 {
+		exist, err := dao.CheckUserAssetIsInAreaID(c.Request.Context(), userId, hash, areaIds[0])
 		if err != nil {
 			if err == sql.ErrNoRows {
 				c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
@@ -1955,6 +1961,9 @@ func GetLocationHandler(c *gin.Context) {
 	var deviceIds []string
 	if len(resp.ReplicaInfos) > 0 {
 		for _, rep := range resp.ReplicaInfos {
+			if rep.Status != 3 {
+				continue
+			}
 			deviceIds = append(deviceIds, rep.NodeID)
 		}
 	}

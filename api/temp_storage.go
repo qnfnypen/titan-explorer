@@ -30,10 +30,10 @@ type (
 	// UploadTempFileReq 上传临时文件
 	UploadTempFileReq struct {
 		AssetName string   `json:"asset_name" binding:"required"`
-		AssetCID  string   `json:"asset_cid" binding:"required"` // 最多3个
+		AssetCID  string   `json:"asset_cid" binding:"required"`
 		NodeID    string   `json:"node_id"`
 		AssetSize int64    `json:"asset_size" binding:"required"`
-		AreaIDs   []string `json:"area_ids"`
+		AreaIDs   []string `json:"area_ids"` // 最多3个
 	}
 )
 
@@ -57,45 +57,32 @@ func UploadTmepFile(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
-	// 获取可用的调度器区域列表
-	_, maps, err := GetAndStoreAreaIDs()
-	if err != nil {
-		log.Error(err)
+	if len(req.AreaIDs) > 3 {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
-	// 对调度器区域进行判断
-	switch {
-	case len(req.AreaIDs) > 3:
-		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
-		return
-	case len(req.AreaIDs) == 0:
-		aids := make([]string, 0)
-		// 获取用户的访问的ip
-		ip, err := GetIPFromRequest(c.Request)
-		if err != nil {
-			log.Errorf("get request's ip error:%v", err)
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			return
+	allAreaIDs, maps := getAreaIDsByAreaID(c, req.AreaIDs)
+	// 由于这里是匹配好的数据，所以不用做边界检查
+	areaIDs = append(areaIDs, allAreaIDs[0])
+	as := strings.Split(areaIDs[0], "-")
+	if len(req.AreaIDs) != 0 {
+		for _, v := range allAreaIDs {
+			if strings.EqualFold(as[1], v) {
+				continue
+			}
+			areaIDs = append(areaIDs, maps[v][0])
 		}
-		for _, v := range maps {
-			aids = append(aids, v...)
-		}
-		areaID, err := GetNearestAreaID(c.Request.Context(), ip, aids)
-		if err != nil {
-			log.Errorf("get nearest's scheduler error:%v", err)
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			return
-		}
-		req.AreaIDs = append(req.AreaIDs, areaID)
-	default:
-		for _, v := range req.AreaIDs {
-			if len(maps[v]) > 0 {
-				areaIDs = append(areaIDs, maps[v][0])
+	} else {
+		for k, v := range maps {
+			if !strings.EqualFold(k, as[1]) {
+				areaIDs = append(areaIDs, v[0])
+			}
+			if len(areaIDs) == 3 {
+				break
 			}
 		}
-		req.AreaIDs = areaIDs
 	}
+	req.AreaIDs = areaIDs
 
 	// 最多只能是100M
 	if req.AssetSize > 100*1024*1024 {
@@ -111,8 +98,7 @@ func UploadTmepFile(c *gin.Context) {
 		return
 	}
 	// 判断文件是否已经存在
-	aids, err := oprds.GetClient().GetUnloginAssetAreaIDs(c.Request.Context(), hash)
-
+	aids, _ := oprds.GetClient().GetUnloginAssetAreaIDs(c.Request.Context(), hash)
 	// 判断文件是否已经被上传分享60次了
 	taInfo, err := dao.GetTempAssetInfo(c.Request.Context(), hash)
 	switch err {
@@ -135,6 +121,7 @@ func UploadTmepFile(c *gin.Context) {
 
 	schCli, err := getSchedulerClient(c.Request.Context(), req.AreaIDs[0])
 	if err != nil {
+		log.Errorf("get scheduler client error:%v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}

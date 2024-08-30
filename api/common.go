@@ -91,16 +91,15 @@ type (
 	}
 )
 
-func getAreaIDs(c *gin.Context) []string {
+func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string][]string) {
 	var aids, naids []string
 
 	_, maps, err := GetAndStoreAreaIDs()
 	if err != nil {
 		log.Error(err)
-		return nil
+		return nil, nil
 	}
 
-	areaIDs := c.QueryArray("area_id")
 	for _, v := range areaIDs {
 		if strings.TrimSpace(v) != "" {
 			aids = append(aids, maps[v]...)
@@ -113,7 +112,7 @@ func getAreaIDs(c *gin.Context) []string {
 	}
 
 	if len(aids) == 1 {
-		return aids
+		return aids, maps
 	}
 
 	sort.Slice(aids, func(i, j int) bool {
@@ -143,9 +142,17 @@ func getAreaIDs(c *gin.Context) []string {
 					naids = append(naids, v)
 				}
 			}
-			return naids
+			return naids, maps
 		}
 	}
+
+	return aids, maps
+}
+
+func getAreaIDs(c *gin.Context) []string {
+	areaIDs := c.QueryArray("area_id")
+
+	aids, _ := getAreaIDsByAreaID(c, areaIDs)
 
 	return aids
 }

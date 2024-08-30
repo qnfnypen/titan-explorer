@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -15,7 +16,8 @@ import (
 )
 
 var (
-	ctx = context.Background()
+	ctx      = context.Background()
+	l1States = []string{"EdgesSelect", "EdgesPulling", "Servicing", "EdgesFailed"}
 )
 
 // SyncShedulersAsset 同步调度器文件
@@ -24,7 +26,7 @@ func SyncShedulersAsset() {
 
 	c.AddFunc("@every 10s", syncUserScheduler())
 	c.AddFunc("@every 15s", syncUnLoginAsset())
-	c.AddFunc("@hourly", syncDashboard())
+	c.AddFunc("0,10,20,30,40,50 * * * *", syncDashboard())
 
 	c.Start()
 }
@@ -43,6 +45,7 @@ func syncUserScheduler() func() {
 			wg.Add(1)
 			go func(v *oprds.Payload) {
 				defer wg.Done()
+				flag := false
 
 				scli, err := api.GetSchedulerClient(ctx, v.AreaID)
 				if err != nil {
@@ -55,7 +58,13 @@ func syncUserScheduler() func() {
 					log.Println(fmt.Errorf("GetAssetRecord error:%w", err))
 					return
 				}
-				if len(rs.ReplicaInfos) == 0 {
+				for _, v := range l1States {
+					if strings.EqualFold(v, rs.State) {
+						flag = true
+						break
+					}
+				}
+				if !flag {
 					return
 				}
 				unSyncAids, err := dao.GetUnSyncAreaIDs(ctx, v.UserID, v.Hash)
@@ -137,8 +146,8 @@ func syncDashboard() func() {
 
 		// 获取当前时间
 		now := time.Now()
-		pendTime := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
-		startTime := pendTime.Add(-1 * time.Hour)
+		pendTime := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), 0, 0, now.Location())
+		startTime := pendTime.Add(-10 * time.Minute)
 		endTime := pendTime.Add(-1 * time.Second)
 
 		_, maps, err := api.GetAndStoreAreaIDs()
@@ -201,7 +210,9 @@ func storeAssetHourStorages(tmaps, bmaps *sync.Map, ts time.Time) error {
 		if !ok {
 			return true
 		}
-		ahs.DownloadCount, _ = oprds.GetClient().GetAssetHourDownload(ctx, hash, ts)
+		if ts.Minute() == 0 {
+			ahs.DownloadCount, _ = oprds.GetClient().GetAssetHourDownload(ctx, hash, ts)
+		}
 		ahs.Hash = hash
 		tf, ok := value.(int64)
 		if !ok {
