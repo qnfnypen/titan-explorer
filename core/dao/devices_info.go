@@ -739,7 +739,7 @@ func SumAllUsersReward(ctx context.Context, eligibleOnlineMinutes int) ([]*model
       ifnull(sum(online_incentive_profit), 0 ) as online_incentive_reward,
       count(if(online_time >= ?, true, null)) as eligible_device_count,
       count(device_id) as device_count
-		from device_info  where user_id <> '' GROUP BY user_id`
+		from device_info  where user_id <> '' and node_type = 1 GROUP BY user_id`
 
 	var out []*model.UserReward
 	err := DB.SelectContext(ctx, &out, query, eligibleOnlineMinutes)
