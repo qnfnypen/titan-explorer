@@ -554,6 +554,7 @@ func CreateAssetHandler(c *gin.Context) {
 	if err := dao.AddAssetAndUpdateSize(c.Request.Context(), &model.UserAsset{
 		UserID:      userId,
 		Hash:        hash,
+		Cid:         createAssetReq.AssetCID,
 		AssetName:   createAssetReq.AssetName,
 		AssetType:   createAssetReq.AssetType,
 		CreatedTime: time.Now(),
@@ -577,43 +578,63 @@ func CreateAssetHandler(c *gin.Context) {
 }
 
 type createAssetRequest struct {
-	AssetName string `json:"asset_name"`
-	AssetCID  string `json:"asset_cid"`
-	AreaID    string `json:"area_id"`
-	NodeID    string `json:"node_id"`
-	AssetType string `json:"asset_type"`
-	AssetSize int64  `json:"asset_size"`
-	GroupID   int64  `json:"group_id"`
+	AssetName string   `json:"asset_name" binding:"required"`
+	AssetCID  string   `json:"asset_cid"`
+	AreaID    []string `json:"area_id"`
+	NodeID    string   `json:"node_id"`
+	AssetType string   `json:"asset_type" binding:"required"`
+	AssetSize int64    `json:"asset_size" binding:"required"`
+	GroupID   int64    `json:"group_id"`
+	Encrypted bool     `json:"encrypted"`
 }
 
 // CreateAssetPostHandler 创建文件
+// @Summary 上传文件
+// @Description 上传文件
+// @Security ApiKeyAuth
+// @Tags storage
+// @Param req body createAssetRequest true "请求参数"
+// @Success 200 {object} JsonObject "{[]{CandidateAddr:"",Token:""}}"
+// @Router /api/v1/storage/create_asset [post]
 func CreateAssetPostHandler(c *gin.Context) {
-	claims := jwt.ExtractClaims(c)
-	username := claims[identityKey].(string)
-	areaId := getAreaID(c)
+	var (
+		claims          = jwt.ExtractClaims(c)
+		username        = claims[identityKey].(string)
+		randomPassNonce string
+		createAssetReq  createAssetRequest
+	)
 
-	var createAssetReq createAssetRequest
 	if err := c.BindJSON(&createAssetReq); err != nil {
 		log.Errorf("CreateAssetHandler c.BindJSON() error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
 
-	// TODO:
-	// areaId := GetDefaultTitanCandidateEntrypointInfo()
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
-	if err != nil {
-		log.Errorf("CreateAssetHandler getSchedulerClient() error: %+v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+	areaIds := getAreaIDsByArea(c, createAssetReq.AreaID)
+	if len(areaIds) == 0 {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
-
 	user, err := dao.GetUserByUsername(c.Request.Context(), username)
 	if err != nil {
 		log.Errorf("CreateAssetHandler dao.GetUserByUsername() error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+	if c.Query("encrypted") == "true" {
+		passKey := fmt.Sprintf(FileUploadPassKey, username)
+		randomPassNonce = dao.RedisCache.Get(c.Request.Context(), passKey).Val()
+		if randomPassNonce == "" {
+			log.Error("CreateAssetHandler randomPassNonce not found")
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+
+		defer func() {
+			dao.RedisCache.Del(c.Request.Context(), passKey)
+		}()
+	}
+
 	// 获取文件hash
 	hash, err := storage.CIDToHash(createAssetReq.AssetCID)
 	if err != nil {
@@ -621,8 +642,12 @@ func CreateAssetPostHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	ainfo, _ := dao.GetUserAssetDetail(c.Request.Context(), hash, username)
-	if ainfo != nil && ainfo.UserID != "" {
+	notExistsAids, err := dao.GetUserAssetNotAreaIDs(c.Request.Context(), hash, username, areaIds)
+	if err != nil {
+		log.Errorf("GetUserAssetByAreaIDs error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	}
+	if len(notExistsAids) == 0 {
 		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
 		return
 	}
@@ -632,36 +657,75 @@ func CreateAssetPostHandler(c *gin.Context) {
 		return
 	}
 
-	log.Debugf("CreateAssetHandler clientIP:%s, areaId:%s\n", c.ClientIP(), createAssetReq.AreaID)
+	// 调用调度器
+	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaIds[0])
+	if err != nil {
+		log.Errorf("CreateAssetHandler getSchedulerClient error: %v", err)
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, gin.H{
+				"code": -1,
+				"err":  webErr.Code,
+				"msg":  webErr.Message,
+				"Log":  areaIds[0],
+			})
+			return
+		}
+	}
 	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{
 		UserID: username, AssetCID: createAssetReq.AssetCID, AssetSize: createAssetReq.AssetSize, NodeID: createAssetReq.NodeID})
 	if err != nil {
-		log.Errorf("CreateAssetHandler schedulerClient.CreateAsset() error: %+v", err)
+		log.Errorf("CreateAssetHandler CreateAsset error: %v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			c.JSON(http.StatusOK, gin.H{
+				"code": -1,
+				"err":  webErr.Code,
+				"msg":  webErr.Message,
+				"Log":  areaIds[0],
+			})
 			return
 		}
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"Log":  areaIds[0],
+		})
 		return
+	}
+	if !createAssetRsp.AlreadyExists {
+		if len(createAssetRsp.List) == 0 {
+			log.Errorf("createAssetRsp.List: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+	}
+	// 判断是否需要同步调度器信息
+	if len(notExistsAids) > 0 {
+		err = oprds.GetClient().PushSchedulerInfo(c.Request.Context(), &oprds.Payload{UserID: username, CID: createAssetReq.AssetCID, Hash: hash, AreaID: areaIds[0]})
+		if err != nil {
+			log.Errorf("PushSchedulerInfo error: %v", err)
+		}
 	}
 
 	if err := dao.AddAssetAndUpdateSize(c.Request.Context(), &model.UserAsset{
-		UserID: username,
-		Hash:   hash,
-		// AreaID:      areaId,
+		UserID:      username,
+		Hash:        hash,
+		Cid:         createAssetReq.AssetCID,
 		AssetName:   createAssetReq.AssetName,
 		AssetType:   createAssetReq.AssetType,
 		CreatedTime: time.Now(),
 		TotalSize:   createAssetReq.AssetSize,
-		GroupID:     createAssetReq.GroupID,
-	}, []string{areaId}); err != nil {
-		log.Errorf("CreateAssetHandler dao.AddAssetAndUpdateSize() error: %+v", err)
+		Password:    randomPassNonce,
+		GroupID:     int64(createAssetReq.GroupID),
+	}, notExistsAids); err != nil {
+		log.Errorf("CreateAssetHandler AddAsset error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+
 	rsp := make([]JsonObject, len(createAssetRsp.List))
-	for i, v := range createAssetRsp.List {
-		rsp[i] = JsonObject{"CandidateAddr": v.UploadURL, "Token": v.Token}
+	if !createAssetRsp.AlreadyExists {
+		for i, v := range createAssetRsp.List {
+			rsp[i] = JsonObject{"CandidateAddr": v.UploadURL, "Token": v.Token}
+		}
 	}
 
 	c.JSON(http.StatusOK, respJSON(rsp))

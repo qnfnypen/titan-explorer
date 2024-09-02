@@ -631,6 +631,7 @@ type DeviceOnlineIncentive struct {
 type UserAsset struct {
 	UserID      string    `db:"user_id"`
 	Hash        string    `db:"hash"`
+	Cid string `db:"cid"`
 	AssetName   string    `db:"asset_name"`
 	AssetType   string    `db:"asset_type"`
 	ShareStatus int64     `db:"share_status"`

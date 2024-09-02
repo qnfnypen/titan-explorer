@@ -1,0 +1,1 @@
+ALTER TABLE user_asset ADD COLUMN cid varchar(255) DEFAULT '' NOT NULL;

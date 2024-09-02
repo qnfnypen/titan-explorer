@@ -162,6 +162,12 @@ func getAreaIDs(c *gin.Context) []string {
 	return aids
 }
 
+func getAreaIDsByArea(c *gin.Context, areaIds []string) []string {
+	aids, _ := getAreaIDsByAreaID(c, areaIds)
+
+	return aids
+}
+
 func getAreaIDsNoDefault(c *gin.Context) []string {
 	var aids []string
 
@@ -219,10 +225,14 @@ func listAssets(ctx context.Context, uid string, limit, offset, groupID int) (*L
 				log.Errorf("get areaids err: %s", err.Error())
 				return
 			}
-			// 将 hash 转换为 cid
-			tmpcid, err := storage.HashToCID(info.Hash)
-			if err != nil {
-				return
+			cid := info.Cid
+			if cid == "" {
+				// 将 hash 转换为 cid
+				cid, err = storage.HashToCID(info.Hash)
+				if err != nil {
+					log.Errorf("hash to cid err: %s", err.Error())
+					return
+				}
 			}
 			// 获取用户文件分发记录
 			records := new(AssetRecord)
@@ -234,12 +244,14 @@ func listAssets(ctx context.Context, uid string, limit, offset, groupID int) (*L
 					log.Errorf("getSchedulerClient err: %s", err.Error())
 					continue
 				}
-				record, err := sCli.GetAssetRecord(ctx, tmpcid)
+				record, err := sCli.GetAssetRecord(ctx, cid)
 				if err != nil {
 					log.Errorf("asset LoadAssetRecord err: %s", err.Error())
 					continue
 				}
-				records.CID = record.CID
+				if info.Cid == "" {
+					dao.UpdateAssetCid(ctx, info.Hash, record.CID)
+				}
 				records.NeedEdgeReplica += record.NeedEdgeReplica
 				records.NeedCandidateReplicas += record.ReplenishReplicas
 				// records.ReplicaInfos = append(records.ReplicaInfos, record.ReplicaInfos...)
@@ -249,6 +261,7 @@ func listAssets(ctx context.Context, uid string, limit, offset, groupID int) (*L
 					}
 				}
 				if records.TotalSize == 0 {
+					records.CID = record.CID
 					records.CreatedTime = record.CreatedTime
 					records.EndTime = record.EndTime
 					records.Expiration = record.Expiration
