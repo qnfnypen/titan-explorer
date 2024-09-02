@@ -604,7 +604,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 		createAssetReq  createAssetRequest
 	)
 
-	if err := c.BindJSON(&createAssetReq); err != nil {
+	if err := c.ShouldBindJSON(&createAssetReq); err != nil {
 		log.Errorf("CreateAssetHandler c.BindJSON() error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
