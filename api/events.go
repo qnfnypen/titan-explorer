@@ -1803,8 +1803,8 @@ func GetAssetCountHandler(c *gin.Context) {
 				return
 			}
 			for _, hash := range hashs {
-				cid, _ := storage.HashToCID(hash)
-				assetRsp, err := schedulerClient.GetAssetRecord(c.Request.Context(), cid)
+				tmpcid, _ := storage.HashToCID(hash)
+				assetRsp, err := schedulerClient.GetAssetRecord(c.Request.Context(), tmpcid)
 				if err != nil {
 					log.Errorf("api GetAssetRecord: %v", err)
 					continue

@@ -220,13 +220,13 @@ func listAssets(ctx context.Context, uid string, limit, offset, groupID int) (*L
 				return
 			}
 			// 将 hash 转换为 cid
-			cid, err := storage.HashToCID(info.Hash)
+			tmpcid, err := storage.HashToCID(info.Hash)
 			if err != nil {
 				return
 			}
 			// 获取用户文件分发记录
 			records := new(AssetRecord)
-			records.CID = cid
+			// records.CID = cid
 			records.Hash = info.Hash
 			for _, v := range areaIDs {
 				sCli, err := getSchedulerClient(ctx, v)
@@ -234,11 +234,12 @@ func listAssets(ctx context.Context, uid string, limit, offset, groupID int) (*L
 					log.Errorf("getSchedulerClient err: %s", err.Error())
 					continue
 				}
-				record, err := sCli.GetAssetRecord(ctx, cid)
+				record, err := sCli.GetAssetRecord(ctx, tmpcid)
 				if err != nil {
 					log.Errorf("asset LoadAssetRecord err: %s", err.Error())
 					continue
 				}
+				records.CID = record.CID
 				records.NeedEdgeReplica += record.NeedEdgeReplica
 				records.NeedCandidateReplicas += record.ReplenishReplicas
 				// records.ReplicaInfos = append(records.ReplicaInfos, record.ReplicaInfos...)
