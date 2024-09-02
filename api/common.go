@@ -225,6 +225,8 @@ func listAssets(ctx context.Context, uid string, limit, offset, groupID int) (*L
 				log.Errorf("get areaids err: %s", err.Error())
 				return
 			}
+			// 获取用户文件分发记录
+			records := new(AssetRecord)
 			cid := info.Cid
 			if cid == "" {
 				// 将 hash 转换为 cid
@@ -233,10 +235,9 @@ func listAssets(ctx context.Context, uid string, limit, offset, groupID int) (*L
 					log.Errorf("hash to cid err: %s", err.Error())
 					return
 				}
+			} else {
+				records.CID = cid
 			}
-			// 获取用户文件分发记录
-			records := new(AssetRecord)
-			// records.CID = cid
 			records.Hash = info.Hash
 			for _, v := range areaIDs {
 				sCli, err := getSchedulerClient(ctx, v)

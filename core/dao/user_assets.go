@@ -8,7 +8,6 @@ import (
 
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/terrors"
-	"github.com/Filecoin-Titan/titan/node/cidutil"
 	"github.com/Masterminds/squirrel"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 )
@@ -46,6 +45,11 @@ type (
 		VisitCount  int64     `db:"visit_count"`
 		// ShortPass   string    `db:"short_pass"`
 		// IsSync      bool      `db:"is_sync" json:"-"`
+	}
+	// SubAssetDetail 部分用户文件信息
+	SubAssetDetail struct {
+		Cid       string `db:"cid"`
+		TotalSize int64  `db:"total_size"`
 	}
 
 	// DashBoardInfo 仪表盘数据信息
@@ -115,6 +119,8 @@ func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset, areaIDs 
 	return tx.Commit()
 }
 
+type ()
+
 // DelAssetAndUpdateSize 删除文件信息并修改使用的storage存储空间
 func DelAssetAndUpdateSize(ctx context.Context, hash, userID string, areaID []string, isNeedDel bool) error {
 	tx, err := DB.Beginx()
@@ -140,12 +146,12 @@ func DelAssetAndUpdateSize(ctx context.Context, hash, userID string, areaID []st
 		return tx.Commit()
 	}
 	// 获取文件尺寸大小
-	var size int64
-	query, args, err = squirrel.Select("total_size").From(tableUserAsset).Where("hash = ? AND user_id = ?", hash, userID).ToSql()
+	var sa SubAssetDetail
+	query, args, err = squirrel.Select("total_size,cid").From(tableUserAsset).Where("hash = ? AND user_id = ?", hash, userID).ToSql()
 	if err != nil {
 		return fmt.Errorf("generate sql error:%w", err)
 	}
-	err = tx.GetContext(ctx, &size, query, args...)
+	err = tx.GetContext(ctx, &sa, query, args...)
 	if err != nil {
 		return err
 	}
@@ -159,7 +165,7 @@ func DelAssetAndUpdateSize(ctx context.Context, hash, userID string, areaID []st
 		return err
 	}
 	// 修改用户storage已使用记录
-	query, args, err = squirrel.Update(tableNameUser).Set("used_storage_size", squirrel.Expr("used_storage_size - ?", size)).Where("username = ?", userID).ToSql()
+	query, args, err = squirrel.Update(tableNameUser).Set("used_storage_size", squirrel.Expr("used_storage_size - ?", sa.TotalSize)).Where("username = ?", userID).ToSql()
 	if err != nil {
 		return fmt.Errorf("generate update users sql error:%w", err)
 	}
@@ -169,11 +175,7 @@ func DelAssetAndUpdateSize(ctx context.Context, hash, userID string, areaID []st
 	}
 
 	// 删除该文件的分享
-	cid, err := cidutil.HashToCID(hash)
-	if err != nil {
-		return err
-	}
-	query, args, err = squirrel.Delete(tableNameLink).Where("username = ?", userID).Where("cid = ?", cid).ToSql()
+	query, args, err = squirrel.Delete(tableNameLink).Where("username = ?", userID).Where("cid = ?", sa.Cid).ToSql()
 	if err != nil {
 		return fmt.Errorf("generate delete links sql error:%w", err)
 	}

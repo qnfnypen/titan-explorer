@@ -67,7 +67,7 @@ func UploadTmepFile(c *gin.Context) {
 	as := strings.Split(areaIDs[0], "-")
 	if len(req.AreaIDs) != 0 {
 		for _, v := range allAreaIDs {
-			if strings.EqualFold(as[1], v) {
+			if !strings.EqualFold(as[1], v) {
 				continue
 			}
 			areaIDs = append(areaIDs, maps[v][0])
