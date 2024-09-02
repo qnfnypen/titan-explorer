@@ -1576,7 +1576,7 @@ func CreateShareLinkHandler(c *gin.Context) {
 	link.UpdatedAt = time.Now()
 	shortLink := dao.GetShortLink(c.Request.Context(), u)
 	if shortLink == "" {
-		link.ShortLink = "/link?" + "cid=" + cid + "&area_id=" + areaId
+		link.ShortLink = "/link?" + "cid=" + cid + "&area_id=" + areaId + "&ts=?" + strconv.FormatInt(time.Now().Unix(), 10)
 		shortLink = link.ShortLink
 		err := dao.CreateLink(c.Request.Context(), &link)
 		if err != nil {
