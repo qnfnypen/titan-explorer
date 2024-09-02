@@ -1842,7 +1842,8 @@ func GetAssetCountHandler(c *gin.Context) {
 	var (
 		candidateCount, edgeCount = new(atomic.Int64), new(atomic.Int64)
 		wg                        = new(sync.WaitGroup)
-		deviceExists              = make(map[string]int)
+		deviceExists              = new(sync.Map)
+		// deviceExists              = make(map[string]int)
 	)
 
 	claims := jwt.ExtractClaims(c)
@@ -1875,10 +1876,15 @@ func GetAssetCountHandler(c *gin.Context) {
 				}
 				if len(assetRsp.ReplicaInfos) > 0 {
 					for _, rep := range assetRsp.ReplicaInfos {
-						if _, ok := deviceExists[rep.NodeID]; ok {
+						// if _, ok := deviceExists[rep.NodeID]; ok {
+						// 	continue
+						// }
+						// deviceExists[rep.NodeID] = 1
+						_, ok := deviceExists.LoadOrStore(rep.NodeID, 1)
+						if ok {
 							continue
 						}
-						deviceExists[rep.NodeID] = 1
+
 						switch rep.IsCandidate {
 						case true:
 							candidateCount.Add(1)
