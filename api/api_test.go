@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/base64"
 	"io"
 	"net"
 	"net/http"
@@ -10,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gnasnik/titan-explorer/core/storage"
+	"github.com/Filecoin-Titan/titan/node/cidutil"
 	"github.com/golang-module/carbon/v2"
 )
 
@@ -171,8 +172,9 @@ func TestMove(t *testing.T) {
 }
 
 func TestChange(t *testing.T) {
-	cid := "bafkreiexlvvmjbxokxegnrc3gbrw7tejqp7h77awbkjbavp2fy5sezt2li"
-	hash, err := storage.CIDToHash(cid)
+	cid := "bafkreibzaosq2l72ur3mw3l6sdo4jfhiwwwsbmjzlkb7qq73gdqpg3sana"
+	// hash, err := storage.CIDToHash(cid)
+	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -219,4 +221,15 @@ func TestGetNow(t *testing.T) {
 	t.Log(carbon.Now().StartOfHour().SubHours(25).String())
 
 	t.Log(carbon.Now().String())
+}
+
+func TestEncode(t *testing.T) {
+	name := "7+php搜索引擎中sql注入问题.wmv"
+
+	base64Name := base64.StdEncoding.EncodeToString([]byte(name))
+
+	ob, _ := base64.StdEncoding.DecodeString(base64Name)
+	if string(ob) != name {
+		t.Fail()
+	}
 }

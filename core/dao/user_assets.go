@@ -32,6 +32,7 @@ type (
 	UserAssetDetail struct {
 		UserID      string    `db:"user_id"`
 		Hash        string    `db:"hash"`
+		Cid         string    `db:"cid"`
 		AreaIDs     []string  `db:"-" json:"area_ids"`
 		AreaIDMaps  []KVMap   `db:"-" json:"area_maps"`
 		AssetName   string    `db:"asset_name"`
@@ -75,8 +76,8 @@ func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset, areaIDs 
 	}
 
 	// 添加文件记录
-	query, args, err := squirrel.Insert(tableUserAsset).Columns("user_id,asset_name,asset_type,total_size,group_id,hash,created_time,expiration,password").
-		Values(asset.UserID, asset.AssetName, asset.AssetType, asset.TotalSize, asset.GroupID, asset.Hash, asset.CreatedTime, asset.Expiration, asset.Password).ToSql()
+	query, args, err := squirrel.Insert(tableUserAsset).Columns("user_id,asset_name,asset_type,total_size,group_id,hash,created_time,expiration,password,cid").
+		Values(asset.UserID, asset.AssetName, asset.AssetType, asset.TotalSize, asset.GroupID, asset.Hash, asset.CreatedTime, asset.Expiration, asset.Password, asset.Cid).ToSql()
 	if err != nil {
 		return fmt.Errorf("generate insert asset sql error:%w", err)
 	}
@@ -219,7 +220,7 @@ func ListAssets(ctx context.Context, uid string, limit, offset, groupID int) (in
 		return 0, nil, err
 	}
 
-	query, args, err := squirrel.Select("ua.user_id,ua.hash,ua.asset_name,ua.asset_type,ua.share_status,ua.expiration,ua.created_time,ua.total_size,ua.password,ua.group_id,IFNULL(uav.count,0) AS visit_count").
+	query, args, err := squirrel.Select("ua.user_id,ua.hash,ua.cid,ua.asset_name,ua.asset_type,ua.share_status,ua.expiration,ua.created_time,ua.total_size,ua.password,ua.group_id,IFNULL(uav.count,0) AS visit_count").
 		From(fmt.Sprintf("%s AS ua", tableUserAsset)).LeftJoin(fmt.Sprintf("%s AS uav ON ua.hash=uav.hash and ua.user_id = uav.user_id", tableUserAssetVisit)).
 		Where("ua.user_id = ? AND ua.group_id = ?", uid, groupID).OrderBy("ua.created_time desc").
 		Limit(uint64(limit)).Offset(uint64(offset)).ToSql()
@@ -232,6 +233,17 @@ func ListAssets(ctx context.Context, uid string, limit, offset, groupID int) (in
 	}
 
 	return total, infos, nil
+}
+
+// UpdateAssetCid 更新文件的cid信息
+func UpdateAssetCid(ctx context.Context, hash, cid string) error {
+	query, args, err := squirrel.Update(tableUserAsset).Set("cid", cid).Where("hash = ?", hash).ToSql()
+	if err != nil {
+		return fmt.Errorf("generate sql to update cid of user_asset error:%w", err)
+	}
+
+	_, err = DB.ExecContext(ctx, query, args...)
+	return err
 }
 
 // CreateAssetGroup 创建文件夹

@@ -23,7 +23,7 @@ func CIDToHash(cidString string) (string, error) {
 	return cid.Hash().String(), nil
 }
 
-// HashToCID converts a hash string to its corresponding CID string.
+// HashToCID [不建议继续使用] converts a hash string to its corresponding CID string.
 func HashToCID(hashString string) (string, error) {
 	multihash, err := mh.FromHexString(hashString)
 	if err != nil {
