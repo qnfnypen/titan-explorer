@@ -734,6 +734,7 @@ func GetDeviceProfileFromCache(ctx context.Context, deviceId string) (map[string
 
 func SumAllUsersReward(ctx context.Context, eligibleOnlineMinutes int) ([]*model.UserReward, error) {
 	query := `select user_id,
+      sum(if(node_type = 2, cumulative_profit, 0)) as l1_reward,
       sum(if(node_type = 1, cumulative_profit, 0)) as cumulative_reward,
       sum(if(node_type = 1, today_profit,0)) as reward,
       sum(if(node_type = 1, online_incentive_profit, 0)) as online_incentive_reward,

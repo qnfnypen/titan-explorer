@@ -277,7 +277,7 @@ func SumUserReward(ctx context.Context) error {
 		log.Infof("sum user reward done, cost: %v", time.Since(start))
 	}()
 
-	// 计算所有用户的累计收益, 当天收益, 满足条件的节点数量
+	// 计算所有用户的L2累计收益, 当天收益, 满足条件的节点数量
 	userRewardSum, err := dao.SumAllUsersReward(ctx, config.Cfg.EligibleOnlineMinutes)
 	if err != nil {
 		log.Errorf("SumAllUsersReward: %v", err)
@@ -330,13 +330,18 @@ func SumUserReward(ctx context.Context) error {
 			return uErr
 		}
 
+		l1Rw, err := dao.GetUserL1Reward(ctx, userReward.UserId)
+		if err != nil {
+			return err
+		}
+
 		if user == nil {
 			log.Errorf("user not found: %s", userReward.UserId)
 			continue
 		}
 
 		// 计算收益的增值, 在有惩罚机制的情况下, 收益有可能是负数
-		changedRewards := userReward.CumulativeReward - user.Reward
+		changedRewards := userReward.L2Reward - (user.Reward - l1Rw.Reward)
 		changedDeviceCounts := userReward.DeviceCount - user.DeviceCount
 
 		if changedRewards != 0 || changedDeviceCounts != 0 {
@@ -397,6 +402,11 @@ func SumUserReward(ctx context.Context) error {
 
 	log.Infof("today user reward changed count: %d %d %d", len(userRewards), len(referralReward), len(updateDetails))
 
+	// 更新 user_l1_reward
+	if err = updateUserL1Rewards(ctx, userRewards); err != nil {
+		return err
+	}
+
 	// 更新 users 表, 用户的 reward, device_count, online_incentive_reward
 	if err = updateUserRewards(ctx, userRewards); err != nil {
 		return err
@@ -423,7 +433,7 @@ func updateUserRewards(ctx context.Context, userRewards []*model.UserReward) err
 	for i, u := range userRewards {
 		todos = append(todos, &model.User{
 			Username:              u.UserId,
-			Reward:                u.CumulativeReward,
+			Reward:                u.L2Reward + u.L1Reward,
 			DeviceCount:           u.DeviceCount,
 			EligibleDeviceCount:   u.EligibleDeviceCount,
 			OnlineIncentiveReward: u.OnlineIncentiveReward,
@@ -533,6 +543,28 @@ func applyUserLevel(ctx context.Context, kolConfig []*model.KOLLevelConfig, sumR
 	}
 
 	return out, nil
+}
+
+func updateUserL1Rewards(ctx context.Context, userRewards []*model.UserReward) error {
+	var todos []*model.UserL1Reward
+
+	for _, u := range userRewards {
+		if int64(u.L1Reward) <= 0 {
+			continue
+		}
+
+		todos = append(todos, &model.UserL1Reward{
+			UserId: u.UserId,
+			Reward: u.L1Reward,
+		})
+
+	}
+
+	if err := dao.BulkUpdateUserL1Reward(ctx, todos); err != nil {
+		return errs.Wrap(err, "BulkUpdateUserL1Reward")
+	}
+
+	return nil
 }
 
 func SumAllNodes() error {
