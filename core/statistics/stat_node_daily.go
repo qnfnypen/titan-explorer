@@ -321,12 +321,12 @@ func SumUserReward(ctx context.Context) error {
 	var userRewards []*model.UserReward
 	for _, userReward := range userRewardSum {
 		// 今日收益有变动的
-		if userReward.Reward == 0 {
-			continue
-		}
+		//if userReward.Reward == 0 {
+		//	continue
+		//}
 
 		user, uErr := dao.GetUserByUsername(ctx, userReward.UserId)
-		if err != nil {
+		if uErr != nil {
 			return uErr
 		}
 
@@ -360,7 +360,7 @@ func SumUserReward(ctx context.Context) error {
 			rw := changedRewards * currentLevelConfig.CommissionPercent / 100
 			referralReward[user.ReferrerUserId] += rw
 			parent, pErr := dao.GetUserByUsername(ctx, user.ReferrerUserId)
-			if err != nil {
+			if pErr != nil {
 				return pErr
 			}
 
