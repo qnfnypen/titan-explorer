@@ -511,7 +511,7 @@ func GetUserL1Reward(ctx context.Context, userId string) (*model.UserL1Reward, e
 
 func BulkUpdateUserL1Reward(ctx context.Context, rewards []*model.UserL1Reward) error {
 	query := `INSERT INTO user_l1_reward (user_id, reward, updated_at) 
-	VALUES (:user_id, :reward, now()) ON DUPLICATE KEY UPDATE reward = values(reward), updated_at = now()`
+	VALUES (:user_id, :reward, :updated_at) ON DUPLICATE KEY UPDATE reward = values(reward), updated_at = now()`
 	_, err := DB.NamedExecContext(ctx, query, rewards)
 	return err
 }
