@@ -561,7 +561,7 @@ func CreateAssetHandler(c *gin.Context) {
 		TotalSize:   createAssetReq.AssetSize,
 		Password:    randomPassNonce,
 		GroupID:     int64(createAssetReq.GroupID),
-	}, notExistsAids); err != nil {
+	}, notExistsAids, areaIds[0]); err != nil {
 		log.Errorf("CreateAssetHandler AddAsset error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -574,7 +574,11 @@ func CreateAssetHandler(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, respJSON(rsp))
+	c.JSON(http.StatusOK, gin.H{
+		"code": 0,
+		"data": rsp,
+		"Log":  areaIds[0],
+	})
 }
 
 type createAssetRequest struct {
@@ -715,7 +719,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 		TotalSize:   createAssetReq.AssetSize,
 		Password:    randomPassNonce,
 		GroupID:     int64(createAssetReq.GroupID),
-	}, notExistsAids); err != nil {
+	}, notExistsAids, areaIds[0]); err != nil {
 		log.Errorf("CreateAssetHandler AddAsset error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -728,7 +732,11 @@ func CreateAssetPostHandler(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, respJSON(rsp))
+	c.JSON(http.StatusOK, gin.H{
+		"code": 0,
+		"data": rsp,
+		"Log":  areaIds[0],
+	})
 }
 
 type CidArr []string
@@ -1074,6 +1082,7 @@ func ShareAssetsHandler(c *gin.Context) {
 			return
 		}
 	}
+	log.Errorf("areaId:%s", areaId)
 	// 获取文件信息
 	userAsset, err := dao.GetUserAssetDetail(c.Request.Context(), hash, userId)
 	if err != nil {

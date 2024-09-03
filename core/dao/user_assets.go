@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api"
@@ -68,7 +69,7 @@ type (
 )
 
 // AddAssetAndUpdateSize 添加文件信息并修改使用的storage存储空间
-func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset, areaIDs []string) error {
+func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset, areaIDs []string, syncArea string) error {
 	tx, err := DB.Beginx()
 	if err != nil {
 		return err
@@ -91,9 +92,9 @@ func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset, areaIDs 
 	}
 	// 添加文件区域
 	abuiler := squirrel.Insert(tableUserAssetArea).Columns("hash,user_id,area_id,is_sync")
-	for i, v := range areaIDs {
+	for _, v := range areaIDs {
 		isSync := false
-		if i == 0 {
+		if strings.EqualFold(v, syncArea) {
 			isSync = true
 		}
 		abuiler = abuiler.Values(asset.Hash, asset.UserID, v, isSync)
@@ -474,6 +475,7 @@ func GetUserAssetNotAreaIDs(ctx context.Context, hash, uid string, areaID []stri
 		"area_id": areaID,
 		"user_id": uid,
 		"hash":    hash,
+		"is_sync": 0,
 	}).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("generate get asset sql error:%w", err)
