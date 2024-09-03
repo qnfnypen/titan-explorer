@@ -3,6 +3,7 @@ package dao
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
@@ -469,6 +470,18 @@ func BulkUpdateUserRewardDetails(ctx context.Context, logs []*model.UserRewardDe
 	return err
 }
 
+func GetUserRewardDetailsByUserID(ctx context.Context, userId string) ([]*model.UserRewardDetail, error) {
+	query := `select * from user_reward_detail where user_id = ?`
+
+	var out []*model.UserRewardDetail
+	err := DB.SelectContext(ctx, &out, query, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
 func GetReferralReward(ctx context.Context, userId, fromUserId string) (*model.UserRewardDetail, error) {
 	query := `select * from user_reward_detail where user_id = ? and from_user_id = ?`
 
@@ -479,4 +492,26 @@ func GetReferralReward(ctx context.Context, userId, fromUserId string) (*model.U
 	}
 
 	return &out, nil
+}
+
+func GetUserL1Reward(ctx context.Context, userId string) (*model.UserL1Reward, error) {
+	query := `select * from user_l1_reward where user_id = ?`
+
+	var out model.UserL1Reward
+	err := DB.GetContext(ctx, &out, query, userId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return &model.UserL1Reward{}, nil
+		}
+		return &model.UserL1Reward{}, err
+	}
+
+	return &out, nil
+}
+
+func BulkUpdateUserL1Reward(ctx context.Context, rewards []*model.UserL1Reward) error {
+	query := `INSERT INTO user_l1_reward (user_id, reward, updated_at) 
+	VALUES (:user_id, :reward, :updated_at) ON DUPLICATE KEY UPDATE reward = values(reward), updated_at = now()`
+	_, err := DB.NamedExecContext(ctx, query, rewards)
+	return err
 }

@@ -213,8 +213,9 @@ type UserRewardDetail struct {
 
 type UserReward struct {
 	UserId                string  `json:"user_id" db:"user_id"`
-	CumulativeReward      float64 `json:"cumulative_reward" db:"cumulative_reward"`
 	Reward                float64 `json:"reward" db:"reward"`
+	L2Reward              float64 `json:"l2_reward" db:"l2_reward"`
+	L1Reward              float64 `json:"l1_reward" db:"l1_reward"`
 	EligibleDeviceCount   int64   `json:"eligible_device_count" db:"eligible_device_count"`
 	DeviceCount           int64   `json:"device_count" db:"device_count"`
 	OnlineIncentiveReward float64 `json:"online_incentive_reward" db:"online_incentive_reward"`
@@ -257,4 +258,10 @@ type PlainDeviceInfo struct {
 	ExternalIP       string `json:"external_ip" db:"external_ip"`
 	SystemVersion    string `json:"system_version" db:"system_version"`
 	IOSystem         string `json:"io_system" db:"io_system"`
+}
+
+type UserL1Reward struct {
+	UserId    string    `json:"user_id" db:"user_id"`
+	Reward    float64   `json:"reward" db:"reward"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
