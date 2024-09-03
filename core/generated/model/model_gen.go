@@ -327,6 +327,7 @@ type User struct {
 	ReferrerUserId         string    `db:"referrer_user_id" json:"-"`
 	ReferralCode           string    `db:"referral_code" json:"referral_code"`
 	Reward                 float64   `db:"reward" json:"reward"`
+	L1Reward 			   float64   `db:"l1_reward" json:"l1_reward"`
 	ReferralReward         float64   `db:"referral_reward" json:"referral_reward"`
 	ClosedTestReward       float64   `db:"closed_test_reward" json:"closed_test_reward"`
 	HuygensReward          float64   `db:"huygens_reward" json:"huygens_reward"`
