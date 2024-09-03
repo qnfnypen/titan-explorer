@@ -72,6 +72,7 @@ type (
 func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset, areaIDs []string, syncArea string) error {
 	tx, err := DB.Beginx()
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 	defer tx.Rollback()
@@ -84,6 +85,7 @@ func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset, areaIDs 
 	query, args, err := squirrel.Insert(tableUserAsset).Columns("user_id,asset_name,asset_type,total_size,group_id,hash,created_time,expiration,password,cid").
 		Values(asset.UserID, asset.AssetName, asset.AssetType, asset.TotalSize, asset.GroupID, asset.Hash, asset.CreatedTime, asset.Expiration, asset.Password, asset.Cid).ToSql()
 	if err != nil {
+		log.Error(err)
 		return fmt.Errorf("generate insert asset sql error:%w", err)
 	}
 	_, err = tx.ExecContext(ctx, query, args...)
@@ -101,19 +103,23 @@ func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset, areaIDs 
 	}
 	query, args, err = abuiler.ToSql()
 	if err != nil {
+		log.Error(err)
 		return fmt.Errorf("generate insert asset's area sql error:%w", err)
 	}
 	_, err = tx.ExecContext(ctx, query, args...)
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 	// 修改用户storage已使用记录
 	query, args, err = squirrel.Update(tableNameUser).Set("used_storage_size", squirrel.Expr("used_storage_size + ?", asset.TotalSize)).Where("username = ?", asset.UserID).ToSql()
 	if err != nil {
+		log.Error(err)
 		return fmt.Errorf("generate update users sql error:%w", err)
 	}
 	_, err = tx.ExecContext(ctx, query, args...)
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 
