@@ -120,8 +120,6 @@ func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset, areaIDs 
 	return tx.Commit()
 }
 
-type ()
-
 // DelAssetAndUpdateSize 删除文件信息并修改使用的storage存储空间
 func DelAssetAndUpdateSize(ctx context.Context, hash, userID string, areaID []string, isNeedDel bool) error {
 	tx, err := DB.Beginx()
@@ -475,7 +473,6 @@ func GetUserAssetNotAreaIDs(ctx context.Context, hash, uid string, areaID []stri
 		"area_id": areaID,
 		"user_id": uid,
 		"hash":    hash,
-		"is_sync": 0,
 	}).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("generate get asset sql error:%w", err)
