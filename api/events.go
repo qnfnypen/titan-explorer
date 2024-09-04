@@ -1584,7 +1584,7 @@ func CreateShareLinkHandler(c *gin.Context) {
 	link.UpdatedAt = time.Now()
 	shortLink := dao.GetShortLink(c.Request.Context(), u)
 	if shortLink == "" {
-		link.ShortLink = "/link?" + "cid=" + cid + "&area_id=" + areaId
+		link.ShortLink = "/link?" + "cid=" + cid + "&area_id=" + areaId + "&ts=" + strconv.FormatInt(time.Now().Unix(), 10)
 		shortLink = link.ShortLink
 		err := dao.CreateLink(c.Request.Context(), &link)
 		if err != nil {
@@ -1844,6 +1844,41 @@ func GetAssetStatusHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"data": statusRsp,
 	}))
+}
+
+func GetOpenAssetStatusHandler(c *gin.Context) {
+	userId := c.Query("username")
+	cid := c.Query("cid")
+
+	hash, err := storage.CIDToHash(cid)
+	if err != nil {
+		log.Errorf("Decode CID error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	resp := &types.AssetStatus{
+		IsExist:           true,
+		IsExpiration:      false,
+		IsVisitOutOfLimit: false,
+	}
+
+	asset, err := dao.GetUserAsset(c.Request.Context(), userId, hash)
+	if err != nil && err != sql.ErrNoRows {
+		log.Errorf("Get Asset error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	if err == sql.ErrNoRows {
+		resp.IsExist = false
+		c.JSON(http.StatusOK, respJSON(JsonObject{"data": resp}))
+		return
+	}
+
+	resp.IsExpiration = asset.Expiration.Before(time.Now())
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{"data": resp}))
 }
 
 func GetAssetCountHandler(c *gin.Context) {
