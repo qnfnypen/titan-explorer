@@ -167,6 +167,7 @@ func getAreaIDs(c *gin.Context) []string {
 		if len(vs) >= 2 {
 			vv = vs[1]
 		}
+		areaMaps[vv] = false
 		if _, ok := areaMaps[vv]; !ok {
 			newAreaIDs = append(newAreaIDs, vv)
 		}

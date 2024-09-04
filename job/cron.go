@@ -302,11 +302,11 @@ func getSyncSuccessHash(v string) ([]string, error) {
 			syncHash = append(syncHash, vv.Hash)
 		} else {
 			// 如果5分钟后还没有同步完成，则删除该区域的同步，重新进行同步
-			if time.Now().Before(vv.CreatedTime.Add(5 * time.Second)) {
-				if err = scli.RemoveAssetRecord(ctx, vv.CID); err == nil {
-					oprds.GetClient().PushSchedulerInfo(ctx, &oprds.Payload{CID: vv.CID, Hash: vv.Hash, AreaID: v})
-				}
-			}
+			// if time.Now().Before(vv.CreatedTime.Add(5 * time.Second)) {
+			// 	if err = scli.RemoveAssetRecord(ctx, vv.CID); err == nil {
+			// 		oprds.GetClient().PushSchedulerInfo(ctx, &oprds.Payload{CID: vv.CID, Hash: vv.Hash, AreaID: v})
+			// 	}
+			// }
 		}
 	}
 

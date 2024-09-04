@@ -236,16 +236,18 @@ func TestEncode(t *testing.T) {
 
 func TestSplit(t *testing.T) {
 	var (
-		areaIDs    = []string{"Asia-HongKong", "HongKong"}
+		areaIDs    = []string{"Asia-HongKong"}
+		areaMaps   = make(map[string]bool)
 		newAreaIDs []string
 	)
 	for _, v := range areaIDs {
 		vs := strings.Split(v, "-")
-		t.Log(vs)
+		vv := v
 		if len(vs) >= 2 {
-			newAreaIDs = append(newAreaIDs, vs[1])
-		} else {
-			newAreaIDs = append(newAreaIDs, v)
+			vv = vs[1]
+		}
+		if _, ok := areaMaps[vv]; !ok {
+			newAreaIDs = append(newAreaIDs, vv)
 		}
 	}
 
