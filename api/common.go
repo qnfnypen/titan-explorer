@@ -155,7 +155,17 @@ func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string]
 }
 
 func getAreaIDs(c *gin.Context) []string {
+	var newAreaIDs []string
 	areaIDs := c.QueryArray("area_id")
+
+	for _, v := range areaIDs {
+		vs := strings.Split(v, "-")
+		if len(vs) > 2 {
+			newAreaIDs = append(newAreaIDs, vs[1])
+		} else {
+			newAreaIDs = append(newAreaIDs, v)
+		}
+	}
 
 	aids, _ := getAreaIDsByAreaID(c, areaIDs)
 

@@ -1082,7 +1082,6 @@ func ShareAssetsHandler(c *gin.Context) {
 			return
 		}
 	}
-	log.Errorf("areaId:%s", areaId)
 	// 获取文件信息
 	userAsset, err := dao.GetUserAssetDetail(c.Request.Context(), hash, userId)
 	if err != nil {

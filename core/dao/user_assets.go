@@ -513,7 +513,11 @@ func getNotExists(pAids, nAids []string) []string {
 func GetUnSyncAreaIDs(ctx context.Context, uid, hash string) ([]string, error) {
 	var aids []string
 
-	query, args, err := squirrel.Select("area_id").From(tableUserAssetArea).Where("user_id = ? AND hash = ? AND is_sync = false", uid, hash).ToSql()
+	sq := squirrel.Select("DISTINCT(area_id)").From(tableUserAssetArea).Where("hash = ? AND is_sync = 0", hash)
+	if uid != "" {
+		sq = sq.Where("user_id = ?", uid)
+	}
+	query, args, err := sq.ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("generate get asset sql error:%w", err)
 	}
@@ -532,6 +536,20 @@ func UpdateUnSyncAreaIDs(ctx context.Context, uid, hash string, aids []string) e
 		"area_id": aids,
 		"user_id": uid,
 		"hash":    hash,
+	}).ToSql()
+	if err != nil {
+		return fmt.Errorf("generate get asset sql error:%w", err)
+	}
+
+	_, err = DB.ExecContext(ctx, query, args...)
+	return err
+}
+
+func UpdateSyncAssetAreas(ctx context.Context, areaID string, hashs []string) error {
+	query, args, err := squirrel.Update(tableUserAssetArea).Set("is_sync", true).Where(squirrel.Eq{
+		"area_id": areaID,
+		"hash":    hashs,
+		"is_sync": 0,
 	}).ToSql()
 	if err != nil {
 		return fmt.Errorf("generate get asset sql error:%w", err)
@@ -569,10 +587,16 @@ func GetVisitCount(ctx context.Context, hash, user_id string) (int64, error) {
 
 // CheckUserAseetNeedDel 判断文件是否需要删除
 func CheckUserAseetNeedDel(ctx context.Context, hash, uid string, areaID []string) ([]string, bool, error) {
-	var existAids []string
+	var (
+		aids, existAids []string
+	)
 
 	// 获取文件所有调度器区域
-	aids, err := GetUserAssetAreaIDs(ctx, hash, uid)
+	query, args, err := squirrel.Select("area_id").From(tableUserAssetArea).Where("user_id = ? AND hash = ?", uid, hash).ToSql()
+	if err != nil {
+		return nil, false, fmt.Errorf("generate get asset sql error:%w", err)
+	}
+	err = DB.SelectContext(ctx, &aids, query, args...)
 	if err != nil {
 		return nil, false, err
 	}
@@ -580,7 +604,7 @@ func CheckUserAseetNeedDel(ctx context.Context, hash, uid string, areaID []strin
 		return aids, true, nil
 	}
 	// 获取指定区域中存在的调度器区域
-	query, args, err := squirrel.Select("area_id").From(tableUserAssetArea).Where(squirrel.Eq{
+	query, args, err = squirrel.Select("area_id").From(tableUserAssetArea).Where(squirrel.Eq{
 		"area_id": areaID,
 		"user_id": uid,
 		"hash":    hash,
@@ -648,7 +672,7 @@ func CheckUserAssetIsInAreaID(ctx context.Context, userID, hash, areaID string) 
 func GetOneAreaIDByAreaID(ctx context.Context, userID, hash, areaID string) (string, error) {
 	var areaIDs []string
 
-	query, args, err := squirrel.Select("area_id").From(tableUserAssetArea).Where("user_id = ? AND hash = ? AND area_id LIKE ?", userID, hash, `%`+areaID+`%`).ToSql()
+	query, args, err := squirrel.Select("area_id").From(tableUserAssetArea).Where("user_id = ? AND hash = ? AND area_id LIKE ? AND is_sync = 1", userID, hash, `%`+areaID+`%`).ToSql()
 	if err != nil {
 		return "", fmt.Errorf("generate get asset sql error:%w", err)
 	}
