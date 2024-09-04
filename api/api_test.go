@@ -233,3 +233,21 @@ func TestEncode(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestSplit(t *testing.T) {
+	var (
+		areaIDs    = []string{"Asia-HongKong", "HongKong"}
+		newAreaIDs []string
+	)
+	for _, v := range areaIDs {
+		vs := strings.Split(v, "-")
+		t.Log(vs)
+		if len(vs) >= 2 {
+			newAreaIDs = append(newAreaIDs, vs[1])
+		} else {
+			newAreaIDs = append(newAreaIDs, v)
+		}
+	}
+
+	t.Log(newAreaIDs)
+}

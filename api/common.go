@@ -155,19 +155,24 @@ func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string]
 }
 
 func getAreaIDs(c *gin.Context) []string {
-	var newAreaIDs []string
+	var (
+		newAreaIDs []string
+		areaMaps   = make(map[string]bool)
+	)
 	areaIDs := c.QueryArray("area_id")
 
 	for _, v := range areaIDs {
 		vs := strings.Split(v, "-")
-		if len(vs) > 2 {
-			newAreaIDs = append(newAreaIDs, vs[1])
-		} else {
-			newAreaIDs = append(newAreaIDs, v)
+		vv := v
+		if len(vs) >= 2 {
+			vv = vs[1]
+		}
+		if _, ok := areaMaps[vv]; !ok {
+			newAreaIDs = append(newAreaIDs, vv)
 		}
 	}
 
-	aids, _ := getAreaIDsByAreaID(c, areaIDs)
+	aids, _ := getAreaIDsByAreaID(c, newAreaIDs)
 
 	return aids
 }
