@@ -1876,7 +1876,9 @@ func GetOpenAssetStatusHandler(c *gin.Context) {
 		return
 	}
 
-	resp.IsExpiration = asset.Expiration.Before(time.Now())
+	if !asset.Expiration.IsZero() {
+		resp.IsExpiration = asset.Expiration.Before(time.Now())
+	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{"data": resp}))
 }
