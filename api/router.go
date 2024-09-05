@@ -10,7 +10,9 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 )
 
-var log = logging.Logger("api")
+var (
+	log = logging.Logger("api")
+)
 
 func RegisterRouters(route *gin.Engine, cfg config.Config) {
 	RegisterRouterWithJWT(route, cfg)

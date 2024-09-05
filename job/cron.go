@@ -13,12 +13,14 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/core/oprds"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/robfig/cron/v3"
 )
 
 var (
 	ctx      = context.Background()
 	l1States = []string{"EdgesSelect", "EdgesPulling", "Servicing", "EdgesFailed"}
+	cronLog  = logging.Logger("cron")
 )
 
 // SyncShedulersAsset 同步调度器文件
@@ -39,7 +41,7 @@ func syncUserScheduler() func() {
 		// 获取 schedulers
 		payloads, err := oprds.GetClient().GetAllSchedulerInfos(ctx)
 		if err != nil {
-			log.Println(err)
+			cronLog.Errorf("get all scheduler infos error:%v", err)
 			return
 		}
 		wg := new(sync.WaitGroup)
@@ -50,13 +52,13 @@ func syncUserScheduler() func() {
 
 				scli, err := api.GetSchedulerClient(ctx, v.AreaID)
 				if err != nil {
-					log.Println(fmt.Errorf("get client of scheduler error:%w", err))
+					cronLog.Errorf("get client of scheduler error:%v", err)
 					return
 				}
 				// 判断L1节点是否同步完成
 				rs, err := scli.GetAssetRecord(ctx, v.CID)
 				if err != nil {
-					log.Println(fmt.Errorf("GetAssetRecord error:%w", err))
+					cronLog.Errorf("GetAssetRecord error:%v", err)
 					return
 				}
 				if !checkSyncState(rs.State) {
@@ -64,19 +66,20 @@ func syncUserScheduler() func() {
 				}
 				unSyncAids, err := dao.GetUnSyncAreaIDs(ctx, v.UserID, v.Hash)
 				if err != nil {
-					log.Println(fmt.Errorf("GetUnSyncAreaIDs error:%w", err))
+					cronLog.Errorf("GetUnSyncAreaIDs error:%v", err)
 					return
 				}
-				_, err = api.SyncShedulers(ctx, scli, v.CID, 0, unSyncAids)
+				// 对于已经有的节点不再进行同步，并变更状态
+				aids, err := SyncShedulers(ctx, scli, v.CID, 0, unSyncAids)
 				if err != nil {
-					log.Println(fmt.Errorf("SyncShedulers error:%w", err))
+					cronLog.Errorf("SyncShedulers error:%v", err)
 					return
 				}
-				// err = dao.UpdateUnSyncAreaIDs(ctx, v.UserID, v.Hash, aids)
-				// if err != nil {
-				// 	log.Println(fmt.Errorf("UpdateUnSyncAreaIDs error:%w", err))
-				// 	return
-				// }
+				err = dao.UpdateUnSyncAreaIDs(ctx, v.UserID, v.Hash, aids)
+				if err != nil {
+					log.Println(fmt.Errorf("UpdateUnSyncAreaIDs error:%w", err))
+					return
+				}
 				oprds.GetClient().DelSchedulerInfo(ctx, v)
 			}(v)
 		}
@@ -89,7 +92,7 @@ func syncUnLoginAsset() func() {
 		// 获取 schedulers
 		payloads, err := oprds.GetClient().GetAllAreaIDs(ctx)
 		if err != nil {
-			log.Println(err)
+			cronLog.Errorf("get all scheduler infos error:%v", err)
 			return
 		}
 		wg := new(sync.WaitGroup)
@@ -100,13 +103,13 @@ func syncUnLoginAsset() func() {
 
 				scli, err := api.GetSchedulerClient(ctx, v.AreaIDs[0])
 				if err != nil {
-					log.Println(fmt.Errorf("get client of scheduler error:%w", err))
+					cronLog.Errorf("get client of scheduler error:%v", err)
 					return
 				}
 				// 判断L1节点是否同步完成
 				rs, err := scli.GetAssetRecord(ctx, v.CID)
 				if err != nil {
-					log.Println(fmt.Errorf("GetAssetRecord error:%w", err))
+					cronLog.Errorf("GetAssetRecord error:%v", err)
 					return
 				}
 				if len(rs.ReplicaInfos) == 0 {
@@ -114,7 +117,7 @@ func syncUnLoginAsset() func() {
 				}
 				aids, err := api.SyncAreaIDs(ctx, scli, "", v.CID, 0, v.AreaIDs[1:])
 				if err != nil {
-					log.Println(fmt.Errorf("SyncShedulers error:%w", err))
+					cronLog.Errorf("SyncShedulers error:%v", err)
 					return
 				}
 				aids = append(aids, v.AreaIDs[0])
@@ -146,7 +149,7 @@ func syncDashboard() func() {
 
 		areaIDs, err := getAllAreaIDs()
 		if err != nil {
-			log.Println(err)
+			cronLog.Errorf("get all areaids error:%v", err)
 			return
 		}
 
@@ -157,12 +160,12 @@ func syncDashboard() func() {
 
 				scli, err := api.GetSchedulerClient(ctx, v)
 				if err != nil {
-					log.Println(fmt.Errorf("get client of scheduler error:%w", err))
+					cronLog.Errorf("get client of scheduler error:%v", err)
 					return
 				}
 				infos, err := scli.GetDownloadResultsFromAssets(ctx, nil, startTime, endTime)
 				if err != nil {
-					log.Println(err)
+					cronLog.Errorf("GetDownloadResultsFromAssets error:%v", err)
 					return
 				}
 				// 取出每个hash的最大值
@@ -176,7 +179,7 @@ func syncDashboard() func() {
 
 		err = storeAssetHourStorages(trafficMaps, bandwidthMaps, pendTime)
 		if err != nil {
-			log.Println(err)
+			cronLog.Errorf("storeAssetHourStorages error:%v", err)
 		}
 	}
 }
@@ -243,10 +246,13 @@ func getSyncSuccessAsset() {
 
 			hashs, err := getSyncSuccessHash(v)
 			if err != nil {
-				log.Printf("get sync hash error:%v %v", v, err)
+				cronLog.Errorf("getSyncSuccessHash error:%v", err)
 				return
 			}
-			dao.UpdateSyncAssetAreas(ctx, v, hashs)
+			err = dao.UpdateSyncAssetAreas(ctx, v, hashs)
+			if err != nil {
+				cronLog.Errorf("UpdateSyncAssetAreas error:%v", err)
+			}
 		}(v)
 	}
 	wg.Wait()
@@ -296,6 +302,7 @@ func getSyncSuccessHash(v string) ([]string, error) {
 		}
 		records = append(records, rsp.List...)
 	}
+	cronLog.Debugf("area:%v total:%v page:%v records:%v", v, rsp.Total, page, len(records))
 	// 处理同步完成的状态
 	for _, vv := range records {
 		if checkSyncState(vv.State) {

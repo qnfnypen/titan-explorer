@@ -392,39 +392,6 @@ func listAssetSummary(ctx context.Context, uid string, parent, page, size int) (
 	return resp, nil
 }
 
-// SyncShedulers 同步调度器数据
-func SyncShedulers(ctx context.Context, sCli api.Scheduler, cid string, size int64, areaIds []string) ([]string, error) {
-	zStrs := make([]string, 0)
-	if len(areaIds) == 0 {
-		return zStrs, nil
-	}
-
-	info, err := sCli.GenerateTokenForDownloadSources(ctx, cid)
-	if err != nil {
-		log.Errorf("generate token for download source error:%w", err)
-		return zStrs, nil
-	}
-	for _, v := range areaIds {
-		scli, err := getSchedulerClient(ctx, v)
-		if err != nil {
-			log.Errorf("getSchedulerClient error: %v", err)
-			continue
-		}
-		err = scli.CreateSyncAsset(ctx, &types.CreateSyncAssetReq{
-			AssetCID:      cid,
-			AssetSize:     size,
-			DownloadInfos: info,
-		})
-		if err != nil {
-			log.Errorf("GetUserAssetByAreaIDs error: %v", err)
-			continue
-		}
-		zStrs = append(zStrs, v)
-	}
-
-	return zStrs, nil
-}
-
 // SyncAreaIDs 同步未登陆用户文件的区域
 func SyncAreaIDs(ctx context.Context, sCli api.Scheduler, nodeID, cid string, size int64, areaIds []string) ([]string, error) {
 	zStrs := make([]string, 0)
