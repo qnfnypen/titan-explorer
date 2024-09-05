@@ -233,27 +233,3 @@ func TestEncode(t *testing.T) {
 		t.Fail()
 	}
 }
-
-func TestSplit(t *testing.T) {
-	var (
-		areaIDs    = []string{""}
-		areaMaps   = make(map[string]bool)
-		newAreaIDs []string
-	)
-	for _, v := range areaIDs {
-		v = strings.TrimSpace(v)
-		if v == "" {
-			continue
-		}
-		vs := strings.Split(v, "-")
-		vv := v
-		if len(vs) >= 2 {
-			vv = vs[1]
-		}
-		if _, ok := areaMaps[vv]; !ok {
-			newAreaIDs = append(newAreaIDs, vv)
-		}
-	}
-
-	t.Log(len(newAreaIDs))
-}

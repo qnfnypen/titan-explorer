@@ -123,11 +123,20 @@ func (c *Client) DelSchedulerInfo(ctx context.Context, payload *Payload) error {
 	return nil
 }
 
-// PushAreaIDs 上传需要同步的文件区域到队列
+// PushAreaIDs 上传需要同步的文件区域到队列，存在则不插入
 func (c *Client) PushAreaIDs(ctx context.Context, payload *AreaIDPayload) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("json marshal scheduler's info error:%w", err)
+	}
+
+	removed, err := c.rds.LRem(ctx, areaKey, 0, string(body)).Result()
+	if err != nil {
+		return fmt.Errorf("l rem info to redis error:%w", err)
+	}
+	// 如果 remove 大于0，则说明已经存在，则直接返回
+	if removed > 0 {
+		return nil
 	}
 
 	err = c.rds.LPush(ctx, areaKey, string(body)).Err()

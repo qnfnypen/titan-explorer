@@ -105,7 +105,6 @@ func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string]
 			aids = append(aids, maps[v]...)
 		}
 	}
-	log.Debugf("areaIDs:%v area_ids:%v", areaIDs, aids)
 	if len(aids) == 0 {
 		for _, v := range maps {
 			aids = append(aids, v...)
@@ -138,11 +137,11 @@ func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string]
 				}
 			}
 		}
-		log.Debugf("t_area_ids:%v", tadis)
 		areaID, err := GetNearestAreaID(c.Request.Context(), ip, tadis)
 		if err != nil {
 			log.Error(err)
 		} else {
+			// areaID = "Asia-China-Guangdong-Shenzhen"
 			naids = append(naids, areaID)
 			for _, v := range aids {
 				if !strings.EqualFold(v, areaID) {
@@ -394,13 +393,13 @@ func listAssetSummary(ctx context.Context, uid string, parent, page, size int) (
 }
 
 // SyncShedulers 同步调度器数据
-func SyncShedulers(ctx context.Context, sCli api.Scheduler, nodeID, cid string, size int64, areaIds []string) ([]string, error) {
+func SyncShedulers(ctx context.Context, sCli api.Scheduler, cid string, size int64, areaIds []string) ([]string, error) {
 	zStrs := make([]string, 0)
 	if len(areaIds) == 0 {
 		return zStrs, nil
 	}
 
-	info, err := sCli.GenerateTokenForDownloadSource(ctx, nodeID, cid)
+	info, err := sCli.GenerateTokenForDownloadSources(ctx, cid)
 	if err != nil {
 		log.Errorf("generate token for download source error:%w", err)
 		return zStrs, nil
@@ -412,9 +411,9 @@ func SyncShedulers(ctx context.Context, sCli api.Scheduler, nodeID, cid string, 
 			continue
 		}
 		err = scli.CreateSyncAsset(ctx, &types.CreateSyncAssetReq{
-			AssetCID:     cid,
-			AssetSize:    size,
-			DownloadInfo: info,
+			AssetCID:      cid,
+			AssetSize:     size,
+			DownloadInfos: info,
 		})
 		if err != nil {
 			log.Errorf("GetUserAssetByAreaIDs error: %v", err)

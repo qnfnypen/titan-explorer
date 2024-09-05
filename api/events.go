@@ -945,6 +945,7 @@ func DeleteAssetHandler(c *gin.Context) {
 	// 获取文件信息
 	areaIds, isNeedDel, err := dao.CheckUserAseetNeedDel(c.Request.Context(), hash, userID, areaIds)
 	if err != nil {
+		log.Errorf("get areaIds error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}

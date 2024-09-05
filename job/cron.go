@@ -67,7 +67,7 @@ func syncUserScheduler() func() {
 					log.Println(fmt.Errorf("GetUnSyncAreaIDs error:%w", err))
 					return
 				}
-				_, err = api.SyncShedulers(ctx, scli, "", v.CID, 0, unSyncAids)
+				_, err = api.SyncShedulers(ctx, scli, v.CID, 0, unSyncAids)
 				if err != nil {
 					log.Println(fmt.Errorf("SyncShedulers error:%w", err))
 					return
@@ -238,16 +238,16 @@ func getSyncSuccessAsset() {
 	}
 	for _, v := range areaIDs {
 		wg.Add(1)
-		go func() {
+		go func(v string) {
 			defer wg.Done()
 
 			hashs, err := getSyncSuccessHash(v)
 			if err != nil {
-				log.Println(err)
+				log.Printf("get sync hash error:%v %v", v, err)
 				return
 			}
 			dao.UpdateSyncAssetAreas(ctx, v, hashs)
-		}()
+		}(v)
 	}
 	wg.Wait()
 }
@@ -289,7 +289,7 @@ func getSyncSuccessHash(v string) ([]string, error) {
 		page++
 	}
 	for i := 2; i <= int(page); i++ {
-		offset := (page - 1) * int64(limit)
+		offset := (i - 1) * limit
 		rsp, err := scli.GetActiveAssetRecords(ctx, int(offset), limit)
 		if err != nil {
 			continue
@@ -302,11 +302,13 @@ func getSyncSuccessHash(v string) ([]string, error) {
 			syncHash = append(syncHash, vv.Hash)
 		} else {
 			// 如果5分钟后还没有同步完成，则删除该区域的同步，重新进行同步
-			// if time.Now().Before(vv.CreatedTime.Add(5 * time.Second)) {
-			// 	if err = scli.RemoveAssetRecord(ctx, vv.CID); err == nil {
-			// 		oprds.GetClient().PushSchedulerInfo(ctx, &oprds.Payload{CID: vv.CID, Hash: vv.Hash, AreaID: v})
-			// 	}
-			// }
+			if time.Now().After(vv.CreatedTime.Add(5*time.Second)) && dao.CheckAssetHashIsExist(ctx, vv.Hash) {
+				if err = scli.RemoveAssetRecord(ctx, vv.CID); err == nil {
+					if aid, err := dao.GetOneSyncSuccessArea(ctx, vv.Hash); err == nil {
+						oprds.GetClient().PushSchedulerInfo(ctx, &oprds.Payload{CID: vv.CID, Hash: vv.Hash, AreaID: aid})
+					}
+				}
+			}
 		}
 	}
 

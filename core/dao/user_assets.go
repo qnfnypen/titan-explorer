@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"strings"
 	"time"
 
@@ -549,6 +550,43 @@ func UpdateUnSyncAreaIDs(ctx context.Context, uid, hash string, aids []string) e
 
 	_, err = DB.ExecContext(ctx, query, args...)
 	return err
+}
+
+// GetOneSyncSuccessArea 随机获取一个同步完成的区域
+func GetOneSyncSuccessArea(ctx context.Context, hash string) (string, error) {
+	var aids []string
+
+	query, args, err := squirrel.Select("DISTINCT(area_id)").From(tableUserAssetArea).Where("hash = ? AND is_sync = 1", hash).ToSql()
+	if err != nil {
+		return "", fmt.Errorf("generate get asset sql error:%w", err)
+	}
+
+	err = DB.SelectContext(ctx, &aids, query, args...)
+	if err != nil {
+		return "", err
+	}
+	if len(aids) == 0 {
+		return "", errors.New("now rows")
+	}
+
+	return aids[rand.Intn(len(aids))], nil
+}
+
+// CheckAssetHashIsExist 判断文件hash是否存在
+func CheckAssetHashIsExist(ctx context.Context, hash string) bool {
+	var count int64
+
+	query, args, err := squirrel.Select("COUNT(area_id)").From(tableUserAssetArea).Where("hash = ? AND is_sync = 0", hash).ToSql()
+	if err != nil {
+		return false
+	}
+
+	err = DB.SelectContext(ctx, &count, query, args...)
+	if err != nil {
+		return false
+	}
+
+	return count > 0
 }
 
 func UpdateSyncAssetAreas(ctx context.Context, areaID string, hashs []string) error {
