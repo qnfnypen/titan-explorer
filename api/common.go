@@ -93,21 +93,10 @@ type (
 
 func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string][]string) {
 	var (
-		aids, naids, newAreaIDs []string
-		areaMaps                = make(map[string]bool)
+		aids, naids []string
 	)
 	// 兼容以前的区域请求
-	for _, v := range areaIDs {
-		vs := strings.Split(v, "-")
-		vv := v
-		if len(vs) >= 2 {
-			vv = vs[1]
-		}
-		areaMaps[vv] = false
-	}
-	for k := range areaMaps {
-		newAreaIDs = append(newAreaIDs, k)
-	}
+	areaIDs = getAreaIDsCountry(areaIDs)
 
 	_, maps, err := GetAndStoreAreaIDs()
 	if err != nil {
@@ -115,7 +104,7 @@ func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string]
 		return nil, nil
 	}
 
-	for _, v := range newAreaIDs {
+	for _, v := range areaIDs {
 		if strings.TrimSpace(v) != "" {
 			aids = append(aids, maps[v]...)
 		}
@@ -143,7 +132,7 @@ func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string]
 		// 获取区域里的调度器
 		info, err := geo.GetIpLocation(c.Request.Context(), ip)
 		if err == nil {
-			for _, v := range newAreaIDs {
+			for _, v := range areaIDs {
 				if strings.EqualFold(v, info.Country) {
 					if vv, ok := maps[v]; ok {
 						tadis = vv
@@ -192,7 +181,7 @@ func getAreaIDsNoDefault(c *gin.Context) []string {
 		return nil
 	}
 
-	areaIDs := c.QueryArray("area_id")
+	areaIDs := getAreaIDsCountry(c.QueryArray("area_id"))
 	for _, v := range areaIDs {
 		v := strings.TrimSpace(v)
 		if v != "" {
@@ -205,9 +194,18 @@ func getAreaIDsNoDefault(c *gin.Context) []string {
 
 func getAreaID(c *gin.Context) string {
 	areaID := strings.TrimSpace(c.Query("area_id"))
+	areaID = GetDefaultTitanCandidateEntrypointInfo()
 
 	if areaID == "" {
 		areaID = GetDefaultTitanCandidateEntrypointInfo()
+	} else {
+		areaIds := getAreaIDsCountry([]string{c.Query("area_id")})
+		aids, _ := getAreaIDsByAreaID(c, areaIds)
+		if len(aids) > 0 {
+			areaID = aids[0]
+		} else {
+			areaID = GetDefaultTitanCandidateEntrypointInfo()
+		}
 	}
 
 	return areaID
@@ -692,4 +690,27 @@ func operateAreaMaps(ctx context.Context, aids []string, lan string) []dao.KVMap
 	}
 
 	return kvs
+}
+
+// getAreaIDsCountry 兼容以前的区域请求，获取区域的country
+func getAreaIDsCountry(areaIDs []string) []string {
+	var (
+		newAreaIDs []string
+		areaMaps   = make(map[string]bool)
+	)
+
+	for _, v := range areaIDs {
+		v = strings.TrimSpace(v)
+		vs := strings.Split(v, "-")
+		vv := v
+		if len(vs) >= 2 {
+			vv = vs[1]
+		}
+		areaMaps[vv] = false
+	}
+	for k := range areaMaps {
+		newAreaIDs = append(newAreaIDs, k)
+	}
+
+	return newAreaIDs
 }
