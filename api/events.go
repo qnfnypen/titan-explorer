@@ -1864,7 +1864,7 @@ func GetOpenAssetStatusHandler(c *gin.Context) {
 		IsVisitOutOfLimit: false,
 	}
 
-	asset, err := dao.GetUserAsset(c.Request.Context(), userId, hash)
+	asset, err := dao.GetUserAsset(c.Request.Context(), hash, userId)
 	if err != nil && err != sql.ErrNoRows {
 		log.Errorf("Get Asset error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -1877,7 +1877,9 @@ func GetOpenAssetStatusHandler(c *gin.Context) {
 		return
 	}
 
-	resp.IsExpiration = asset.Expiration.Before(time.Now())
+	if !asset.Expiration.IsZero() {
+		resp.IsExpiration = asset.Expiration.Before(time.Now())
+	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{"data": resp}))
 }
