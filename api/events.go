@@ -640,6 +640,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 	}
 
 	// 获取文件hash
+	log.Debugf("areaid:%v", areaIds[0])
 	hash, err := storage.CIDToHash(createAssetReq.AssetCID)
 	if err != nil {
 		log.Errorf("CreateAssetHandler storage.CIDToHash() error: %+v", err)

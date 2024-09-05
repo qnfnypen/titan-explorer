@@ -92,7 +92,22 @@ type (
 )
 
 func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string][]string) {
-	var aids, naids []string
+	var (
+		aids, naids, newAreaIDs []string
+		areaMaps                = make(map[string]bool)
+	)
+	// 兼容以前的区域请求
+	for _, v := range areaIDs {
+		vs := strings.Split(v, "-")
+		vv := v
+		if len(vs) >= 2 {
+			vv = vs[1]
+		}
+		areaMaps[vv] = false
+	}
+	for k := range areaMaps {
+		newAreaIDs = append(newAreaIDs, k)
+	}
 
 	_, maps, err := GetAndStoreAreaIDs()
 	if err != nil {
@@ -156,25 +171,8 @@ func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string]
 }
 
 func getAreaIDs(c *gin.Context) []string {
-	var (
-		newAreaIDs []string
-		areaMaps   = make(map[string]bool)
-	)
 	areaIDs := c.QueryArray("area_id")
-
-	for _, v := range areaIDs {
-		vs := strings.Split(v, "-")
-		vv := v
-		if len(vs) >= 2 {
-			vv = vs[1]
-		}
-		areaMaps[vv] = false
-	}
-	for k := range areaMaps {
-		newAreaIDs = append(newAreaIDs, k)
-	}
-
-	aids, _ := getAreaIDsByAreaID(c, newAreaIDs)
+	aids, _ := getAreaIDsByAreaID(c, areaIDs)
 
 	return aids
 }
