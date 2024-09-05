@@ -105,6 +105,7 @@ func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string]
 			aids = append(aids, maps[v]...)
 		}
 	}
+	log.Debugf("areaIDs:%v area_ids:%v", areaIDs, aids)
 	if len(aids) == 0 {
 		for _, v := range maps {
 			aids = append(aids, v...)
@@ -137,6 +138,7 @@ func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string]
 				}
 			}
 		}
+		log.Debugf("t_area_ids:%v", tadis)
 		areaID, err := GetNearestAreaID(c.Request.Context(), ip, tadis)
 		if err != nil {
 			log.Error(err)
@@ -155,9 +157,25 @@ func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string]
 }
 
 func getAreaIDs(c *gin.Context) []string {
+	var (
+		newAreaIDs []string
+		areaMaps   = make(map[string]bool)
+	)
 	areaIDs := c.QueryArray("area_id")
 
-	aids, _ := getAreaIDsByAreaID(c, areaIDs)
+	for _, v := range areaIDs {
+		vs := strings.Split(v, "-")
+		vv := v
+		if len(vs) >= 2 {
+			vv = vs[1]
+		}
+		areaMaps[vv] = false
+	}
+	for k := range areaMaps {
+		newAreaIDs = append(newAreaIDs, k)
+	}
+
+	aids, _ := getAreaIDsByAreaID(c, newAreaIDs)
 
 	return aids
 }

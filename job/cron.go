@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/gnasnik/titan-explorer/api"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
@@ -27,6 +28,7 @@ func SyncShedulersAsset() {
 	c.AddFunc("@every 10s", syncUserScheduler())
 	c.AddFunc("@every 15s", syncUnLoginAsset())
 	c.AddFunc("0,10,20,30,40,50 * * * *", syncDashboard())
+	c.AddFunc("@every 60s", getSyncSuccessAsset)
 
 	c.Start()
 }
@@ -45,7 +47,6 @@ func syncUserScheduler() func() {
 			wg.Add(1)
 			go func(v *oprds.Payload) {
 				defer wg.Done()
-				flag := false
 
 				scli, err := api.GetSchedulerClient(ctx, v.AreaID)
 				if err != nil {
@@ -58,13 +59,7 @@ func syncUserScheduler() func() {
 					log.Println(fmt.Errorf("GetAssetRecord error:%w", err))
 					return
 				}
-				for _, v := range l1States {
-					if strings.EqualFold(v, rs.State) {
-						flag = true
-						break
-					}
-				}
-				if !flag {
+				if !checkSyncState(rs.State) {
 					return
 				}
 				unSyncAids, err := dao.GetUnSyncAreaIDs(ctx, v.UserID, v.Hash)
@@ -72,16 +67,16 @@ func syncUserScheduler() func() {
 					log.Println(fmt.Errorf("GetUnSyncAreaIDs error:%w", err))
 					return
 				}
-				aids, err := api.SyncShedulers(ctx, scli, "", v.CID, 0, unSyncAids)
+				_, err = api.SyncShedulers(ctx, scli, "", v.CID, 0, unSyncAids)
 				if err != nil {
 					log.Println(fmt.Errorf("SyncShedulers error:%w", err))
 					return
 				}
-				err = dao.UpdateUnSyncAreaIDs(ctx, v.UserID, v.Hash, aids)
-				if err != nil {
-					log.Println(fmt.Errorf("UpdateUnSyncAreaIDs error:%w", err))
-					return
-				}
+				// err = dao.UpdateUnSyncAreaIDs(ctx, v.UserID, v.Hash, aids)
+				// if err != nil {
+				// 	log.Println(fmt.Errorf("UpdateUnSyncAreaIDs error:%w", err))
+				// 	return
+				// }
 				oprds.GetClient().DelSchedulerInfo(ctx, v)
 			}(v)
 		}
@@ -138,7 +133,6 @@ func syncUnLoginAsset() func() {
 func syncDashboard() func() {
 	return func() {
 		var (
-			areaIDs       []string
 			wg            = new(sync.WaitGroup)
 			trafficMaps   = new(sync.Map)
 			bandwidthMaps = new(sync.Map)
@@ -150,13 +144,10 @@ func syncDashboard() func() {
 		startTime := pendTime.Add(-10 * time.Minute)
 		endTime := pendTime.Add(-1 * time.Second)
 
-		_, maps, err := api.GetAndStoreAreaIDs()
+		areaIDs, err := getAllAreaIDs()
 		if err != nil {
 			log.Println(err)
 			return
-		}
-		for _, v := range maps {
-			areaIDs = append(areaIDs, v...)
 		}
 
 		for _, v := range areaIDs {
@@ -231,4 +222,103 @@ func storeAssetHourStorages(tmaps, bmaps *sync.Map, ts time.Time) error {
 	})
 
 	return dao.AddAssetHourStorages(ctx, ahss)
+}
+
+// getSyncSuccessAsset 更新
+func getSyncSuccessAsset() {
+	var (
+		wg = new(sync.WaitGroup)
+	)
+
+	// 获取所有调度器区域
+	areaIDs, err := getAllAreaIDs()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	for _, v := range areaIDs {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			hashs, err := getSyncSuccessHash(v)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			dao.UpdateSyncAssetAreas(ctx, v, hashs)
+		}()
+	}
+	wg.Wait()
+}
+
+func getAllAreaIDs() ([]string, error) {
+	var areaIDs []string
+
+	_, maps, err := api.GetAndStoreAreaIDs()
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range maps {
+		areaIDs = append(areaIDs, v...)
+	}
+
+	return areaIDs, nil
+}
+
+func getSyncSuccessHash(v string) ([]string, error) {
+	var (
+		limit    = 100
+		records  []*types.AssetRecord
+		syncHash []string
+	)
+
+	// 获取文件信息
+	scli, err := api.GetSchedulerClient(ctx, v)
+	if err != nil {
+		return nil, fmt.Errorf("get client of scheduler error:%w", err)
+	}
+	rsp, err := scli.GetActiveAssetRecords(ctx, 0, limit)
+	if err != nil {
+		return nil, fmt.Errorf("get active asset records error:%w", err)
+	}
+	records = append(records, rsp.List...)
+	// 处理offset
+	page := rsp.Total / int64(limit)
+	if rsp.Total%int64(limit) > 0 {
+		page++
+	}
+	for i := 2; i <= int(page); i++ {
+		offset := (page - 1) * int64(limit)
+		rsp, err := scli.GetActiveAssetRecords(ctx, int(offset), limit)
+		if err != nil {
+			continue
+		}
+		records = append(records, rsp.List...)
+	}
+	// 处理同步完成的状态
+	for _, vv := range records {
+		if checkSyncState(vv.State) {
+			syncHash = append(syncHash, vv.Hash)
+		} else {
+			// 如果5分钟后还没有同步完成，则删除该区域的同步，重新进行同步
+			// if time.Now().Before(vv.CreatedTime.Add(5 * time.Second)) {
+			// 	if err = scli.RemoveAssetRecord(ctx, vv.CID); err == nil {
+			// 		oprds.GetClient().PushSchedulerInfo(ctx, &oprds.Payload{CID: vv.CID, Hash: vv.Hash, AreaID: v})
+			// 	}
+			// }
+		}
+	}
+
+	return syncHash, nil
+}
+
+func checkSyncState(state string) bool {
+	for _, v := range l1States {
+		if strings.EqualFold(v, state) {
+			return true
+		}
+	}
+
+	return false
 }

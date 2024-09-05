@@ -1028,7 +1028,7 @@ func ShareAssetsHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
 	cid := c.Query("asset_cid")
-	if len(c.QueryArray("area_id")) == 1 {
+	if c.Query("area_id") != "" {
 		areaIds = getAreaIDs(c)
 	}
 
@@ -1082,7 +1082,6 @@ func ShareAssetsHandler(c *gin.Context) {
 			return
 		}
 	}
-	log.Errorf("areaId:%s", areaId)
 	// 获取文件信息
 	userAsset, err := dao.GetUserAssetDetail(c.Request.Context(), hash, userId)
 	if err != nil {
