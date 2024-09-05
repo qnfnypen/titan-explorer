@@ -115,7 +115,7 @@ func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string]
 		return nil, nil
 	}
 
-	for _, v := range areaIDs {
+	for _, v := range newAreaIDs {
 		if strings.TrimSpace(v) != "" {
 			aids = append(aids, maps[v]...)
 		}
@@ -143,7 +143,7 @@ func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string]
 		// 获取区域里的调度器
 		info, err := geo.GetIpLocation(c.Request.Context(), ip)
 		if err == nil {
-			for _, v := range areaIDs {
+			for _, v := range newAreaIDs {
 				if strings.EqualFold(v, info.Country) {
 					if vv, ok := maps[v]; ok {
 						tadis = vv
