@@ -37,10 +37,11 @@ var (
 	// AreaIPIDMaps 调度器区域ip和id映射
 	AreaIPIDMaps = new(sync.Map)
 	// CityAreaIDMaps 国家地区映射
-	CityAreaIDMaps = new(sync.Map)
+	cityAreaIDMaps = make(map[string][]string)
 	// lastSyncTimeStamp 上次同步时间
 	lastSyncTimeStamp time.Time
 	syncTimeMu        = new(sync.Mutex)
+	rwMapsMu          = new(sync.RWMutex)
 )
 
 type (
@@ -268,11 +269,12 @@ func listAssets(ctx context.Context, uid string, limit, offset, groupID int) (*L
 				records.NeedEdgeReplica += record.NeedEdgeReplica
 				records.NeedCandidateReplicas += record.ReplenishReplicas
 				// records.ReplicaInfos = append(records.ReplicaInfos, record.ReplicaInfos...)
-				for _, vv := range record.ReplicaInfos {
-					if vv.Status == 3 {
-						records.ReplicaNums++
-					}
-				}
+				records.ReplicaNums += int64(len(record.ReplicaInfos))
+				// for _, vv := range record.ReplicaInfos {
+				// 	if vv.Status == 3 {
+				// 		records.ReplicaNums++
+				// 	}
+				// }
 				if records.TotalSize == 0 {
 					records.CID = record.CID
 					records.CreatedTime = record.CreatedTime
@@ -594,12 +596,11 @@ func GetFILPrice(ctx context.Context) (float64, error) {
 func GetAndStoreAreaIDs() ([]string, map[string][]string, error) {
 	tn := time.Now()
 	syncTimeMu.Lock()
+	defer syncTimeMu.Unlock()
 	if lastSyncTimeStamp.IsZero() {
 		lastSyncTimeStamp = time.Now()
-		syncTimeMu.Unlock()
 	} else {
 		lt := lastSyncTimeStamp.Add(10 * time.Minute)
-		syncTimeMu.Unlock()
 		if lt.After(tn) {
 			keys, maps := rangeCityAidMaps()
 			return keys, maps, nil
@@ -616,21 +617,16 @@ func GetAndStoreAreaIDs() ([]string, map[string][]string, error) {
 		keys, maps := rangeCityAidMaps()
 		return keys, maps, fmt.Errorf("fetch scheduler from etcd Failed: %w", err)
 	}
+	rwMapsMu.Lock()
+	cityAreaIDMaps = make(map[string][]string)
 	for _, v := range schedulers {
 		as := strings.Split(v.AreaId, "-")
 		if len(as) < 2 {
 			continue
 		}
-		if aids, ok := CityAreaIDMaps.Load(as[1]); ok {
-			aslic, ok := aids.([]string)
-			if ok {
-				aslic = append(aslic, v.AreaId)
-				CityAreaIDMaps.Store(as[1], aslic)
-			}
-			continue
-		}
-		CityAreaIDMaps.Store(as[1], []string{v.AreaId})
+		cityAreaIDMaps[as[1]] = append(cityAreaIDMaps[as[1]], v.AreaId)
 	}
+	rwMapsMu.Unlock()
 
 	keys, maps := rangeCityAidMaps()
 	return keys, maps, nil
@@ -642,15 +638,12 @@ func rangeCityAidMaps() ([]string, map[string][]string) {
 		maps = make(map[string][]string)
 	)
 
-	CityAreaIDMaps.Range(func(key, value any) bool {
-		if kv, ok := key.(string); ok {
-			if vv, ok := value.([]string); ok {
-				keys = append(keys, kv)
-				maps[kv] = vv
-			}
-		}
-		return true
-	})
+	rwMapsMu.RLock()
+	for k, v := range cityAreaIDMaps {
+		keys = append(keys, k)
+		maps[k] = append(maps[k], v...) // 拷贝每个 key 的 slice
+	}
+	rwMapsMu.RUnlock()
 
 	return keys, maps
 }

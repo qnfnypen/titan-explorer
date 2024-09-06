@@ -18,7 +18,7 @@ require (
 	github.com/gbrlsnchs/jwt/v3 v3.0.1
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-redis/redis/v9 v9.0.0-rc.1
-	github.com/go-sql-driver/mysql v1.6.0
+	github.com/go-sql-driver/mysql v1.7.0
 	github.com/golang-module/carbon/v2 v2.3.12
 	github.com/golang/geo v0.0.0-20230421003525-6adc56603217
 	github.com/ipfs/boxo v0.19.0
@@ -46,6 +46,8 @@ require (
 	go.etcd.io/etcd/api/v3 v3.5.10
 	golang.org/x/crypto v0.26.0
 	golang.org/x/net v0.28.0
+	gorm.io/driver/mysql v1.5.7
+	gorm.io/gorm v1.25.11
 )
 
 require (
@@ -193,6 +195,8 @@ require (
 	github.com/ipld/go-car/v2 v2.13.1 // indirect
 	github.com/ipld/go-codec-dagpb v1.6.0 // indirect
 	github.com/ipld/go-ipld-prime v0.21.0 // indirect
+	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jmhodges/levigo v1.0.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect

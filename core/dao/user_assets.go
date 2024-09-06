@@ -2,10 +2,10 @@ package dao
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"math/rand"
-	"strings"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api"
@@ -82,27 +82,43 @@ func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset, areaIDs 
 		return errors.New("area id can not be empty")
 	}
 
-	// 添加文件记录
-	query, args, err := squirrel.Insert(tableUserAsset).Columns("user_id,asset_name,asset_type,total_size,group_id,hash,created_time,expiration,password,cid").
-		Values(asset.UserID, asset.AssetName, asset.AssetType, asset.TotalSize, asset.GroupID, asset.Hash, asset.CreatedTime, asset.Expiration, asset.Password, asset.Cid).ToSql()
-	if err != nil {
+	// 查询文件记录是否存在
+	ua, err := GetUserAsset(ctx, asset.Hash, asset.UserID)
+	if err != nil && err != sql.ErrNoRows {
 		log.Error(err)
 		return fmt.Errorf("generate insert asset sql error:%w", err)
 	}
+	if err == sql.ErrNoRows {
+		// 添加文件记录，判断文件是否存在，不存在则新增
+		query, args, err := squirrel.Insert(tableUserAsset).Columns("user_id,asset_name,asset_type,total_size,group_id,hash,created_time,expiration,password,cid").
+			Values(asset.UserID, asset.AssetName, asset.AssetType, asset.TotalSize, asset.GroupID, asset.Hash, asset.CreatedTime, asset.Expiration, asset.Password, asset.Cid).ToSql()
+		if err != nil {
+			log.Error(err)
+			return fmt.Errorf("generate insert asset sql error:%w", err)
+		}
+		_, err = tx.ExecContext(ctx, query, args...)
+		if err != nil {
+			return err
+		}
+	}
+	// 添加文件区域,只有第一个为插入时才更新，后续不变
+	query, args, err := squirrel.Insert(tableUserAssetArea).Columns("hash,user_id,area_id,is_sync").Values(asset.Hash, asset.UserID, syncArea, true).Suffix("ON DUPLICATE KEY UPDATE is_sync = VALUES(is_sync)").ToSql()
+	if err != nil {
+		log.Error(err)
+		return fmt.Errorf("generate insert asset's area sql error:%w", err)
+	}
 	_, err = tx.ExecContext(ctx, query, args...)
 	if err != nil {
+		log.Error(err)
 		return err
 	}
-	// 添加文件区域
+	// 后续不变
 	abuiler := squirrel.Insert(tableUserAssetArea).Columns("hash,user_id,area_id,is_sync")
-	for _, v := range areaIDs {
+	for _, v := range areaIDs[1:] {
 		isSync := false
-		if strings.EqualFold(v, syncArea) {
-			isSync = true
-		}
 		abuiler = abuiler.Values(asset.Hash, asset.UserID, v, isSync)
 	}
-	query, args, err = abuiler.ToSql()
+	query, args, err = abuiler.Options("IGNORE").ToSql()
 	if err != nil {
 		log.Error(err)
 		return fmt.Errorf("generate insert asset's area sql error:%w", err)
@@ -113,15 +129,17 @@ func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset, areaIDs 
 		return err
 	}
 	// 修改用户storage已使用记录
-	query, args, err = squirrel.Update(tableNameUser).Set("used_storage_size", squirrel.Expr("used_storage_size + ?", asset.TotalSize)).Where("username = ?", asset.UserID).ToSql()
-	if err != nil {
-		log.Error(err)
-		return fmt.Errorf("generate update users sql error:%w", err)
-	}
-	_, err = tx.ExecContext(ctx, query, args...)
-	if err != nil {
-		log.Error(err)
-		return err
+	if ua == nil {
+		query, args, err = squirrel.Update(tableNameUser).Set("used_storage_size", squirrel.Expr("used_storage_size + ?", asset.TotalSize)).Where("username = ?", asset.UserID).ToSql()
+		if err != nil {
+			log.Error(err)
+			return fmt.Errorf("generate update users sql error:%w", err)
+		}
+		_, err = tx.ExecContext(ctx, query, args...)
+		if err != nil {
+			log.Error(err)
+			return err
+		}
 	}
 
 	return tx.Commit()
@@ -493,6 +511,24 @@ func GetUserAssetNotAreaIDs(ctx context.Context, hash, uid string, areaID []stri
 	notExistAids = getNotExists(areaID, aids)
 
 	return notExistAids, nil
+}
+
+// CheckAssetIsSyncByAreaID 判断
+func CheckAssetIsSyncByAreaID(ctx context.Context, hash, uid, areaID string) bool {
+	var isSync bool
+
+	query, args, err := squirrel.Select("is_sync").From(tableUserAssetArea).Where("area_id = ? AND user_id = ? AND hash = ?", areaID, uid, hash).ToSql()
+	if err != nil {
+		log.Errorf("generate get asset sql error:%v", err)
+		return false
+	}
+	err = DB.GetContext(ctx, &isSync, query, args...)
+	if err != nil {
+		log.Errorf("get asset sql error:%v", err)
+		return false
+	}
+
+	return isSync
 }
 
 func getNotExists(pAids, nAids []string) []string {
