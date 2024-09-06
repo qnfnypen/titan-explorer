@@ -112,9 +112,9 @@ func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset, areaIDs 
 		log.Error(err)
 		return err
 	}
-	// 后续不变
+	// 后续不变，notExist继续插入或保持原来不变
 	abuiler := squirrel.Insert(tableUserAssetArea).Columns("hash,user_id,area_id,is_sync")
-	for _, v := range areaIDs[1:] {
+	for _, v := range areaIDs {
 		isSync := false
 		abuiler = abuiler.Values(asset.Hash, asset.UserID, v, isSync)
 	}
