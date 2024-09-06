@@ -101,7 +101,6 @@ func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string]
 	_, maps, err := GetAndStoreAreaIDs()
 	if err != nil {
 		log.Error(err)
-		return nil, nil
 	}
 
 	for _, v := range areaIDs {
@@ -599,7 +598,7 @@ func GetAndStoreAreaIDs() ([]string, map[string][]string, error) {
 		lastSyncTimeStamp = time.Now()
 		syncTimeMu.Unlock()
 	} else {
-		lt := lastSyncTimeStamp.Add(5 * time.Minute)
+		lt := lastSyncTimeStamp.Add(10 * time.Minute)
 		syncTimeMu.Unlock()
 		if lt.After(tn) {
 			keys, maps := rangeCityAidMaps()
@@ -609,11 +608,13 @@ func GetAndStoreAreaIDs() ([]string, map[string][]string, error) {
 
 	etcdClient, err := statistics.NewEtcdClient(config.Cfg.EtcdAddresses)
 	if err != nil {
-		return nil, nil, fmt.Errorf("New etcdClient Failed: %w", err)
+		keys, maps := rangeCityAidMaps()
+		return keys, maps, fmt.Errorf("New etcdClient Failed: %w", err)
 	}
 	schedulers, err := statistics.FetchSchedulersFromEtcd(etcdClient)
 	if err != nil {
-		return nil, nil, fmt.Errorf("fetch scheduler from etcd Failed: %w", err)
+		keys, maps := rangeCityAidMaps()
+		return keys, maps, fmt.Errorf("fetch scheduler from etcd Failed: %w", err)
 	}
 	for _, v := range schedulers {
 		as := strings.Split(v.AreaId, "-")
