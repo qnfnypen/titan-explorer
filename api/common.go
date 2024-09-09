@@ -29,6 +29,10 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+const (
+	maxTotalFlow = 1000 * 1024 * 1024 * 1024
+)
+
 var (
 	maxCountOfVisitAsset     int64 = 10
 	maxCountOfVisitShareLink int64 = 10
@@ -707,4 +711,29 @@ func getAreaIDsCountry(areaIDs []string) []string {
 	}
 
 	return newAreaIDs
+}
+
+// checkUserTotalFlow 判断用户使用总流量是否到达最大限制
+func checkUserTotalFlow(ctx context.Context, username string) (bool, error) {
+	var fInfo = new(dao.UserStorageFlowInfo)
+	// 获取用户已使用的总流量
+
+	value, err := oprds.GetClient().GetUserStorageFlowInfo(ctx, username)
+	if err != nil {
+		fInfo, err = dao.GetUserStorageFlowInfo(ctx, username)
+		if err != nil {
+			fInfo = new(dao.UserStorageFlowInfo)
+			return false, err
+		}
+		ib, _ := json.Marshal(fInfo)
+		oprds.GetClient().StoreUserStorageFlowInfo(ctx, username, string(ib))
+	} else {
+		json.Unmarshal([]byte(value), fInfo)
+	}
+
+	if fInfo.TotalTraffic < maxTotalFlow {
+		return true, nil
+	}
+
+	return false, nil
 }

@@ -1043,6 +1043,16 @@ func ShareAssetsHandler(c *gin.Context) {
 		areaIds = getAreaIDs(c)
 	}
 
+	// 判断是否超过流量限额
+	ok, err := checkUserTotalFlow(c.Request.Context(), userId)
+	if err != nil {
+		log.Error("check user total flow error: ", cid)
+	}
+	if !ok {
+		c.JSON(http.StatusOK, respErrorCode(errors.OutTotalFlow, c))
+		return
+	}
+
 	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {
 		log.Error("Invalid asset CID: ", cid)
@@ -1164,6 +1174,16 @@ func OpenAssetHandler(c *gin.Context) {
 
 	if userId == "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.MissingUserId, c))
+		return
+	}
+
+	// 判断是否超过流量限额
+	ok, err := checkUserTotalFlow(c.Request.Context(), userId)
+	if err != nil {
+		log.Error("check user total flow error: ", cid)
+	}
+	if !ok {
+		c.JSON(http.StatusOK, respErrorCode(errors.OutTotalFlow, c))
 		return
 	}
 
