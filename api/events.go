@@ -515,7 +515,7 @@ func CreateAssetHandler(c *gin.Context) {
 		}
 	}
 	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{
-		UserID: userId, AssetCID: createAssetReq.AssetCID, AssetSize: createAssetReq.AssetSize, NodeID: createAssetReq.NodeID})
+		UserID: userId, AssetCID: createAssetReq.AssetCID, AssetSize: createAssetReq.AssetSize, NodeID: createAssetReq.NodeID, Owner: userId})
 	if err != nil {
 		log.Errorf("CreateAssetHandler CreateAsset error: %v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
@@ -690,7 +690,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 			}
 		}
 		createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{
-			UserID: username, AssetCID: createAssetReq.AssetCID, AssetSize: createAssetReq.AssetSize, NodeID: createAssetReq.NodeID})
+			UserID: username, AssetCID: createAssetReq.AssetCID, AssetSize: createAssetReq.AssetSize, NodeID: createAssetReq.NodeID, Owner: username})
 		if err != nil {
 			log.Errorf("CreateAssetHandler CreateAsset error: %v", err)
 			if webErr, ok := err.(*api.ErrWeb); ok {
@@ -973,16 +973,18 @@ func DeleteAssetHandler(c *gin.Context) {
 	for _, v := range areaIds {
 		wg.Add(1)
 		go func(v string) {
-			defer wg.Done()
+			defer func() {
+				wg.Done()
+				mu.Lock()
+				execAreaIds = append(execAreaIds, v)
+				mu.Unlock()
+			}()
 			// 判断文件是否为唯一存在的
 			isOnly, err := dao.CheckUserAssetIsOnly(c.Request.Context(), hash, v)
 			if err != nil {
 				return
 			}
 			if !isOnly {
-				mu.Lock()
-				execAreaIds = append(execAreaIds, v)
-				mu.Unlock()
 				return
 			}
 			scli, err := getSchedulerClient(c.Request.Context(), v)
@@ -991,15 +993,7 @@ func DeleteAssetHandler(c *gin.Context) {
 			}
 			err = scli.RemoveAssetRecord(c.Request.Context(), cid)
 			if err != nil {
-				if webErr, ok := err.(*api.ErrWeb); ok && webErr.Code == terrors.HashNotFound.Int() {
-					mu.Lock()
-					execAreaIds = append(execAreaIds, v)
-					mu.Unlock()
-				}
-			} else {
-				mu.Lock()
-				execAreaIds = append(execAreaIds, v)
-				mu.Unlock()
+				log.Errorf("get areaIds error: %+v", err)
 			}
 		}(v)
 	}

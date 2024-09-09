@@ -172,7 +172,7 @@ func TestMove(t *testing.T) {
 }
 
 func TestChange(t *testing.T) {
-	cid := "bafybeif47obdrfxhkalmvcmhwzw4wxlltmwvzxyta7qfafme4zruuduily"
+	cid := "bafybeiacqokqcyggsppoy2oe76x7vxuh5xupgzuxuvm4cmj267l4g2pbrq"
 	// hash, err := storage.CIDToHash(cid)
 	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {

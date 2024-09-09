@@ -125,12 +125,14 @@ func UploadTmepFile(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+	uid := xid.New().String()
 	careq := &types.CreateAssetReq{
 		AssetCID:      req.AssetCID,
 		AssetSize:     req.AssetSize,
 		NodeID:        req.NodeID,
 		ExpirationDay: 1,
-		UserID:        xid.New().String(),
+		UserID:        uid,
+		Owner:         uid,
 	}
 	if len(req.AreaIDs) == 1 {
 		careq.ReplicaCount = 20
