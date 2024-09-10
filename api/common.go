@@ -30,7 +30,8 @@ import (
 )
 
 const (
-	maxTotalFlow = 1000 * 1024 * 1024 * 1024
+	maxTotalFlow    = 1 * 1024 * 1024 * 1024
+	maxVipTotalFlow = 1000 * 1024 * 1024 * 1024
 )
 
 var (
@@ -460,9 +461,18 @@ func GetAreaIPByID(ctx context.Context, areaID string) (string, error) {
 }
 
 // GetIPFromRequest 根据请求获取ip地址
-func GetIPFromRequest(r *http.Request) (string, error) {
+func GetIPFromRequest(r *http.Request) (ip string, err error) {
+	// 判断是否为内网IP或环回地址
+	defer func() {
+		ipv4 := net.ParseIP(ip)
+		if ipv4.IsPrivate() || ipv4.IsLoopback() {
+			ip = ""
+			err = errors.New("internal ip or loop back ip")
+		}
+	}()
+
 	// 检查 X-Forwarded-For 头
-	ip := r.Header.Get("X-Forwarded-For")
+	ip = r.Header.Get("X-Forwarded-For")
 	if ip != "" {
 		// X-Forwarded-For 可能包含多个IP地址，取第一个
 		ips := strings.Split(ip, ",")
@@ -481,7 +491,7 @@ func GetIPFromRequest(r *http.Request) (string, error) {
 	}
 
 	// 如果没有代理服务器，则使用 RemoteAddr
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	ip, _, err = net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return "", fmt.Errorf("userip: %q is not IP:port,error:%w", r.RemoteAddr, err)
 	}
@@ -715,9 +725,17 @@ func getAreaIDsCountry(areaIDs []string) []string {
 
 // checkUserTotalFlow 判断用户使用总流量是否到达最大限制
 func checkUserTotalFlow(ctx context.Context, username string) (bool, error) {
-	var fInfo = new(dao.UserStorageFlowInfo)
-	// 获取用户已使用的总流量
+	var (
+		fInfo = new(dao.UserStorageFlowInfo)
+	)
 
+	// 获取用户信息，判断用户是否为vip
+	user, err := dao.GetUserByUsername(ctx, username)
+	if err != nil {
+		return false, fmt.Errorf("get userInfo error:%w", err)
+	}
+
+	// 获取用户已使用的总流量
 	value, err := oprds.GetClient().GetUserStorageFlowInfo(ctx, username)
 	if err != nil {
 		fInfo, err = dao.GetUserStorageFlowInfo(ctx, username)
@@ -730,9 +748,16 @@ func checkUserTotalFlow(ctx context.Context, username string) (bool, error) {
 	} else {
 		json.Unmarshal([]byte(value), fInfo)
 	}
-
-	if fInfo.TotalTraffic < maxTotalFlow {
-		return true, nil
+	// 判断是否为vip
+	switch user.EnableVIP {
+	case true:
+		if fInfo.TotalTraffic < maxVipTotalFlow {
+			return true, nil
+		}
+	default:
+		if fInfo.TotalTraffic < maxTotalFlow {
+			return true, nil
+		}
 	}
 
 	return false, nil

@@ -1093,15 +1093,18 @@ func ShareAssetsHandler(c *gin.Context) {
 		ip, err := GetIPFromRequest(c.Request)
 		if err != nil {
 			log.Errorf("get user's ip of request error:%w", err)
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			return
+			// c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			// return
+			areaId = areaIDs[0]
+		} else {
+			areaId, err = GetNearestAreaID(c.Request.Context(), ip, areaIDs)
+			if err != nil {
+				log.Error(err)
+				c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+				return
+			}
 		}
-		areaId, err = GetNearestAreaID(c.Request.Context(), ip, areaIDs)
-		if err != nil {
-			log.Error(err)
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			return
-		}
+
 	}
 	// 获取文件信息
 	userAsset, err := dao.GetUserAssetDetail(c.Request.Context(), hash, userId)
@@ -1226,15 +1229,18 @@ func OpenAssetHandler(c *gin.Context) {
 		ip, err := GetIPFromRequest(c.Request)
 		if err != nil {
 			log.Errorf("get user's ip of request error:%w", err)
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			return
+			// c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			// return
+			areaId = areaIDs[0]
+		} else {
+			areaId, err = GetNearestAreaID(c.Request.Context(), ip, areaIDs)
+			if err != nil {
+				log.Error(err)
+				c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+				return
+			}
 		}
-		areaId, err = GetNearestAreaID(c.Request.Context(), ip, areaIDs)
-		if err != nil {
-			log.Error(err)
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			return
-		}
+
 	}
 	// 获取文件信息
 	userAsset, err := dao.GetUserAssetDetail(c.Request.Context(), hash, userId)
