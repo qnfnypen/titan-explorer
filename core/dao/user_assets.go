@@ -129,7 +129,7 @@ func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset, areaIDs 
 		return err
 	}
 	// 修改用户storage已使用记录
-	if ua == nil {
+	if ua == nil || ua.UserID == "" {
 		query, args, err = squirrel.Update(tableNameUser).Set("used_storage_size", squirrel.Expr("used_storage_size + ?", asset.TotalSize)).Where("username = ?", asset.UserID).ToSql()
 		if err != nil {
 			log.Error(err)

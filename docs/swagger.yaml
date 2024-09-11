@@ -5,11 +5,11 @@ definitions:
   api.UploadTempFileReq:
     properties:
       area_ids:
+        description: 最多3个
         items:
           type: string
         type: array
       asset_cid:
-        description: 最多3个
         type: string
       asset_name:
         type: string
@@ -18,10 +18,34 @@ definitions:
       node_id:
         type: string
     required:
-    - area_ids
     - asset_cid
     - asset_name
     - asset_size
+    type: object
+  api.createAssetRequest:
+    properties:
+      area_id:
+        items:
+          type: string
+        type: array
+      asset_cid:
+        type: string
+      asset_name:
+        type: string
+      asset_size:
+        type: integer
+      asset_type:
+        type: string
+      encrypted:
+        type: boolean
+      group_id:
+        type: integer
+      node_id:
+        type: string
+    required:
+    - asset_name
+    - asset_size
+    - asset_type
     type: object
 info:
   contact: {}
@@ -77,6 +101,25 @@ paths:
       summary: 上传文件
       tags:
       - storage
+    post:
+      description: 上传文件
+      parameters:
+      - description: 请求参数
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/api.createAssetRequest'
+      responses:
+        "200":
+          description: '{[]{CandidateAddr:"",Token:""}}'
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      security:
+      - ApiKeyAuth: []
+      summary: 上传文件
+      tags:
+      - storage
   /api/v1/storage/create_group:
     get:
       description: 创建文件夹
@@ -118,6 +161,33 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: 创建key
+      tags:
+      - storage
+  /api/v1/storage/create_link:
+    get:
+      description: 获取分享链接
+      parameters:
+      - description: 用户id
+        in: query
+        name: username
+        required: true
+        type: string
+      - description: url
+        in: query
+        name: url
+        required: true
+        type: string
+      - description: 文件cid
+        in: query
+        name: cid
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{url: ""}'
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      summary: 获取分享链接
       tags:
       - storage
   /api/v1/storage/delete_asset:
@@ -335,6 +405,32 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: 判断用户是否是vip
+      tags:
+      - storage
+  /api/v1/storage/rename_asset:
+    post:
+      description: 文件重命名
+      responses:
+        "200":
+          description: '{"msg":"success"}'
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      security:
+      - ApiKeyAuth: []
+      summary: 文件重命名
+      tags:
+      - storage
+  /api/v1/storage/rename_group:
+    post:
+      description: 文件重命名
+      responses:
+        "200":
+          description: '{"msg":"success"}'
+          schema:
+            $ref: '#/definitions/api.JsonObject'
+      security:
+      - ApiKeyAuth: []
+      summary: 文件重命名
       tags:
       - storage
   /api/v1/storage/share_asset:

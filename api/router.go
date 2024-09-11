@@ -271,7 +271,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/move_group_to_group", MoveGroupToGroupHandler)
 	storage.GET("/move_asset_to_group", MoveAssetToGroupHandler)
 	storage.POST("/move_node", MoveNode)
-	storage.POST("/ipfs_info", GetIPFSInfoByCIDs)
+	// storage.POST("/ipfs_info", GetIPFSInfoByCIDs)
 
 	//signature
 	signature := apiV1.Group("/sign")

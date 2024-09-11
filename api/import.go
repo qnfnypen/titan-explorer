@@ -1,13 +1,5 @@
 package api
 
-import (
-	"net/http"
-	"strings"
-
-	"github.com/gin-gonic/gin"
-	"github.com/gnasnik/titan-explorer/core/errors"
-)
-
 type (
 	// GetIPFSInfoByCIDSReq 获取ipfs信息的请求
 	GetIPFSInfoByCIDSReq struct {
@@ -23,19 +15,19 @@ type (
 // @Param req body GetIPFSInfoByCIDSReq true
 // @Success 200 {object} JsonObject "{[]{CandidateAddr:"",Token:""}}"
 // @Router /api/v1/storage/ipfs_info [post]
-func GetIPFSInfoByCIDs(c *gin.Context) {
-	var (
-		req     GetIPFSInfoByCIDSReq
-		cidList []string
-	)
+// func GetIPFSInfoByCIDs(c *gin.Context) {
+// 	var (
+// 		req     GetIPFSInfoByCIDSReq
+// 		cidList []string
+// 	)
 
-	err := c.ShouldBindJSON(&req)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
-		return
-	}
+// 	err := c.ShouldBindJSON(&req)
+// 	if err != nil {
+// 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+// 		return
+// 	}
 
-	// 处理cids
-	cidList = strings.Split(req.CIDs, "\n")
-	_ = cidList
-}
+// 	// 处理cids
+// 	cidList = strings.Split(req.CIDs, "\n")
+// 	_ = cidList
+// }
