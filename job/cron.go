@@ -16,6 +16,7 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	goredislib "github.com/redis/go-redis/v9"
 	"github.com/robfig/cron/v3"
+	"golang.org/x/exp/rand"
 )
 
 var (
@@ -48,50 +49,17 @@ func SyncShedulersAsset() {
 
 	// 初始化分布式锁
 	redsync := newRedSync()
+	time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+	mutex := redsync.NewMutex("SyncShedulersAsset-lock")
+	if err := mutex.Lock(); err != nil {
+		log.Printf("SyncShedulersAsset is already running on another instance: %v", err)
+		return
+	}
 
-	c.AddFunc("@every 10s", func() {
-		mutex := redsync.NewMutex("syncUserScheduler-lock")
-		if err := mutex.Lock(); err != nil {
-			log.Printf("syncUserScheduler is already running on another instance: %v", err)
-			return
-		}
-		defer mutex.Unlock()
-
-		syncUserScheduler()
-	})
-
-	c.AddFunc("@every 15s", func() {
-		mutex := redsync.NewMutex("syncUnLoginAsset-lock")
-		if err := mutex.Lock(); err != nil {
-			log.Printf("syncUnLoginAsset is already running on another instance: %v", err)
-			return
-		}
-		defer mutex.Unlock()
-
-		syncUnLoginAsset()
-	})
-
-	c.AddFunc("0,10,20,30,40,50 * * * *", func() {
-		mutex := redsync.NewMutex("syncDashboard-lock")
-		if err := mutex.Lock(); err != nil {
-			log.Printf("syncDashboard is already running on another instance: %v", err)
-			return
-		}
-		defer mutex.Unlock()
-
-		syncDashboard()
-	})
-	
-	c.AddFunc("@every 60s", func() {
-		mutex := redsync.NewMutex("getSyncSuccessAsset-lock")
-		if err := mutex.Lock(); err != nil {
-			log.Printf("getSyncSuccessAsset is already running on another instance: %v", err)
-			return
-		}
-		defer mutex.Unlock()
-
-		getSyncSuccessAsset()
-	})
+	c.AddFunc("@every 10s", syncUserScheduler)
+	c.AddFunc("@every 15s", syncUnLoginAsset)
+	c.AddFunc("0,10,20,30,40,50 * * * *", syncDashboard)
+	c.AddFunc("@every 60s", getSyncSuccessAsset)
 
 	c.Start()
 }
