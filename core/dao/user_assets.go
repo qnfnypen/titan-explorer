@@ -189,7 +189,7 @@ func DelAssetAndUpdateSize(ctx context.Context, hash, userID string, areaID []st
 		return err
 	}
 	// 修改用户storage已使用记录
-	query, args, err = squirrel.Update(tableNameUser).Set("used_storage_size", squirrel.Expr("used_storage_size - ?", sa.TotalSize)).Where("username = ?", userID).ToSql()
+	query, args, err = squirrel.Update(tableNameUser).Set("used_storage_size", squirrel.Expr("GREATEST(used_storage_size - ?,0)", sa.TotalSize)).Where("username = ?", userID).ToSql()
 	if err != nil {
 		return fmt.Errorf("generate update users sql error:%w", err)
 	}

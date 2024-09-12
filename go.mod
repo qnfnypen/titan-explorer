@@ -17,7 +17,9 @@ require (
 	github.com/filecoin-project/pubsub v1.0.0
 	github.com/gbrlsnchs/jwt/v3 v3.0.1
 	github.com/gin-gonic/gin v1.9.1
+	github.com/go-redis/redis/v7 v7.4.1
 	github.com/go-redis/redis/v9 v9.0.0-rc.1
+	github.com/go-redsync/redsync/v4 v4.13.0
 	github.com/go-sql-driver/mysql v1.7.0
 	github.com/golang-module/carbon/v2 v2.3.12
 	github.com/golang/geo v0.0.0-20230421003525-6adc56603217
@@ -243,6 +245,7 @@ require (
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
 	github.com/quic-go/quic-go v0.42.0 // indirect
+	github.com/redis/go-redis/v9 v9.5.1 // indirect
 	github.com/rogpeppe/fastuuid v1.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/rs/cors v1.10.1 // indirect
