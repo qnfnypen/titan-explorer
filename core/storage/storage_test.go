@@ -53,7 +53,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestCIDToHash(t *testing.T) {
-	cid := "bafybeifxgg4357ccdpkh6he6q7q72rfg2g4qnc5aln5uttb2kvwmvknbjy"
+	cid := "bafybeigq53cvkscufkmtnqi5f6obll3gnz7pgs57c3mma3wpdswfmltxni"
 
 	hash, err := CIDToHash(cid)
 	if err != nil {
@@ -61,6 +61,17 @@ func TestCIDToHash(t *testing.T) {
 	}
 
 	t.Log(hash)
+}
+
+func TestHashToCID(t *testing.T) {
+	hash := "1220596d64b362871d9b1b748f0044ffb5ef0e54df29271268c2875459d80c71e8be"
+
+	cid, err := HashToCID(hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(cid)
 }
 
 func TestAesDecryptCBCByKey(t *testing.T) {

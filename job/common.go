@@ -70,9 +70,7 @@ func storeAssetHourStorages(tmaps, bmaps *sync.Map, ts time.Time) error {
 		if !ok {
 			return true
 		}
-		if ts.Minute() == 0 {
-			ahs.DownloadCount, _ = oprds.GetClient().GetAssetHourDownload(ctx, hash, ts)
-		}
+		ahs.DownloadCount, _ = oprds.GetClient().GetAssetHourDownload(ctx, hash)
 		ahs.Hash = hash
 		tf, ok := value.(int64)
 		if !ok {

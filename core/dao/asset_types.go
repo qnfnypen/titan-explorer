@@ -20,6 +20,13 @@ type AssetGroup struct {
 	CreatedTime time.Time `db:"created_time"`
 }
 
+// OnlyUserGroupAsset 唯一存在的用户组文件
+type OnlyUserGroupAsset struct {
+	CID    string `db:"cid"`
+	Num    int64  `db:"num"`
+	AreaID string `db:"area_id"`
+}
+
 // ListAssetGroupRsp list  asset group records
 type ListAssetGroupRsp struct {
 	Total       int64         `json:"total"`
