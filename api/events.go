@@ -19,6 +19,7 @@ import (
 	"github.com/Masterminds/squirrel"
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gnasnik/titan-explorer/config"
+	"github.com/google/uuid"
 
 	"github.com/gnasnik/titan-explorer/pkg/formatter"
 	"github.com/gnasnik/titan-explorer/pkg/rsa"
@@ -2263,42 +2264,42 @@ func GetKeyListHandler(c *gin.Context) {
 }
 
 func GetRetrievalListHandler(c *gin.Context) {
-	nodeId := c.Query("device_id")
-	pageSize, _ := strconv.Atoi(c.Query("page_size"))
-	page, _ := strconv.Atoi(c.Query("page"))
+	// nodeId := c.Query("device_id")
+	// pageSize, _ := strconv.Atoi(c.Query("page_size"))
+	// page, _ := strconv.Atoi(c.Query("page"))
 
-	if nodeId == "" {
-		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
-		return
-	}
+	// if nodeId == "" {
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+	// 	return
+	// }
 
-	deviceInfo, err := dao.GetDeviceInfoByID(c.Request.Context(), nodeId)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
-		return
-	}
+	// deviceInfo, err := dao.GetDeviceInfoByID(c.Request.Context(), nodeId)
+	// if err != nil {
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
+	// 	return
+	// }
 
-	if deviceInfo == nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
-		return
-	}
+	// if deviceInfo == nil {
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
+	// 	return
+	// }
 
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), deviceInfo.IpLocation)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
-		return
-	}
-	resp, err := schedulerClient.GetRetrieveEventRecords(c.Request.Context(), nodeId, pageSize, (page-1)*pageSize)
-	if err != nil {
-		log.Errorf("api GetRetrieveEventRecords: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
+	// schedulerClient, err := getSchedulerClient(c.Request.Context(), deviceInfo.IpLocation)
+	// if err != nil {
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+	// 	return
+	// }
+	// resp, err := schedulerClient.GetRetrieveEventRecords(c.Request.Context(), nodeId, pageSize, (page-1)*pageSize)
+	// if err != nil {
+	// 	log.Errorf("api GetRetrieveEventRecords: %v", err)
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	// 	return
+	// }
 
-	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list":  resp.RetrieveEventInfos,
-		"total": resp.Total,
-	}))
+	// c.JSON(http.StatusOK, respJSON(JsonObject{
+	// 	"list":  resp.RetrieveEventInfos,
+	// 	"total": resp.Total,
+	// }))
 }
 
 func toValidationEvent(in types.ValidationResultInfo) *model.ValidationEvent {
@@ -2520,6 +2521,68 @@ func GetAssetGroupListHandler(c *gin.Context) {
 		"list":  list,
 		"total": assetSummary.Total,
 	}))
+}
+
+func GetAssetGroupInfoHandler(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
+	lang := c.Request.Header.Get("Lang")
+
+	var res = &AssetOrGroup{}
+
+	cid := c.Query("cid")
+	if cid != "" {
+		assetView, err := getAssetOverView(c.Request.Context(), userId, cid)
+		if err != nil {
+			log.Errorf("getAssetOverView error: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+		res.AssetOverview = &AccessOverview{
+			AssetRecord:      assetView.AssetRecord,
+			UserAssetDetail:  assetView.UserAssetDetail,
+			VisitCount:       assetView.VisitCount,
+			RemainVisitCount: assetView.RemainVisitCount,
+		}
+
+		filReplicas, err := dao.CountFilStorage(c.Request.Context(), assetView.AssetRecord.CID)
+		if err != nil {
+			log.Errorf("count fil storage: %v", err)
+		}
+
+		if res.AssetOverview.UserAssetDetail != nil {
+			aids := operateAreaIDs(c.Request.Context(), res.AssetOverview.UserAssetDetail.AreaIDs)
+			res.AssetOverview.UserAssetDetail.AreaIDs = aids
+			res.AssetOverview.UserAssetDetail.AreaIDMaps = operateAreaMaps(c.Request.Context(), aids, lang)
+		}
+
+		res.AssetOverview.FilcoinCount = filReplicas
+	}
+
+	groupid := c.Query("groupid")
+	if groupid != "" {
+		gid, err := strconv.ParseInt(groupid, 10, 64)
+		if err != nil {
+			c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+			return
+		}
+
+		group, err := dao.GetUserAssetGroupInfo(c.Request.Context(), userId, int(gid))
+		if err != nil && err != sql.ErrNoRows {
+			log.Errorf("get group: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+			return
+		}
+
+		res.Group = group
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{"data": res}))
+	return
 }
 
 func DeleteGroupHandler(c *gin.Context) {
@@ -2800,4 +2863,28 @@ func GetMonitor(c *gin.Context) {
 		"filecoin": "100+",
 		"deposit":  1200 * 5.7 * fil * 1024,
 	}))
+}
+
+func AssetTransferReport(c *gin.Context) {
+	var req model.AssetTransferLog
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Errorf("AssetTransferReport c.BindJSON() error: %+v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	claims := jwt.ExtractClaims(c)
+	userId := claims[identityKey].(string)
+
+	req.UserId = userId
+	req.CreatedAt = time.Now()
+	req.TraceId = uuid.New().String()
+
+	if err := dao.InsertAssetTransferLog(c.Request.Context(), &req); err != nil {
+		log.Errorf("InsertAssetTransferLog() error: %+v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"msg": "success"})
 }
