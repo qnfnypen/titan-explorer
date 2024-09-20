@@ -444,9 +444,15 @@ func CreateAssetHandler(c *gin.Context) {
 		return
 	}
 
+	// 判断用户是否存在
 	user, err := dao.GetUserByUsername(c.Request.Context(), userId)
-	if err != nil {
-		log.Errorf("CreateAssetHandler GetUserByUsername error: %v", err)
+	switch err {
+	case sql.ErrNoRows:
+		c.JSON(http.StatusOK, respErrorCode(errors.UserNotFound, c))
+		return
+	case nil:
+	default:
+		log.Errorf("CreateAssetHandler dao.GetUserByUsername() error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
@@ -460,10 +466,7 @@ func CreateAssetHandler(c *gin.Context) {
 			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 			return
 		}
-
-		defer func() {
-			dao.RedisCache.Del(c.Request.Context(), passKey)
-		}()
+		dao.RedisCache.Del(c.Request.Context(), passKey)
 	}
 
 	log.Debugf("CreateAssetHandler clientIP:%s, areaId:%v\n", c.ClientIP(), areaIds)
@@ -513,7 +516,7 @@ func CreateAssetHandler(c *gin.Context) {
 		}
 	}
 	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{
-		UserID: userId, AssetCID: createAssetReq.AssetCID, AssetSize: createAssetReq.AssetSize, NodeID: createAssetReq.NodeID})
+		UserID: userId, AssetCID: createAssetReq.AssetCID, AssetSize: createAssetReq.AssetSize, NodeID: createAssetReq.NodeID, Owner: userId})
 	if err != nil {
 		log.Errorf("CreateAssetHandler CreateAsset error: %v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
@@ -620,12 +623,20 @@ func CreateAssetPostHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
+	// 判断用户是否存在
 	user, err := dao.GetUserByUsername(c.Request.Context(), username)
-	if err != nil {
+	switch err {
+	case sql.ErrNoRows:
+		c.JSON(http.StatusOK, respErrorCode(errors.UserNotFound, c))
+		return
+	case nil:
+	default:
 		log.Errorf("CreateAssetHandler dao.GetUserByUsername() error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+
+	// 判断上传文件是否需要加密
 	if c.Query("encrypted") == "true" {
 		passKey := fmt.Sprintf(FileUploadPassKey, username)
 		randomPassNonce = dao.RedisCache.Get(c.Request.Context(), passKey).Val()
@@ -634,19 +645,18 @@ func CreateAssetPostHandler(c *gin.Context) {
 			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 			return
 		}
-
-		defer func() {
-			dao.RedisCache.Del(c.Request.Context(), passKey)
-		}()
+		dao.RedisCache.Del(c.Request.Context(), passKey)
 	}
 
 	// 获取文件hash
+	log.Debugf("areaid:%v", areaIds[0])
 	hash, err := storage.CIDToHash(createAssetReq.AssetCID)
 	if err != nil {
 		log.Errorf("CreateAssetHandler storage.CIDToHash() error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+	// 获取文件不存在的区域列表，默认都上传成功
 	notExistsAids, err := dao.GetUserAssetNotAreaIDs(c.Request.Context(), hash, username, areaIds)
 	if err != nil {
 		log.Errorf("GetUserAssetByAreaIDs error: %v", err)
@@ -662,46 +672,52 @@ func CreateAssetPostHandler(c *gin.Context) {
 		return
 	}
 
-	// 调用调度器
-	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaIds[0])
-	if err != nil {
-		log.Errorf("CreateAssetHandler getSchedulerClient error: %v", err)
-		if webErr, ok := err.(*api.ErrWeb); ok {
+	// 判断所选区域(areaIds[0])是否同步成功，默认已经同步成功
+	var createAssetRsp = new(types.UploadInfo)
+	createAssetRsp.AlreadyExists = true
+	if !dao.CheckAssetIsSyncByAreaID(c.Request.Context(), hash, areaIds[0]) {
+		// 调用调度器
+		schedulerClient, err := getSchedulerClient(c.Request.Context(), areaIds[0])
+		if err != nil {
+			log.Errorf("CreateAssetHandler getSchedulerClient error: %v", err)
+			if webErr, ok := err.(*api.ErrWeb); ok {
+				c.JSON(http.StatusOK, gin.H{
+					"code": -1,
+					"err":  webErr.Code,
+					"msg":  webErr.Message,
+					"Log":  areaIds[0],
+				})
+				return
+			}
+		}
+		createAssetRsp, err = schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{
+			UserID: username, AssetCID: createAssetReq.AssetCID, AssetSize: createAssetReq.AssetSize, NodeID: createAssetReq.NodeID, Owner: username})
+		if err != nil {
+			log.Errorf("CreateAssetHandler CreateAsset error: %v", err)
+			if webErr, ok := err.(*api.ErrWeb); ok {
+				c.JSON(http.StatusOK, gin.H{
+					"code": -1,
+					"err":  webErr.Code,
+					"msg":  webErr.Message,
+					"Log":  areaIds[0],
+				})
+				return
+			}
 			c.JSON(http.StatusOK, gin.H{
 				"code": -1,
-				"err":  webErr.Code,
-				"msg":  webErr.Message,
 				"Log":  areaIds[0],
 			})
 			return
 		}
-	}
-	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{
-		UserID: username, AssetCID: createAssetReq.AssetCID, AssetSize: createAssetReq.AssetSize, NodeID: createAssetReq.NodeID})
-	if err != nil {
-		log.Errorf("CreateAssetHandler CreateAsset error: %v", err)
-		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, gin.H{
-				"code": -1,
-				"err":  webErr.Code,
-				"msg":  webErr.Message,
-				"Log":  areaIds[0],
-			})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"code": -1,
-			"Log":  areaIds[0],
-		})
-		return
-	}
-	if !createAssetRsp.AlreadyExists {
-		if len(createAssetRsp.List) == 0 {
-			log.Errorf("createAssetRsp.List: %v", err)
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			return
+		if !createAssetRsp.AlreadyExists {
+			if len(createAssetRsp.List) == 0 {
+				log.Errorf("createAssetRsp.List: %v", err)
+				c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+				return
+			}
 		}
 	}
+
 	// 判断是否需要同步调度器信息
 	if len(notExistsAids) > 0 {
 		err = oprds.GetClient().PushSchedulerInfo(c.Request.Context(), &oprds.Payload{UserID: username, CID: createAssetReq.AssetCID, Hash: hash, AreaID: areaIds[0]})
@@ -946,6 +962,7 @@ func DeleteAssetHandler(c *gin.Context) {
 	// 获取文件信息
 	areaIds, isNeedDel, err := dao.CheckUserAseetNeedDel(c.Request.Context(), hash, userID, areaIds)
 	if err != nil {
+		log.Errorf("get areaIds error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
@@ -957,16 +974,18 @@ func DeleteAssetHandler(c *gin.Context) {
 	for _, v := range areaIds {
 		wg.Add(1)
 		go func(v string) {
-			defer wg.Done()
+			defer func() {
+				wg.Done()
+				mu.Lock()
+				execAreaIds = append(execAreaIds, v)
+				mu.Unlock()
+			}()
 			// 判断文件是否为唯一存在的
 			isOnly, err := dao.CheckUserAssetIsOnly(c.Request.Context(), hash, v)
 			if err != nil {
 				return
 			}
 			if !isOnly {
-				mu.Lock()
-				execAreaIds = append(execAreaIds, v)
-				mu.Unlock()
 				return
 			}
 			scli, err := getSchedulerClient(c.Request.Context(), v)
@@ -975,15 +994,7 @@ func DeleteAssetHandler(c *gin.Context) {
 			}
 			err = scli.RemoveAssetRecord(c.Request.Context(), cid)
 			if err != nil {
-				if webErr, ok := err.(*api.ErrWeb); ok && webErr.Code == terrors.HashNotFound.Int() {
-					mu.Lock()
-					execAreaIds = append(execAreaIds, v)
-					mu.Unlock()
-				}
-			} else {
-				mu.Lock()
-				execAreaIds = append(execAreaIds, v)
-				mu.Unlock()
+				log.Errorf("get areaIds error: %+v", err)
 			}
 		}(v)
 	}
@@ -1033,6 +1044,16 @@ func ShareAssetsHandler(c *gin.Context) {
 		areaIds = getAreaIDs(c)
 	}
 
+	// 判断是否超过流量限额
+	ok, err := checkUserTotalFlow(c.Request.Context(), userId)
+	if err != nil {
+		log.Error("check user total flow error: ", cid)
+	}
+	if !ok {
+		c.JSON(http.StatusOK, respErrorCode(errors.OutTotalFlow, c))
+		return
+	}
+
 	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {
 		log.Error("Invalid asset CID: ", cid)
@@ -1069,19 +1090,26 @@ func ShareAssetsHandler(c *gin.Context) {
 			c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 			return
 		}
+		if len(areaIDs) == 0 {
+			c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+			return
+		}
 		// 获取用户的访问的ip
 		ip, err := GetIPFromRequest(c.Request)
 		if err != nil {
 			log.Errorf("get user's ip of request error:%w", err)
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			return
+			// c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			// return
+			areaId = areaIDs[0]
+		} else {
+			areaId, err = GetNearestAreaID(c.Request.Context(), ip, areaIDs)
+			if err != nil {
+				log.Error(err)
+				c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+				return
+			}
 		}
-		areaId, err = GetNearestAreaID(c.Request.Context(), ip, areaIDs)
-		if err != nil {
-			log.Error(err)
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			return
-		}
+
 	}
 	// 获取文件信息
 	userAsset, err := dao.GetUserAssetDetail(c.Request.Context(), hash, userId)
@@ -1130,7 +1158,7 @@ func ShareAssetsHandler(c *gin.Context) {
 	}
 
 	// 成功的时候，下载量+1
-	oprds.GetClient().IncrAssetHourDownload(c.Request.Context(), hash, time.Now())
+	oprds.GetClient().IncrAssetHourDownload(c.Request.Context(), hash)
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"asset_cid": cid,
@@ -1154,6 +1182,16 @@ func OpenAssetHandler(c *gin.Context) {
 
 	if userId == "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.MissingUserId, c))
+		return
+	}
+
+	// 判断是否超过流量限额
+	ok, err := checkUserTotalFlow(c.Request.Context(), userId)
+	if err != nil {
+		log.Error("check user total flow error: ", cid)
+	}
+	if !ok {
+		c.JSON(http.StatusOK, respErrorCode(errors.OutTotalFlow, c))
 		return
 	}
 
@@ -1196,15 +1234,18 @@ func OpenAssetHandler(c *gin.Context) {
 		ip, err := GetIPFromRequest(c.Request)
 		if err != nil {
 			log.Errorf("get user's ip of request error:%w", err)
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			return
+			// c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			// return
+			areaId = areaIDs[0]
+		} else {
+			areaId, err = GetNearestAreaID(c.Request.Context(), ip, areaIDs)
+			if err != nil {
+				log.Error(err)
+				c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+				return
+			}
 		}
-		areaId, err = GetNearestAreaID(c.Request.Context(), ip, areaIDs)
-		if err != nil {
-			log.Error(err)
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			return
-		}
+
 	}
 	// 获取文件信息
 	userAsset, err := dao.GetUserAssetDetail(c.Request.Context(), hash, userId)
@@ -1266,7 +1307,7 @@ func OpenAssetHandler(c *gin.Context) {
 	}
 
 	// 成功的时候，下载量+1
-	oprds.GetClient().IncrAssetHourDownload(c.Request.Context(), hash, time.Now())
+	oprds.GetClient().IncrAssetHourDownload(c.Request.Context(), hash)
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"asset_cid": cid,
@@ -1503,7 +1544,6 @@ func CreateShareLinkHandler(c *gin.Context) {
 		return
 	}
 
-	areaId := getAreaID(c)
 	if cid == "" || u == "" {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
@@ -1585,7 +1625,7 @@ func CreateShareLinkHandler(c *gin.Context) {
 	link.UpdatedAt = time.Now()
 	shortLink := dao.GetShortLink(c.Request.Context(), u)
 	if shortLink == "" {
-		link.ShortLink = "/link?" + "cid=" + cid + "&area_id=" + areaId + "&ts=" + strconv.FormatInt(time.Now().Unix(), 10)
+		link.ShortLink = "/link?" + "cid=" + cid + "&ts=" + strconv.FormatInt(time.Now().Unix(), 10)
 		shortLink = link.ShortLink
 		err := dao.CreateLink(c.Request.Context(), &link)
 		if err != nil {
@@ -2465,7 +2505,7 @@ type AssetOrGroup struct {
 // @Param parent query int true "父级id"
 // @Param page_size query int true "page_size"
 // @Param page query int true "page"
-// @Success 200 {object} JsonObject "{list:{},total:0}"
+// @Success 200 {object} AssetOrGroup "{list:{},total:0}"
 // @Router /api/v1/storage/get_asset_group_list [get]
 func GetAssetGroupListHandler(c *gin.Context) {
 	// userId := c.Query("user_id")
@@ -2586,12 +2626,26 @@ func GetAssetGroupInfoHandler(c *gin.Context) {
 }
 
 func DeleteGroupHandler(c *gin.Context) {
-	// userId := c.Query("user_id")
 	claims := jwt.ExtractClaims(c)
-	userId := claims[identityKey].(string)
-	groupId, _ := strconv.Atoi(c.Query("group_id"))
+	uid := claims[identityKey].(string)
+	gid, _ := strconv.Atoi(c.Query("group_id"))
 
-	err := dao.DeleteAssetGroup(c.Request.Context(), userId, groupId)
+	if gid == 0 {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	// 数据库将最外层的文件组删除
+	// err := dao.DeleteAssetGroupAndUpdateSize(c.Request.Context(), uid, gid)
+	// if err != nil {
+	// 	log.Errorf("delete outer asset group error: %v", err)
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	// 	return
+	// }
+	// 将用户对应的文件组id塞到asynq中去处理
+	// opasynq.DefaultCli.EnqueueAssetGroupID(c.Request.Context(), opasynq.AssetGroupPayload{UserID: uid, GroupID: []int64{int64(gid)}})
+
+	err := dao.DeleteAssetGroup(c.Request.Context(), uid, gid)
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))

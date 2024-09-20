@@ -11,6 +11,7 @@ import (
 	"github.com/gnasnik/titan-explorer/api"
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
+	"github.com/gnasnik/titan-explorer/core/opasynq"
 	"github.com/gnasnik/titan-explorer/core/oplog"
 	"github.com/gnasnik/titan-explorer/core/oprds"
 	"github.com/gnasnik/titan-explorer/job"
@@ -55,6 +56,7 @@ func main() {
 
 	oplog.Subscribe(context.Background())
 	oprds.Init()
+	opasynq.Init()
 
 	srv, err := api.NewServer(cfg)
 	if err != nil {
@@ -62,6 +64,7 @@ func main() {
 	}
 	go srv.Run()
 	job.SyncShedulersAsset()
+	go job.StartAsynqServer()
 
 	signal.Notify(OsSignal, syscall.SIGINT, syscall.SIGTERM)
 	_ = <-OsSignal

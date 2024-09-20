@@ -81,6 +81,8 @@ const (
 	MissingUserId
 	AssetVisitOutOfLimit
 
+	OutTotalFlow
+
 	Unknown     = -1
 	GenericCode = 1
 )
@@ -173,6 +175,7 @@ var ErrMap = map[int]string{
 	LinkUserNotMatch:                         "link user not match:链接用户不匹配",
 	MissingUserId:                            "missing user id:缺少用户ID",
 	AssetVisitOutOfLimit:                     "asset visit out of limit:访问次数超出限制",
+	OutTotalFlow:                             "out total flow:总流量超过使用限制",
 }
 
 type GenericError struct {

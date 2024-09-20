@@ -85,6 +85,37 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "上传文件",
+                "tags": [
+                    "storage"
+                ],
+                "summary": "上传文件",
+                "parameters": [
+                    {
+                        "description": "请求参数",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.createAssetRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{[]{CandidateAddr:\"\",Token:\"\"}}",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
             }
         },
         "/api/v1/storage/create_group": {
@@ -149,6 +180,46 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "{key:\"\",secret:\"\"}",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/storage/create_link": {
+            "get": {
+                "description": "获取分享链接",
+                "tags": [
+                    "storage"
+                ],
+                "summary": "获取分享链接",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "用户id",
+                        "name": "username",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "url",
+                        "name": "url",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "文件cid",
+                        "name": "cid",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{url: \"\"}",
                         "schema": {
                             "$ref": "#/definitions/api.JsonObject"
                         }
@@ -500,6 +571,50 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/storage/rename_asset": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "文件重命名",
+                "tags": [
+                    "storage"
+                ],
+                "summary": "文件重命名",
+                "responses": {
+                    "200": {
+                        "description": "{\"msg\":\"success\"}",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/storage/rename_group": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "文件重命名",
+                "tags": [
+                    "storage"
+                ],
+                "summary": "文件重命名",
+                "responses": {
+                    "200": {
+                        "description": "{\"msg\":\"success\"}",
+                        "schema": {
+                            "$ref": "#/definitions/api.JsonObject"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/storage/share_asset": {
             "get": {
                 "description": "分享文件",
@@ -628,26 +743,62 @@ const docTemplate = `{
         "api.UploadTempFileReq": {
             "type": "object",
             "required": [
-                "area_ids",
                 "asset_cid",
                 "asset_name",
                 "asset_size"
             ],
             "properties": {
                 "area_ids": {
+                    "description": "最多3个",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
                 "asset_cid": {
-                    "description": "最多3个",
                     "type": "string"
                 },
                 "asset_name": {
                     "type": "string"
                 },
                 "asset_size": {
+                    "type": "integer"
+                },
+                "node_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.createAssetRequest": {
+            "type": "object",
+            "required": [
+                "asset_name",
+                "asset_size",
+                "asset_type"
+            ],
+            "properties": {
+                "area_id": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "asset_cid": {
+                    "type": "string"
+                },
+                "asset_name": {
+                    "type": "string"
+                },
+                "asset_size": {
+                    "type": "integer"
+                },
+                "asset_type": {
+                    "type": "string"
+                },
+                "encrypted": {
+                    "type": "boolean"
+                },
+                "group_id": {
                     "type": "integer"
                 },
                 "node_id": {

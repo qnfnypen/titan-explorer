@@ -30,6 +30,11 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+const (
+	maxTotalFlow    = 1 * 1024 * 1024 * 1024
+	maxVipTotalFlow = 1000 * 1024 * 1024 * 1024
+)
+
 var (
 	maxCountOfVisitAsset     int64 = 10
 	maxCountOfVisitShareLink int64 = 10
@@ -38,10 +43,11 @@ var (
 	// AreaIPIDMaps 调度器区域ip和id映射
 	AreaIPIDMaps = new(sync.Map)
 	// CityAreaIDMaps 国家地区映射
-	CityAreaIDMaps = new(sync.Map)
+	cityAreaIDMaps = make(map[string][]string)
 	// lastSyncTimeStamp 上次同步时间
 	lastSyncTimeStamp time.Time
 	syncTimeMu        = new(sync.Mutex)
+	rwMapsMu          = new(sync.RWMutex)
 )
 
 type (
@@ -93,12 +99,15 @@ type (
 )
 
 func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string][]string) {
-	var aids, naids []string
+	var (
+		aids, naids []string
+	)
+	// 兼容以前的区域请求
+	areaIDs = getAreaIDsCountry(areaIDs)
 
 	_, maps, err := GetAndStoreAreaIDs()
 	if err != nil {
 		log.Error(err)
-		return nil, nil
 	}
 
 	for _, v := range areaIDs {
@@ -106,7 +115,6 @@ func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string]
 			aids = append(aids, maps[v]...)
 		}
 	}
-	log.Debugf("areaIDs:%v area_ids:%v", areaIDs, aids)
 	if len(aids) == 0 {
 		for _, v := range maps {
 			aids = append(aids, v...)
@@ -139,11 +147,11 @@ func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string]
 				}
 			}
 		}
-		log.Debugf("t_area_ids:%v", tadis)
 		areaID, err := GetNearestAreaID(c.Request.Context(), ip, tadis)
 		if err != nil {
 			log.Error(err)
 		} else {
+			// areaID = "Asia-China-Guangdong-Shenzhen"
 			naids = append(naids, areaID)
 			for _, v := range aids {
 				if !strings.EqualFold(v, areaID) {
@@ -158,25 +166,8 @@ func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string]
 }
 
 func getAreaIDs(c *gin.Context) []string {
-	var (
-		newAreaIDs []string
-		areaMaps   = make(map[string]bool)
-	)
 	areaIDs := c.QueryArray("area_id")
-
-	for _, v := range areaIDs {
-		vs := strings.Split(v, "-")
-		vv := v
-		if len(vs) >= 2 {
-			vv = vs[1]
-		}
-		areaMaps[vv] = false
-	}
-	for k := range areaMaps {
-		newAreaIDs = append(newAreaIDs, k)
-	}
-
-	aids, _ := getAreaIDsByAreaID(c, newAreaIDs)
+	aids, _ := getAreaIDsByAreaID(c, areaIDs)
 
 	return aids
 }
@@ -196,7 +187,7 @@ func getAreaIDsNoDefault(c *gin.Context) []string {
 		return nil
 	}
 
-	areaIDs := c.QueryArray("area_id")
+	areaIDs := getAreaIDsCountry(c.QueryArray("area_id"))
 	for _, v := range areaIDs {
 		v := strings.TrimSpace(v)
 		if v != "" {
@@ -209,9 +200,18 @@ func getAreaIDsNoDefault(c *gin.Context) []string {
 
 func getAreaID(c *gin.Context) string {
 	areaID := strings.TrimSpace(c.Query("area_id"))
+	areaID = GetDefaultTitanCandidateEntrypointInfo()
 
 	if areaID == "" {
 		areaID = GetDefaultTitanCandidateEntrypointInfo()
+	} else {
+		areaIds := getAreaIDsCountry([]string{c.Query("area_id")})
+		aids, _ := getAreaIDsByAreaID(c, areaIds)
+		if len(aids) > 0 {
+			areaID = aids[0]
+		} else {
+			areaID = GetDefaultTitanCandidateEntrypointInfo()
+		}
 	}
 
 	return areaID
@@ -275,11 +275,12 @@ func listAssets(ctx context.Context, uid string, limit, offset, groupID int) (*L
 				records.NeedEdgeReplica += record.NeedEdgeReplica
 				records.NeedCandidateReplicas += record.ReplenishReplicas
 				// records.ReplicaInfos = append(records.ReplicaInfos, record.ReplicaInfos...)
-				for _, vv := range record.ReplicaInfos {
-					if vv.Status == 3 {
-						records.ReplicaNums++
-					}
-				}
+				records.ReplicaNums += int64(len(record.ReplicaInfos))
+				// for _, vv := range record.ReplicaInfos {
+				// 	if vv.Status == 3 {
+				// 		records.ReplicaNums++
+				// 	}
+				// }
 				if records.TotalSize == 0 {
 					records.CID = record.CID
 					records.CreatedTime = record.CreatedTime
@@ -480,39 +481,6 @@ func listAssetSummary(ctx context.Context, uid string, parent, page, size int) (
 	return resp, nil
 }
 
-// SyncShedulers 同步调度器数据
-func SyncShedulers(ctx context.Context, sCli api.Scheduler, nodeID, cid string, size int64, areaIds []string) ([]string, error) {
-	zStrs := make([]string, 0)
-	if len(areaIds) == 0 {
-		return zStrs, nil
-	}
-
-	info, err := sCli.GenerateTokenForDownloadSource(ctx, nodeID, cid)
-	if err != nil {
-		log.Errorf("generate token for download source error:%w", err)
-		return zStrs, nil
-	}
-	for _, v := range areaIds {
-		scli, err := getSchedulerClient(ctx, v)
-		if err != nil {
-			log.Errorf("getSchedulerClient error: %v", err)
-			continue
-		}
-		err = scli.CreateSyncAsset(ctx, &types.CreateSyncAssetReq{
-			AssetCID:     cid,
-			AssetSize:    size,
-			DownloadInfo: info,
-		})
-		if err != nil {
-			log.Errorf("GetUserAssetByAreaIDs error: %v", err)
-			continue
-		}
-		zStrs = append(zStrs, v)
-	}
-
-	return zStrs, nil
-}
-
 // SyncAreaIDs 同步未登陆用户文件的区域
 func SyncAreaIDs(ctx context.Context, sCli api.Scheduler, nodeID, cid string, size int64, areaIds []string) ([]string, error) {
 	zStrs := make([]string, 0)
@@ -580,9 +548,18 @@ func GetAreaIPByID(ctx context.Context, areaID string) (string, error) {
 }
 
 // GetIPFromRequest 根据请求获取ip地址
-func GetIPFromRequest(r *http.Request) (string, error) {
+func GetIPFromRequest(r *http.Request) (ip string, err error) {
+	// 判断是否为内网IP或环回地址
+	defer func() {
+		ipv4 := net.ParseIP(ip)
+		if ipv4.IsPrivate() || ipv4.IsLoopback() {
+			ip = ""
+			err = errors.New("internal ip or loop back ip")
+		}
+	}()
+
 	// 检查 X-Forwarded-For 头
-	ip := r.Header.Get("X-Forwarded-For")
+	ip = r.Header.Get("X-Forwarded-For")
 	if ip != "" {
 		// X-Forwarded-For 可能包含多个IP地址，取第一个
 		ips := strings.Split(ip, ",")
@@ -601,7 +578,7 @@ func GetIPFromRequest(r *http.Request) (string, error) {
 	}
 
 	// 如果没有代理服务器，则使用 RemoteAddr
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	ip, _, err = net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return "", fmt.Errorf("userip: %q is not IP:port,error:%w", r.RemoteAddr, err)
 	}
@@ -720,12 +697,11 @@ func GetFILPrice(ctx context.Context) (float64, error) {
 func GetAndStoreAreaIDs() ([]string, map[string][]string, error) {
 	tn := time.Now()
 	syncTimeMu.Lock()
+	defer syncTimeMu.Unlock()
 	if lastSyncTimeStamp.IsZero() {
 		lastSyncTimeStamp = time.Now()
-		syncTimeMu.Unlock()
 	} else {
-		lt := lastSyncTimeStamp.Add(5 * time.Minute)
-		syncTimeMu.Unlock()
+		lt := lastSyncTimeStamp.Add(10 * time.Minute)
 		if lt.After(tn) {
 			keys, maps := rangeCityAidMaps()
 			return keys, maps, nil
@@ -734,27 +710,24 @@ func GetAndStoreAreaIDs() ([]string, map[string][]string, error) {
 
 	etcdClient, err := statistics.NewEtcdClient(config.Cfg.EtcdAddresses)
 	if err != nil {
-		return nil, nil, fmt.Errorf("New etcdClient Failed: %w", err)
+		keys, maps := rangeCityAidMaps()
+		return keys, maps, fmt.Errorf("New etcdClient Failed: %w", err)
 	}
 	schedulers, err := statistics.FetchSchedulersFromEtcd(etcdClient)
 	if err != nil {
-		return nil, nil, fmt.Errorf("fetch scheduler from etcd Failed: %w", err)
+		keys, maps := rangeCityAidMaps()
+		return keys, maps, fmt.Errorf("fetch scheduler from etcd Failed: %w", err)
 	}
+	rwMapsMu.Lock()
+	cityAreaIDMaps = make(map[string][]string)
 	for _, v := range schedulers {
 		as := strings.Split(v.AreaId, "-")
 		if len(as) < 2 {
 			continue
 		}
-		if aids, ok := CityAreaIDMaps.Load(as[1]); ok {
-			aslic, ok := aids.([]string)
-			if ok {
-				aslic = append(aslic, v.AreaId)
-				CityAreaIDMaps.Store(as[1], aslic)
-			}
-			continue
-		}
-		CityAreaIDMaps.Store(as[1], []string{v.AreaId})
+		cityAreaIDMaps[as[1]] = append(cityAreaIDMaps[as[1]], v.AreaId)
 	}
+	rwMapsMu.Unlock()
 
 	keys, maps := rangeCityAidMaps()
 	return keys, maps, nil
@@ -766,15 +739,12 @@ func rangeCityAidMaps() ([]string, map[string][]string) {
 		maps = make(map[string][]string)
 	)
 
-	CityAreaIDMaps.Range(func(key, value any) bool {
-		if kv, ok := key.(string); ok {
-			if vv, ok := value.([]string); ok {
-				keys = append(keys, kv)
-				maps[kv] = vv
-			}
-		}
-		return true
-	})
+	rwMapsMu.RLock()
+	for k, v := range cityAreaIDMaps {
+		keys = append(keys, k)
+		maps[k] = append(maps[k], v...) // 拷贝每个 key 的 slice
+	}
+	rwMapsMu.RUnlock()
 
 	return keys, maps
 }
@@ -815,4 +785,67 @@ func operateAreaMaps(ctx context.Context, aids []string, lan string) []dao.KVMap
 	}
 
 	return kvs
+}
+
+// getAreaIDsCountry 兼容以前的区域请求，获取区域的country
+func getAreaIDsCountry(areaIDs []string) []string {
+	var (
+		newAreaIDs []string
+		areaMaps   = make(map[string]bool)
+	)
+
+	for _, v := range areaIDs {
+		v = strings.TrimSpace(v)
+		vs := strings.Split(v, "-")
+		vv := v
+		if len(vs) >= 2 {
+			vv = vs[1]
+		}
+		areaMaps[vv] = false
+	}
+	for k := range areaMaps {
+		newAreaIDs = append(newAreaIDs, k)
+	}
+
+	return newAreaIDs
+}
+
+// checkUserTotalFlow 判断用户使用总流量是否到达最大限制
+func checkUserTotalFlow(ctx context.Context, username string) (bool, error) {
+	var (
+		fInfo = new(dao.UserStorageFlowInfo)
+	)
+
+	// 获取用户信息，判断用户是否为vip
+	user, err := dao.GetUserByUsername(ctx, username)
+	if err != nil {
+		return false, fmt.Errorf("get userInfo error:%w", err)
+	}
+
+	// 获取用户已使用的总流量
+	value, err := oprds.GetClient().GetUserStorageFlowInfo(ctx, username)
+	if err != nil {
+		fInfo, err = dao.GetUserStorageFlowInfo(ctx, username)
+		if err != nil {
+			fInfo = new(dao.UserStorageFlowInfo)
+			return false, err
+		}
+		ib, _ := json.Marshal(fInfo)
+		oprds.GetClient().StoreUserStorageFlowInfo(ctx, username, string(ib))
+	} else {
+		json.Unmarshal([]byte(value), fInfo)
+	}
+	// 判断是否为vip
+	switch user.EnableVIP {
+	case true:
+		if fInfo.TotalTraffic < maxVipTotalFlow {
+			return true, nil
+		}
+	default:
+		if fInfo.TotalTraffic < maxTotalFlow {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

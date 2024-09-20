@@ -17,6 +17,7 @@ const (
 	preUnlogin     = "unlogin_hash"
 	preNodeID      = "unsync_nodeid"
 	preStorageFlow = "storage_flow"
+	preDownload    = "asset_download"
 )
 
 var cli *Client
@@ -123,11 +124,20 @@ func (c *Client) DelSchedulerInfo(ctx context.Context, payload *Payload) error {
 	return nil
 }
 
-// PushAreaIDs 上传需要同步的文件区域到队列
+// PushAreaIDs 上传需要同步的文件区域到队列，存在则不插入
 func (c *Client) PushAreaIDs(ctx context.Context, payload *AreaIDPayload) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("json marshal scheduler's info error:%w", err)
+	}
+
+	removed, err := c.rds.LRem(ctx, areaKey, 0, string(body)).Result()
+	if err != nil {
+		return fmt.Errorf("l rem info to redis error:%w", err)
+	}
+	// 如果 remove 大于0，则说明已经存在，则直接返回
+	if removed > 0 {
+		return nil
 	}
 
 	err = c.rds.LPush(ctx, areaKey, string(body)).Err()
@@ -237,19 +247,15 @@ func (c *Client) CheckUnSyncNodeID(ctx context.Context, nodeID string) (bool, er
 }
 
 // IncrAssetHourDownload 对该时间段内文件下载量加1
-func (c *Client) IncrAssetHourDownload(ctx context.Context, hash string, ts time.Time) error {
-	ts = ts.Add(1 * time.Hour)
-	ts = time.Date(ts.Year(), ts.Month(), ts.Day(), ts.Hour(), 0, 0, 0, ts.Location())
-
-	key := fmt.Sprintf("%s_%d", hash, ts.Unix())
+func (c *Client) IncrAssetHourDownload(ctx context.Context, hash string) error {
+	key := fmt.Sprintf("%s_%s", preDownload, hash)
 
 	return c.rds.Incr(ctx, key).Err()
 }
 
 // GetAssetHourDownload 获取该时间段内文件下载数量
-func (c *Client) GetAssetHourDownload(ctx context.Context, hash string, ts time.Time) (int64, error) {
-	key := fmt.Sprintf("%s_%d", hash, ts.Unix())
-
+func (c *Client) GetAssetHourDownload(ctx context.Context, hash string) (int64, error) {
+	key := fmt.Sprintf("%s_%s", preDownload, hash)
 	v, err := c.rds.Get(ctx, key).Int64()
 	switch err {
 	case redis.Nil:

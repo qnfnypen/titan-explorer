@@ -10,7 +10,9 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 )
 
-var log = logging.Logger("api")
+var (
+	log = logging.Logger("api")
+)
 
 func RegisterRouters(route *gin.Engine, cfg config.Config) {
 	RegisterRouterWithJWT(route, cfg)
@@ -270,7 +272,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/move_group_to_group", MoveGroupToGroupHandler)
 	storage.GET("/move_asset_to_group", MoveAssetToGroupHandler)
 	storage.POST("/move_node", MoveNode)
-	storage.POST("/ipfs_info", GetIPFSInfoByCIDs)
+	// storage.POST("/ipfs_info", GetIPFSInfoByCIDs)
 
 	storage.POST("/transfer/report", AssetTransferReport)
 

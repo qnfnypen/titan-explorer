@@ -192,6 +192,7 @@ func GetStorageHourV2Handler(c *gin.Context) {
 	// 获取用户的文件hash
 	list, err := dao.GetUserDashboardInfos(c.Request.Context(), userId, time.Now())
 	if err != nil {
+		log.Errorf("GetUserDashboardInfos: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
