@@ -17,6 +17,7 @@ import (
 
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/types"
+	"github.com/Filecoin-Titan/titan/node/cidutil"
 	"github.com/Masterminds/squirrel"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/config"
@@ -311,6 +312,92 @@ func listAssets(ctx context.Context, uid string, limit, offset, groupID int) (*L
 	wg.Wait()
 
 	return &ListAssetRecordRsp{Total: total, AssetOverviews: list}, nil
+}
+
+// getAssetOverView Get only on asset view, copy from listAssets
+func getAssetOverView(ctx context.Context, uid, cid string) (*AssetOverview, error) {
+	uInfo, err := dao.GetUserByUsername(ctx, uid)
+	if err != nil {
+		return nil, fmt.Errorf("get user's info error:%w", err)
+	}
+	hash, err := cidutil.CIDToHash(cid)
+	if err != nil {
+		return nil, err
+	}
+
+	assetDetail, err := dao.GetUserAssetDetail(ctx, hash, uid)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, fmt.Errorf("error occurred while fetching asset details: %s", err)
+
+	}
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("asset details not found : %s", err)
+	}
+
+	areaIDs, err := dao.GetUserAssetAreaIDs(ctx, assetDetail.Hash, uid)
+	if err != nil {
+		return nil, fmt.Errorf("get areaids err: %s", err.Error())
+	}
+	// 获取用户文件分发记录
+	records := new(AssetRecord)
+	if cid == "" {
+		// 将 hash 转换为 cid
+		cid, err = storage.HashToCID(assetDetail.Hash)
+		if err != nil {
+			return nil, fmt.Errorf("hash to cid err: %s", err.Error())
+		}
+	} else {
+		records.CID = cid
+	}
+
+	records.Hash = assetDetail.Hash
+	for _, v := range areaIDs {
+		sCli, err := getSchedulerClient(ctx, v)
+		if err != nil {
+			log.Errorf("getSchedulerClient err: %s", err.Error())
+			continue
+		}
+		record, err := sCli.GetAssetRecord(ctx, cid)
+		if err != nil {
+			log.Errorf("asset LoadAssetRecord err: %s", err.Error())
+			continue
+		}
+		if assetDetail.Cid == "" {
+			dao.UpdateAssetCid(ctx, assetDetail.Hash, record.CID)
+		}
+		records.NeedEdgeReplica += record.NeedEdgeReplica
+		records.NeedCandidateReplicas += record.ReplenishReplicas
+		// records.ReplicaInfos = append(records.ReplicaInfos, record.ReplicaInfos...)
+		for _, vv := range record.ReplicaInfos {
+			if vv.Status == 3 {
+				records.ReplicaNums++
+			}
+		}
+		if records.TotalSize == 0 {
+			records.CID = record.CID
+			records.CreatedTime = record.CreatedTime
+			records.EndTime = record.EndTime
+			records.Expiration = record.Expiration
+			records.Note = record.Note
+			records.ServerID = fmt.Sprintf("%v", record.ServerID)
+			records.State = record.State
+			records.Source = record.Source
+			records.TotalBlocks = record.TotalBlocks
+			records.TotalSize = record.TotalSize
+		}
+	}
+	if !uInfo.EnableVIP && assetDetail.VisitCount >= maxCountOfVisitAsset {
+		assetDetail.ShareStatus = 2
+	}
+	assetDetail.AreaIDs = append(assetDetail.AreaIDs, areaIDs...)
+	r := &AssetOverview{
+		AssetRecord:      records,
+		UserAssetDetail:  assetDetail,
+		VisitCount:       assetDetail.VisitCount,
+		RemainVisitCount: maxCountOfVisitAsset - assetDetail.VisitCount,
+	}
+
+	return r, nil
 }
 
 func getAssetStatus(ctx context.Context, uid, cid string) (*types.AssetStatus, error) {

@@ -265,3 +265,16 @@ type UserL1Reward struct {
 	Reward    float64   `json:"reward" db:"reward"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
+
+type AssetTransferLog struct {
+	TraceId      string    `json:"trace_id" db:"trace_id"`
+	UserId       string    `json:"user_id" db:"user_id"`
+	Cid          string    `db:"cid" json:"cid"`
+	Hash         string    `db:"hash" json:"hash"`
+	Rate         int64     `db:"rate" json:"rate"`
+	CostMs       int64     `db:"cost_ms" json:"cost_ms"`
+	TotalSize    int64     `db:"total_size" json:"total_size"`
+	Succeed      bool      `db:"succeed" json:"succeed"`
+	TransferType string    `db:"transfer_type" json:"transfer_type"`
+	CreatedAt    time.Time `db:"created_at" json:"created_at"`
+}

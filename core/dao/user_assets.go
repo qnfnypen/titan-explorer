@@ -369,6 +369,23 @@ func ListAssetGroupForUser(ctx context.Context, uid string, parent, limit, offse
 	return resp, nil
 }
 
+// GetUserAssetGroupInfo
+func GetUserAssetGroupInfo(ctx context.Context, uid string, gid int) (*AssetGroup, error) {
+	var group AssetGroup
+	query, args, err := squirrel.Select("ag.*,COUNT(a.user_id) AS asset_count,COALESCE(SUM(a.total_size), 0) AS asset_size").From(fmt.Sprintf("%s as ag", tableNameAssetGroup)).
+		LeftJoin(fmt.Sprintf("%s as a ON ag.user_id=a.user_id AND ag.id=a.group_id", tableUserAsset)).
+		Where("ag.user_id=? AND ag.id=?", uid, gid).Limit(1).ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("generate get asset's group sql error:%w", err)
+	}
+	err = DB.GetContext(ctx, &group, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &group, nil
+}
+
 // DeleteAssetGroup delete asset group
 func DeleteAssetGroup(ctx context.Context, uid string, gid int) error {
 	gCount, err := getUserAssetCountByGroupID(ctx, uid, gid)
