@@ -78,7 +78,7 @@ func GetCacheListHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list":  resp.ReplicaEvents,
+		"list":  resp.List,
 		"total": resp.Total,
 	}))
 	return
@@ -2364,6 +2364,11 @@ func GetRetrievalListHandler(c *gin.Context) {
 	// 	"list":  resp.RetrieveEventInfos,
 	// 	"total": resp.Total,
 	// }))
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list":  nil,
+		"total": 0,
+	}))
 }
 
 func toValidationEvent(in types.ValidationResultInfo) *model.ValidationEvent {
