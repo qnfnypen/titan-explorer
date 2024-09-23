@@ -236,6 +236,20 @@ func UpdateAssetShareStatus(ctx context.Context, hash, userID string) error {
 	return nil
 }
 
+// UpdateGroupShareStatus 修改文件组分享状态
+func UpdateGroupShareStatus(ctx context.Context, userID string, groupID int64) error {
+	query, args, err := squirrel.Update(tableNameAssetGroup).Set("share_status", 1).Where("user_id = ? AND id = ?", userID, groupID).ToSql()
+	if err != nil {
+		return fmt.Errorf("generate update user_asset_group sql error:%w", err)
+	}
+	_, err = DB.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // ListAssets 获取对应文件夹的文件列表
 func ListAssets(ctx context.Context, uid string, limit, offset, groupID int) (int64, []*UserAssetDetail, error) {
 	var (
@@ -885,6 +899,7 @@ func GetUserDashboardInfos(ctx context.Context, uid string, ts time.Time) ([]Das
 	}
 
 	for i, v := range list {
+		v.Date += 3600
 		list[i].DateStr = fmt.Sprintf("%d:00", time.Unix(v.Date, 0).Hour())
 		timeMaps[v.Date] = list[i]
 	}
@@ -1050,13 +1065,14 @@ func GetOnlyAssetsByUIDAndGroupID(ctx context.Context, userID string, gids []int
 		aaMaps = make(map[string][]string)
 	)
 
+	sb, sa, _ := squirrel.Select("`hash`").From(tableUserAsset).Where(squirrel.Eq{
+		"user_id":  userID,
+		"group_id": gids,
+	}).ToSql()
 	query, args, err := squirrel.Select("ua.cid,COUNT(ua.cid) AS num,uaa.area_id").From(fmt.Sprintf("%s AS uaa", tableUserAssetArea)).
-		LeftJoin(fmt.Sprintf("%s AS ua ON uaa.`hash` = ua.`hash` AND ua.user_id = uaa.user_id", tableUserAsset)).Where(squirrel.Eq{
-		"uaa.`hash`": squirrel.Select("`hash`").From(tableUserAsset).Where(squirrel.Eq{
-			"user_id":  userID,
-			"group_id": gids,
-		}),
-	}).Where("ua.cid <> ''").GroupBy("ua.cid").Having("num = 1").ToSql()
+		LeftJoin(fmt.Sprintf("%s AS ua ON uaa.`hash` = ua.`hash` AND ua.user_id = uaa.user_id", tableUserAsset)).
+		Where(fmt.Sprintf("uaa.`hash` IN (%s)", sb), sa...).
+		Where("ua.cid <> ''").GroupBy("ua.cid").Having("num = 1").ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("generate sql of get user_asset info error:%w", err)
 	}
@@ -1081,7 +1097,22 @@ func DeleteUserGroupAsset(ctx context.Context, userID string, gids []int64) erro
 
 	defer tx.Rollback()
 
-	query, args, err := squirrel.Delete(tableUserAsset).Where(squirrel.Eq{
+	// 先通过user_asset的hash删除user_asset_area的数据
+	sb, sa, _ := squirrel.Select("`hash`").From(tableUserAsset).Where(squirrel.Eq{
+		"user_id":  userID,
+		"group_id": gids,
+	}).ToSql()
+	query, args, err := squirrel.Delete(tableUserAssetArea).Where(fmt.Sprintf("`hash` IN (%s)", sb), sa...).
+		Where("user_id = ?", userID).ToSql()
+	if err != nil {
+		return fmt.Errorf("generate sql of delete user_assest_area error:%w", err)
+	}
+	_, err = tx.ExecContext(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("delete user_assest_area error:%w", err)
+	}
+	// 删除user_asset的数据
+	query, args, err = squirrel.Delete(tableUserAsset).Where(squirrel.Eq{
 		"user_id":  userID,
 		"group_id": gids,
 	}).ToSql()
@@ -1092,22 +1123,20 @@ func DeleteUserGroupAsset(ctx context.Context, userID string, gids []int64) erro
 	if err != nil {
 		return fmt.Errorf("delete user_assest error:%w", err)
 	}
-
-	query, args, err = squirrel.Delete(tableUserAssetArea).Where(squirrel.Eq{
-		"hash": squirrel.Select("`hash`").From(tableUserAsset).Where(squirrel.Eq{
-			"user_id":  userID,
-			"group_id": gids,
-		}),
+	// 删除当前文件组
+	query, args, err = squirrel.Delete(tableNameAssetGroup).Where(squirrel.Eq{
+		"user_id": userID,
+		"id":      gids,
 	}).ToSql()
 	if err != nil {
-		return fmt.Errorf("generate sql of delete user_assest_area error:%w", err)
+		return fmt.Errorf("generate sql of delete user_assest_group error:%w", err)
 	}
 	_, err = tx.ExecContext(ctx, query, args...)
 	if err != nil {
-		return fmt.Errorf("delete user_assest_area error:%w", err)
+		return fmt.Errorf("delete user_assest_group error:%w", err)
 	}
 
-	return nil
+	return tx.Commit()
 }
 
 // GetUserGroupByParent 通过父级id获取其第一层的子级id

@@ -32,6 +32,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/core/opasynq"
 	"github.com/gnasnik/titan-explorer/core/oprds"
 	"github.com/gnasnik/titan-explorer/core/storage"
 )
@@ -1764,21 +1765,33 @@ func GetShareLinkHandler(c *gin.Context) {
 }
 
 func UpdateShareStatusHandler(c *gin.Context) {
+	var err error
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
 	cid := c.Query("cid")
-	// 获取文件hash
-	hash, err := storage.CIDToHash(cid)
+	gid, _ := strconv.ParseInt(c.Query("group_id"), 10, 64)
+
+	if cid != "" {
+		// 获取文件hash
+		hash, err := storage.CIDToHash(cid)
+		if err != nil {
+			log.Errorf("CreateAssetHandler storage.CIDToHash() error: %+v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+		err = dao.UpdateAssetShareStatus(c.Request.Context(), hash, userId)
+	} else {
+		if gid == 0 {
+			c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+			return
+		}
+		err = dao.UpdateGroupShareStatus(c.Request.Context(), userId, gid)
+	}
 	if err != nil {
-		log.Errorf("CreateAssetHandler storage.CIDToHash() error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	err = dao.UpdateAssetShareStatus(c.Request.Context(), hash, userId)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"msg": "success",
 	}))
@@ -2636,24 +2649,24 @@ func DeleteGroupHandler(c *gin.Context) {
 	}
 
 	// 数据库将最外层的文件组删除
-	// err := dao.DeleteAssetGroupAndUpdateSize(c.Request.Context(), uid, gid)
-	// if err != nil {
-	// 	log.Errorf("delete outer asset group error: %v", err)
-	// 	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-	// 	return
-	// }
-	// 将用户对应的文件组id塞到asynq中去处理
-	// opasynq.DefaultCli.EnqueueAssetGroupID(c.Request.Context(), opasynq.AssetGroupPayload{UserID: uid, GroupID: []int64{int64(gid)}})
-
-	err := dao.DeleteAssetGroup(c.Request.Context(), uid, gid)
+	err := dao.DeleteAssetGroupAndUpdateSize(c.Request.Context(), uid, gid)
 	if err != nil {
-		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-		} else {
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		}
+		log.Errorf("delete outer asset group error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+	// 将用户对应的文件组id塞到asynq中去处理
+	opasynq.DefaultCli.EnqueueAssetGroupID(c.Request.Context(), opasynq.AssetGroupPayload{UserID: uid, GroupID: []int64{int64(gid)}})
+
+	// err := dao.DeleteAssetGroup(c.Request.Context(), uid, gid)
+	// if err != nil {
+	// 	if webErr, ok := err.(*api.ErrWeb); ok {
+	// 		c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+	// 	} else {
+	// 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	// 	}
+	// 	return
+	// }
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"msg": "success",
 	}))

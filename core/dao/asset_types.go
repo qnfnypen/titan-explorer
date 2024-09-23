@@ -18,6 +18,8 @@ type AssetGroup struct {
 	AssetCount  int64     `db:"asset_count"`
 	AssetSize   int64     `db:"asset_size"`
 	CreatedTime time.Time `db:"created_time"`
+	ShareStatus int64     `db:"share_status"`
+	VistitCount int64     `db:"visit_count"`
 }
 
 // OnlyUserGroupAsset 唯一存在的用户组文件

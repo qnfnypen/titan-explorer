@@ -75,7 +75,7 @@ func TestHashToCID(t *testing.T) {
 }
 
 func TestAesDecryptCBCByKey(t *testing.T) {
-	uid, err := AesDecryptCBCByKey("1W6gH1BfRGNrgt4REZV7VpucVp3gcbkkSs39jC4+m9drNyCK5XyK1WEbYRxIsVRd")
+	uid, err := AesDecryptCBCByKey("uAUvW5pb6CM0/dgozgxJNChc5xQYNCsNT9RK4csTDvevPv1fHyLX5C9QLw9jQnK/WZMqRJWtTp+yxJ1/x/gEyvIdtPYQ9lpAQsW8UQhOE5w=")
 	if err != nil {
 		t.Fatal(err)
 	}
