@@ -896,7 +896,7 @@ func GetUserDashboardInfos(ctx context.Context, uid string, ts time.Time) ([]Das
 	st := ts.Add(-24 * time.Hour).Unix()
 
 	// UNIX_TIMESTAMP(STR_TO_DATE(FROM_UNIXTIME(timestamp, '%Y-%m-%d %H:00:00'), '%Y-%m-%d %H:%i:%s'))
-	query, args, err := squirrel.Select("UNIX_TIMESTAMP(STR_TO_DATE(FROM_UNIXTIME(timestamp, '%Y-%m-%d %H:00:00'), '%Y-%m-%d %H:%i:%s')) AS hour,SUM(download_count) AS download_count,max(peak_bandwidth) AS peak_bandwidth,SUM(total_traffic) AS total_traffic").
+	query, args, err := squirrel.Select("UNIX_TIMESTAMP(STR_TO_DATE(FROM_UNIXTIME(timestamp-1, '%Y-%m-%d %H:00:00'), '%Y-%m-%d %H:%i:%s')) AS hour,SUM(download_count) AS download_count,max(peak_bandwidth) AS peak_bandwidth,SUM(total_traffic) AS total_traffic").
 		From(tableAssetStorageHour).Where(squirrel.Expr("hash IN (?)", squirrel.Select("hash").From(tableUserAsset).Where("user_id = ?", uid))).
 		Where("timestamp < ? AND timestamp > ?", ts.Unix(), st).GroupBy("hour").OrderBy("hour DESC").ToSql()
 	if err != nil {

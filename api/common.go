@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -401,14 +402,12 @@ func getAssetOverView(ctx context.Context, uid, cid string) (*AssetOverview, err
 }
 
 func getAssetStatus(ctx context.Context, uid, cid string) (*types.AssetStatus, error) {
-	resp := new(types.AssetStatus)
+	var (
+		resp       = new(types.AssetStatus)
+		visitCount int64
+	)
 
-	// 将cid转换为hash
-	hash, err := storage.CIDToHash(cid)
-	if err != nil {
-		return nil, err
-	}
-
+	// 获取用户信息
 	uInfo, err := dao.GetUserByUsername(ctx, uid)
 	switch err {
 	case sql.ErrNoRows:
@@ -417,27 +416,47 @@ func getAssetStatus(ctx context.Context, uid, cid string) (*types.AssetStatus, e
 	default:
 		return nil, fmt.Errorf("get user's info error:%w", err)
 	}
-	aInfo, err := dao.GetUserAssetDetail(ctx, hash, uid)
-	switch err {
-	case sql.ErrNoRows:
-		aInfo = new(dao.UserAssetDetail)
-	case nil:
-		resp.IsExist = true
-	default:
-		return nil, fmt.Errorf("get asset's info error:%w", err)
-	}
-	resp.IsExist = true
-
+	// 获取链接信息
 	linkInfo, err := dao.GetLink(ctx, squirrel.Select("*").Where("username = ?", uid).Where("cid = ?", cid))
 	if err != nil {
 		return nil, fmt.Errorf("get link info error:%w", err)
 	}
-	resp.IsExpiration = aInfo.Expiration.Before(time.Now()) && linkInfo.ExpireAt.Before(time.Now())
+	// 判断是文件组id还是文件id
+	gid, _ := strconv.Atoi(cid)
+	if gid == 0 {
+		// 将cid转换为hash
+		hash, err := storage.CIDToHash(cid)
+		if err != nil {
+			return nil, err
+		}
+		aInfo, err := dao.GetUserAssetDetail(ctx, hash, uid)
+		switch err {
+		case sql.ErrNoRows:
+			aInfo = new(dao.UserAssetDetail)
+		case nil:
+			resp.IsExist = true
+		default:
+			return nil, fmt.Errorf("get asset's info error:%w", err)
+		}
+		resp.IsExpiration = aInfo.Expiration.Before(time.Now()) && linkInfo.ExpireAt.Before(time.Now())
+		visitCount = aInfo.VisitCount
+	} else {
+		ginfo, err := dao.GetUserAssetGroupInfo(ctx, uid, gid)
+		switch err {
+		case sql.ErrNoRows:
+		case nil:
+			resp.IsExist = true
+		default:
+			return nil, fmt.Errorf("get asset's group info error:%w", err)
+		}
+		resp.IsExpiration = linkInfo.ExpireAt.Before(time.Now())
+		visitCount = ginfo.VistitCount
+	}
 
 	if uInfo.EnableVIP {
 		return resp, nil
 	}
-	if aInfo.VisitCount >= maxCountOfVisitShareLink {
+	if visitCount >= maxCountOfVisitShareLink {
 		resp.IsVisitOutOfLimit = true
 	}
 

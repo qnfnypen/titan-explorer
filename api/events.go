@@ -1320,6 +1320,7 @@ func OpenAssetHandler(c *gin.Context) {
 
 func ShareLinkInfoHandler(c *gin.Context) {
 	username := c.Query("username")
+	// 分享的为文件的时候，则是文件cid，为文件组的时候则是文件组group_id
 	cid := c.Query("cid")
 	sb := squirrel.Select("*").Where("cid = ?", cid).Where("username = ?", username)
 	link, err := dao.GetLink(c.Request.Context(), sb)
@@ -1535,6 +1536,7 @@ func ShareLinkHandler(c *gin.Context) {
 func CreateShareLinkHandler(c *gin.Context) {
 	var err error
 	username := c.Query("username")
+	// 分享的为文件的时候，则是文件cid，为文件组的时候则是文件组group_id
 	cid := c.Query("cid")
 	u := c.Query("url")
 
@@ -1550,18 +1552,27 @@ func CreateShareLinkHandler(c *gin.Context) {
 		return
 	}
 
-	hash, err := cidutil.CIDToHash(cid)
-	if err != nil {
-		log.Errorf("cidToHash: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
-		return
-	}
-
-	asset, err := dao.GetUserAsset(c.Request.Context(), hash, username)
-	if err != nil {
-		log.Errorf("database getUserAsset: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
-		return
+	gid, _ := strconv.Atoi(cid)
+	if gid <= 0 {
+		hash, err := cidutil.CIDToHash(cid)
+		if err != nil {
+			log.Errorf("cidToHash: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+			return
+		}
+		_, err = dao.GetUserAsset(c.Request.Context(), hash, username)
+		if err != nil {
+			log.Errorf("database getUserAsset: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+			return
+		}
+	} else {
+		_, err := dao.GetUserAssetGroupInfo(c.Request.Context(), username, gid)
+		if err != nil {
+			log.Errorf("database getUserAssetGroup: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+			return
+		}
 	}
 
 	// signature := c.Query("signature")
@@ -1610,11 +1621,11 @@ func CreateShareLinkHandler(c *gin.Context) {
 		expireAt = time.Unix(int64(expireTime), 0)
 	}
 
-	if err := dao.UpdateUserAsset(c.Request.Context(), asset); err != nil {
-		log.Errorf("database updateUserAsset: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
+	// if err := dao.UpdateUserAsset(c.Request.Context(), asset); err != nil {
+	// 	log.Errorf("database updateUserAsset: %v", err)
+	// 	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	// 	return
+	// }
 
 	var link model.Link
 	link.UserName = username
