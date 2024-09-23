@@ -21,6 +21,7 @@ const (
 	tableUserAssetArea    = "user_asset_area"
 	tableTempAsset        = "temp_asset"
 	tableAssetStorageHour = "asset_storage_hour"
+	tableUserAssetMap     = "user_asset_map"
 )
 
 type (
@@ -129,6 +130,15 @@ func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset, areaIDs 
 			log.Error(err)
 			return err
 		}
+	}
+	// 增加用户文件映射关系
+	query, args, err = squirrel.Insert(tableUserAssetMap).Columns("user_id", "asset_hash").Values(asset.UserID, asset.Hash).Options("IGNORE").ToSql()
+	if err != nil {
+		return fmt.Errorf("generate sql of insert user_asset_map error:%w", err)
+	}
+	_, err = tx.ExecContext(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("insert user_asset_map error:%w", err)
 	}
 	// 修改用户storage已使用记录
 	if ua == nil || ua.UserID == "" {
@@ -1139,4 +1149,19 @@ func GetUserGroupByParent(ctx context.Context, userID string, pids []int64) ([]i
 	}
 
 	return ids, nil
+}
+
+// AddUserAssetMap 增加用户文件映射表
+func AddUserAssetMap(ctx context.Context, userID, hash string) error {
+	query, args, err := squirrel.Insert(tableUserAssetMap).Columns("user_id", "asset_hash").Values(userID, hash).Options("IGNORE").ToSql()
+	if err != nil {
+		return fmt.Errorf("generate sql of insert user_asset_map error:%w", err)
+	}
+
+	_, err = DB.ExecContext(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("insert user_asset_map error:%w", err)
+	}
+
+	return nil
 }

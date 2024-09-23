@@ -687,3 +687,9 @@ type AssetStorageHour struct {
 	DownloadCount 	int64 	`db:"download_count"`
 	TimeStamp 		int64 	`db:"timestamp"`
 }
+
+type UserAssetMap struct {
+	ID int64 `db:"id"`
+	UserID string `db:"user_id"`
+	AssetHash string `db:"asset_hash"`
+}
