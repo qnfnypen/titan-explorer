@@ -650,6 +650,8 @@ type AssetGroup struct {
 	Name        string    `db:"name"`
 	Parent      int64     `db:"parent"`
 	CreatedTime time.Time `db:"created_time"`
+	ShareStatus int64 `db:"share_status"`
+	VistitCount int64 `db:"visit_count"`
 }
 
 type UserAssetVisitCount struct {

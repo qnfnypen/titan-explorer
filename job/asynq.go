@@ -32,7 +32,8 @@ func StartAsynqServer() {
 func deleteAssetGroup(ctx context.Context, t *asynq.Task) error {
 	var payload opasynq.AssetGroupPayload
 
-	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
+	err := json.Unmarshal(t.Payload(), &payload)
+	if err != nil {
 		return err
 	}
 
@@ -43,14 +44,15 @@ func deleteAssetGroup(ctx context.Context, t *asynq.Task) error {
 		if len(pids) == 0 {
 			return nil
 		}
-		gids, err := dao.GetUserGroupByParent(ctx, payload.UserID, pids)
+		// 删除当前目录下的文件
+		deleteAssetByGroup(ctx, payload.UserID, pids)
+		// 获取当前目录下的次级目录，并将其赋值到当前目录
+		pids, err = dao.GetUserGroupByParent(ctx, payload.UserID, pids)
 		if err != nil {
 			log.Printf("GetUserGroupByParent error:%v-----\n", err)
 			opasynq.DefaultCli.EnqueueAssetGroupID(ctx, opasynq.AssetGroupPayload{UserID: payload.UserID, GroupID: pids})
 			return nil
 		}
-		deleteAssetByGroup(ctx, payload.UserID, gids)
-		pids = gids
 	}
 }
 

@@ -31,6 +31,7 @@ import (
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/core/opasynq"
 	"github.com/gnasnik/titan-explorer/core/oprds"
 	"github.com/gnasnik/titan-explorer/core/storage"
 )
@@ -1763,21 +1764,33 @@ func GetShareLinkHandler(c *gin.Context) {
 }
 
 func UpdateShareStatusHandler(c *gin.Context) {
+	var err error
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
 	cid := c.Query("cid")
-	// 获取文件hash
-	hash, err := storage.CIDToHash(cid)
+	gid, _ := strconv.ParseInt(c.Query("group_id"), 10, 64)
+
+	if cid != "" {
+		// 获取文件hash
+		hash, err := storage.CIDToHash(cid)
+		if err != nil {
+			log.Errorf("CreateAssetHandler storage.CIDToHash() error: %+v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+		err = dao.UpdateAssetShareStatus(c.Request.Context(), hash, userId)
+	} else {
+		if gid == 0 {
+			c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+			return
+		}
+		err = dao.UpdateGroupShareStatus(c.Request.Context(), userId, gid)
+	}
 	if err != nil {
-		log.Errorf("CreateAssetHandler storage.CIDToHash() error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	err = dao.UpdateAssetShareStatus(c.Request.Context(), hash, userId)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"msg": "success",
 	}))
@@ -2574,24 +2587,24 @@ func DeleteGroupHandler(c *gin.Context) {
 	}
 
 	// 数据库将最外层的文件组删除
-	// err := dao.DeleteAssetGroupAndUpdateSize(c.Request.Context(), uid, gid)
-	// if err != nil {
-	// 	log.Errorf("delete outer asset group error: %v", err)
-	// 	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-	// 	return
-	// }
-	// 将用户对应的文件组id塞到asynq中去处理
-	// opasynq.DefaultCli.EnqueueAssetGroupID(c.Request.Context(), opasynq.AssetGroupPayload{UserID: uid, GroupID: []int64{int64(gid)}})
-
-	err := dao.DeleteAssetGroup(c.Request.Context(), uid, gid)
+	err := dao.DeleteAssetGroupAndUpdateSize(c.Request.Context(), uid, gid)
 	if err != nil {
-		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-		} else {
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		}
+		log.Errorf("delete outer asset group error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+	// 将用户对应的文件组id塞到asynq中去处理
+	opasynq.DefaultCli.EnqueueAssetGroupID(c.Request.Context(), opasynq.AssetGroupPayload{UserID: uid, GroupID: []int64{int64(gid)}})
+
+	// err := dao.DeleteAssetGroup(c.Request.Context(), uid, gid)
+	// if err != nil {
+	// 	if webErr, ok := err.(*api.ErrWeb); ok {
+	// 		c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+	// 	} else {
+	// 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	// 	}
+	// 	return
+	// }
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"msg": "success",
 	}))
@@ -2854,5 +2867,60 @@ func GetMonitor(c *gin.Context) {
 		"country":  country,
 		"filecoin": "100+",
 		"deposit":  1200 * 5.7 * fil * 1024,
+	}))
+}
+
+// GetShareGroupInfo 获取分享文件组信息
+func GetShareGroupInfo(c *gin.Context) {
+	userId := c.Query("user_id")
+	lan := c.Request.Header.Get("Lang")
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+	page, _ := strconv.Atoi(c.Query("page"))
+	parentId, _ := strconv.Atoi(c.Query("group_id"))
+
+	assetSummary, err := listAssetSummary(c.Request.Context(), userId, parentId, page, pageSize)
+	if err != nil {
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			return
+		}
+		log.Errorf("api ListAssetSummary: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	var list []*AssetOrGroup
+	for _, assetGroup := range assetSummary.List {
+		if assetGroup.AssetGroup != nil {
+			list = append(list, &AssetOrGroup{Group: assetGroup.AssetGroup})
+			continue
+		}
+
+		asset := assetGroup.AssetOverview
+		filReplicas, err := dao.CountFilStorage(c.Request.Context(), asset.AssetRecord.CID)
+		if err != nil {
+			log.Errorf("count fil storage: %v", err)
+			continue
+		}
+
+		ao := &AccessOverview{
+			AssetRecord:      asset.AssetRecord,
+			UserAssetDetail:  asset.UserAssetDetail,
+			VisitCount:       asset.VisitCount,
+			RemainVisitCount: asset.RemainVisitCount,
+			FilcoinCount:     filReplicas,
+		}
+		if ao.UserAssetDetail != nil {
+			aids := operateAreaIDs(c.Request.Context(), ao.UserAssetDetail.AreaIDs)
+			ao.UserAssetDetail.AreaIDs = aids
+			ao.UserAssetDetail.AreaIDMaps = operateAreaMaps(c.Request.Context(), aids, lan)
+		}
+
+		list = append(list, &AssetOrGroup{AssetOverview: ao})
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list":  list,
+		"total": assetSummary.Total,
 	}))
 }
