@@ -101,6 +101,10 @@ func GetAppVersionHandler(c *gin.Context) {
 	}
 
 	if platform == "" {
+		platform = c.GetHeader("platform")
+	}
+
+	if platform == "" {
 		platform = "android"
 	}
 
