@@ -91,8 +91,8 @@ func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset, areaIDs 
 	}
 	if err == sql.ErrNoRows {
 		// 添加文件记录，判断文件是否存在，不存在则新增
-		query, args, err := squirrel.Insert(tableUserAsset).Columns("user_id,asset_name,asset_type,total_size,group_id,hash,created_time,expiration,password,cid").
-			Values(asset.UserID, asset.AssetName, asset.AssetType, asset.TotalSize, asset.GroupID, asset.Hash, asset.CreatedTime, asset.Expiration, asset.Password, asset.Cid).ToSql()
+		query, args, err := squirrel.Insert(tableUserAsset).Columns("user_id,asset_name,asset_type,total_size,group_id,hash,created_time,expiration,password,cid,md5").
+			Values(asset.UserID, asset.AssetName, asset.AssetType, asset.TotalSize, asset.GroupID, asset.Hash, asset.CreatedTime, asset.Expiration, asset.Password, asset.Cid, asset.MD5).ToSql()
 		if err != nil {
 			log.Error(err)
 			return fmt.Errorf("generate insert asset sql error:%w", err)
@@ -1181,4 +1181,45 @@ func AddUserAssetMap(ctx context.Context, userID, hash string) error {
 	}
 
 	return nil
+}
+
+// AddAssetGroupVisitCount 增加文件组分享次数
+func AddAssetGroupVisitCount(ctx context.Context, userID string, id int) error {
+	query, args, err := squirrel.Update(tableNameAssetGroup).Set("visit_count", squirrel.Expr("visit_count + 1")).Where("id = ? AND user_id = ?", id, userID).ToSql()
+	if err != nil {
+		return fmt.Errorf("generate sql of update asset group's visit count error:%w", err)
+	}
+
+	_, err = DB.ExecContext(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("update asset group's visit count error:%w", err)
+	}
+
+	return nil
+}
+
+// CheckAssetByMd5AndAreaExists 判断文件是否已经存在
+func CheckAssetByMd5AndAreaExists(ctx context.Context, md5, areaID string) (bool, error) {
+	var hash string
+
+	// 通过md5或者hash
+	query, args, err := squirrel.Select("hash").From(tableUserAsset).Where("md5 = ?", md5).Limit(1).ToSql()
+	if err != nil {
+		return false, fmt.Errorf("generate select hash from user_asset error:%w", err)
+	}
+	err = DB.GetContext(ctx, &hash, query, args...)
+	if err != nil {
+		return false, fmt.Errorf("get hash from user_asset error:%w", err)
+	}
+
+	query, args, err = squirrel.Select("hash").From(tableUserAssetArea).Where("hash = ? AND area_id = ? AND is_sync = 1", hash, areaID).Limit(1).ToSql()
+	if err != nil {
+		return false, fmt.Errorf("generate select hash from user_asset_area error:%w", err)
+	}
+	err = DB.GetContext(ctx, &hash, query, args...)
+	if err != nil {
+		return false, fmt.Errorf("get hash from user_asset_area error:%w", err)
+	}
+
+	return true, nil
 }

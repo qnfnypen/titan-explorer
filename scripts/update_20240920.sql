@@ -10,3 +10,5 @@ CREATE TABLE `user_asset_map` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_uh` (`user_id`,`asset_hash`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '用户文件映射表';
+
+ALTER TABLE user_asset ADD COLUMN md5 varchar(255) NOT NULL DEFAULT '';

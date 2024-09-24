@@ -405,8 +405,14 @@ func GetUploadInfoHandler(c *gin.Context) {
 		aid = as[1]
 	}
 
+	// 判断文件是否已经存在
+	exist, err := dao.CheckAssetByMd5AndAreaExists(c.Request.Context(), c.Query("md5"), areaId[0])
+	if err != nil {
+		log.Errorf("CheckAssetByMd5AndAreaExists error:%w", err)
+	}
+
 	c.JSON(http.StatusOK, respJSON(gin.H{
-		"AlreadyExists": res.AlreadyExists,
+		"AlreadyExists": exist,
 		"List":          res.List,
 		"AreaID":        aid,
 		"Log":           areaId[0],
@@ -595,6 +601,7 @@ type createAssetRequest struct {
 	AssetSize int64    `json:"asset_size" binding:"required"`
 	GroupID   int64    `json:"group_id"`
 	Encrypted bool     `json:"encrypted"`
+	MD5       string   `json:"md5"`
 }
 
 // CreateAssetPostHandler 创建文件
@@ -737,6 +744,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 		TotalSize:   createAssetReq.AssetSize,
 		Password:    randomPassNonce,
 		GroupID:     int64(createAssetReq.GroupID),
+		MD5:         createAssetReq.MD5,
 	}, notExistsAids, areaIds[0]); err != nil {
 		log.Errorf("CreateAssetHandler AddAsset error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -1671,6 +1679,14 @@ func ShareNeedPassHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 		return
 	}
+	// 如果是文件组则更新文件组访问次数
+	gid, _ := strconv.Atoi(cid)
+	if gid > 0 {
+		err := dao.AddAssetGroupVisitCount(c.Request.Context(), username, gid)
+		if err != nil {
+			log.Errorf("Error AddAssetGroupVisitCount: %v", err)
+		}
+	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"NeedPass": lk.ShortPass != "",
 	}))
@@ -1780,9 +1796,8 @@ func UpdateShareStatusHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	userId := claims[identityKey].(string)
 	cid := c.Query("cid")
-	gid, _ := strconv.ParseInt(c.Query("group_id"), 10, 64)
-
-	if cid != "" {
+	gid, err := strconv.ParseInt(cid, 10, 64)
+	if err != nil {
 		// 获取文件hash
 		hash, err := storage.CIDToHash(cid)
 		if err != nil {
@@ -1798,6 +1813,7 @@ func UpdateShareStatusHandler(c *gin.Context) {
 		}
 		err = dao.UpdateGroupShareStatus(c.Request.Context(), userId, gid)
 	}
+
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
