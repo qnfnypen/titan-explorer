@@ -1103,7 +1103,7 @@ func GetNoticesHandler(c *gin.Context) {
 }
 
 func GetAdsHistoryHandler(c *gin.Context) {
-	size, _ := strconv.Atoi(c.Query("size"))
+	size, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 	platrom := c.Query("platform")
 	lang := c.GetHeader("Lang")
@@ -1229,7 +1229,7 @@ func BugReportHandler(c *gin.Context) {
 }
 
 func MyBugReportListHandler(c *gin.Context) {
-	size, _ := strconv.Atoi(c.Query("size"))
+	size, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 
 	code := c.Query("code")
