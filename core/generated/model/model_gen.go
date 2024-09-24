@@ -692,6 +692,7 @@ type AreaMap struct {
 
 type AssetStorageHour struct {
 	ID 				int64  	`db:"id"`
+	UserID string `db:"user_id"`
 	Hash 			string 	`db:"hash"`
 	TotalTraffic 	int64 	`db:"total_traffic"`
 	PeakBandwidth 	int64 	`db:"peak_bandwidth"`

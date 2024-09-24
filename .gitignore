@@ -2,3 +2,4 @@
 config.toml
 city.mmdb
 clone.sh
+sync

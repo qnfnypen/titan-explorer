@@ -66,12 +66,14 @@ func storeAssetHourStorages(tmaps, bmaps *sync.Map, ts time.Time) error {
 
 	tmaps.Range(func(key, value any) bool {
 		ahs := model.AssetStorageHour{TimeStamp: ts.Unix()}
-		hash, ok := key.(string)
+		keyStr, ok := key.(string)
 		if !ok {
 			return true
 		}
-		ahs.DownloadCount, _ = oprds.GetClient().GetAssetHourDownload(ctx, hash)
+		userID, hash, _ := strings.Cut(keyStr, "_")
+		ahs.DownloadCount, _ = oprds.GetClient().GetAssetHourDownload(ctx, hash, userID)
 		ahs.Hash = hash
+		ahs.UserID = userID
 		tf, ok := value.(int64)
 		if !ok {
 			return true

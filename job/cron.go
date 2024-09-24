@@ -223,8 +223,9 @@ func syncDashboard() {
 			}
 			// 取出每个hash的最大值
 			for _, v := range infos {
-				storeTfOrBw(trafficMaps, v.Hash, v.TotalTraffic)
-				storeTfOrBw(bandwidthMaps, v.Hash, v.PeakBandwidth)
+				key := fmt.Sprintf("%s_%s", v.UserID, v.Hash)
+				storeTfOrBw(trafficMaps, key, v.TotalTraffic)
+				storeTfOrBw(bandwidthMaps, key, v.PeakBandwidth)
 			}
 		}(v)
 	}

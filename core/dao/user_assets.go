@@ -871,10 +871,10 @@ func GetAreaIDsByHash(ctx context.Context, hash string) ([]string, error) {
 
 // AddAssetHourStorages 批量存储文件小时数据
 func AddAssetHourStorages(ctx context.Context, ahss []model.AssetStorageHour) error {
-	sq := squirrel.Insert(tableAssetStorageHour).Columns("hash,total_traffic,peak_bandwidth,download_count,timestamp")
+	sq := squirrel.Insert(tableAssetStorageHour).Columns("hash,user_id,total_traffic,peak_bandwidth,download_count,timestamp")
 
 	for _, v := range ahss {
-		sq = sq.Values(v.Hash, v.TotalTraffic, v.PeakBandwidth, v.DownloadCount, v.TimeStamp)
+		sq = sq.Values(v.Hash, v.UserID, v.TotalTraffic, v.PeakBandwidth, v.DownloadCount, v.TimeStamp)
 	}
 
 	query, args, err := sq.ToSql()
@@ -897,8 +897,8 @@ func GetUserDashboardInfos(ctx context.Context, uid string, ts time.Time) ([]Das
 
 	// UNIX_TIMESTAMP(STR_TO_DATE(FROM_UNIXTIME(timestamp, '%Y-%m-%d %H:00:00'), '%Y-%m-%d %H:%i:%s'))
 	query, args, err := squirrel.Select("UNIX_TIMESTAMP(STR_TO_DATE(FROM_UNIXTIME(timestamp-1, '%Y-%m-%d %H:00:00'), '%Y-%m-%d %H:%i:%s')) AS hour,SUM(download_count) AS download_count,max(peak_bandwidth) AS peak_bandwidth,SUM(total_traffic) AS total_traffic").
-		From(tableAssetStorageHour).Where(squirrel.Expr("hash IN (?)", squirrel.Select("hash").From(tableUserAsset).Where("user_id = ?", uid))).
-		Where("timestamp < ? AND timestamp > ?", ts.Unix(), st).GroupBy("hour").OrderBy("hour DESC").ToSql()
+		// From(tableAssetStorageHour).Where(squirrel.Expr("hash IN (?)", squirrel.Select("hash").From(tableUserAsset).Where("user_id = ?", uid))).
+		Where("timestamp < ? AND timestamp > ? AND user_id = ?", ts.Unix(), st, uid).GroupBy("hour").OrderBy("hour DESC").ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("generate sql of get user storage hour info error:%w", err)
 	}

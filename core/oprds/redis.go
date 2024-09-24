@@ -247,15 +247,15 @@ func (c *Client) CheckUnSyncNodeID(ctx context.Context, nodeID string) (bool, er
 }
 
 // IncrAssetHourDownload 对该时间段内文件下载量加1
-func (c *Client) IncrAssetHourDownload(ctx context.Context, hash string) error {
-	key := fmt.Sprintf("%s_%s", preDownload, hash)
+func (c *Client) IncrAssetHourDownload(ctx context.Context, hash, userID string) error {
+	key := fmt.Sprintf("%s_%s_%s", preDownload, userID, hash)
 
 	return c.rds.Incr(ctx, key).Err()
 }
 
 // GetAssetHourDownload 获取该时间段内文件下载数量
-func (c *Client) GetAssetHourDownload(ctx context.Context, hash string) (int64, error) {
-	key := fmt.Sprintf("%s_%s", preDownload, hash)
+func (c *Client) GetAssetHourDownload(ctx context.Context, hash, userID string) (int64, error) {
+	key := fmt.Sprintf("%s_%s_%s", preDownload, userID, hash)
 	v, err := c.rds.Get(ctx, key).Int64()
 	switch err {
 	case redis.Nil:

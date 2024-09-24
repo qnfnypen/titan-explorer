@@ -1167,7 +1167,7 @@ func ShareAssetsHandler(c *gin.Context) {
 	}
 
 	// 成功的时候，下载量+1
-	oprds.GetClient().IncrAssetHourDownload(c.Request.Context(), hash)
+	oprds.GetClient().IncrAssetHourDownload(c.Request.Context(), hash, userId)
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"asset_cid": cid,
@@ -1316,7 +1316,7 @@ func OpenAssetHandler(c *gin.Context) {
 	}
 
 	// 成功的时候，下载量+1
-	oprds.GetClient().IncrAssetHourDownload(c.Request.Context(), hash)
+	oprds.GetClient().IncrAssetHourDownload(c.Request.Context(), hash, userId)
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"asset_cid": cid,
