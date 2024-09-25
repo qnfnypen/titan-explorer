@@ -464,6 +464,7 @@ func DeviceBindingHandler(c *gin.Context) {
 		UserID:     sign.Username,
 		DeviceID:   params.NodeId,
 		BindStatus: "binding",
+		DeviceName: params.Remark,
 	}); err != nil {
 		log.Errorf("update device binding status: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
