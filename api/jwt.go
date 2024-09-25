@@ -332,6 +332,12 @@ func AuthRequired(authMiddleware *jwt.GinJWTMiddleware) gin.HandlerFunc {
 				authMiddleware.Unauthorized(ctx, http.StatusUnauthorized, authMiddleware.HTTPStatusMessageFunc(jwt.ErrForbidden, ctx))
 				return
 			}
+			// 判断apiKey是否存在
+			exists, err := checkAPIKeyIsExist(apiKey, uid)
+			if err != nil || !exists {
+				authMiddleware.Unauthorized(ctx, http.StatusUnauthorized, authMiddleware.HTTPStatusMessageFunc(jwt.ErrForbidden, ctx))
+				return
+			}
 			ctx.Set("JWT_PAYLOAD", jwt.MapClaims{
 				identityKey: uid,
 			})

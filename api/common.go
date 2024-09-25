@@ -868,3 +868,27 @@ func checkUserTotalFlow(ctx context.Context, username string) (bool, error) {
 
 	return false, nil
 }
+
+// 判断 apikey 是否存在
+func checkAPIKeyIsExist(apiKey, uid string) (bool, error) {
+	info, err := dao.GetUserByUsername(context.Background(), uid)
+	if err != nil {
+		return false, fmt.Errorf("get user's info error:%w", err)
+	}
+
+	if len(info.ApiKeys) <= 0 {
+		return false, nil
+	}
+
+	keyResp, err := storage.DecodeAPIKeySecrets(info.ApiKeys)
+	if err != nil {
+		return false, fmt.Errorf("decode api secrets error:%w", err)
+	}
+	for _, v := range keyResp {
+		if v.APIKey == apiKey {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}

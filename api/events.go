@@ -267,7 +267,10 @@ func GetAllocateStorageHandler(c *gin.Context) {
 // @Success 200 {object} JsonObject "{PeakBandwidth:0,TotalTraffic:0,TotalSize:0,UsedSize:0}"
 // @Router /api/v1/storage/get_storage_size [get]
 func GetStorageSizeHandler(c *gin.Context) {
-	var fInfo = new(dao.UserStorageFlowInfo)
+	var (
+		fInfo        = new(dao.UserStorageFlowInfo)
+		totaltraffic = maxTotalFlow
+	)
 
 	claims := jwt.ExtractClaims(c)
 	username, ok := claims[identityKey].(string)
@@ -293,10 +296,14 @@ func GetStorageSizeHandler(c *gin.Context) {
 	} else {
 		json.Unmarshal([]byte(value), fInfo)
 	}
+	if user.EnableVIP {
+		totaltraffic = maxVipTotalFlow
+	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"PeakBandwidth": fInfo.PeakBandwidth,
-		"TotalTraffic":  fInfo.TotalTraffic,
+		"TotalTraffic":  totaltraffic,
+		"UsedTraffic":   fInfo.TotalTraffic,
 		"TotalSize":     user.TotalStorageSize,
 		"UsedSize":      user.UsedStorageSize,
 	}))

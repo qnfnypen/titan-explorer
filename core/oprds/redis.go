@@ -273,7 +273,7 @@ func (c *Client) GetAssetHourDownload(ctx context.Context, hash, userID string) 
 func (c *Client) StoreUserStorageFlowInfo(ctx context.Context, uid string, value string) error {
 	key := fmt.Sprintf("%s_%s", preStorageFlow, uid)
 
-	return c.rds.Set(ctx, key, value, 10*time.Minute).Err()
+	return c.rds.Set(ctx, key, value, 2*time.Minute).Err()
 }
 
 // GetUserStorageFlowInfo 获取用户存储流量
