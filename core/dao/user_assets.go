@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api"
@@ -897,7 +898,8 @@ func GetUserDashboardInfos(ctx context.Context, uid string, ts time.Time) ([]Das
 
 	// UNIX_TIMESTAMP(STR_TO_DATE(FROM_UNIXTIME(timestamp, '%Y-%m-%d %H:00:00'), '%Y-%m-%d %H:%i:%s'))
 	query, args, err := squirrel.Select("UNIX_TIMESTAMP(STR_TO_DATE(FROM_UNIXTIME(timestamp-1, '%Y-%m-%d %H:00:00'), '%Y-%m-%d %H:%i:%s')) AS hour,SUM(download_count) AS download_count,max(peak_bandwidth) AS peak_bandwidth,SUM(total_traffic) AS total_traffic").
-		// From(tableAssetStorageHour).Where(squirrel.Expr("hash IN (?)", squirrel.Select("hash").From(tableUserAsset).Where("user_id = ?", uid))).
+		From(tableAssetStorageHour).
+		// Where(squirrel.Expr("hash IN (?)", squirrel.Select("hash").From(tableUserAsset).Where("user_id = ?", uid))).
 		Where("timestamp < ? AND timestamp > ? AND user_id = ?", ts.Unix(), st, uid).GroupBy("hour").OrderBy("hour DESC").ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("generate sql of get user storage hour info error:%w", err)
@@ -977,14 +979,14 @@ func GetUserStorageFlowInfo(ctx context.Context, uid string) (*UserStorageFlowIn
 	var info = new(UserStorageFlowInfo)
 
 	query, args, err := squirrel.Select("IFNULL(SUM(total_traffic),0) AS total_traffic,IFNULL(MAX(peak_bandwidth),0) AS peak_bandwidth").From(tableAssetStorageHour).
-		Where(squirrel.Expr("hash IN (?)", squirrel.Select("hash").From(tableUserAsset).Where("user_id = ?", uid))).
-		Where("timestamp < ?", time.Now().Unix()).ToSql()
+		// Where(squirrel.Expr("hash IN (?)", squirrel.Select("hash").From(tableUserAsset).Where("user_id = ?", uid))).
+		Where("timestamp < ? AND user_id = ?", time.Now().Unix(), uid).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("generate sql of get storage flow error:%w", err)
 	}
 
 	err = DB.GetContext(ctx, info, query, args...)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		return nil, fmt.Errorf("get storage flow error:%w", err)
 	}
 
@@ -1201,6 +1203,10 @@ func AddAssetGroupVisitCount(ctx context.Context, userID string, id int) error {
 // CheckAssetByMd5AndAreaExists 判断文件是否已经存在
 func CheckAssetByMd5AndAreaExists(ctx context.Context, md5, areaID string) (bool, error) {
 	var hash string
+
+	if strings.TrimSpace(md5) == "" {
+		return false, nil
+	}
 
 	// 通过md5或者hash
 	query, args, err := squirrel.Select("hash").From(tableUserAsset).Where("md5 = ?", md5).Limit(1).ToSql()

@@ -79,12 +79,12 @@ func storeAssetHourStorages(tmaps, bmaps *sync.Map, ts time.Time) error {
 			return true
 		}
 		ahs.TotalTraffic = tf
-		if bv, ok := bmaps.LoadAndDelete(hash); ok {
+		if bv, ok := bmaps.LoadAndDelete(keyStr); ok {
 			if bd, ok := bv.(int64); ok {
 				ahs.PeakBandwidth = bd
 			}
 		}
-		tmaps.Delete(hash)
+		tmaps.Delete(keyStr)
 		ahss = append(ahss, ahs)
 
 		return true

@@ -1798,8 +1798,9 @@ func UpdateShareStatusHandler(c *gin.Context) {
 	cid := c.Query("cid")
 	gid, err := strconv.ParseInt(cid, 10, 64)
 	if err != nil {
+		var hash string
 		// 获取文件hash
-		hash, err := storage.CIDToHash(cid)
+		hash, err = storage.CIDToHash(cid)
 		if err != nil {
 			log.Errorf("CreateAssetHandler storage.CIDToHash() error: %+v", err)
 			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -1815,6 +1816,7 @@ func UpdateShareStatusHandler(c *gin.Context) {
 	}
 
 	if err != nil {
+		log.Errorf("UpdateAssetShareStatus error:%w", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
