@@ -45,6 +45,8 @@ type loginResponse struct {
 var (
 	identityKey = "id"
 	roleKey     = "role"
+	tenantID    = "tenant_id"
+	tenantName  = "tenant_name"
 )
 
 func jwtGinMiddleware(secretKey string) (*jwt.GinJWTMiddleware, error) {
@@ -327,20 +329,35 @@ func AuthRequired(authMiddleware *jwt.GinJWTMiddleware) gin.HandlerFunc {
 			}
 		} else {
 			apiKey := ctx.GetHeader("apiKey")
-			uid, err := storage.AesDecryptCBCByKey(apiKey)
-			if err != nil {
-				authMiddleware.Unauthorized(ctx, http.StatusUnauthorized, authMiddleware.HTTPStatusMessageFunc(jwt.ErrForbidden, ctx))
-				return
+			tenantKey := ctx.GetHeader("tenantKey")
+			switch {
+			case apiKey != "":
+				uid, err := storage.AesDecryptCBCByKey(apiKey)
+				if err != nil {
+					authMiddleware.Unauthorized(ctx, http.StatusUnauthorized, authMiddleware.HTTPStatusMessageFunc(jwt.ErrForbidden, ctx))
+					return
+				}
+				// 判断apiKey是否存在
+				exists, err := checkAPIKeyIsExist(apiKey, uid)
+				if err != nil || !exists {
+					authMiddleware.Unauthorized(ctx, http.StatusUnauthorized, authMiddleware.HTTPStatusMessageFunc(jwt.ErrForbidden, ctx))
+					return
+				}
+				ctx.Set("JWT_PAYLOAD", jwt.MapClaims{
+					identityKey: uid,
+				})
+			case tenantKey != "":
+				payload, err := storage.AesDecryptTenantKey(tenantKey)
+				if err != nil {
+					authMiddleware.Unauthorized(ctx, http.StatusUnauthorized, authMiddleware.HTTPStatusMessageFunc(jwt.ErrForbidden, ctx))
+					return
+				}
+				ctx.Set("JWT_PAYLOAD", jwt.MapClaims{
+					tenantID:   payload.TenantID,
+					tenantName: payload.Name,
+				})
 			}
-			// 判断apiKey是否存在
-			exists, err := checkAPIKeyIsExist(apiKey, uid)
-			if err != nil || !exists {
-				authMiddleware.Unauthorized(ctx, http.StatusUnauthorized, authMiddleware.HTTPStatusMessageFunc(jwt.ErrForbidden, ctx))
-				return
-			}
-			ctx.Set("JWT_PAYLOAD", jwt.MapClaims{
-				identityKey: uid,
-			})
+
 		}
 		ctx.Next()
 	}

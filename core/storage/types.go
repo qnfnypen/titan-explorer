@@ -52,3 +52,10 @@ type UserKeyInfo struct {
 	UID  string
 	Salt string
 }
+
+// TenantInfo 租户信息
+type TenantInfo struct {
+	TenantID string
+	Name     string
+	Salt     string
+}
