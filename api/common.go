@@ -892,3 +892,24 @@ func checkAPIKeyIsExist(apiKey, uid string) (bool, error) {
 
 	return false, nil
 }
+
+func checkAuthGetGroup(ctx context.Context, uid string, gid int) error {
+	uInfo, err := dao.GetUserByUsername(ctx, uid)
+	linkInfo, err := dao.GetLink(ctx, squirrel.Select("*").Where("username = ?", uid).Where("cid = ?", gid))
+	if err != nil {
+		return fmt.Errorf("api GetLink: %w", err)
+	}
+	ginfo, err := dao.GetUserAssetGroupInfo(ctx, uid, gid)
+	if err != nil {
+		return fmt.Errorf("api GetUserAssetGroupInfo: %w", err)
+	}
+	if linkInfo.ExpireAt.Before(time.Now()) {
+		return errors.New("expire")
+	}
+
+	if !uInfo.EnableVIP && ginfo.VistitCount >= maxCountOfVisitShareLink {
+		return errors.New("out limit of share")
+	}
+
+	return nil
+}

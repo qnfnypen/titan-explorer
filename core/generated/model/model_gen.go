@@ -147,7 +147,9 @@ type DeviceInfo struct {
 	LockProfit             float64 `db:"-" json:"lock_profit"`
 	UnLockProfit           float64 `db:"-" json:"unlock_profit"`
 	Mx                     float64 `db:"-" json:"mx"`
-	PenaltyProfit          float64 `db:"-" json:"penalty_profit"`
+	PenaltyProfit          float64 `db:"penalty_profit" json:"penalty_profit"`
+	TodayOfflineTime float64 `db:"-" json:"today_offline_time"`
+	TodayPenaltyProfit  float64 `db:"-" json:"today_penalty_profit"`
 	AssetSucceededCount    int64   `db:"asset_succeeded_count" json:"-"`
 	AssetFailedCount       int64   `db:"asset_failed_count" json:"-"`
 	RetrieveSucceededCount int64   `db:"retrieve_succeeded_count" json:"-"`
@@ -178,6 +180,7 @@ type DeviceInfoDaily struct {
 	Time              time.Time `db:"time" json:"time"`
 	Income            float64   `db:"income" json:"income"`
 	OnlineTime        float64   `db:"online_time" json:"online_time"`
+	PenaltyProfit          float64 `db:"penalty_profit" json:"penalty_profit"`
 	PkgLossRatio      float64   `db:"pkg_loss_ratio" json:"pkg_loss_ratio"`
 	Latency           float64   `db:"latency" json:"latency"`
 	NatRatio          float64   `db:"nat_ratio" json:"nat_ratio"`

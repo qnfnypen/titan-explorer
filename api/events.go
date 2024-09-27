@@ -1170,7 +1170,7 @@ func ShareAssetsHandler(c *gin.Context) {
 	}
 
 	for i := range ret {
-		ret[i] = fmt.Sprintf("%s&filename=%s", ret[i], userAsset.AssetName)
+		ret[i] = fmt.Sprintf("%s&filename=%s", ret[i], url.QueryEscape(userAsset.AssetName))
 	}
 
 	// 成功的时候，下载量+1
@@ -1187,6 +1187,7 @@ func ShareAssetsHandler(c *gin.Context) {
 func OpenAssetHandler(c *gin.Context) {
 	var (
 		cid     = c.Query("asset_cid")
+		gid     = strings.TrimSpace(c.Query("group_id"))
 		userId  = c.Query("user_id")
 		areaIds []string
 		areaId  string
@@ -1278,12 +1279,14 @@ func OpenAssetHandler(c *gin.Context) {
 		return
 	}
 
-	dao.AddVisitCount(c.Request.Context(), hash, userId)
+	if gid == "" {
+		dao.AddVisitCount(c.Request.Context(), hash, userId)
 
-	n, _ := dao.GetVisitCount(c.Request.Context(), hash, userId)
-	if !user.EnableVIP && n > maxCountOfVisitShareLink {
-		c.JSON(http.StatusOK, respErrorCode(errors.AssetVisitOutOfLimit, c))
-		return
+		n, _ := dao.GetVisitCount(c.Request.Context(), hash, userId)
+		if !user.EnableVIP && n > maxCountOfVisitShareLink {
+			c.JSON(http.StatusOK, respErrorCode(errors.AssetVisitOutOfLimit, c))
+			return
+		}
 	}
 
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
@@ -1319,7 +1322,7 @@ func OpenAssetHandler(c *gin.Context) {
 	}
 
 	for i := range ret {
-		ret[i] = fmt.Sprintf("%s&filename=%s", ret[i], userAsset.AssetName)
+		ret[i] = fmt.Sprintf("%s&filename=%s", ret[i], url.QueryEscape(userAsset.AssetName))
 	}
 
 	// 成功的时候，下载量+1
@@ -1686,14 +1689,6 @@ func ShareNeedPassHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
 		return
 	}
-	// 如果是文件组则更新文件组访问次数
-	gid, _ := strconv.Atoi(cid)
-	if gid > 0 {
-		err := dao.AddAssetGroupVisitCount(c.Request.Context(), username, gid)
-		if err != nil {
-			log.Errorf("Error AddAssetGroupVisitCount: %v", err)
-		}
-	}
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"NeedPass": lk.ShortPass != "",
 	}))
@@ -1929,6 +1924,12 @@ func GetAssetStatusHandler(c *gin.Context) {
 		log.Errorf("api GetAssetStatus: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
+	}
+
+	gid, _ := strconv.Atoi(cid)
+
+	if gid > 0 && !statusRsp.IsExpiration && !statusRsp.IsVisitOutOfLimit {
+		dao.AddAssetGroupVisitCount(c.Request.Context(), userId, gid)
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -3046,8 +3047,19 @@ func GetShareGroupInfo(c *gin.Context) {
 		list = append(list, &AssetOrGroup{AssetOverview: ao})
 	}
 
+	info, err := dao.GetUserAssetGroupInfo(c.Request.Context(), userId, parentId)
+	if err != nil {
+		log.Errorf("GetUserAssetGroupInfo: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list":  list,
+		"list": list,
+		"info": map[string]interface{}{
+			"name": info.Name,
+			"size": info.AssetSize,
+			"id":   info.ID,
+		},
 		"total": assetSummary.Total,
 	}))
 }

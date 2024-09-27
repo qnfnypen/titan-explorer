@@ -238,6 +238,7 @@ func SumDailyReward(ctx context.Context, sumTime time.Time, devices []*model.Dev
 
 		deviceInfo.CumulativeProfit = deviceInfo.CumulativeProfit - ud.Income
 		deviceInfo.OnlineTime = deviceInfo.OnlineTime - ud.OnlineTime
+		deviceInfo.PenaltyProfit = deviceInfo.PenaltyProfit - ud.PenaltyProfit
 		deviceInfo.UploadTraffic = deviceInfo.UploadTraffic - ud.UpstreamTraffic
 		deviceInfo.DownloadTraffic = deviceInfo.DownloadTraffic - ud.DownstreamTraffic
 		deviceInfo.RetrievalCount = deviceInfo.RetrievalCount - ud.RetrievalCount
@@ -263,6 +264,7 @@ func deviceInfoToDailyInfo(deviceInfo *model.DeviceInfo) *model.DeviceInfoDaily 
 		Time:              carbon.CreateFromStdTime(deviceInfo.UpdatedAt).StartOfDay().AddHours(8).StdTime(),
 		Income:            deviceInfo.CumulativeProfit,
 		OnlineTime:        deviceInfo.OnlineTime,
+		PenaltyProfit:     deviceInfo.PenaltyProfit,
 		PkgLossRatio:      0, // todo
 		Latency:           0, //todo
 		NatRatio:          0,
@@ -308,6 +310,7 @@ func ToDeviceInfo(node types.NodeInfo, areaId string) *model.DeviceInfo {
 		TitanDiskUsage:         formatter.ToFixed(node.TitanDiskUsage, 2),
 		ActiveStatus:           1,
 		OnlineTime:             float64(node.OnlineDuration),
+		PenaltyProfit:          node.PenaltyProfit,
 		BandwidthUp:            float64(node.BandwidthUp),
 		BandwidthDown:          float64(node.BandwidthDown),
 		CpuUsage:               formatter.ToFixed(node.CPUUsage, 2),

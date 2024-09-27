@@ -395,11 +395,14 @@ func GetQueryInfoHandler(c *gin.Context) {
 		} else {
 			device.LockProfit = device.CumulativeProfit
 		}
+		todayOffLineTime := decimal.NewFromInt(time.Now().Unix() - int64(device.TodayOnlineTime)).Div(decimal.NewFromFloat(60))
+		device.TodayOfflineTime, _ = todayOffLineTime.Round(0).Float64()
 		nodeInfo, err := getNodeInfoByScheduler(c.Request.Context(), device.DeviceID, device.AreaID)
 		if err != nil {
 			continue
 		}
 		device.Mx = nodeInfo.Mx
+		device.TodayPenaltyProfit = nodeInfo.PenaltyProfit - device.PenaltyProfit
 		device.PenaltyProfit = nodeInfo.PenaltyProfit
 	}
 
@@ -434,6 +437,8 @@ func GetQueryInfoHandler(c *gin.Context) {
 		offLineTime := allTime.Sub(decimal.NewFromFloat(device.OnlineTime))
 		onLineRate := decimal.NewFromFloat(device.OnlineTime).Div(allTime)
 		device.OffLineTime, _ = offLineTime.Round(0).Float64()
+		todayOffLineTime := decimal.NewFromInt(time.Now().Unix() - int64(device.TodayOnlineTime)).Div(decimal.NewFromFloat(60))
+		device.TodayOfflineTime, _ = todayOffLineTime.Round(0).Float64()
 		device.OnLineRate, _ = onLineRate.Round(2).Float64()
 		if device.OnlineTime/24 > 24 {
 			device.UnLockProfit = device.CumulativeProfit
@@ -445,6 +450,7 @@ func GetQueryInfoHandler(c *gin.Context) {
 			continue
 		}
 		device.Mx = nodeInfo.Mx
+		device.TodayPenaltyProfit = nodeInfo.PenaltyProfit - device.PenaltyProfit
 		device.PenaltyProfit = nodeInfo.PenaltyProfit
 
 		maskLocation(device, lang)
