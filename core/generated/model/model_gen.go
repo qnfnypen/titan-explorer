@@ -347,6 +347,7 @@ type User struct {
 	DownloadCount          int64     `db:"download_count"`
 	EnableVIP              bool      `db:"enable_vip"`
 	ApiKeys                []byte    `db:"api_keys"`
+	TenantID 			   string    `db:"tenant_id"`
 	CreatedAt              time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt              time.Time `db:"updated_at" json:"-"`
 	DeletedAt              time.Time `db:"deleted_at" json:"-"`

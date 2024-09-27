@@ -380,14 +380,21 @@ func GetUploadInfoHandler(c *gin.Context) {
 	// 	}
 	// }
 
-	var randomPassNonce string
-	if c.Query("encrypted") == "true" {
-		passKey := fmt.Sprintf(FileUploadPassKey, userId)
-		randomPassNonce = string(md5Str(userId + time.Now().String()))
-		if _, err = dao.RedisCache.SetEx(c.Request.Context(), passKey, randomPassNonce, 24*time.Hour).Result(); err != nil {
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			return
-		}
+	// TODO: Deprecated. check removed or not
+	// var randomPassNonce string
+	// if c.Query("encrypted") == "true" {
+	// 	passKey := fmt.Sprintf(FileUploadPassKey, userId)
+	// 	randomPassNonce = string(md5Str(userId + time.Now().String()))
+	// 	if _, err = dao.RedisCache.SetEx(c.Request.Context(), passKey, randomPassNonce, 24*time.Hour).Result(); err != nil {
+	// 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	// 		return
+	// 	}
+	// }
+	traceid, err := dao.NewLogTrace(c.Request.Context(), userId)
+	if err != nil {
+		log.Errorf("NewLogTrace error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
 	}
 
 	var urlModel bool
@@ -395,7 +402,11 @@ func GetUploadInfoHandler(c *gin.Context) {
 		urlModel = true
 	}
 
-	res, err := schedulerClient.GetNodeUploadInfo(c.Request.Context(), userId, randomPassNonce, urlModel)
+	res, err := schedulerClient.GetNodeUploadInfoV2(c.Request.Context(), &types.GetUploadInfoReq{
+		UserID:  userId,
+		URLMode: urlModel,
+		TraceID: traceid,
+	})
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
@@ -423,6 +434,7 @@ func GetUploadInfoHandler(c *gin.Context) {
 		"List":          res.List,
 		"AreaID":        aid,
 		"Log":           areaId[0],
+		"TraceID":       traceid,
 	}))
 }
 
@@ -524,13 +536,21 @@ func CreateAssetHandler(c *gin.Context) {
 				"code": -1,
 				"err":  webErr.Code,
 				"msg":  webErr.Message,
-				"Log":  areaIds[0],
+				"area": areaIds[0],
 			})
 			return
 		}
 	}
+
+	traceid, err := dao.NewLogTrace(c.Request.Context(), userId)
+	if err != nil {
+		log.Errorf("NewLogTrace error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
 	createAssetRsp, err := schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{
-		UserID: userId, AssetCID: createAssetReq.AssetCID, AssetSize: createAssetReq.AssetSize, NodeID: createAssetReq.NodeID, Owner: userId})
+		UserID: userId, AssetCID: createAssetReq.AssetCID, AssetSize: createAssetReq.AssetSize, NodeID: createAssetReq.NodeID, Owner: userId, TraceID: traceid})
 	if err != nil {
 		log.Errorf("CreateAssetHandler CreateAsset error: %v", err)
 		if webErr, ok := err.(*api.ErrWeb); ok {
@@ -538,7 +558,7 @@ func CreateAssetHandler(c *gin.Context) {
 				"code": -1,
 				"err":  webErr.Code,
 				"msg":  webErr.Message,
-				"Log":  areaIds[0],
+				"area": areaIds[0],
 			})
 			return
 		}
@@ -546,7 +566,7 @@ func CreateAssetHandler(c *gin.Context) {
 			"code": -1,
 			// "err":  webErr.Code,
 			// "msg":  webErr.Message,
-			"Log": areaIds[0],
+			"area": areaIds[0],
 		})
 		return
 	}
@@ -588,14 +608,14 @@ func CreateAssetHandler(c *gin.Context) {
 	rsp := make([]JsonObject, len(createAssetRsp.List))
 	if !createAssetRsp.AlreadyExists {
 		for i, v := range createAssetRsp.List {
-			rsp[i] = JsonObject{"CandidateAddr": v.UploadURL, "Token": v.Token}
+			rsp[i] = JsonObject{"CandidateAddr": v.UploadURL, "Token": v.Token, "TraceID": traceid}
 		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 0,
 		"data": rsp,
-		"Log":  areaIds[0],
+		"area": areaIds[0],
 	})
 }
 
@@ -688,7 +708,10 @@ func CreateAssetPostHandler(c *gin.Context) {
 	}
 
 	// 判断所选区域(areaIds[0])是否同步成功，默认已经同步成功
-	var createAssetRsp = new(types.UploadInfo)
+	var (
+		createAssetRsp = new(types.UploadInfo)
+		traceID        string
+	)
 	createAssetRsp.AlreadyExists = true
 	if !dao.CheckAssetIsSyncByAreaID(c.Request.Context(), hash, areaIds[0]) {
 		// 调用调度器
@@ -705,8 +728,16 @@ func CreateAssetPostHandler(c *gin.Context) {
 				return
 			}
 		}
+
+		traceID, err = dao.NewLogTrace(c.Request.Context(), user.Username)
+		if err != nil {
+			log.Errorf("NewLogTrace error: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+
 		createAssetRsp, err = schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{
-			UserID: username, AssetCID: createAssetReq.AssetCID, AssetSize: createAssetReq.AssetSize, NodeID: createAssetReq.NodeID, Owner: username})
+			UserID: username, AssetCID: createAssetReq.AssetCID, AssetSize: createAssetReq.AssetSize, NodeID: createAssetReq.NodeID, Owner: username, TraceID: traceID})
 		if err != nil {
 			log.Errorf("CreateAssetHandler CreateAsset error: %v", err)
 			if webErr, ok := err.(*api.ErrWeb); ok {
@@ -761,7 +792,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 	rsp := make([]JsonObject, len(createAssetRsp.List))
 	if !createAssetRsp.AlreadyExists {
 		for i, v := range createAssetRsp.List {
-			rsp[i] = JsonObject{"CandidateAddr": v.UploadURL, "Token": v.Token}
+			rsp[i] = JsonObject{"CandidateAddr": v.UploadURL, "Token": v.Token, "trace_id": traceID}
 		}
 	}
 
@@ -1143,30 +1174,53 @@ func ShareAssetsHandler(c *gin.Context) {
 		return
 	}
 
-	var ret []string
-	if userAsset.Password != "" {
-		urls, err := schedulerClient.ShareEncryptedAsset(c.Request.Context(), userId, cid, userAsset.Password, time.Time{})
-		if err != nil {
-			if webErr, ok := err.(*api.ErrWeb); ok {
-				c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-				return
-			}
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			return
-		}
-		ret = urls
-	} else {
-		urls, err := schedulerClient.ShareAssets(c.Request.Context(), userId, []string{cid}, time.Time{})
-		if err != nil {
-			if webErr, ok := err.(*api.ErrWeb); ok {
-				c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-				return
-			}
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			return
-		}
+	traceid, err := dao.NewLogTrace(c.Request.Context(), userId)
+	if err != nil {
+		log.Errorf("NewLogTrace error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
 
-		ret = urls[cid]
+	// var ret []string
+	// if userAsset.Password != "" {
+	// 	urls, err := schedulerClient.ShareEncryptedAsset(c.Request.Context(), userId, cid, userAsset.Password, time.Time{})
+	// 	if err != nil {
+	// 		if webErr, ok := err.(*api.ErrWeb); ok {
+	// 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+	// 			return
+	// 		}
+	// 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	// 		return
+	// 	}
+	// 	ret = urls
+	// } else {
+	// 	urls, err := schedulerClient.ShareAssets(c.Request.Context(), userId, []string{cid}, time.Time{})
+	// 	if err != nil {
+	// 		if webErr, ok := err.(*api.ErrWeb); ok {
+	// 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+	// 			return
+	// 		}
+	// 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	// 		return
+	// 	}
+
+	// 	ret = urls[cid]
+	// }
+
+	ret, err := schedulerClient.ShareAssetV2(c.Request.Context(), &types.ShareAssetReq{
+		TraceID:    traceid,
+		UserID:     userId,
+		AssetCID:   cid,
+		FilePass:   userAsset.Password,
+		ExpireTime: time.Time{},
+	})
+	if err != nil {
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			return
+		}
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
 	}
 
 	for i := range ret {
@@ -1181,6 +1235,7 @@ func ShareAssetsHandler(c *gin.Context) {
 		"size":      userAsset.TotalSize,
 		"url":       ret,
 		"redirect":  false,
+		"trace_id":  traceid,
 	}))
 }
 
@@ -1292,30 +1347,53 @@ func OpenAssetHandler(c *gin.Context) {
 		return
 	}
 
-	var ret []string
-	if userAsset.Password != "" {
-		urls, err := schedulerClient.ShareEncryptedAsset(c.Request.Context(), userId, cid, userAsset.Password, time.Now().Add(time.Hour*2))
-		if err != nil {
-			if webErr, ok := err.(*api.ErrWeb); ok {
-				c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-				return
-			}
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			return
-		}
-		ret = urls
-	} else {
-		urls, err := schedulerClient.ShareAssets(c.Request.Context(), userId, []string{cid}, time.Now().Add(2*time.Hour))
-		if err != nil {
-			if webErr, ok := err.(*api.ErrWeb); ok {
-				c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
-				return
-			}
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			return
-		}
+	// var ret []string
+	// if userAsset.Password != "" {
+	// 	urls, err := schedulerClient.ShareEncryptedAsset(c.Request.Context(), userId, cid, userAsset.Password, time.Now().Add(time.Hour*2))
+	// 	if err != nil {
+	// 		if webErr, ok := err.(*api.ErrWeb); ok {
+	// 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+	// 			return
+	// 		}
+	// 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	// 		return
+	// 	}
+	// 	ret = urls
+	// } else {
+	// 	urls, err := schedulerClient.ShareAssets(c.Request.Context(), userId, []string{cid}, time.Now().Add(2*time.Hour))
+	// 	if err != nil {
+	// 		if webErr, ok := err.(*api.ErrWeb); ok {
+	// 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+	// 			return
+	// 		}
+	// 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+	// 		return
+	// 	}
 
-		ret = urls[cid]
+	// 	ret = urls[cid]
+	// }
+
+	traceid, err := dao.NewLogTrace(c.Request.Context(), userId)
+	if err != nil {
+		log.Errorf("NewLogTrace error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	ret, err := schedulerClient.ShareAssetV2(c.Request.Context(), &types.ShareAssetReq{
+		TraceID:    traceid,
+		UserID:     userId,
+		AssetCID:   cid,
+		FilePass:   userAsset.Password,
+		ExpireTime: time.Time{},
+	})
+	if err != nil {
+		if webErr, ok := err.(*api.ErrWeb); ok {
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			return
+		}
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
 	}
 
 	for i := range ret {

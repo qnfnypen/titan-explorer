@@ -19,6 +19,8 @@ import (
 	"github.com/gnasnik/titan-explorer/core/cleanup"
 	"github.com/gnasnik/titan-explorer/core/statistics"
 	"github.com/go-redis/redis/v9"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
@@ -62,6 +64,10 @@ func NewServer(cfg config.Config) (*Server, error) {
 	factory.RegisterCache(constant.RedisCacheKey, service.NewConfigRedisCacheService([]string{config.Cfg.RedisAddr}, "", config.Cfg.RedisPassword, false, 0))
 	factory.RegisterService(constant.ClickWordCaptcha, service.NewClickWordCaptchaService(factory))
 	factory.RegisterService(constant.BlockPuzzleCaptcha, service.NewBlockPuzzleCaptchaService(factory))
+
+	// 注册prometheus
+	metricsHandler := promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{})
+	router.GET("/metrics", gin.WrapH(metricsHandler))
 
 	RegisterRouters(router, cfg)
 

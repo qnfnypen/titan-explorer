@@ -149,12 +149,12 @@ func AesDecryptCBCByKey(cstr string) (string, error) {
 func CreateTenantKey(tenatID, name string) (string, error) {
 	ui := TenantInfo{TenantID: tenatID, Salt: random.GenerateRandomString(6), Name: name}
 	uk, _ := json.Marshal(ui)
-	apiKey, err := AesEncryptCBC(uk, cryptoKey)
+	tenantKey, err := AesEncryptCBC(uk, cryptoKey)
 	if err != nil {
 		return "", err
 	}
 
-	return apiKey, nil
+	return tenantKey, nil
 }
 
 // AesDecryptTenantKey 解密key并获取payload

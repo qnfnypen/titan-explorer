@@ -327,11 +327,13 @@ type AssetTransferLog struct {
 	UserId       string    `json:"user_id" db:"user_id"`
 	Cid          string    `db:"cid" json:"cid"`
 	Hash         string    `db:"hash" json:"hash"`
+	NodeId       string    `db:"node_id" json:"node_id"`
 	Rate         int64     `db:"rate" json:"rate"`
 	CostMs       int64     `db:"cost_ms" json:"cost_ms"`
 	TotalSize    int64     `db:"total_size" json:"total_size"`
-	Succeed      bool      `db:"succeed" json:"succeed"`
+	State        int64     `db:"state" json:"state"`
 	TransferType string    `db:"transfer_type" json:"transfer_type"`
+	Log          string    `db:"log" json:"log"`
 	CreatedAt    time.Time `db:"created_at" json:"created_at"`
 }
 
@@ -371,4 +373,13 @@ type IPNodeCount struct {
 	Area            string `json:"area"  db:"area_id"`
 	OnlineNodeCount int64  `json:"online_node_count"  db:"online_node_count"`
 	TotalNodeCount  int64  `json:"total_node_count"  db:"total_node_count"`
+}
+
+type Tenant struct {
+	TenantID        string    `json:"tenant_id" db:"tenant_id"`
+	Name            string    `json:"name" db:"name"`
+	ApiKey          string    `json:"api_key" db:"api_key"`
+	State           string    `json:"state" db:"state"`
+	UploadNotifyUrl string    `json:"upload_notify_url" db:"upload_notify_url"`
+	CreatedAt       time.Time `json:"created_at" db:"created_at"`
 }

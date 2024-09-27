@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 
+	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/config"
 	logging "github.com/ipfs/go-log/v2"
@@ -49,12 +50,15 @@ func RequestLoggerMiddleware() gin.HandlerFunc {
 // 	}
 // }
 
+var authMiddleware *jwt.GinJWTMiddleware
+
 func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	apiV1 := router.Group("/api/v1")
 	apiV2 := router.Group("/api/v2")
 	link := router.Group("/link")
 
-	authMiddleware, err := jwtGinMiddleware(cfg.SecretKey)
+	var err error
+	authMiddleware, err = jwtGinMiddleware(cfg.SecretKey)
 	if err != nil {
 		log.Fatalf("jwt auth middleware: %v", err)
 	}
@@ -258,7 +262,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_vip_info", GetUserVipInfoHandler)     // 判断用户是否为vip
 	storage.GET("/get_user_access_token", GetUserAccessTokenHandler)
 	storage.GET("/get_upload_info", GetUploadInfoHandler)
-	storage.GET("/create_asset", CreateAssetHandler)
+	// storage.GET("/create_asset", CreateAssetHandler)
 	storage.POST("/create_asset", CreateAssetPostHandler)
 	storage.POST("/import_from_ipfs", CreateAssetFromIPFSHandler)
 	storage.POST("/export_to_ipfs", ExportAssetToIPFSHandler)
@@ -312,6 +316,16 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	test1.PUT("/node/move_back_deleted", tnc.MoveBackDeletedNode)
 
 	apiV1.GET("/country_count", GetCountryCount)
+
+	// tenant
+	tenant := apiV1.Group("/tenant")
+	// tenant.GET("/get_device_active_info", GetDeviceActiveInfoHandler)
+
+	tenant.Use(AuthRequired(authMiddleware))
+	tenant.POST("/sso_login", SSOLoginHandler)
+	tenant.POST("/sync_user", SubUserSyncHandler)
+	tenant.POST("/delete_user", SubUserDeleteHandler)
+	tenant.POST("/refresh_token", SubUserRefreshTokenHandler)
 }
 
 func RegisterRouterWithAPIKey(router *gin.Engine) {

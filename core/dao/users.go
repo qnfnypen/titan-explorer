@@ -23,8 +23,8 @@ func CreateUser(ctx context.Context, user *model.User) error {
 	defer tx.Rollback()
 
 	_, err = DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s (uuid, username, pass_hash, user_email, wallet_address, role, referrer, referrer_user_id, created_at, total_storage_size)
-			VALUES (:uuid, :username, :pass_hash, :user_email, :wallet_address, :role, :referrer, :referrer_user_id, :created_at, :total_storage_size);`, tableNameUser,
+		`INSERT INTO %s (uuid, username, pass_hash, user_email, wallet_address, role, referrer, referrer_user_id, created_at, total_storage_size, tenant_id)
+			VALUES (:uuid, :username, :pass_hash, :user_email, :wallet_address, :role, :referrer, :referrer_user_id, :created_at, :total_storage_size, :tenant_id);`, tableNameUser,
 	), user)
 
 	referralCode := &model.ReferralCode{
@@ -92,6 +92,17 @@ func GetUserByRefCode(ctx context.Context, refCode string) (*model.User, error) 
 		return nil, err
 	}
 	return &out, nil
+}
+
+func GetUserByBuilder(ctx context.Context, sb squirrel.SelectBuilder) (*model.User, error) {
+	var user model.User
+	query, args, err := sb.From(tableNameUser).Limit(1).ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	err = DB.SelectContext(ctx, &user, query, args...)
+	return &user, err
 }
 
 func GetReferralList(ctx context.Context, username string, option QueryOption) (int64, []*model.InviteFrensRecord, error) {
