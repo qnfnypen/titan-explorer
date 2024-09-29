@@ -67,7 +67,7 @@ func NewServer(cfg config.Config) (*Server, error) {
 
 	// 注册prometheus
 	metricsHandler := promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{})
-	router.GET("/metrics", gin.WrapH(metricsHandler))
+	router.GET("/api/metrics", gin.WrapH(metricsHandler))
 
 	RegisterRouters(router, cfg)
 
