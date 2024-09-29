@@ -390,7 +390,7 @@ func GetUploadInfoHandler(c *gin.Context) {
 	// 		return
 	// 	}
 	// }
-	traceid, err := dao.NewLogTrace(c.Request.Context(), userId)
+	traceid, err := dao.NewLogTrace(c.Request.Context(), userId, dao.AssetTransferTypeUpload)
 	if err != nil {
 		log.Errorf("NewLogTrace error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -542,7 +542,7 @@ func CreateAssetHandler(c *gin.Context) {
 		}
 	}
 
-	traceid, err := dao.NewLogTrace(c.Request.Context(), userId)
+	traceid, err := dao.NewLogTrace(c.Request.Context(), userId, dao.AssetTransferTypeUpload)
 	if err != nil {
 		log.Errorf("NewLogTrace error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -729,7 +729,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 			}
 		}
 
-		traceID, err = dao.NewLogTrace(c.Request.Context(), user.Username)
+		traceID, err = dao.NewLogTrace(c.Request.Context(), user.Username, dao.AssetTransferTypeUpload)
 		if err != nil {
 			log.Errorf("NewLogTrace error: %v", err)
 			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -792,7 +792,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 	rsp := make([]JsonObject, len(createAssetRsp.List))
 	if !createAssetRsp.AlreadyExists {
 		for i, v := range createAssetRsp.List {
-			rsp[i] = JsonObject{"CandidateAddr": v.UploadURL, "Token": v.Token, "trace_id": traceID}
+			rsp[i] = JsonObject{"CandidateAddr": v.UploadURL, "Token": v.Token, "TraceID": traceID}
 		}
 	}
 
@@ -1174,7 +1174,7 @@ func ShareAssetsHandler(c *gin.Context) {
 		return
 	}
 
-	traceid, err := dao.NewLogTrace(c.Request.Context(), userId)
+	traceid, err := dao.NewLogTrace(c.Request.Context(), userId, dao.AssetTransferTypeDownload)
 	if err != nil {
 		log.Errorf("NewLogTrace error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -1376,7 +1376,7 @@ func OpenAssetHandler(c *gin.Context) {
 	// 	ret = urls[cid]
 	// }
 
-	traceid, err := dao.NewLogTrace(c.Request.Context(), userId)
+	traceid, err := dao.NewLogTrace(c.Request.Context(), userId, dao.AssetTransferTypeDownload)
 	if err != nil {
 		log.Errorf("NewLogTrace error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -3065,9 +3065,11 @@ func AssetTransferReport(c *gin.Context) {
 
 	req.UserId = userId
 	req.CreatedAt = time.Now()
-	req.TraceId = uuid.New().String()
+	if req.TraceId == "" {
+		req.TraceId = uuid.New().String()
+	}
 
-	if err := dao.InsertAssetTransferLog(c.Request.Context(), &req); err != nil {
+	if err := dao.InsertOrUpdateAssetTransferLog(c.Request.Context(), &req); err != nil {
 		log.Errorf("InsertAssetTransferLog() error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return

@@ -9,36 +9,45 @@ import (
 	"github.com/google/uuid"
 )
 
-func InsertAssetTransferLog(ctx context.Context, log *model.AssetTransferLog) error {
+const (
+	AssetTransferTypeDownload = "download"
+	AssetTransferTypeUpload   = "upload"
+)
+
+func InsertOrUpdateAssetTransferLog(ctx context.Context, log *model.AssetTransferLog) error {
 	statement := `INSERT INTO asset_transfer_log(trace_id, user_id, cid, hash, node_id, rate, cost_ms, total_size, state, transfer_type, log, created_at)
-	 VALUES(:trace_id, :user_id, :cid, :hash, :node_id, :rate, :cost_ms, :total_size, :state, :transfer_type, log, :created_at)`
+	VALUES(:trace_id, :user_id, :cid, :hash, :node_id, :rate, :cost_ms, :total_size, :state, :transfer_type, :log, :created_at)
+	ON DUPLICATE KEY UPDATE 
+	user_id=VALUES(user_id), cid=VALUES(cid), hash=VALUES(hash), node_id=VALUES(node_id), rate=VALUES(rate), cost_ms=VALUES(cost_ms), 
+	total_size=VALUES(total_size), state=VALUES(state), transfer_type=VALUES(transfer_type), log=VALUES(log)`
 	_, err := DB.NamedExecContext(ctx, statement, log)
 	return err
 }
 
-func NewLogTrace(ctx context.Context, uid string) (string, error) {
+func NewLogTrace(ctx context.Context, uid string, transferType string) (string, error) {
 	log := &model.AssetTransferLog{
-		TraceId:   uuid.New().String(),
-		UserId:    uid,
-		CreatedAt: time.Now(),
+		TraceId:      uuid.New().String(),
+		UserId:       uid,
+		CreatedAt:    time.Now(),
+		TransferType: transferType,
 	}
-	if err := InsertAssetTransferLog(ctx, log); err != nil {
+	if err := InsertOrUpdateAssetTransferLog(ctx, log); err != nil {
 		return "", err
 	}
 	return log.TraceId, nil
 }
 
 type ComprehensiveStats struct {
-	TotalDownloads   int `db:"total_downloads"`
-	TotalUploads     int `db:"total_uploads"`
-	DownloadSuccess  int `db:"download_success"`
-	UploadSuccess    int `db:"upload_success"`
-	DownloadFailure  int `db:"download_failure"`
-	UploadFailure    int `db:"upload_failure"`
-	DownloadSize     int `db:"download_size"`
-	UploadSize       int `db:"upload_size"`
-	DownloadAvgSpeed int `db:"download_avg_speed"`
-	UploadAvgSpeed   int `db:"upload_avg_speed"`
+	TotalDownloads   int     `db:"total_downloads"`
+	TotalUploads     int     `db:"total_uploads"`
+	DownloadSuccess  int     `db:"download_success"`
+	UploadSuccess    int     `db:"upload_success"`
+	DownloadFailure  int     `db:"download_failure"`
+	UploadFailure    int     `db:"upload_failure"`
+	DownloadSize     int     `db:"download_size"`
+	UploadSize       int     `db:"upload_size"`
+	DownloadAvgSpeed float64 `db:"download_avg_speed"`
+	UploadAvgSpeed   float64 `db:"upload_avg_speed"`
 }
 
 // 获取所有统计数据

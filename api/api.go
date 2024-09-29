@@ -86,6 +86,8 @@ func NewServer(cfg config.Config) (*Server, error) {
 
 	go cleanup.Run(context.Background())
 
+	go UpdateView(context.Background())
+
 	return s, nil
 }
 
