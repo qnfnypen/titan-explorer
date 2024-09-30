@@ -33,13 +33,13 @@ func BulkUpsertDeviceInfoHours(ctx context.Context, hourInfos []*model.DeviceInf
 
 func BulkUpsertDeviceInfoDaily(ctx context.Context, dailyInfos []*model.DeviceInfoDaily) error {
 	upsertStatement := fmt.Sprintf(`INSERT INTO %s (created_at, updated_at, income, user_id, device_id,
-				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage, disk_space,bandwidth_up,bandwidth_down, upstream_traffic, downstream_traffic, retrieval_count, block_count, time, external_ip)
+				online_time, pkg_loss_ratio, latency, nat_ratio, disk_usage, disk_space,bandwidth_up,bandwidth_down, upstream_traffic, downstream_traffic, retrieval_count, block_count, time, external_ip,penalty_profit)
 			VALUES (:created_at, :updated_at, :income, :user_id, :device_id,
-				:online_time, :pkg_loss_ratio, :latency, :nat_ratio, :disk_usage, :disk_space,:bandwidth_up,:bandwidth_down, :upstream_traffic, :downstream_traffic, :retrieval_count, :block_count, :time, :external_ip) 
+				:online_time, :pkg_loss_ratio, :latency, :nat_ratio, :disk_usage, :disk_space,:bandwidth_up,:bandwidth_down, :upstream_traffic, :downstream_traffic, :retrieval_count, :block_count, :time, :external_ip,:penalty_profit) 
 			 ON DUPLICATE KEY UPDATE updated_at = now(), income = VALUES(income),user_id = VALUES(user_id),
 			online_time = VALUES(online_time), pkg_loss_ratio = VALUES(pkg_loss_ratio), latency = VALUES(latency),
 			upstream_traffic = VALUES(upstream_traffic), downstream_traffic = VALUES(downstream_traffic), retrieval_count = VALUES(retrieval_count), block_count = VALUES(block_count),
-			nat_ratio = VALUES(nat_ratio), disk_usage = VALUES(disk_usage), disk_space = VALUES(disk_space),bandwidth_up = VALUES(bandwidth_up), bandwidth_down = VALUES(bandwidth_down), external_ip = values(external_ip)`,
+			nat_ratio = VALUES(nat_ratio), disk_usage = VALUES(disk_usage), disk_space = VALUES(disk_space),bandwidth_up = VALUES(bandwidth_up), bandwidth_down = VALUES(bandwidth_down), external_ip = values(external_ip),penalty_profit=VALUES(penalty_profit)`,
 		tableNameDeviceInfoDaily)
 
 	_, err := DB.NamedExecContext(ctx, upsertStatement, dailyInfos)
