@@ -483,8 +483,8 @@ func upsertDeviceInfoStatement() string {
 	// 获取当天零点的时间
 	now := time.Now()
 	midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	if now.Sub(midnight).Seconds() <= 10 {
-		updateStatement += `penalty_profit=VALUES(penalty_profit)`
+	if now.Sub(midnight).Seconds() <= 60*4 {
+		updateStatement += `,penalty_profit=VALUES(penalty_profit)`
 	}
 	return insertStatement + updateStatement
 }
