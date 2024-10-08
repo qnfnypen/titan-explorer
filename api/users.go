@@ -460,6 +460,10 @@ func DeviceBindingHandler(c *gin.Context) {
 		return
 	}
 
+	if params.Remark == "" {
+		params.Remark = deviceInfo.DeviceName
+	}
+
 	if err = dao.UpdateUserDeviceInfo(c.Request.Context(), &model.DeviceInfo{
 		UserID:     sign.Username,
 		DeviceID:   params.NodeId,
