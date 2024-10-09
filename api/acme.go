@@ -41,7 +41,10 @@ func AcmeHandler(c *gin.Context) {
 			return
 		}
 		c.JSON(200, record)
-		dao.RedisCache.Set(c.Request.Context(), AcmeRedisKey, record, 0)
+		recordBytes, _ := json.Marshal(record)
+		if err = dao.RedisCache.Set(c.Request.Context(), AcmeRedisKey, recordBytes, 0).Err(); err != nil {
+			log.Errorf("AcmeMD5Handler set cache error: %v", err)
+		}
 		return
 	}
 
