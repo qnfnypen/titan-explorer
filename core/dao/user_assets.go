@@ -92,8 +92,8 @@ func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset, areaIDs 
 	}
 	if err == sql.ErrNoRows {
 		// 添加文件记录，判断文件是否存在，不存在则新增
-		query, args, err := squirrel.Insert(tableUserAsset).Columns("user_id,asset_name,asset_type,total_size,group_id,hash,created_time,expiration,password,cid,md5").
-			Values(asset.UserID, asset.AssetName, asset.AssetType, asset.TotalSize, asset.GroupID, asset.Hash, asset.CreatedTime, asset.Expiration, asset.Password, asset.Cid, asset.MD5).ToSql()
+		query, args, err := squirrel.Insert(tableUserAsset).Columns("user_id,asset_name,asset_type,total_size,group_id,hash,created_time,expiration,password,cid,md5,extra_id").
+			Values(asset.UserID, asset.AssetName, asset.AssetType, asset.TotalSize, asset.GroupID, asset.Hash, asset.CreatedTime, asset.Expiration, asset.Password, asset.Cid, asset.MD5, asset.ExtraID).ToSql()
 		if err != nil {
 			log.Error(err)
 			return fmt.Errorf("generate insert asset sql error:%w", err)

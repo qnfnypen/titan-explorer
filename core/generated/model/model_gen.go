@@ -655,6 +655,7 @@ type UserAsset struct {
 	// ShortPass 	string 	  `db:"short_pass"`
 	GroupID int64  `db:"group_id"`
 	MD5     string `db:"md5"`
+	ExtraID string `db:"extra_id"`
 }
 
 type AssetGroup struct {
