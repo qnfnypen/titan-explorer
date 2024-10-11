@@ -47,3 +47,20 @@ func (c *Client) EnqueueAssetGroupID(ctx context.Context, tp AssetGroupPayload) 
 
 	return nil
 }
+
+// EnqueueDeleteAssetOperation 塞入需要删除的调度器文件
+func (c *Client) EnqueueDeleteAssetOperation(ctx context.Context, tp DeleteAssetPayload) error {
+	payload, err := json.Marshal(tp)
+	if err != nil {
+		return fmt.Errorf("json unmarshal payload of DeleteAsset error:%w", err)
+	}
+
+	task := asynq.NewTask(TypeDeleteAssetOperation, payload, asynq.MaxRetry(3))
+
+	_, err = c.cli.EnqueueContext(ctx, task)
+	if err != nil {
+		return fmt.Errorf("could not enqueue task of DeleteAsset error:%w", err)
+	}
+
+	return nil
+}

@@ -1035,14 +1035,18 @@ func DeleteAssetHandler(c *gin.Context) {
 			if !isOnly {
 				return
 			}
-			scli, err := getSchedulerClient(c.Request.Context(), v)
-			if err != nil {
-				return
-			}
-			err = scli.RemoveAssetRecord(c.Request.Context(), cid)
-			if err != nil {
-				log.Errorf("get areaIds error: %+v", err)
-			}
+			// 修改为加入队列进行处理删除
+			// scli, err := getSchedulerClient(c.Request.Context(), v)
+			// if err != nil {
+			// 	return
+			// }
+			// err = scli.RemoveAssetRecord(c.Request.Context(), cid)
+			// if err != nil {
+			// 	log.Errorf("get areaIds error: %+v", err)
+			// }
+			opasynq.DefaultCli.EnqueueDeleteAssetOperation(c.Request.Context(), opasynq.DeleteAssetPayload{
+				CID: cid, AreaID: v,
+			})
 		}(v)
 	}
 	wg.Wait()

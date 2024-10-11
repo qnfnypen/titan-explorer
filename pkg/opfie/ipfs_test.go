@@ -32,7 +32,7 @@ func TestAddFileByCID(t *testing.T) {
 }
 
 func TestGetInfoByCID(t *testing.T) {
-	cidStr = "QmPmayWE2xvUygHB7vRUZuqUkLcTeBDrGe2patUyRWF7sw"
+	// cidStr = "QmPmayWE2xvUygHB7vRUZuqUkLcTeBDrGe2patUyRWF7sw"
 	links, size, err := cli.GetInfoByCID(ctx, cidStr)
 	if err != nil {
 		t.Fatal(err)
