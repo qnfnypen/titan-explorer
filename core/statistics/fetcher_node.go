@@ -28,7 +28,7 @@ const (
 	DeviceStatusCodeAbnormal = 2
 )
 
-var AllNodesMap = make(map[string]*model.DeviceInfo)
+var AllL1NodesMap = make(map[string]*model.DeviceInfo)
 
 // NodeFetcher handles fetching information about all nodes
 type NodeFetcher struct {
@@ -147,7 +147,9 @@ loop:
 		}
 
 		for _, node := range allNodes {
-			AllNodesMap[node.DeviceID] = node
+			if strings.Contains(node.DeviceID, "c_") {
+				AllL1NodesMap[node.DeviceID] = node
+			}
 		}
 
 		return nil

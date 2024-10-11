@@ -49,7 +49,7 @@ func init() {
 }
 
 func setL1Gatherer(ctx context.Context) {
-	for _, node := range statistics.AllNodesMap {
+	for _, node := range statistics.AllL1NodesMap {
 		cpuGauge.WithLabelValues(node.DeviceID).Set(float64(node.CpuCores))
 		cpuUsageGauge.WithLabelValues(node.DeviceID).Set(node.CpuUsage)
 		memoryGauge.WithLabelValues(node.DeviceID).Set(node.Memory)
