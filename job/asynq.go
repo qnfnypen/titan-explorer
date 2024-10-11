@@ -3,7 +3,6 @@ package job
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 
 	"github.com/gnasnik/titan-explorer/api"
@@ -23,7 +22,6 @@ func StartAsynqServer() {
 
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(opasynq.TypeAssetGroupID, deleteAssetGroup)
-	mux.HandleFunc(opasynq.TypeDeleteAssetOperation, deleteAsset)
 
 	if err := srv.Run(mux); err != nil {
 		log.Fatal(err)
@@ -86,27 +84,5 @@ func deleteAssetByGroup(ctx context.Context, uid string, gids []int64) error {
 		}
 		scli.RemoveAssetRecords(context.Background(), v)
 	}
-	return nil
-}
-
-// deleteAsset 删除调度器文件
-func deleteAsset(ctx context.Context, t *asynq.Task) error {
-	var payload opasynq.DeleteAssetPayload
-
-	// 解析塞入的内容
-	err := json.Unmarshal(t.Payload(), &payload)
-	if err != nil {
-		return err
-	}
-	// 获取调度器客户端
-	scli, err := api.GetSchedulerClient(ctx, payload.AreaID)
-	if err != nil {
-		return fmt.Errorf("get scheduler client error:%w", err)
-	}
-	err = scli.RemoveAssetRecord(ctx, payload.CID)
-	if err != nil {
-		return fmt.Errorf("remove asset record error:%w", err)
-	}
-
 	return nil
 }
