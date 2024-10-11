@@ -628,6 +628,7 @@ func GetDeviceInfoHandler(c *gin.Context) {
 		deviceInfo.DeviceRank = int64(i + 1 + offset)
 		dao.TranslateIPLocation(c.Request.Context(), deviceInfo, lang)
 		maskLocation(deviceInfo, lang)
+		deviceInfo.CumulativeProfit += deviceInfo.OnlineIncentiveProfit
 	}
 
 	if !auth {
