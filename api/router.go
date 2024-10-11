@@ -324,8 +324,8 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	tenant.Use(AuthRequired(authMiddleware))
 	tenant.POST("/sso_login", SSOLoginHandler)
 	tenant.POST("/sync_user", SubUserSyncHandler)
-	tenant.POST("/delete_user", SubUserDeleteHandler)
-	tenant.POST("/refresh_token", SubUserRefreshTokenHandler)
+	tenant.DELETE("/user", SubUserDeleteHandler)
+	tenant.GET("/refresh_token", SubUserRefreshTokenHandler)
 }
 
 func RegisterRouterWithAPIKey(router *gin.Engine) {

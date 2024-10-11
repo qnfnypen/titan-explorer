@@ -1,0 +1,1 @@
+ALTER TABLE user_asset ADD COLUMN `extra_id` char(64) NOT NULL DEFAULT '' COMMENT 'outid for external system';

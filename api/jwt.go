@@ -329,7 +329,7 @@ func AuthRequired(authMiddleware *jwt.GinJWTMiddleware) gin.HandlerFunc {
 			}
 		} else {
 			apiKey := ctx.GetHeader("apiKey")
-			tenantKey := ctx.GetHeader("tenantKey")
+			tenantKey := ctx.GetHeader("tenant-api-key")
 			switch {
 			case apiKey != "":
 				uid, err := storage.AesDecryptCBCByKey(apiKey)

@@ -144,31 +144,3 @@ func AesDecryptCBCByKey(cstr string) (string, error) {
 
 	return string(ukInfo.UID), nil
 }
-
-// CreateTenantKey 生成租户key
-func CreateTenantKey(tenatID, name string) (string, error) {
-	ui := TenantInfo{TenantID: tenatID, Salt: random.GenerateRandomString(6), Name: name}
-	uk, _ := json.Marshal(ui)
-	tenantKey, err := AesEncryptCBC(uk, cryptoKey)
-	if err != nil {
-		return "", err
-	}
-
-	return tenantKey, nil
-}
-
-// AesDecryptTenantKey 解密key并获取payload
-func AesDecryptTenantKey(cstr string) (*TenantInfo, error) {
-	var payload TenantInfo
-
-	uk, err := AesDecryptCBC(cstr, cryptoKey)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := json.Unmarshal(uk, &payload); err != nil {
-		return nil, err
-	}
-
-	return &payload, nil
-}

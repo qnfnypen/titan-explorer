@@ -87,11 +87,43 @@ func SubUserSyncHandler(c *gin.Context) {
 }
 
 func SubUserDeleteHandler(c *gin.Context) {
-
+	// uuid := c.Query("entry_uuid")
+	// withAsset := c.Query("with_asset") == "true"
 }
 
 func SubUserRefreshTokenHandler(c *gin.Context) {
 
+	tenantClaims := jwt.ExtractClaims(c)
+
+	token := c.Query("token")
+	c.Request.Header.Set("JwtAuthorization", fmt.Sprintf("Bearer %s", token))
+	subUserClaims, err := authMiddleware.GetClaimsFromJWT(c)
+	if err != nil {
+		log.Errorf("[SUB_USER][REFRESH] error while refreshing token: %s", err.Error())
+		c.JSON(401, respError(errors.InternalServer, err))
+	}
+
+	username := subUserClaims[identityKey].(string)
+	tenantID := tenantClaims[tenantID].(string)
+
+	user, err := dao.GetUserByBuilder(c.Request.Context(), squirrel.Select("*").Where(squirrel.Eq{"username": username, "tenant_id": tenantID}))
+	if err != nil && err != sql.ErrNoRows {
+		log.Errorf("[TENANT][SSO] query user error: %s", err.Error())
+		c.JSON(200, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	payloadProto := &model.User{TenantID: tenantID, Uuid: user.Uuid, Username: user.Username, Role: user.Role}
+	token, expireTime, err := authMiddleware.TokenGenerator(payloadProto)
+	if err != nil {
+		log.Errorf("[TENANT][SSO] error while generating token: %s", err.Error())
+		c.JSON(200, respErrorCode(errors.InternalServer, c))
+	}
+
+	c.JSON(200, respJSON(JsonObject{
+		"token": token,
+		"exp":   expireTime.Unix(),
+	}))
 	// refreshTokenFunc := func(c *gin.Context, code int, token string, expire time.Time) {
 	// 	c.JSON(http.StatusOK, gin.H{
 	// 		"code":   http.StatusOK,

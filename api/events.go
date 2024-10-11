@@ -390,11 +390,15 @@ func GetUploadInfoHandler(c *gin.Context) {
 	// 		return
 	// 	}
 	// }
-	traceid, err := dao.NewLogTrace(c.Request.Context(), userId, dao.AssetTransferTypeUpload)
-	if err != nil {
-		log.Errorf("NewLogTrace error: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
+
+	var traceid string
+	if c.Query("need_trace") == "true" {
+		traceid, err = dao.NewLogTrace(c.Request.Context(), userId, dao.AssetTransferTypeUpload)
+		if err != nil {
+			log.Errorf("NewLogTrace error: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
 	}
 
 	var urlModel bool
@@ -504,6 +508,7 @@ func CreateAssetHandler(c *gin.Context) {
 	createAssetReq.AssetType = c.Query("asset_type")
 	createAssetReq.AssetSize = formatter.Str2Int64(c.Query("asset_size"))
 	createAssetReq.GroupID, _ = strconv.ParseInt(c.Query("group_id"), 10, 64)
+	createAssetReq.ExtraID = c.Query("extra_id")
 
 	// 获取文件hash
 	hash, err := storage.CIDToHash(createAssetReq.AssetCID)
@@ -599,6 +604,7 @@ func CreateAssetHandler(c *gin.Context) {
 		TotalSize:   createAssetReq.AssetSize,
 		Password:    randomPassNonce,
 		GroupID:     int64(createAssetReq.GroupID),
+		ExtraID:     createAssetReq.ExtraID,
 	}, notExistsAids, areaIds[0]); err != nil {
 		log.Errorf("CreateAssetHandler AddAsset error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -629,6 +635,8 @@ type createAssetRequest struct {
 	GroupID   int64    `json:"group_id"`
 	Encrypted bool     `json:"encrypted"`
 	MD5       string   `json:"md5"`
+	ExtraID   string   `json:"extra_id"`
+	NeedTrace bool     `json:"need_trace"`
 }
 
 // CreateAssetPostHandler 创建文件
@@ -728,12 +736,13 @@ func CreateAssetPostHandler(c *gin.Context) {
 				return
 			}
 		}
-
-		traceID, err = dao.NewLogTrace(c.Request.Context(), user.Username, dao.AssetTransferTypeUpload)
-		if err != nil {
-			log.Errorf("NewLogTrace error: %v", err)
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			return
+		if createAssetReq.NeedTrace {
+			traceID, err = dao.NewLogTrace(c.Request.Context(), user.Username, dao.AssetTransferTypeUpload)
+			if err != nil {
+				log.Errorf("NewLogTrace error: %v", err)
+				c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+				return
+			}
 		}
 
 		createAssetRsp, err = schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{
@@ -783,6 +792,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 		Password:    randomPassNonce,
 		GroupID:     int64(createAssetReq.GroupID),
 		MD5:         createAssetReq.MD5,
+		ExtraID:     createAssetReq.ExtraID,
 	}, notExistsAids, areaIds[0]); err != nil {
 		log.Errorf("CreateAssetHandler AddAsset error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
