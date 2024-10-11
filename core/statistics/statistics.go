@@ -171,9 +171,9 @@ func (s *Statistic) runFetchers() error {
 // Stop stops the cron jobs and closes schedulers.
 func (s *Statistic) Stop() {
 	ctx := s.cron.Stop()
-	select {
-	case <-ctx.Done():
-	}
+
+	<-ctx.Done()
+
 	for _, scheduler := range s.schedulers {
 		scheduler.Closer()
 	}

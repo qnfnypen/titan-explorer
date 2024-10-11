@@ -28,6 +28,8 @@ const (
 	DeviceStatusCodeAbnormal = 2
 )
 
+var AllNodesMap = make(map[string]*model.DeviceInfo)
+
 // NodeFetcher handles fetching information about all nodes
 type NodeFetcher struct {
 	BaseFetcher
@@ -142,6 +144,10 @@ loop:
 
 		if err = SumDailyReward(ctx, start, allNodes); err != nil {
 			log.Errorf("add device info daily reward: %v", err)
+		}
+
+		for _, node := range allNodes {
+			AllNodesMap[node.DeviceID] = node
 		}
 
 		return nil
