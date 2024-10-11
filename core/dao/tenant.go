@@ -9,6 +9,11 @@ import (
 
 const tableNameTenants = "tenants"
 
+var (
+	TenantStateActive   = "active"
+	TenantStateInactive = "inactive"
+)
+
 func GetTenantByBuilder(ctx context.Context, sb squirrel.SelectBuilder) (*model.Tenant, error) {
 	var tenant model.Tenant
 	query, args, err := sb.From(tableNameTenants).Limit(1).ToSql()

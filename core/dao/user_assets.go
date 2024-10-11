@@ -513,6 +513,17 @@ func GetUserAsset(ctx context.Context, hash, uid string) (*model.UserAsset, erro
 	return &out, err
 }
 
+func GetUserAssetByBuilder(ctx context.Context, sb squirrel.SelectBuilder) (*model.UserAsset, error) {
+	var out model.UserAsset
+	query, args, err := sb.From(tableUserAsset).Limit(1).ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	err = DB.SelectContext(ctx, &out, query, args...)
+	return &out, err
+}
+
 func UpdateUserAsset(ctx context.Context, asset *model.UserAsset) error {
 	query, args, err := squirrel.Update(tableUserAsset).SetMap(map[string]interface{}{
 		"asset_name":   asset.AssetName,

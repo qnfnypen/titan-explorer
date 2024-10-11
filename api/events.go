@@ -3083,12 +3083,51 @@ func AssetTransferReport(c *gin.Context) {
 		req.TraceId = uuid.New().String()
 	}
 
+	if req.Cid != "" && req.Hash == "" {
+		req.Hash, _ = cidutil.CIDToHash(req.Cid)
+	}
+
 	if err := dao.InsertOrUpdateAssetTransferLog(c.Request.Context(), &req); err != nil {
 		log.Errorf("InsertAssetTransferLog() error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
+	if req.State == dao.AssetTransferStateSuccess {
+		assetInfo, err := dao.GetUserAsset(c.Request.Context(), req.Hash, userId)
+		if err != nil || assetInfo == nil || assetInfo.ExtraID == "" {
+			log.Infof("GetUserAsset() error: %+v or assetInfo != nil or assetInfo.ExtraID is empty", err)
+			goto End
+		}
+
+		userInfo, err := dao.GetUserByUsername(c.Request.Context(), userId)
+		if err != nil || userInfo == nil || userInfo.TenantID == "" {
+			log.Errorf("GetUserByUsername() error: %+v or userInfo == nil or userInfo.TenantID is empty", err)
+			goto End
+		}
+
+		tenantInfo, err := dao.GetTenantByBuilder(c.Request.Context(), squirrel.Select("*").Where("tenant_id=?", userInfo.TenantID))
+		if err != nil || tenantInfo == nil || tenantInfo.ApiKey == nil || tenantInfo.UploadNotifyUrl == "" {
+			log.Errorf("GetTenantByBuilder() error: %+v or  tenantInfo != nil or tenantInfo.ApiKey == nil or tenantInfo.UploadNotifyUrl is empty", err)
+			goto End
+		}
+
+		opasynq.DefaultCli.EnqueueAssetUploadNotify(c.Request.Context(), opasynq.AssetUploadNotifyPayload{
+			ExtraID:  assetInfo.ExtraID,
+			TenantID: tenantInfo.TenantID,
+			UserID:   userId,
+
+			AssetName:   assetInfo.AssetName,
+			AssetCID:    assetInfo.Cid,
+			AssetType:   assetInfo.AssetType,
+			AssetSize:   assetInfo.TotalSize,
+			GroupID:     assetInfo.GroupID,
+			CreatedTime: assetInfo.CreatedTime,
+		})
+
+	}
+
+End:
 	c.JSON(http.StatusOK, gin.H{"msg": "success"})
 }
 

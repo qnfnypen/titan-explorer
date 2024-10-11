@@ -76,7 +76,7 @@ func assetUploadNotify(ctx context.Context, t *asynq.Task) error {
 		secret = pair.ApiSecret
 		// key         = pair.ApiKey
 		method      = "POST"
-		url         = payload.NotifyUrl
+		url         = tenantInfo.UploadNotifyUrl
 		bodyData, _ = json.Marshal(body)
 	)
 

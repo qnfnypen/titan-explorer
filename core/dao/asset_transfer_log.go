@@ -12,6 +12,10 @@ import (
 const (
 	AssetTransferTypeDownload = "download"
 	AssetTransferTypeUpload   = "upload"
+
+	AssetTransferStateCreated = 0
+	AssetTransferStateSuccess = 1
+	AssetTransferStateFailure = 2
 )
 
 func InsertOrUpdateAssetTransferLog(ctx context.Context, log *model.AssetTransferLog) error {
