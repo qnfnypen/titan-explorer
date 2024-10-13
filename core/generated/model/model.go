@@ -381,5 +381,6 @@ type Tenant struct {
 	ApiKey          []byte    `json:"api_key" db:"api_key"`
 	State           string    `json:"state" db:"state"`
 	UploadNotifyUrl string    `json:"upload_notify_url" db:"upload_notify_url"`
+	DeleteNotifyUrl string    `json:"delete_notify_url" db:"delete_notify_url"`
 	CreatedAt       time.Time `json:"created_at" db:"created_at"`
 }

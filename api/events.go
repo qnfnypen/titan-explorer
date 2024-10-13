@@ -1017,6 +1017,8 @@ func DeleteAssetHandler(c *gin.Context) {
 		return
 	}
 	// 获取文件信息
+	assetInfo, _ := dao.GetUserAsset(c.Request.Context(), hash, userID)
+
 	areaIds, isNeedDel, err := dao.CheckUserAseetNeedDel(c.Request.Context(), hash, userID, areaIds)
 	if err != nil {
 		log.Errorf("get areaIds error: %+v", err)
@@ -1078,6 +1080,36 @@ func DeleteAssetHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+
+	// handle tenant asset delete callback
+	{
+		if assetInfo == nil || assetInfo.ExtraID == "" {
+			log.Infof("GetUserAsset() error: %+v or assetInfo != nil or assetInfo.ExtraID is empty", err)
+			goto End
+		}
+
+		userInfo, err := dao.GetUserByUsername(c.Request.Context(), userID)
+		if err != nil || userInfo == nil || userInfo.TenantID == "" {
+			log.Errorf("GetUserByUsername() error: %+v or userInfo == nil or userInfo.TenantID is empty", err)
+			goto End
+		}
+
+		tenantInfo, err := dao.GetTenantByBuilder(c.Request.Context(), squirrel.Select("*").Where("tenant_id=?", userInfo.TenantID))
+		if err != nil || tenantInfo == nil || tenantInfo.ApiKey == nil || tenantInfo.DeleteNotifyUrl == "" {
+			log.Errorf("GetTenantByBuilder() error: %+v or  tenantInfo != nil or tenantInfo.ApiKey == nil or tenantInfo.UploadNotifyUrl is empty", err)
+			goto End
+		}
+
+		opasynq.DefaultCli.EnqueueAssetDeleteNotify(c.Request.Context(), opasynq.AssetDeleteNotifyPayload{
+			ExtraID:  assetInfo.ExtraID,
+			TenantID: tenantInfo.TenantID,
+			UserID:   userID,
+
+			AssetCID: assetInfo.Cid,
+		})
+	}
+
+End:
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"msg": msg,
 	}))
@@ -1188,11 +1220,14 @@ func ShareAssetsHandler(c *gin.Context) {
 		return
 	}
 
-	traceid, err := dao.NewLogTrace(c.Request.Context(), userId, dao.AssetTransferTypeDownload)
-	if err != nil {
-		log.Errorf("NewLogTrace error: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
+	var traceid string
+	if c.Query("need_trace") == "true" {
+		traceid, err = dao.NewLogTrace(c.Request.Context(), userId, dao.AssetTransferTypeDownload)
+		if err != nil {
+			log.Errorf("NewLogTrace error: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
 	}
 
 	// var ret []string
@@ -3112,17 +3147,43 @@ func AssetTransferReport(c *gin.Context) {
 			goto End
 		}
 
+		areaIDs, err := dao.GetUserAssetAreaIDs(c.Request.Context(), req.Hash, userId)
+		if err != nil {
+			log.Errorf("get user assest areaids error:%w", err)
+		}
+
+		var directUrl string
+		if len(areaIDs) > 0 {
+			schedulerClient, err := getSchedulerClient(c.Request.Context(), areaIDs[0])
+			if err == nil {
+				ret, err := schedulerClient.ShareAssetV2(c.Request.Context(), &types.ShareAssetReq{
+					UserID:     userId,
+					AssetCID:   req.Cid,
+					ExpireTime: time.Time{},
+				})
+				if err != nil {
+					log.Errorf("ShareAssetV2 error %+v", err)
+				}
+				if len(ret) > 0 {
+					directUrl = ret[0]
+				}
+			} else {
+				log.Errorf("getSchedulerClient error %+v", err)
+			}
+		}
+
 		opasynq.DefaultCli.EnqueueAssetUploadNotify(c.Request.Context(), opasynq.AssetUploadNotifyPayload{
 			ExtraID:  assetInfo.ExtraID,
 			TenantID: tenantInfo.TenantID,
 			UserID:   userId,
 
-			AssetName:   assetInfo.AssetName,
-			AssetCID:    assetInfo.Cid,
-			AssetType:   assetInfo.AssetType,
-			AssetSize:   assetInfo.TotalSize,
-			GroupID:     assetInfo.GroupID,
-			CreatedTime: assetInfo.CreatedTime,
+			AssetName:      assetInfo.AssetName,
+			AssetCID:       assetInfo.Cid,
+			AssetType:      assetInfo.AssetType,
+			AssetSize:      assetInfo.TotalSize,
+			GroupID:        assetInfo.GroupID,
+			CreatedTime:    assetInfo.CreatedTime,
+			AssetDirectUrl: directUrl,
 		})
 
 	}
