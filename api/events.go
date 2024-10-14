@@ -775,7 +775,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 
 	// 判断是否需要同步调度器信息
 	if len(notExistsAids) > 0 {
-		err = oprds.GetClient().PushSchedulerInfo(c.Request.Context(), &oprds.Payload{UserID: username, CID: createAssetReq.AssetCID, Hash: hash, AreaID: areaIds[0]})
+		err = oprds.GetClient().PushSchedulerInfo(c.Request.Context(), &oprds.Payload{UserID: username, CID: createAssetReq.AssetCID, Hash: hash, AreaID: areaIds[0], Owner: username})
 		if err != nil {
 			log.Errorf("PushSchedulerInfo error: %v", err)
 		}

@@ -32,6 +32,7 @@ type Payload struct {
 	UserID string
 	CID    string
 	Hash   string
+	Owner  string
 	AreaID string
 }
 
