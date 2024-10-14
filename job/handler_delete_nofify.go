@@ -3,40 +3,19 @@ package job
 import (
 	"bytes"
 	"context"
-	"crypto/hmac"
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
-	"math/big"
 	"net/http"
-	"time"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/opasynq"
 	"github.com/gnasnik/titan-explorer/core/storage"
 	"github.com/hibiken/asynq"
-	"github.com/jinzhu/copier"
 )
 
-type AssetUploadNotifyReq struct {
-	ExtraID  string // 外部文件ID
-	TenantID string // 租户ID
-	UserID   string // 上传者ID
-
-	AssetName      string
-	AssetCID       string
-	AssetType      string
-	AssetSize      int64
-	GroupID        int64
-	CreatedTime    time.Time
-	AssetDirectUrl string
-}
-
-func assetUploadNotify(ctx context.Context, t *asynq.Task) error {
+func assetDeleteNotify(ctx context.Context, t *asynq.Task) error {
 
 	var (
 		payload opasynq.AssetUploadNotifyPayload
@@ -46,18 +25,6 @@ func assetUploadNotify(ctx context.Context, t *asynq.Task) error {
 	err = json.Unmarshal(t.Payload(), &payload)
 	if err != nil {
 		cronLog.Errorf("unable to parse message %+v", t.Payload())
-		return err
-	}
-
-	defer func(err error) {
-		if err != nil {
-
-		}
-	}(err)
-
-	var body AssetUploadNotifyReq
-	if err = copier.Copy(&body, &payload); err != nil {
-		cronLog.Errorf("unable to copy asset %+v", payload)
 		return err
 	}
 
@@ -74,11 +41,10 @@ func assetUploadNotify(ctx context.Context, t *asynq.Task) error {
 	}
 
 	var (
-		secret = pair.ApiSecret
-		// key         = pair.ApiKey
+		secret      = pair.ApiSecret
 		method      = "POST"
-		url         = tenantInfo.UploadNotifyUrl
-		bodyData, _ = json.Marshal(body)
+		url         = tenantInfo.DeleteNotifyUrl
+		bodyData, _ = json.Marshal(payload)
 	)
 
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(bodyData))
@@ -118,32 +84,5 @@ func assetUploadNotify(ctx context.Context, t *asynq.Task) error {
 	cronLog.Infof("Notified client %s, status code %d, req %+v", url, resp.StatusCode, req)
 
 	return nil
-}
 
-func setAuthorization(req *http.Request, secret, method, path, body string) error {
-
-	req.Header.Set("Content-Type", "application/json")
-
-	ts := time.Now().Format(time.RFC3339)
-	req.Header.Set("X-Timestamp", ts)
-
-	c, err := rand.Int(rand.Reader, big.NewInt(1e16))
-	if err != nil {
-		cronLog.Errorf("unable to generate c %+v", err)
-		return err
-	}
-	nonce := fmt.Sprintf("%d", c)
-	req.Header.Set("X-Nonce", nonce)
-
-	signature := genCallbackSignature(secret, method, path, body, ts, nonce)
-	req.Header.Set("X-Signature", signature)
-
-	return nil
-}
-
-func genCallbackSignature(secret, method, path, body, timestamp, nonce string) string {
-	data := method + path + body + timestamp + nonce
-	h := hmac.New(sha256.New, []byte(secret))
-	h.Write([]byte(data))
-	return hex.EncodeToString(h.Sum(nil))
 }

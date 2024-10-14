@@ -9,6 +9,9 @@ const (
 	//
 	TaskTypeAssetUploadedNotify = "task:asset:upload:notify"
 
+	//
+	TaskTypeAssetDeleteNotify = "task:asset:delete:notify"
+
 	// TypeDeleteAssetOperation 从调度器删除文件操作
 	TypeDeleteAssetOperation = "operation:delete:asset"
 )
@@ -26,15 +29,24 @@ type (
 		TenantID string // 租户ID
 		UserID   string // 上传者ID
 
-		AssetName   string
-		AssetCID    string
-		AssetType   string
-		AssetSize   int64
-		GroupID     int64
-		CreatedTime time.Time
+		AssetName      string
+		AssetCID       string
+		AssetType      string
+		AssetSize      int64
+		GroupID        int64
+		CreatedTime    time.Time
+		AssetDirectUrl string // 上传完成的直接地址
 
 		NotifyUrl  string
 		RetryCount int
+	}
+
+	AssetDeleteNotifyPayload struct {
+		ExtraID  string // 外部文件ID
+		TenantID string // 租户ID
+		UserID   string // 上传者ID
+
+		AssetCID string
 	}
 
 	// DeleteAssetPayload 删除

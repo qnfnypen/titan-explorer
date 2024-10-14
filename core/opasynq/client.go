@@ -56,7 +56,27 @@ func (c *Client) EnqueueAssetUploadNotify(ctx context.Context, p AssetUploadNoti
 	}
 
 	task := asynq.NewTask(TaskTypeAssetUploadedNotify, payload, []asynq.Option{
-		asynq.MaxRetry(5),               //
+		asynq.MaxRetry(8),               //
+		asynq.Retention(24 * time.Hour), // 任务保留一天
+		asynq.Timeout(1 * time.Minute),  // 1分钟时间超时
+	}...)
+
+	_, err = c.cli.EnqueueContext(ctx, task)
+	if err != nil {
+		return fmt.Errorf("could not enqueue task of AssetUploadNotify error:%w", err)
+	}
+
+	return nil
+}
+
+func (c *Client) EnqueueAssetDeleteNotify(ctx context.Context, p AssetDeleteNotifyPayload) error {
+	payload, err := json.Marshal(p)
+	if err != nil {
+		return fmt.Errorf("json unmarshal payload of AssetUploadNotify error:%w", err)
+	}
+
+	task := asynq.NewTask(TaskTypeAssetDeleteNotify, payload, []asynq.Option{
+		asynq.MaxRetry(8),               //
 		asynq.Retention(24 * time.Hour), // 任务保留一天
 		asynq.Timeout(1 * time.Minute),  // 1分钟时间超时
 	}...)

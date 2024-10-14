@@ -37,7 +37,7 @@ func SetPrometheusGatherer(ctx context.Context) {
 		case <-ticker.C:
 			log.Info("[metrics gatherer] updating storage prometheus view")
 			setStorageGatherer(ctx)
-			log.Info("[metrics gatherer] updating storage l1 view")
+			log.Info("[metrics gatherer] updating l1 prometheus view")
 			setL1Gatherer(ctx)
 		}
 	}
