@@ -127,7 +127,7 @@ func syncUserScheduler() {
 				return
 			}
 			// 对于已经有的节点不再进行同步，并变更状态
-			aids, err := SyncShedulers(ctx, scli, v.CID, 0, unSyncAids)
+			aids, err := SyncShedulers(ctx, scli, v.CID, 0, v.Owner, unSyncAids)
 			if err != nil {
 				cronLog.Errorf("SyncShedulers error:%v", err)
 				return

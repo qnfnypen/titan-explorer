@@ -73,6 +73,7 @@ func GetAssetRecordsHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	cid := c.Query("cid")
+	areaId := c.Query("area_id")
 
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
@@ -82,7 +83,7 @@ func GetAssetRecordsHandler(c *gin.Context) {
 		PageSize: pageSize,
 	}
 
-	total, records, err := dao.GetAssetsList(ctx, cid, option)
+	total, records, err := dao.GetAssetsList(ctx, cid, areaId, option)
 	if err != nil {
 		log.Errorf("get assets list: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))

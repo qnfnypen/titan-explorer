@@ -16,7 +16,7 @@ import (
 )
 
 // SyncShedulers 同步调度器数据
-func SyncShedulers(ctx context.Context, sCli api.Scheduler, cid string, size int64, areaIds []string) ([]string, error) {
+func SyncShedulers(ctx context.Context, sCli api.Scheduler, cid string, size int64, owner string, areaIds []string) ([]string, error) {
 	zStrs := make([]string, 0)
 	if len(areaIds) == 0 {
 		return zStrs, nil
@@ -40,6 +40,7 @@ func SyncShedulers(ctx context.Context, sCli api.Scheduler, cid string, size int
 		err = scli.CreateSyncAsset(ctx, &types.CreateSyncAssetReq{
 			AssetCID:      cid,
 			AssetSize:     size,
+			Owner:         owner,
 			DownloadInfos: info,
 		})
 		if err != nil {
