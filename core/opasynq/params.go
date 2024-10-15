@@ -16,6 +16,12 @@ const (
 	TypeDeleteAssetOperation = "operation:delete:asset"
 )
 
+const (
+	TaskQueueExplorer = "explorer"
+
+	TaskQueueTenant = "tenant"
+)
+
 type (
 	// AssetGroupPayload 文件组载体
 	AssetGroupPayload struct {

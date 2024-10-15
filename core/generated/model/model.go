@@ -334,6 +334,7 @@ type AssetTransferLog struct {
 	State        int64     `db:"state" json:"state"`
 	TransferType string    `db:"transfer_type" json:"transfer_type"`
 	Log          string    `db:"log" json:"log"`
+	Area         string    `db:"area" json:"area"`
 	CreatedAt    time.Time `db:"created_at" json:"created_at"`
 }
 

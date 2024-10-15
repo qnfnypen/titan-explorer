@@ -3122,6 +3122,16 @@ func AssetTransferReport(c *gin.Context) {
 		req.Hash, _ = cidutil.CIDToHash(req.Cid)
 	}
 
+	if req.State == dao.AssetTransferStateSuccess && req.NodeId != "" {
+		node, err := dao.GetDeviceInfo(c.Request.Context(), req.NodeId)
+		if err != nil {
+			log.Errorf("GetDeviceInfo error %+v", err)
+		}
+		if node != nil {
+			req.Area = node.AreaID
+		}
+	}
+
 	if err := dao.InsertOrUpdateAssetTransferLog(c.Request.Context(), &req); err != nil {
 		log.Errorf("InsertAssetTransferLog() error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
