@@ -709,8 +709,8 @@ func CreateAssetPostHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
 		return
 	}
-	// 判断用户存储空间是否够用
-	if user.TotalStorageSize-user.UsedStorageSize < createAssetReq.AssetSize {
+	// 判断用户存储空间是否够用(租户子账户除外)
+	if user.TenantID == "" && user.TotalStorageSize-user.UsedStorageSize < createAssetReq.AssetSize {
 		c.JSON(http.StatusOK, respErrorCode(int(terrors.UserStorageSizeNotEnough), c))
 		return
 	}
