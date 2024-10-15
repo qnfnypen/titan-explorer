@@ -6,7 +6,10 @@ import (
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/opasynq"
 	"github.com/hibiken/asynq"
+	"github.com/hibiken/asynqmon"
 )
+
+var MonitorHandler *asynqmon.HTTPHandler
 
 // StartAsynqServer 启动 asynq 服务端
 func StartAsynqServer() {
@@ -25,7 +28,7 @@ func startExplorerServer() {
 	mux.HandleFunc(opasynq.TypeDeleteAssetOperation, deleteAsset)
 
 	if err := srv.Run(mux); err != nil {
-		log.Fatal(err)
+		log.Fatalf("Explorer server encountered an error: %v", err)
 	}
 }
 
@@ -43,6 +46,6 @@ func startTenantServer() {
 	tenantMux.HandleFunc(opasynq.TaskTypeAssetDeleteNotify, assetDeleteNotify)
 
 	if err := tenantSrv.Run(tenantMux); err != nil {
-		log.Fatal(err)
+		log.Fatalf("Tenant server encountered an error: %v", err)
 	}
 }

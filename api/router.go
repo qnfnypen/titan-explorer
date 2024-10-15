@@ -54,6 +54,8 @@ var authMiddleware *jwt.GinJWTMiddleware
 
 func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	apiV1 := router.Group("/api/v1")
+	apiV1.Any("/monitor/*a", gin.WrapH(MonitorHandler))
+
 	apiV2 := router.Group("/api/v2")
 	link := router.Group("/link")
 
@@ -215,6 +217,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	// storage
 	storage := apiV1.Group("/storage")
 	storage.Use(gin.Logger())
+	// storage.Any("/monitor/*a", gin.WrapH{job.MonitorHandler})
 	storage.GET("/get_map_info", GetMapInfoHandler)
 	// Deprecated: use /user/verify_code instead
 	storage.POST("/get_verify_code", GetNumericVerifyCodeHandler)

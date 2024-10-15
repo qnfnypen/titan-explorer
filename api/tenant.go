@@ -22,8 +22,8 @@ type SSOLoginReq struct {
 
 func SSOLoginHandler(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
-	tenantID := claims[identityKey].(string)
-	tenantName := claims[identityKey].(string)
+	tenantID := claims[tenantID].(string)
+	tenantName := claims[tenantName].(string)
 
 	if tenantID == "" {
 		c.JSON(401, respError(errors.InvalidAPPKey, fmt.Errorf("missing app_key in request")))
@@ -46,7 +46,7 @@ func SSOLoginHandler(c *gin.Context) {
 		return
 	}
 
-	tenant, err := dao.GetTenantByBuilder(c.Request.Context(), squirrel.Select("*").Where("tenant = ?", tenantID))
+	tenant, err := dao.GetTenantByBuilder(c.Request.Context(), squirrel.Select("*").Where("tenant_id = ?", tenantID))
 	if err != nil {
 		log.Errorf("[TENANT][SSO] query tenant error: %s", err.Error())
 		c.JSON(200, respErrorCode(errors.InternalServer, c))

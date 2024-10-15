@@ -1,6 +1,6 @@
 DROP TABLE IF EXISTS `tenants`;
 CREATE TABLE `tenants` (
-`tanant_id` char(36) PRIMARY KEY NOT NULL,
+`tenant_id` char(36) PRIMARY KEY NOT NULL,
 `name` varchar(255) NOT NULL DEFAULT '',
 `api_key` VARCHAR(255) NOT NULL DEFAULT '',            
 `state` ENUM('active', 'inactive') NOT NULL DEFAULT 'active',

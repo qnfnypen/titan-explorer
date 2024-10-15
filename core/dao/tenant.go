@@ -21,13 +21,13 @@ func GetTenantByBuilder(ctx context.Context, sb squirrel.SelectBuilder) (*model.
 		return nil, err
 	}
 
-	err = DB.SelectContext(ctx, &tenant, query, args...)
+	err = DB.GetContext(ctx, &tenant, query, args...)
 	return &tenant, err
 }
 
 // func LoadTenantApiKeyPair(ctx context.Context, tenantID string) (*model.Tenant, string, string, error) {
 // 	var tenant model.Tenant
-// 	query, args, err := squirrel.Select("*").From(tableNameTenants).Where("tanant_id = ?", tenantID).Limit(1).ToSql()
+// 	query, args, err := squirrel.Select("*").From(tableNameTenants).Where("tenant_id = ?", tenantID).Limit(1).ToSql()
 // 	if err != nil {
 // 		return nil, "", "", err
 // 	}

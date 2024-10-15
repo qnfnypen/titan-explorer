@@ -28,7 +28,7 @@ func assetDeleteNotify(ctx context.Context, t *asynq.Task) error {
 		return err
 	}
 
-	tenantInfo, err := dao.GetTenantByBuilder(ctx, squirrel.Select("*").Where("tanant_id = ?", payload.TenantID))
+	tenantInfo, err := dao.GetTenantByBuilder(ctx, squirrel.Select("*").Where("tenant_id = ?", payload.TenantID))
 	if err != nil {
 		cronLog.Errorf("unable to find tenant info %+v", err)
 		return err

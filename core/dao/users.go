@@ -101,7 +101,7 @@ func GetUserByBuilder(ctx context.Context, sb squirrel.SelectBuilder) (*model.Us
 		return nil, err
 	}
 
-	err = DB.SelectContext(ctx, &user, query, args...)
+	err = DB.GetContext(ctx, &user, query, args...)
 	return &user, err
 }
 
