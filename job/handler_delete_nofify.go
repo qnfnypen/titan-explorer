@@ -54,7 +54,7 @@ func assetDeleteNotify(ctx context.Context, t *asynq.Task) error {
 		bodyData, _ = json.Marshal(payload)
 	)
 
-	req, err := http.NewRequest(method, url, bytes.NewBuffer(bodyData))
+	req, err := http.NewRequest(method, tenantInfo.DeleteNotifyUrl, bytes.NewBuffer(bodyData))
 	if err != nil {
 		cronLog.Errorf("unable to generate req %+v", err)
 		return err
