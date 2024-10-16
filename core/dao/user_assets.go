@@ -1240,3 +1240,20 @@ func CheckAssetByMd5AndAreaExists(ctx context.Context, md5, areaID string) (bool
 
 	return true, nil
 }
+
+// GetNoExistCIDs 获取用户不存在的cid信息
+func GetNoExistCIDs(ctx context.Context, uid string, cids []string) ([]string, error) {
+	var ncids []string
+
+	query, args, err := squirrel.Select("cid").From(tableUserAsset).Where(squirrel.NotEq{"cid": cids}).ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("generate sql of get not exists cid error:%w", err)
+	}
+
+	err = DB.SelectContext(ctx, &ncids, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("get not exists cid error:%w", err)
+	}
+
+	return ncids, nil
+}

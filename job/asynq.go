@@ -26,6 +26,7 @@ func startExplorerServer() {
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(opasynq.TypeAssetGroupID, deleteAssetGroup)
 	mux.HandleFunc(opasynq.TypeDeleteAssetOperation, deleteAsset)
+	mux.HandleFunc(opasynq.TypeSyncIPFSRecord, operateSyncIPFSRecord)
 
 	if err := srv.Run(mux); err != nil {
 		log.Fatalf("Explorer server encountered an error: %v", err)

@@ -10,7 +10,10 @@ import (
 	"github.com/gnasnik/titan-explorer/api"
 	"github.com/gnasnik/titan-explorer/config"
 	"github.com/gnasnik/titan-explorer/core/dao"
+	"github.com/gnasnik/titan-explorer/core/generated/model"
+	"github.com/gnasnik/titan-explorer/core/opasynq"
 	"github.com/gnasnik/titan-explorer/core/oprds"
+	"github.com/gnasnik/titan-explorer/core/storage"
 	"github.com/go-redsync/redsync/v4"
 	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
 	logging "github.com/ipfs/go-log/v2"
@@ -59,6 +62,14 @@ func SyncShedulersAsset() {
 			return
 		}
 		syncUserScheduler()
+	})
+	c.AddFunc("@every 10s", func() {
+		time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+		mutex := redsync.NewMutex("getsyncipfs-lock")
+		if err := mutex.Lock(); err != nil {
+			log.Printf("syncUserScheduler is already running on another instance: %v", err)
+			return
+		}
 	})
 	c.AddFunc("@every 15s", func() {
 		time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
@@ -264,6 +275,65 @@ func getSyncSuccessAsset() {
 				cronLog.Errorf("UpdateSyncAssetAreas error:%v", err)
 			}
 		}(v)
+	}
+	wg.Wait()
+}
+
+// GetSyncIPFSRecords 获取ipfs上传完成的信息
+func GetSyncIPFSRecords() {
+	var (
+		cidAreaMaps = make(map[string][]string)
+		wg          = new(sync.WaitGroup)
+	)
+
+	// 获取未同步的ipfs记录，调用调度器去查询文件信息，判断是否上传成功
+	irs, err := dao.GetUnSyncIPFSRecords(ctx)
+	if err != nil {
+		cronLog.Errorf("get unsync ipfs records error:%v", err)
+		return
+	}
+	for _, v := range irs {
+		cidAreaMaps[v.AreaID] = append(cidAreaMaps[v.AreaID], v.CID)
+	}
+	wg.Add(len(cidAreaMaps))
+
+	for k, v := range cidAreaMaps {
+		go func(k string, v []string) {
+			defer wg.Done()
+
+			var cids []string
+			scli, err := api.GetSchedulerClient(ctx, k)
+			if err != nil {
+				cronLog.Errorf("get client of scheduler error:%v", err)
+				return
+			}
+			records, err := scli.GetAssetRecordsWithCIDs(ctx, v)
+			if err != nil {
+				cronLog.Errorf("GetAssetRecordsWithCIDs error:%v", err)
+				return
+			}
+			for _, v := range records {
+				// 如果文件同步成功了，则更新状态，并将数据插入到用户文件表
+				if checkSyncState(v.State) {
+					cids = append(cids, v.CID)
+				}
+			}
+			// 获取ipfs文件信息，处理成用户文件表信息
+			ipfsRecords, err := dao.GetIPFSRecordsByCIDs(ctx, cids)
+			if err != nil {
+				cronLog.Errorf("GetIPFSRecordsByCIDs error:%v", err)
+				return
+			}
+			for _, v := range ipfsRecords {
+				hash, _ := storage.CIDToHash(v.CID)
+				ua := model.UserAsset{
+					UserID: v.Username, Hash: hash, AssetName: v.Name,
+					AssetType: "file", CreatedTime: time.Now(), TotalSize: v.Size,
+					GroupID: v.GroupID, Cid: v.CID}
+				opasynq.DefaultCli.EnqueueIPFSRecord(ctx, opasynq.IPFSRecordPayload{AreaID: v.AreaID, Info: ua})
+			}
+			dao.UpdateIPFSRecordStatus(ctx, cids, k)
+		}(k, v)
 	}
 	wg.Wait()
 }

@@ -708,3 +708,15 @@ type UserAssetMap struct {
 	UserID    string `db:"user_id"`
 	AssetHash string `db:"asset_hash"`
 }
+
+type SyncIPFSRecord struct {
+	ID int64 `db:"id"`
+	Username string  `db:"username"`
+	Name string `db:"name"`
+	CID string `db:"cid"`
+	GroupID int64 `db:"group_id"`
+	Size int64 `db:"size"`
+	AreaID string `db:"area_id"`
+	Timestamp int64 `db:"timestamp"`
+	Status int8 `db:"status"`
+}

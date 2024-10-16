@@ -147,6 +147,27 @@ func GetSchedulerClient(ctx context.Context, areaId string) (api.Scheduler, erro
 	return getSchedulerClient(ctx, areaId)
 }
 
+// GetOtherAreaIDs 获取除了给定的之外所有的节点区域
+func GetOtherAreaIDs(aid string) ([]string, error) {
+	var aids []string
+
+	_, maps, err := GetAndStoreAreaIDs()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, v := range maps {
+		for _, vv := range v {
+			if strings.EqualFold(aid, vv) {
+				continue
+			}
+			aids = append(aids, vv)
+		}
+	}
+
+	return aids, nil
+}
+
 func InitCaptcha() {
 	// 水印配置
 	clickWordConfig := &config2.ClickWordConfig{

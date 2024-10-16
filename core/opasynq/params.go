@@ -1,6 +1,10 @@
 package opasynq
 
-import "time"
+import (
+	"time"
+
+	"github.com/gnasnik/titan-explorer/core/generated/model"
+)
 
 const (
 	// TypeAssetGroupID 文件唯一的组id
@@ -14,6 +18,9 @@ const (
 
 	// TypeDeleteAssetOperation 从调度器删除文件操作
 	TypeDeleteAssetOperation = "operation:delete:asset"
+
+	// TypeSyncIPFSRecord 同步ipfs文件记录
+	TypeSyncIPFSRecord = "sync:ipfs"
 )
 
 type (
@@ -53,5 +60,11 @@ type (
 	DeleteAssetPayload struct {
 		CID    string `json:"cid"`
 		AreaID string `json:"area_id"`
+	}
+
+	// IPFSRecordPayload ipfs文件记录
+	IPFSRecordPayload struct {
+		AreaID string          `json:"area_id"`
+		Info   model.UserAsset `json:"info"`
 	}
 )

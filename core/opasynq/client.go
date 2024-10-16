@@ -105,3 +105,20 @@ func (c *Client) EnqueueDeleteAssetOperation(ctx context.Context, tp DeleteAsset
 
 	return nil
 }
+
+// EnqueueIPFSRecord 塞入ipfs同步文件
+func (c *Client) EnqueueIPFSRecord(ctx context.Context, irp IPFSRecordPayload) error {
+	payload, err := json.Marshal(irp)
+	if err != nil {
+		return fmt.Errorf("json unmarshal payload of sync ipfs record error:%w", err)
+	}
+
+	task := asynq.NewTask(TypeSyncIPFSRecord, payload, asynq.MaxRetry(3))
+
+	_, err = c.cli.EnqueueContext(ctx, task)
+	if err != nil {
+		return fmt.Errorf("could not enqueue task of sync ipfs record error:%w", err)
+	}
+
+	return nil
+}
