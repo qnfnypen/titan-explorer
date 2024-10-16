@@ -20,7 +20,12 @@ func StartAsynqServer() {
 func startExplorerServer() {
 	srv := asynq.NewServer(
 		asynq.RedisClientOpt{Addr: config.Cfg.RedisAddr, Password: config.Cfg.RedisPassword},
-		asynq.Config{Concurrency: 10},
+		asynq.Config{
+			Concurrency: 10,
+			Queues: map[string]int{
+				opasynq.TaskQueueExplorer: 5,
+			},
+		},
 	)
 
 	mux := asynq.NewServeMux()
@@ -39,6 +44,9 @@ func startTenantServer() {
 		asynq.Config{
 			Concurrency:    10,
 			RetryDelayFunc: retry,
+			Queues: map[string]int{
+				opasynq.TaskQueueTenant: 5,
+			},
 		},
 	)
 

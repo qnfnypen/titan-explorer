@@ -23,6 +23,12 @@ const (
 	TypeSyncIPFSRecord = "sync:ipfs"
 )
 
+const (
+	TaskQueueExplorer = "explorer"
+
+	TaskQueueTenant = "tenant"
+)
+
 type (
 	// AssetGroupPayload 文件组载体
 	AssetGroupPayload struct {

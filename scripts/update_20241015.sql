@@ -12,3 +12,5 @@ CREATE TABLE `sync_ipfs_record` (
     PRIMARY KEY (`id`),
     UNIQUE KEY `uq_uc` (`username`,`cid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT 'ipfs文件同步列表';
+
+ALTER TABLE asset_transfer_log ADD COLUMN `area` varchar(64) NOT NULL DEFAULT '';

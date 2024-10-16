@@ -709,8 +709,8 @@ func CreateAssetPostHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
 		return
 	}
-	// 判断用户存储空间是否够用
-	if user.TotalStorageSize-user.UsedStorageSize < createAssetReq.AssetSize {
+	// 判断用户存储空间是否够用(租户子账户除外)
+	if user.TenantID == "" && user.TotalStorageSize-user.UsedStorageSize < createAssetReq.AssetSize {
 		c.JSON(http.StatusOK, respErrorCode(int(terrors.UserStorageSizeNotEnough), c))
 		return
 	}
@@ -3120,6 +3120,16 @@ func AssetTransferReport(c *gin.Context) {
 
 	if req.Cid != "" && req.Hash == "" {
 		req.Hash, _ = cidutil.CIDToHash(req.Cid)
+	}
+
+	if req.State == dao.AssetTransferStateSuccess && req.NodeId != "" {
+		node, err := dao.GetDeviceInfo(c.Request.Context(), req.NodeId)
+		if err != nil {
+			log.Errorf("GetDeviceInfo error %+v", err)
+		}
+		if node != nil {
+			req.Area = node.AreaID
+		}
 	}
 
 	if err := dao.InsertOrUpdateAssetTransferLog(c.Request.Context(), &req); err != nil {

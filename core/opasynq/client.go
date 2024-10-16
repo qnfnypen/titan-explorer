@@ -41,7 +41,7 @@ func (c *Client) EnqueueAssetGroupID(ctx context.Context, tp AssetGroupPayload) 
 
 	task := asynq.NewTask(TypeAssetGroupID, payload, asynq.MaxRetry(3))
 
-	_, err = c.cli.EnqueueContext(ctx, task)
+	_, err = c.cli.EnqueueContext(ctx, task, asynq.Queue(TaskQueueExplorer))
 	if err != nil {
 		return fmt.Errorf("could not enqueue task of AssetGroupID error:%w", err)
 	}
@@ -61,7 +61,7 @@ func (c *Client) EnqueueAssetUploadNotify(ctx context.Context, p AssetUploadNoti
 		asynq.Timeout(1 * time.Minute),  // 1分钟时间超时
 	}...)
 
-	_, err = c.cli.EnqueueContext(ctx, task)
+	_, err = c.cli.EnqueueContext(ctx, task, asynq.Queue(TaskQueueTenant))
 	if err != nil {
 		return fmt.Errorf("could not enqueue task of AssetUploadNotify error:%w", err)
 	}
@@ -81,7 +81,7 @@ func (c *Client) EnqueueAssetDeleteNotify(ctx context.Context, p AssetDeleteNoti
 		asynq.Timeout(1 * time.Minute),  // 1分钟时间超时
 	}...)
 
-	_, err = c.cli.EnqueueContext(ctx, task)
+	_, err = c.cli.EnqueueContext(ctx, task, asynq.Queue(TaskQueueTenant))
 	if err != nil {
 		return fmt.Errorf("could not enqueue task of AssetUploadNotify error:%w", err)
 	}
@@ -98,7 +98,7 @@ func (c *Client) EnqueueDeleteAssetOperation(ctx context.Context, tp DeleteAsset
 
 	task := asynq.NewTask(TypeDeleteAssetOperation, payload, asynq.MaxRetry(3))
 
-	_, err = c.cli.EnqueueContext(ctx, task)
+	_, err = c.cli.EnqueueContext(ctx, task, asynq.Queue(TaskQueueExplorer))
 	if err != nil {
 		return fmt.Errorf("could not enqueue task of DeleteAsset error:%w", err)
 	}
