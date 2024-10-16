@@ -99,6 +99,7 @@ func GetAssetRecordsHandler(c *gin.Context) {
 func GetSuccessfulReplicasHandler(c *gin.Context) {
 	nodeId := c.Query("node_id")
 	cid := c.Query("cid")
+	areaId := c.Query("area_id")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 
@@ -140,13 +141,7 @@ func GetSuccessfulReplicasHandler(c *gin.Context) {
 	}
 
 	if cid != "" {
-		assetInfo, err := dao.GetAssetByCID(ctx, cid)
-		if err != nil {
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			return
-		}
-
-		schedulerClient, err := getSchedulerClient(c.Request.Context(), assetInfo.AreaId)
+		schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 		if err != nil {
 			c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
 			return
@@ -168,6 +163,7 @@ func GetSuccessfulReplicasHandler(c *gin.Context) {
 func GetFailedReplicasHandler(c *gin.Context) {
 	nodeId := c.Query("node_id")
 	cid := c.Query("cid")
+	areaId := c.Query("area_id")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 
@@ -209,13 +205,7 @@ func GetFailedReplicasHandler(c *gin.Context) {
 	}
 
 	if cid != "" {
-		assetInfo, err := dao.GetAssetByCID(ctx, cid)
-		if err != nil {
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			return
-		}
-
-		schedulerClient, err := getSchedulerClient(c.Request.Context(), assetInfo.AreaId)
+		schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId)
 		if err != nil {
 			c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
 			return
