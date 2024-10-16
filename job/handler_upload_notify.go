@@ -107,8 +107,9 @@ func assetUploadNotify(ctx context.Context, t *asynq.Task) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		cronLog.Errorf("received non ok http code %d with body %s", resp.StatusCode, resp.Body)
-		return fmt.Errorf("received non ok http code %d with body %s", resp.StatusCode, resp.Body)
+		bodyContent, _ := io.ReadAll(resp.Body)
+		cronLog.Errorf("received non ok http code %d with body %s", resp.StatusCode, string(bodyContent))
+		return fmt.Errorf("received non ok http code %d with body %s", resp.StatusCode, string(bodyContent))
 	}
 
 	respData, err := io.ReadAll(resp.Body)
