@@ -393,7 +393,7 @@ func GetUploadInfoHandler(c *gin.Context) {
 
 	var traceid string
 	if c.Query("need_trace") == "true" {
-		traceid, err = dao.NewLogTrace(c.Request.Context(), userId, dao.AssetTransferTypeUpload)
+		traceid, err = dao.NewLogTrace(c.Request.Context(), userId, dao.AssetTransferTypeUpload, areaId[0])
 		if err != nil {
 			log.Errorf("NewLogTrace error: %v", err)
 			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -547,7 +547,7 @@ func CreateAssetHandler(c *gin.Context) {
 		}
 	}
 
-	traceid, err := dao.NewLogTrace(c.Request.Context(), userId, dao.AssetTransferTypeUpload)
+	traceid, err := dao.NewLogTrace(c.Request.Context(), userId, dao.AssetTransferTypeUpload, areaIds[0])
 	if err != nil {
 		log.Errorf("NewLogTrace error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -737,7 +737,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 			}
 		}
 		if createAssetReq.NeedTrace {
-			traceID, err = dao.NewLogTrace(c.Request.Context(), user.Username, dao.AssetTransferTypeUpload)
+			traceID, err = dao.NewLogTrace(c.Request.Context(), user.Username, dao.AssetTransferTypeUpload, areaIds[0])
 			if err != nil {
 				log.Errorf("NewLogTrace error: %v", err)
 				c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -1222,7 +1222,7 @@ func ShareAssetsHandler(c *gin.Context) {
 
 	var traceid string
 	if c.Query("need_trace") == "true" {
-		traceid, err = dao.NewLogTrace(c.Request.Context(), userId, dao.AssetTransferTypeDownload)
+		traceid, err = dao.NewLogTrace(c.Request.Context(), userId, dao.AssetTransferTypeDownload, areaId)
 		if err != nil {
 			log.Errorf("NewLogTrace error: %v", err)
 			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -1425,7 +1425,7 @@ func OpenAssetHandler(c *gin.Context) {
 	// 	ret = urls[cid]
 	// }
 
-	traceid, err := dao.NewLogTrace(c.Request.Context(), userId, dao.AssetTransferTypeDownload)
+	traceid, err := dao.NewLogTrace(c.Request.Context(), userId, dao.AssetTransferTypeDownload, areaId)
 	if err != nil {
 		log.Errorf("NewLogTrace error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -1460,6 +1460,7 @@ func OpenAssetHandler(c *gin.Context) {
 		"size":      userAsset.TotalSize,
 		"url":       ret,
 		"redirect":  false,
+		"trace_id":  traceid,
 	}))
 }
 

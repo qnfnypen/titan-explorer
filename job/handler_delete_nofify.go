@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/gnasnik/titan-explorer/core/dao"
@@ -40,10 +41,16 @@ func assetDeleteNotify(ctx context.Context, t *asynq.Task) error {
 		return err
 	}
 
+	address, err := url.Parse(tenantInfo.DeleteNotifyUrl)
+	if err != nil {
+		cronLog.Errorf("invalid URL %+v", err)
+		return err
+	}
+
 	var (
 		secret      = pair.ApiSecret
 		method      = "POST"
-		url         = tenantInfo.DeleteNotifyUrl
+		url         = address.Path
 		bodyData, _ = json.Marshal(payload)
 	)
 

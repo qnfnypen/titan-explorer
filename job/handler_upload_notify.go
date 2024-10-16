@@ -12,6 +12,7 @@ import (
 	"io"
 	"math/big"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/Masterminds/squirrel"
@@ -73,11 +74,17 @@ func assetUploadNotify(ctx context.Context, t *asynq.Task) error {
 		return err
 	}
 
+	address, err := url.Parse(tenantInfo.UploadNotifyUrl)
+	if err != nil {
+		cronLog.Errorf("invalid URL %+v", err)
+		return err
+	}
+
 	var (
 		secret = pair.ApiSecret
 		// key         = pair.ApiKey
 		method      = "POST"
-		url         = tenantInfo.UploadNotifyUrl
+		url         = address.Path
 		bodyData, _ = json.Marshal(body)
 	)
 
@@ -137,6 +144,14 @@ func setAuthorization(req *http.Request, secret, method, path, body string) erro
 
 	signature := genCallbackSignature(secret, method, path, body, ts, nonce)
 	req.Header.Set("X-Signature", signature)
+
+	cronLog.Debugf("signature: %\n", signature)
+	cronLog.Debugf("apiSecret: %s\n", secret)
+	cronLog.Debugf("r.Method: %s\n", method)
+	cronLog.Debugf("r.URL.Path: %s\n", path)
+	cronLog.Debugf("r.Body: %s\n", string(body))
+	cronLog.Debugf("timestamp: %s\n", ts)
+	cronLog.Debugf("nonce: %s\n", nonce)
 
 	return nil
 }

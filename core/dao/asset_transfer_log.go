@@ -23,17 +23,18 @@ func InsertOrUpdateAssetTransferLog(ctx context.Context, log *model.AssetTransfe
 	VALUES(:trace_id, :user_id, :cid, :hash, :node_id, :rate, :cost_ms, :total_size, :state, :transfer_type, :log, :area, :created_at)
 	ON DUPLICATE KEY UPDATE 
 	user_id=VALUES(user_id), cid=VALUES(cid), hash=VALUES(hash), node_id=VALUES(node_id), rate=VALUES(rate), cost_ms=VALUES(cost_ms), 
-	total_size=VALUES(total_size), state=VALUES(state), transfer_type=VALUES(transfer_type), log=VALUES(log) area=VALUES(area)`
+	total_size=VALUES(total_size), state=VALUES(state), transfer_type=VALUES(transfer_type), log=VALUES(log), area=VALUES(area)`
 	_, err := DB.NamedExecContext(ctx, statement, log)
 	return err
 }
 
-func NewLogTrace(ctx context.Context, uid string, transferType string) (string, error) {
+func NewLogTrace(ctx context.Context, uid string, transferType string, area string) (string, error) {
 	log := &model.AssetTransferLog{
 		TraceId:      uuid.New().String(),
 		UserId:       uid,
 		CreatedAt:    time.Now(),
 		TransferType: transferType,
+		Area:         area,
 	}
 	if err := InsertOrUpdateAssetTransferLog(ctx, log); err != nil {
 		return "", err
