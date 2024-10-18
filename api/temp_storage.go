@@ -34,6 +34,7 @@ type (
 		NodeID    string   `json:"node_id"`
 		AssetSize int64    `json:"asset_size" binding:"required"`
 		AreaIDs   []string `json:"area_ids"` // 最多3个
+		NeedTrace bool     `json:"need_trace"`
 	}
 )
 
@@ -44,7 +45,7 @@ type (
 // @Param req body UploadTempFileReq true "文件上传参数"
 // @Success 200 {object} JsonObject "{[]{CandidateAddr: “”, Token: “”}}"
 // @Router /api/v1/storage/temp_file/upload [post]
-func UploadTmepFile(c *gin.Context) {
+func UploadTempFile(c *gin.Context) {
 	var (
 		req     UploadTempFileReq
 		rsp     = make([]JsonObject, 0)
@@ -125,7 +126,19 @@ func UploadTmepFile(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+
 	uid := xid.New().String()
+
+	var traceID string
+	if req.NeedTrace {
+		traceID, err = dao.NewLogTrace(c.Request.Context(), uid, dao.AssetTransferTypeUpload, req.AreaIDs[0])
+		if err != nil {
+			log.Errorf("NewLogTrace error: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+	}
+
 	careq := &types.CreateAssetReq{
 		AssetCID:      req.AssetCID,
 		AssetSize:     req.AssetSize,
@@ -133,6 +146,7 @@ func UploadTmepFile(c *gin.Context) {
 		ExpirationDay: 1,
 		UserID:        uid,
 		Owner:         uid,
+		TraceID:       traceID,
 	}
 	if len(req.AreaIDs) == 1 {
 		careq.ReplicaCount = 20
@@ -165,7 +179,7 @@ func UploadTmepFile(c *gin.Context) {
 
 	if !createAssetRsp.AlreadyExists {
 		for _, v := range createAssetRsp.List {
-			rsp = append(rsp, JsonObject{"CandidateAddr": v.UploadURL, "Token": v.Token})
+			rsp = append(rsp, JsonObject{"CandidateAddr": v.UploadURL, "Token": v.Token, "TraceID": traceID})
 		}
 	}
 
@@ -298,12 +312,28 @@ func DownloadTempFile(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+
+	var traceid string
+	if c.Query("need_trace") == "true" {
+		traceid, err = dao.NewLogTrace(c.Request.Context(), "", dao.AssetTransferTypeDownload, areaID)
+		if err != nil {
+			log.Errorf("NewLogTrace error: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+	}
+
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaID)
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
 		return
 	}
-	urls, err := schedulerClient.ShareAssets(c.Request.Context(), "", []string{cid}, time.Time{})
+	// urls, err := schedulerClient.ShareAssets(c.Request.Context(), "", []string{cid}, time.Time{})
+	urls, err := schedulerClient.ShareAssetV2(c.Request.Context(), &types.ShareAssetReq{
+		TraceID:    traceid,
+		AssetCID:   cid,
+		ExpireTime: time.Time{},
+	})
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
@@ -320,7 +350,8 @@ func DownloadTempFile(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"asset_cid": cid,
 		"size":      taInfo.Size,
-		"url":       urls[cid],
+		"url":       urls,
+		"trace_id":  traceid,
 	}))
 }
 
@@ -436,6 +467,16 @@ func UploadTempFileCar(c *gin.Context) {
 		urlModel = true
 	}
 
+	var traceid string
+	if c.Query("need_trace") == "true" {
+		traceid, err = dao.NewLogTrace(c.Request.Context(), userId, dao.AssetTransferTypeDownload, areaId[0])
+		if err != nil {
+			log.Errorf("NewLogTrace error: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+	}
+
 	res, err := schedulerClient.GetNodeUploadInfo(c.Request.Context(), userId, randomPassNonce, urlModel)
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
@@ -457,6 +498,7 @@ func UploadTempFileCar(c *gin.Context) {
 		"AlreadyExists": res.AlreadyExists,
 		"List":          res.List,
 		"AreaID":        aid,
+		"TraceID":       traceid,
 		"Log":           areaId[0],
 	}))
 }

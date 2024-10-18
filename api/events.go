@@ -522,10 +522,29 @@ func CreateAssetHandler(c *gin.Context) {
 		log.Errorf("GetUserAssetByAreaIDs error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 	}
+
 	if len(notExistsAids) == 0 {
-		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
+		var directUrl string
+		schedulerClient, err := getSchedulerClient(c.Request.Context(), areaIds[0])
+		if err == nil {
+			ret, err := schedulerClient.ShareAssetV2(c.Request.Context(), &types.ShareAssetReq{
+				UserID:     userId,
+				AssetCID:   createAssetReq.AssetCID,
+				ExpireTime: time.Time{},
+			})
+			if err != nil {
+				log.Errorf("ShareAssetV2 error %+v", err)
+			}
+			if len(ret) > 0 {
+				directUrl = ret[0]
+			}
+		}
+		resp := respErrorCode(errors.FileExists, c)
+		resp["data"] = JsonObject{"assetDirectUrl": directUrl}
+		c.JSON(http.StatusOK, resp)
 		return
 	}
+
 	// 判断用户存储空间是否够用 (租户子账户除外)
 	if user.TenantID == "" && user.TotalStorageSize-user.UsedStorageSize < createAssetReq.AssetSize {
 		c.JSON(http.StatusOK, respErrorCode(int(terrors.UserStorageSizeNotEnough), c))
@@ -706,7 +725,25 @@ func CreateAssetPostHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 	}
 	if len(notExistsAids) == 0 {
-		c.JSON(http.StatusOK, respErrorCode(errors.FileExists, c))
+
+		var directUrl string
+		schedulerClient, err := getSchedulerClient(c.Request.Context(), areaIds[0])
+		if err == nil {
+			ret, err := schedulerClient.ShareAssetV2(c.Request.Context(), &types.ShareAssetReq{
+				UserID:     username,
+				AssetCID:   createAssetReq.AssetCID,
+				ExpireTime: time.Time{},
+			})
+			if err != nil {
+				log.Errorf("ShareAssetV2 error %+v", err)
+			}
+			if len(ret) > 0 {
+				directUrl = ret[0]
+			}
+		}
+		resp := respErrorCode(errors.FileExists, c)
+		resp["data"] = JsonObject{"assetDirectUrl": directUrl}
+		c.JSON(http.StatusOK, resp)
 		return
 	}
 	// 判断用户存储空间是否够用(租户子账户除外)
@@ -3110,10 +3147,16 @@ func AssetTransferReport(c *gin.Context) {
 		return
 	}
 
-	claims := jwt.ExtractClaims(c)
-	userId := claims[identityKey].(string)
+	if c.Request.Header.Get("jwtauthorization") != "" {
+		userClaims, err := authMiddleware.GetClaimsFromJWT(c)
+		if err != nil {
+			log.Errorf("AssetTransferReport GetClaimsFromJWT error: %+v", err)
+			c.JSON(401, respErrorCode(errors.PermissionNotAllowed, c))
+			return
+		}
+		req.UserId = userClaims[identityKey].(string)
+	}
 
-	req.UserId = userId
 	req.CreatedAt = time.Now()
 	if req.TraceId == "" {
 		req.TraceId = uuid.New().String()
@@ -3139,14 +3182,14 @@ func AssetTransferReport(c *gin.Context) {
 		return
 	}
 
-	if req.State == dao.AssetTransferStateSuccess {
-		assetInfo, err := dao.GetUserAsset(c.Request.Context(), req.Hash, userId)
+	if req.State == dao.AssetTransferStateSuccess && req.UserId != "" {
+		assetInfo, err := dao.GetUserAsset(c.Request.Context(), req.Hash, req.UserId)
 		if err != nil || assetInfo == nil || assetInfo.ExtraID == "" {
 			log.Infof("GetUserAsset() error: %+v or assetInfo != nil or assetInfo.ExtraID is empty", err)
 			goto End
 		}
 
-		userInfo, err := dao.GetUserByUsername(c.Request.Context(), userId)
+		userInfo, err := dao.GetUserByUsername(c.Request.Context(), req.UserId)
 		if err != nil || userInfo == nil || userInfo.TenantID == "" {
 			log.Errorf("GetUserByUsername() error: %+v or userInfo == nil or userInfo.TenantID is empty", err)
 			goto End
@@ -3158,7 +3201,7 @@ func AssetTransferReport(c *gin.Context) {
 			goto End
 		}
 
-		areaIDs, err := dao.GetUserAssetAreaIDs(c.Request.Context(), req.Hash, userId)
+		areaIDs, err := dao.GetUserAssetAreaIDs(c.Request.Context(), req.Hash, req.UserId)
 		if err != nil {
 			log.Errorf("get user assest areaids error:%w", err)
 		}
@@ -3168,7 +3211,7 @@ func AssetTransferReport(c *gin.Context) {
 			schedulerClient, err := getSchedulerClient(c.Request.Context(), areaIDs[0])
 			if err == nil {
 				ret, err := schedulerClient.ShareAssetV2(c.Request.Context(), &types.ShareAssetReq{
-					UserID:     userId,
+					UserID:     req.UserId,
 					AssetCID:   req.Cid,
 					ExpireTime: time.Time{},
 				})
@@ -3186,7 +3229,7 @@ func AssetTransferReport(c *gin.Context) {
 		opasynq.DefaultCli.EnqueueAssetUploadNotify(c.Request.Context(), opasynq.AssetUploadNotifyPayload{
 			ExtraID:  assetInfo.ExtraID,
 			TenantID: tenantInfo.TenantID,
-			UserID:   userId,
+			UserID:   req.UserId,
 
 			AssetName:      assetInfo.AssetName,
 			AssetCID:       assetInfo.Cid,
