@@ -161,7 +161,7 @@ func GetNodeAssetRecordsHandler(c *gin.Context) {
 		cids = append(cids, na.Cid)
 	}
 
-	if len(cid) > 0 {
+	if len(cids) > 0 {
 		assetResp, err := schedulerClient.GetAssetRecordsWithCIDs(ctx, cids)
 		if err != nil {
 			log.Errorf("api GetAssetRecordsWithCIDs: %v", err)
