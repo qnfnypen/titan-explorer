@@ -132,6 +132,7 @@ func GetNodeAssetRecordsHandler(c *gin.Context) {
 		var result []*types.AssetRecord
 		resp, err := schedulerClient.GetAssetRecord(ctx, cid)
 		if err != nil {
+			log.Errorf("api GetAssetRecord: %v", err)
 			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 			return
 		}
@@ -149,24 +150,28 @@ func GetNodeAssetRecordsHandler(c *gin.Context) {
 
 	resp, err := schedulerClient.GetAssetsForNode(ctx, nodeId, limit, offset)
 	if err != nil {
+		log.Errorf("api GetAssetsForNode: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
 	var cids []string
+	var result []*types.AssetRecord
 	for _, na := range resp.NodeAssetInfos {
 		cids = append(cids, na.Cid)
 	}
 
-	assetResp, err := schedulerClient.GetAssetRecordsWithCIDs(ctx, cids)
-	if err != nil {
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
+	if len(cid) > 0 {
+		assetResp, err := schedulerClient.GetAssetRecordsWithCIDs(ctx, cids)
+		if err != nil {
+			log.Errorf("api GetAssetRecordsWithCIDs: %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
 
-	var result []*types.AssetRecord
-	for _, ar := range assetResp {
-		result = append(result, ar)
+		for _, ar := range assetResp {
+			result = append(result, ar)
+		}
 	}
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
