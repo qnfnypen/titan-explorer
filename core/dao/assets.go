@@ -93,12 +93,16 @@ func AllAssets(ctx context.Context) ([]*model.Asset, error) {
 	return assets, nil
 }
 
-func GetAssetsList(ctx context.Context, cid string, areaId string, option QueryOption) (int64, []*model.Asset, error) {
+func GetAssetsList(ctx context.Context, cid string, nodeId, areaId string, option QueryOption) (int64, []*model.Asset, error) {
 	var args []interface{}
 	where := `WHERE 1 = 1`
 
 	if cid != "" {
 		where += fmt.Sprintf(" AND cid = '%s'", cid)
+	}
+
+	if nodeId != "" {
+		where += fmt.Sprintf(" AND node_id = '%s'", nodeId)
 	}
 
 	if areaId != "" {
