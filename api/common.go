@@ -855,11 +855,15 @@ func checkUserTotalFlow(ctx context.Context, username string) (bool, error) {
 		json.Unmarshal([]byte(value), fInfo)
 	}
 	// 判断是否为vip
-	switch user.EnableVIP {
-	case true:
+	switch {
+	case user.EnableVIP:
 		if fInfo.TotalTraffic < maxVipTotalFlow {
 			return true, nil
 		}
+
+	case user.TenantID != "":
+		return true, nil
+
 	default:
 		if fInfo.TotalTraffic < maxTotalFlow {
 			return true, nil
