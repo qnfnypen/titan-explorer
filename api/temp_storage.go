@@ -170,6 +170,7 @@ func UploadTmepFile(c *gin.Context) {
 	}
 
 	dao.AddTempAssetShareCount(c.Request.Context(), hash)
+	dao.AddTempAssetInfo(c.Request.Context(), hash, req.AssetSize)
 
 	c.JSON(http.StatusOK, respJSON(rsp))
 }
@@ -318,6 +319,7 @@ func DownloadTempFile(c *gin.Context) {
 	dao.AddTempAssetDownloadCount(c.Request.Context(), hash)
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"asset_cid": cid,
+		"size":      taInfo.Size,
 		"url":       urls[cid],
 	}))
 }

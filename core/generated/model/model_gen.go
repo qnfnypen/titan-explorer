@@ -685,6 +685,7 @@ type TempAsset struct {
 	Hash          string `db:"hash"`
 	DownloadCount int64  `db:"download_count"`
 	ShareCount    int64  `db:"share_count"`
+	Size int64 `db:"size"`
 }
 
 type AreaMap struct {
