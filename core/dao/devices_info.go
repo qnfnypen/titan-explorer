@@ -969,12 +969,6 @@ func GetIPNodeCount(ctx context.Context, ip, areaId string, option QueryOption) 
 
 	countQuery := fmt.Sprintf(`SELECT count(1) FROM (%s) t`, subQuery+where+` group by external_ip`)
 
-	if option.Order != "" && option.OrderField != "" {
-		where += fmt.Sprintf(` ORDER BY %s %s`, option.OrderField, option.Order)
-	} else {
-		where += fmt.Sprintf(` ORDER BY online_node_count DESC`)
-	}
-
 	var total int64
 	err := DB.GetContext(ctx, &total, countQuery, args...)
 	if err != nil {
@@ -990,10 +984,17 @@ func GetIPNodeCount(ctx context.Context, ip, areaId string, option QueryOption) 
 		offset = limit * (option.Page - 1)
 	}
 
-	where += ` limit ? offset ?`
+	var limitOrder string
+	if option.Order != "" && option.OrderField != "" {
+		limitOrder += fmt.Sprintf(` ORDER BY %s %s`, option.OrderField, option.Order)
+	} else {
+		limitOrder += fmt.Sprintf(` ORDER BY online_node_count DESC`)
+	}
+
+	limitOrder += ` limit ? offset ?`
 	args = append(args, limit, offset)
 
-	query := fmt.Sprintf(`select * from (%s) t `, subQuery+` group by external_ip`) + where
+	query := fmt.Sprintf(`select * from (%s) t `, subQuery+where+` group by external_ip`) + limitOrder
 
 	var out []*model.IPNodeCount
 
