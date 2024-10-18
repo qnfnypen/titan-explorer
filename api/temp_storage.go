@@ -110,7 +110,10 @@ func UploadTempFile(c *gin.Context) {
 			return
 		}
 		if len(aids) != 0 {
-			dao.AddTempAssetShareCount(c.Request.Context(), hash)
+			err = dao.AddTempAssetShareCount(c.Request.Context(), hash, req.AssetSize)
+			if err != nil {
+				log.Errorf("AddTempAssetShareCounterror: %v", err)
+			}
 			c.JSON(http.StatusOK, respJSON(rsp))
 			return
 		}
@@ -183,8 +186,10 @@ func UploadTempFile(c *gin.Context) {
 		}
 	}
 
-	dao.AddTempAssetShareCount(c.Request.Context(), hash)
-	dao.AddTempAssetInfo(c.Request.Context(), hash, req.AssetSize)
+	err = dao.AddTempAssetShareCount(c.Request.Context(), hash, req.AssetSize)
+	if err != nil {
+		log.Errorf("AddTempAssetShareCounterror: %v", err)
+	}
 
 	c.JSON(http.StatusOK, respJSON(rsp))
 }

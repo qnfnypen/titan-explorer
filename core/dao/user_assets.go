@@ -819,18 +819,6 @@ func GetOneAreaIDByAreaID(ctx context.Context, userID, hash, areaID string) (str
 	return areaIDs[0], nil
 }
 
-// AddTempAssetInfo 增加临时文件的信息
-func AddTempAssetInfo(ctx context.Context, hash string, size int64) error {
-	query, args, err := squirrel.Insert(tableTempAsset).Columns("hash,size").Values(hash, size).
-		Suffix(fmt.Sprintf("ON DUPLICATE KEY UPDATE size = IF(size IS NULL OR size = 0),VALUES(%d),size", size)).ToSql()
-	if err != nil {
-		return fmt.Errorf("generate asset's temp asset sql error:%w", err)
-	}
-
-	_, err = DB.ExecContext(ctx, query, args...)
-	return err
-}
-
 // GetTempAssetInfo 获取临时文件的信息
 func GetTempAssetInfo(ctx context.Context, hash string) (*model.TempAsset, error) {
 	var info model.TempAsset
@@ -848,11 +836,17 @@ func GetTempAssetInfo(ctx context.Context, hash string) (*model.TempAsset, error
 }
 
 // AddTempAssetShareCount 增加临时文件的分享信息
-func AddTempAssetShareCount(ctx context.Context, hash string) error {
+func AddTempAssetShareCount(ctx context.Context, hash string, size ...int64) error {
+	var tsize int64
+
 	if hash == "" {
 		return nil
 	}
-	query, args, err := squirrel.Insert(tableTempAsset).Columns("hash").Values(hash).Suffix("ON DUPLICATE KEY UPDATE share_count = share_count + 1").ToSql()
+	if len(size) > 0 {
+		tsize = size[0]
+	}
+	query, args, err := squirrel.Insert(tableTempAsset).Columns("hash,size").Values(hash, tsize).
+		Suffix("ON DUPLICATE KEY UPDATE share_count = share_count + 1,size = IF(size IS NULL OR size = '', VALUES(size), size)").ToSql()
 	if err != nil {
 		return fmt.Errorf("generate asset's temp asset sql error:%w", err)
 	}
