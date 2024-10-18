@@ -242,16 +242,21 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_open_asset_status", GetOpenAssetStatusHandler)
 	storage.GET("/get_fil_storage_list", GetFilStorageListHandler)
 	storage.GET("/get_area_id", GetSchedulerAreaIDs)
+
 	storage.GET("/temp_file/get_upload_file", UploadTempFileCar)
-	storage.POST("/temp_file/upload", UploadTmepFile)
+	storage.POST("/temp_file/upload", UploadTempFile)
 	storage.GET("/temp_file/info/:cid", GetUploadInfo)
 	storage.GET("/temp_file/share/:cid", ShareTempFile)
 	storage.GET("/temp_file/download/:cid", DownloadTempFile)
+
 	// storage.Use(authMiddleware.MiddlewareFunc())
 	storage.GET("/open_asset", OpenAssetHandler) // 打开公共的文件，需要统计访问次数
 	storage.POST("/sync_data", SyncHourData)
 	storage.GET("/count", GetStorageCount)
 	storage.GET("/get_group_info", GetShareGroupInfo)
+
+	storage.POST("/transfer/report", AssetTransferReport)
+
 	storage.Use(AuthRequired(authMiddleware))
 	storage.GET("/share_before", ShareBeforeHandler)
 	storage.GET("/share_asset", ShareAssetsHandler)
@@ -292,8 +297,6 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/move_asset_to_group", MoveAssetToGroupHandler)
 	storage.POST("/move_node", MoveNode)
 	storage.POST("/ipfs_info", GetIPFSInfoByCIDs)
-
-	storage.POST("/transfer/report", AssetTransferReport)
 
 	//signature
 	signature := apiV1.Group("/sign")

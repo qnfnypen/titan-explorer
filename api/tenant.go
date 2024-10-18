@@ -93,36 +93,39 @@ func SubUserDeleteHandler(c *gin.Context) {
 
 func SubUserRefreshTokenHandler(c *gin.Context) {
 
-	tenantClaims := jwt.ExtractClaims(c)
+	// tenantClaims := jwt.ExtractClaims(c)
 
 	token := c.Query("token")
 	c.Request.Header.Set("JwtAuthorization", fmt.Sprintf("Bearer %s", token))
-	subUserClaims, err := authMiddleware.GetClaimsFromJWT(c)
+	// subUserClaims, err := authMiddleware.GetClaimsFromJWT(c)
+
+	newToken, exp, err := authMiddleware.RefreshToken(c)
+
 	if err != nil {
 		log.Errorf("[SUB_USER][REFRESH] error while refreshing token: %s", err.Error())
 		c.JSON(401, respError(errors.InternalServer, err))
 	}
 
-	username := subUserClaims[identityKey].(string)
-	tenantID := tenantClaims[tenantID].(string)
+	// username := subUserClaims[identityKey].(string)
+	// tenantID := tenantClaims[tenantID].(string)
 
-	user, err := dao.GetUserByBuilder(c.Request.Context(), squirrel.Select("*").Where(squirrel.Eq{"username": username, "tenant_id": tenantID}))
-	if err != nil && err != sql.ErrNoRows {
-		log.Errorf("[TENANT][SSO] query user error: %s", err.Error())
-		c.JSON(200, respErrorCode(errors.InternalServer, c))
-		return
-	}
+	// user, err := dao.GetUserByBuilder(c.Request.Context(), squirrel.Select("*").Where(squirrel.Eq{"username": username, "tenant_id": tenantID}))
+	// if err != nil && err != sql.ErrNoRows {
+	// 	log.Errorf("[TENANT][REFRESH] query user error: %s", err.Error())
+	// 	c.JSON(200, respErrorCode(errors.InternalServer, c))
+	// 	return
+	// }
 
-	payloadProto := &model.User{TenantID: tenantID, Uuid: user.Uuid, Username: user.Username, Role: user.Role}
-	token, expireTime, err := authMiddleware.TokenGenerator(payloadProto)
-	if err != nil {
-		log.Errorf("[TENANT][SSO] error while generating token: %s", err.Error())
-		c.JSON(200, respErrorCode(errors.InternalServer, c))
-	}
+	// payloadProto := &model.User{TenantID: tenantID, Uuid: user.Uuid, Username: user.Username, Role: user.Role}
+	// token, expireTime, err := authMiddleware.TokenGenerator(payloadProto)
+	// if err != nil {
+	// 	log.Errorf("[TENANT][REFRESH] error while generating token: %s", err.Error())
+	// 	c.JSON(200, respErrorCode(errors.InternalServer, c))
+	// }
 
 	c.JSON(200, respJSON(JsonObject{
-		"token": token,
-		"exp":   expireTime.Unix(),
+		"token": newToken,
+		"exp":   exp.Unix(),
 	}))
 	// refreshTokenFunc := func(c *gin.Context, code int, token string, expire time.Time) {
 	// 	c.JSON(http.StatusOK, gin.H{
