@@ -206,6 +206,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	admin.GET("/total_stats", GetTotalStatsHandler)
 	admin.GET("/ip_changed_records", GetNodeIPChangedRecordsHandler)
 	admin.GET("/asset_records", GetAssetRecordsHandler)
+	admin.GET("/node_asset_records", GetNodeAssetRecordsHandler)
 	admin.GET("/successful_replicas", GetSuccessfulReplicasHandler)
 	admin.GET("/failed_replicas", GetFailedReplicasHandler)
 	admin.GET("/workerd_nodes", GetWorkerdNodesHandler)

@@ -97,6 +97,84 @@ func GetAssetRecordsHandler(c *gin.Context) {
 	}))
 }
 
+func GetNodeAssetRecordsHandler(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	cid := c.Query("cid")
+	nodeId := c.Query("node_id")
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+	page, _ := strconv.Atoi(c.Query("page"))
+
+	if page == 0 {
+		page = 1
+	}
+
+	if pageSize == 0 {
+		pageSize = 10
+	}
+
+	limit := pageSize
+	offset := (page - 1) * pageSize
+
+	deviceInfo, err := dao.GetDeviceInfoByID(ctx, nodeId)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.DeviceNotExists, c))
+		return
+	}
+
+	schedulerClient, err := getSchedulerClient(c.Request.Context(), deviceInfo.AreaID)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
+		return
+	}
+
+	if cid != "" {
+		var result []*types.AssetRecord
+		resp, err := schedulerClient.GetAssetRecord(ctx, cid)
+		if err != nil {
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+
+		if resp != nil {
+			result = append(result, resp)
+		}
+
+		c.JSON(http.StatusOK, respJSON(JsonObject{
+			"total":   len(result),
+			"records": result,
+		}))
+		return
+	}
+
+	resp, err := schedulerClient.GetAssetsForNode(ctx, nodeId, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	var cids []string
+	for _, na := range resp.NodeAssetInfos {
+		cids = append(cids, na.Cid)
+	}
+
+	assetResp, err := schedulerClient.GetAssetRecordsWithCIDs(ctx, cids)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	var result []*types.AssetRecord
+	for _, ar := range assetResp {
+		result = append(result, ar)
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"total":   resp.Total,
+		"records": result,
+	}))
+}
+
 func GetSuccessfulReplicasHandler(c *gin.Context) {
 	nodeId := c.Query("node_id")
 	cid := c.Query("cid")
@@ -387,6 +465,7 @@ func GetProjectOverviewHandler(c *gin.Context) {
 func GetProjectInfoHandler(c *gin.Context) {
 	nodeId := c.Query("node_id")
 	projectId := c.Query("project_id")
+	status := c.QueryArray("status")
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 	page, _ := strconv.Atoi(c.Query("page"))
 
@@ -415,11 +494,18 @@ func GetProjectInfoHandler(c *gin.Context) {
 		return
 	}
 
+	var prs []types.ProjectReplicaStatus
+	for _, s := range status {
+		si, _ := strconv.ParseInt(s, 10, 64)
+		prs = append(prs, types.ProjectReplicaStatus(si))
+	}
+
 	resp, err := schedulerClient.GetProjectReplicasForNode(ctx, &types.NodeProjectReq{
 		NodeID:    nodeId,
 		ProjectID: projectId,
 		Limit:     limit,
 		Offset:    offset,
+		Statuses:  prs,
 	})
 	if err != nil {
 		log.Errorf("GetProjectReplicasForNode: %v", err)
