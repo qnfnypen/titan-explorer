@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/gin-gonic/gin"
@@ -30,6 +31,17 @@ func GetTotalStatsHandler(c *gin.Context) {
 	}
 
 	nodeStats.OfflineIPs = nodeStats.TotalIPs - nodeStats.OnlineIPs
+
+	beginToday := time.Now().Truncate(24 * time.Hour).Unix()
+	todayStats, err := dao.GetComprehensiveStatsInPeriod(ctx, beginToday, 0, "")
+	if err != nil {
+		log.Errorf("get today asset stats: %v", err)
+	}
+
+	totalStats, err := dao.GetComprehensiveStatsInPeriod(ctx, 0, 0, "")
+	if err != nil {
+		log.Errorf("get total asset stats: %v", err)
+	}
 
 	out := struct {
 		*model.TotalNodeStats

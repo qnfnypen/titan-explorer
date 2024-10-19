@@ -155,14 +155,14 @@ func init() {
 	prometheus.MustRegister(View_TodayUploadAvgSpeed)
 }
 
-var (
-	totalStats *dao.ComprehensiveStats
-	todayStats *dao.ComprehensiveStats
-)
+// var (
+// 	totalStats *dao.ComprehensiveStats
+// 	todayStats *dao.ComprehensiveStats
+// )
 
 func setStorageGatherer(ctx context.Context) {
 	var err error
-	totalStats, err = dao.GetComprehensiveStatsInPeriod(ctx, 0, 0)
+	totalStats, err := dao.GetComprehensiveStatsInPeriod(ctx, 0, 0, "")
 	if err != nil {
 		log.Errorf("[gatherer] get total stats error: %s", err.Error())
 	}
@@ -180,7 +180,7 @@ func setStorageGatherer(ctx context.Context) {
 	}
 
 	beginToday := time.Now().Truncate(24 * time.Hour).Unix()
-	todayStats, err = dao.GetComprehensiveStatsInPeriod(ctx, beginToday, 0)
+	todayStats, err := dao.GetComprehensiveStatsInPeriod(ctx, beginToday, 0, "")
 	if err != nil {
 		log.Errorf("[gatherer] get today stats error: %s", err.Error())
 	}
