@@ -1,14 +1,15 @@
 package api
 
 import (
+	"net/http"
+	"strconv"
+
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/gin-gonic/gin"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/errors"
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/core/statistics"
-	"net/http"
-	"strconv"
 )
 
 func GetTotalStatsHandler(c *gin.Context) {
@@ -30,18 +31,19 @@ func GetTotalStatsHandler(c *gin.Context) {
 
 	nodeStats.OfflineIPs = nodeStats.TotalIPs - nodeStats.OnlineIPs
 
-	assetStats := &model.TotalAssetStats{}
-
 	out := struct {
 		*model.TotalNodeStats
 		*model.TotalUserStats
-		*model.TotalAssetStats
+		TodayAssetStats *dao.ComprehensiveStats `json:"todayAssetStats"`
+		TotalAssetStats *dao.ComprehensiveStats `json:"totalAssetStats"`
 	}{
-		nodeStats, userStats, assetStats,
+		TotalNodeStats:  nodeStats,
+		TotalUserStats:  userStats,
+		TodayAssetStats: todayStats,
+		TotalAssetStats: totalStats,
 	}
 
 	c.JSON(http.StatusOK, respJSON(out))
-	return
 }
 
 func GetNodeIPChangedRecordsHandler(c *gin.Context) {
