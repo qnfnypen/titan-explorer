@@ -56,7 +56,7 @@ type ComprehensiveStats struct {
 }
 
 // 获取所有统计数据
-func GetComprehensiveStatsInPeriod(ctx context.Context, start, end int64) (*ComprehensiveStats, error) {
+func GetComprehensiveStatsInPeriod(ctx context.Context, start, end int64, area string) (*ComprehensiveStats, error) {
 	var stats ComprehensiveStats
 	query := `
 		SELECT 
@@ -72,11 +72,10 @@ func GetComprehensiveStatsInPeriod(ctx context.Context, start, end int64) (*Comp
 			AVG(CASE WHEN transfer_type = 'upload' AND state = 1 THEN rate ELSE 0 END) AS upload_avg_speed
 		FROM asset_transfer_log`
 
-	// 检查是否需要加上时间条件
 	var conditions []string
 	args := []interface{}{}
 
-	// 如果 start 和 end 都不为 0，则添加时间范围条件
+	// 添加时间范围条件
 	if start > 0 {
 		conditions = append(conditions, "created_at >= FROM_UNIXTIME(?)")
 		args = append(args, start)
@@ -86,7 +85,11 @@ func GetComprehensiveStatsInPeriod(ctx context.Context, start, end int64) (*Comp
 		args = append(args, end)
 	}
 
-	// 如果有条件，则将它们添加到查询中
+	if area != "" {
+		conditions = append(conditions, "area = ?")
+		args = append(args, area)
+	}
+
 	if len(conditions) > 0 {
 		query += " WHERE " + joinConditions(conditions)
 	}

@@ -365,31 +365,25 @@ func GetUploadInfoHandler(c *gin.Context) {
 
 	areaId := getAreaIDs(c)
 
+	// 判断文件是否已经存在
+	exist, err := dao.CheckAssetByMd5AndAreaExists(c.Request.Context(), c.Query("md5"), areaId[0])
+	if err != nil {
+		log.Errorf("CheckAssetByMd5AndAreaExists error:%v", err)
+	}
+
+	if exist {
+		c.JSON(http.StatusOK, respJSON(gin.H{
+			"AlreadyExists": exist,
+			"Log":           areaId[0],
+		}))
+		return
+	}
+
 	schedulerClient, err := getSchedulerClient(c.Request.Context(), areaId[0])
 	if err != nil {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
 		return
 	}
-
-	// var nonce string
-	// if ts != "" && signature != "" {
-	// 	nonce, err = dao.RedisCache.Get(c.Request.Context(), userId+ts).Result()
-	// 	if err != nil {
-	// 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-	// 		return
-	// 	}
-	// }
-
-	// TODO: Deprecated. check removed or not
-	// var randomPassNonce string
-	// if c.Query("encrypted") == "true" {
-	// 	passKey := fmt.Sprintf(FileUploadPassKey, userId)
-	// 	randomPassNonce = string(md5Str(userId + time.Now().String()))
-	// 	if _, err = dao.RedisCache.SetEx(c.Request.Context(), passKey, randomPassNonce, 24*time.Hour).Result(); err != nil {
-	// 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-	// 		return
-	// 	}
-	// }
 
 	var traceid string
 	if c.Query("need_trace") == "true" {
@@ -425,12 +419,6 @@ func GetUploadInfoHandler(c *gin.Context) {
 		aid = areaId[0]
 	} else {
 		aid = as[1]
-	}
-
-	// 判断文件是否已经存在
-	exist, err := dao.CheckAssetByMd5AndAreaExists(c.Request.Context(), c.Query("md5"), areaId[0])
-	if err != nil {
-		log.Errorf("CheckAssetByMd5AndAreaExists error:%w", err)
 	}
 
 	c.JSON(http.StatusOK, respJSON(gin.H{
