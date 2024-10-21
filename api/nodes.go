@@ -29,14 +29,14 @@ import (
 )
 
 type (
-	// OfflineL1NodeReq 下线L1节点请求
-	OfflineL1NodeReq struct {
+	// DeactiveNodeReq 下线L1节点请求
+	DeactiveNodeReq struct {
 		AreaID string `json:"area_id" binding:"required"`
 		NodeID string `json:"node_id" binding:"required"`
 		Hours  int    `json:"hours"`
 	}
-	// CancelOfflineL1NodeReq 取消下线L1节点请求
-	CancelOfflineL1NodeReq struct {
+	// CancelDeactiveNodeReq 取消下线L1节点请求
+	CancelDeactiveNodeReq struct {
 		AreaID string `json:"area_id" binding:"required"`
 		NodeID string `json:"node_id" binding:"required"`
 	}
@@ -1473,18 +1473,18 @@ func GetNodeList(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(resp))
 }
 
-// NodeOfflineHanlder 下线L1节点
-func NodeOfflineHanlder(c *gin.Context) {
+// DeactiveNodeHanlder 下线L1节点
+func DeactiveNodeHanlder(c *gin.Context) {
 	var (
 		claims = jwt.ExtractClaims(c)
 		uid    = claims[identityKey].(string)
 
-		req OfflineL1NodeReq
+		req DeactiveNodeReq
 	)
 
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
-		log.Errorf("NodeL1Offline c.BindJSON() error: %v", err)
+		log.Errorf("DeactiveNodeReq c.BindJSON() error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
@@ -1524,18 +1524,18 @@ func NodeOfflineHanlder(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(JsonObject{"msg": "success"}))
 }
 
-// CancelNodeOfflineHanlder 取消下线L1节点
-func CancelNodeOfflineHanlder(c *gin.Context) {
+// CancelDeactiveNodeHanlder 取消下线L1节点
+func CancelDeactiveNodeHanlder(c *gin.Context) {
 	var (
 		claims = jwt.ExtractClaims(c)
 		uid    = claims[identityKey].(string)
 
-		req CancelOfflineL1NodeReq
+		req CancelDeactiveNodeReq
 	)
 
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
-		log.Errorf("NodeL1Offline c.BindJSON() error: %v", err)
+		log.Errorf("CancelDeactiveNodeReq c.BindJSON() error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}

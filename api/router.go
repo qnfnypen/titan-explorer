@@ -109,8 +109,8 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	tnode := apiV2.Group("node")
 	tnode.Use(AuthRequired(authMiddleware))
 	tnode.GET("/list", GetNodeList)
-	tnode.POST("/offline", NodeOfflineHanlder)
-	tnode.PUT("/offline/cancel", CancelNodeOfflineHanlder)
+	tnode.POST("/deactive", DeactiveNodeHanlder)
+	tnode.PUT("/deactive/cancel", CancelDeactiveNodeHanlder)
 
 	// request from titan api
 	apiV2.GET("/get_cache_list", GetCacheListHandler)
