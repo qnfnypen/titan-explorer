@@ -375,6 +375,7 @@ func GetUploadInfoHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respJSON(gin.H{
 			"AlreadyExists": exist,
 			"Log":           areaId[0],
+			"CID":           cid,
 		}))
 		return
 	}
