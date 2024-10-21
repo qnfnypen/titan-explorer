@@ -233,3 +233,7 @@ func TestEncode(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestGetAreaIDsCountry(t *testing.T) {
+	t.Log(getAreaIDsCountry([]string{"China"}))
+}

@@ -106,6 +106,11 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	// node daily count
 	apiV2.GET("/get_nodes_days", GetDiskDaysHandler)
 	apiV2.GET("/node_online_incentive", GetDeviceOnlineIncentivesHandler)
+	tnode := apiV2.Group("node")
+	tnode.Use(AuthRequired(authMiddleware))
+	tnode.GET("/list", GetNodeList)
+	tnode.POST("/offline", NodeOfflineHanlder)
+	tnode.PUT("/offline/cancel", CancelNodeOfflineHanlder)
 
 	// request from titan api
 	apiV2.GET("/get_cache_list", GetCacheListHandler)
@@ -294,6 +299,7 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	storage.GET("/get_asset_group_info", GetAssetGroupInfoHandler)
 	storage.GET("/delete_group", DeleteGroupHandler)
 	storage.POST("/rename_group", RenameGroupHandler)
+	storage.POST("/rename_asset", RenameAssetHandler)
 	storage.GET("/move_group_to_group", MoveGroupToGroupHandler)
 	storage.GET("/move_asset_to_group", MoveAssetToGroupHandler)
 	storage.POST("/move_node", MoveNode)

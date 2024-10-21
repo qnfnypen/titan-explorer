@@ -366,7 +366,7 @@ func GetUploadInfoHandler(c *gin.Context) {
 	areaId := getAreaIDs(c)
 
 	// 判断文件是否已经存在
-	exist, err := dao.CheckAssetByMd5AndAreaExists(c.Request.Context(), c.Query("md5"), areaId[0])
+	cid, exist, err := dao.CheckAssetByMd5AndAreaExists(c.Request.Context(), c.Query("md5"), areaId[0])
 	if err != nil {
 		log.Errorf("CheckAssetByMd5AndAreaExists error:%v", err)
 	}
@@ -427,6 +427,7 @@ func GetUploadInfoHandler(c *gin.Context) {
 		"AreaID":        aid,
 		"Log":           areaId[0],
 		"TraceID":       traceid,
+		"CID":           cid,
 	}))
 }
 

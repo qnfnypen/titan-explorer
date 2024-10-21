@@ -28,6 +28,25 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+type (
+	// OfflineL1NodeReq 下线L1节点请求
+	OfflineL1NodeReq struct {
+		AreaID string `json:"area_id" binding:"required"`
+		NodeID string `json:"node_id" binding:"required"`
+		Hours  int    `json:"hours"`
+	}
+	// CancelOfflineL1NodeReq 取消下线L1节点请求
+	CancelOfflineL1NodeReq struct {
+		AreaID string `json:"area_id" binding:"required"`
+		NodeID string `json:"node_id" binding:"required"`
+	}
+	// GetNodeStatusListReq 获取用户节点状态请求
+	GetNodeStatusListReq struct {
+		Page uint64 `form:"page"`
+		Size uint64 `form:"size"`
+	}
+)
+
 func CacheAllAreas(ctx context.Context, info []string) error {
 	key := fmt.Sprintf("TITAN::AREAS")
 
@@ -1397,4 +1416,161 @@ func GetIPRecordsHandler(c *gin.Context) {
 		"list":  list,
 		"total": total,
 	}))
+}
+
+// GetNodeList 获取节点列表
+func GetNodeList(c *gin.Context) {
+	// device_status_code 1-在线 2-故障 3-离线 11-退出
+	// operation 1-退出
+	var (
+		claims = jwt.ExtractClaims(c)
+		uid    = claims[identityKey].(string)
+
+		req   GetNodeStatusListReq
+		resp  = make(map[string]interface{})
+		total int64
+	)
+
+	err := c.ShouldBindQuery(&req)
+	if err != nil {
+		log.Errorf("GetNodeStatusListReq c.BindJSON() error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+	if req.Page <= 0 {
+		req.Page = 1
+	}
+	if req.Size <= 0 {
+		req.Size = 10
+	}
+
+	nums, infos, err := dao.GetNodeInfos(c.Request.Context(), uid, req.Page, req.Size)
+	if err != nil {
+		log.Errorf("GetNodeInfos error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	resp["online"] = 0
+	resp["error"] = 0
+	resp["offline"] = 0
+	resp["out"] = 0
+	for _, v := range nums {
+		total += v.Num
+		switch v.Status {
+		case 1:
+			resp["online"] = v.Num
+		case 2:
+			resp["error"] = v.Num
+		case 3:
+			resp["offline"] = v.Num
+		case 11:
+			resp["out"] = v.Num
+		}
+	}
+	resp["total"] = total
+	resp["list"] = infos
+
+	c.JSON(http.StatusOK, respJSON(resp))
+}
+
+// NodeOfflineHanlder 下线L1节点
+func NodeOfflineHanlder(c *gin.Context) {
+	var (
+		claims = jwt.ExtractClaims(c)
+		uid    = claims[identityKey].(string)
+
+		req OfflineL1NodeReq
+	)
+
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		log.Errorf("NodeL1Offline c.BindJSON() error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	status, err := dao.CheckIsNodeOwner(c.Request.Context(), uid, req.NodeID)
+	if err != nil {
+		log.Errorf("CheckIsNodeOwner error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	if status == 0 || status == 11 {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	scli, err := getSchedulerClient(c.Request.Context(), req.AreaID)
+	if err != nil {
+		log.Errorf("getSchedulerClient error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+		return
+	}
+
+	err = scli.DeactivateNode(c.Request.Context(), req.NodeID, req.Hours)
+	if err != nil {
+		log.Errorf("DeactivateNode error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	err = dao.UpdateNodeOperationStatus(c.Request.Context(), uid, req.NodeID, 1)
+	if err != nil {
+		log.Errorf("UpdateNodeOperationStatus error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{"msg": "success"}))
+}
+
+// CancelNodeOfflineHanlder 取消下线L1节点
+func CancelNodeOfflineHanlder(c *gin.Context) {
+	var (
+		claims = jwt.ExtractClaims(c)
+		uid    = claims[identityKey].(string)
+
+		req CancelOfflineL1NodeReq
+	)
+
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		log.Errorf("NodeL1Offline c.BindJSON() error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	status, err := dao.CheckIsNodeOwner(c.Request.Context(), uid, req.NodeID)
+	if err != nil {
+		log.Errorf("CheckIsNodeOwner error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	if status != 11 {
+		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
+		return
+	}
+
+	scli, err := getSchedulerClient(c.Request.Context(), req.AreaID)
+	if err != nil {
+		log.Errorf("getSchedulerClient error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	err = scli.UndoNodeDeactivation(c.Request.Context(), req.NodeID)
+	if err != nil {
+		log.Errorf("UndoNodeDeactivation error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	err = dao.UpdateNodeOperationStatus(c.Request.Context(), uid, req.NodeID, 0)
+	if err != nil {
+		log.Errorf("UpdateNodeOperationStatus error: %v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{"msg": "success"}))
 }

@@ -53,7 +53,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestCIDToHash(t *testing.T) {
-	cid := "bafybeibbnza56t5q2dtj7ty3xfvrvuhfiy4l4bxaluuma5gvh5xznberbq"
+	cid := "bafkreib5arnexhnsn6etb4xs7ywm52iey3i7xkxgjxm4dhw5njxmz2dn4i"
 
 	hash, err := CIDToHash(cid)
 	if err != nil {

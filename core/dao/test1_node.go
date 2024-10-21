@@ -50,6 +50,21 @@ type UserAndQuest struct {
 	DeletedAt              time.Time `db:"deleted_at" json:"-"`
 }
 
+type (
+	// NodeStatusInfo 节点状态信息
+	NodeStatusInfo struct {
+		Name     string `db:"device_name" json:"name"`
+		AreaID   string `db:"area_id" json:"area_id"`
+		DeviceID string `db:"device_id" json:"node_id"`
+		Status   int64  `db:"status" json:"status"` // 1-在线 2-故障 3-离线 11-已退出
+	}
+	// NodeStatus 节点状态数量
+	NodeStatus struct {
+		Status int64 `db:"status"` // 1-在线 2-故障 3-离线 11-已退出
+		Num    int64 `db:"num"`
+	}
+)
+
 // GetTest1Nodes 获取test1节点信息
 func GetTest1Nodes(ctx context.Context, statusCode int64, page, size uint64) (int64, []model.Test1NodeInfo, error) {
 	// device_status_code 1-在线 2-故障 3-离线
@@ -251,4 +266,69 @@ func GetOnlineNodes(ctx context.Context) (int64, error) {
 	}
 
 	return online, nil
+}
+
+// GetNodeInfos 获取用户节点信息
+func GetNodeInfos(ctx context.Context, uid string, page, size uint64) ([]NodeStatus, []NodeStatusInfo, error) {
+	var (
+		statusNums  []NodeStatus
+		statusInfos []NodeStatusInfo
+	)
+
+	query, args, err := squirrel.Select("IF(operation>0,operation+10,device_status_code) AS `status`,COUNT(device_id) AS num").
+		From(test1NodeTable).Where("user_id = ?", uid).GroupBy("`status`").ToSql()
+	if err != nil {
+		return nil, nil, fmt.Errorf("generate sql of get device status number error:%w", err)
+	}
+	err = DB.SelectContext(ctx, &statusNums, query, args...)
+	if err != nil {
+		return nil, nil, fmt.Errorf("get device status number error:%w", err)
+	}
+
+	query, args, err = squirrel.Select("IF(operation>0,operation+10,device_status_code) AS `status`,device_name,area_id,device_id").
+		From(test1NodeTable).Where("user_id = ?", uid).Offset((page - 1) * size).Limit(size).ToSql()
+	if err != nil {
+		return nil, nil, fmt.Errorf("generate sql of get device status info error:%w", err)
+	}
+	err = DB.SelectContext(ctx, &statusInfos, query, args...)
+	if err != nil {
+		return nil, nil, fmt.Errorf("get device status info error:%w", err)
+	}
+
+	return statusNums, statusInfos, nil
+}
+
+// CheckIsNodeOwner 校验是否为节点拥有者
+func CheckIsNodeOwner(ctx context.Context, uid, nodeID string) (int64, error) {
+	var status int64
+
+	query, args, err := squirrel.Select("IF(operation>0,operation+10,device_status_code) AS `status`").From(test1NodeTable).Where("user_id = ? AND device_id = ?", uid, nodeID).ToSql()
+	if err != nil {
+		return 0, fmt.Errorf("generate sql of get user_id of device_info error:%w", err)
+	}
+
+	err = DB.GetContext(ctx, &status, query, args...)
+	switch err {
+	case nil:
+		return status, nil
+	case sql.ErrNoRows:
+		return 0, nil
+	default:
+		return 0, fmt.Errorf("get user_id of device_info error:%w", err)
+	}
+}
+
+// UpdateNodeOperationStatus 修改节点操作状态
+func UpdateNodeOperationStatus(ctx context.Context, uid, nodeID string, operation int64) error {
+	query, args, err := squirrel.Update(test1NodeTable).Where("user_id = ? AND device_id = ?", uid, nodeID).Set("operation", operation).ToSql()
+	if err != nil {
+		return fmt.Errorf("generate sql of update operation of device_info error:%w", err)
+	}
+
+	_, err = DB.ExecContext(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("update operation of device_info error:%w", err)
+	}
+
+	return nil
 }

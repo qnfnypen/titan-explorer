@@ -69,6 +69,11 @@ type (
 		TotalTraffic  int64 `db:"total_traffic"`
 		PeakBandwidth int64 `db:"peak_bandwidth"`
 	}
+	// AssetCIDInfo 文件cid信息
+	AssetCIDInfo struct {
+		CID  string `db:"cid"`
+		Hash string `db:"hash"`
+	}
 )
 
 // AddAssetAndUpdateSize 添加文件信息并修改使用的storage存储空间
@@ -1218,33 +1223,36 @@ func AddAssetGroupVisitCount(ctx context.Context, userID string, id int) error {
 }
 
 // CheckAssetByMd5AndAreaExists 判断文件是否已经存在
-func CheckAssetByMd5AndAreaExists(ctx context.Context, md5, areaID string) (bool, error) {
-	var hash string
+func CheckAssetByMd5AndAreaExists(ctx context.Context, md5, areaID string) (string, bool, error) {
+	var (
+		cidInfo AssetCIDInfo
+		hash    string
+	)
 
 	if strings.TrimSpace(md5) == "" {
-		return false, nil
+		return "", false, nil
 	}
 
 	// 通过md5或者hash
-	query, args, err := squirrel.Select("hash").From(tableUserAsset).Where("md5 = ?", md5).Limit(1).ToSql()
+	query, args, err := squirrel.Select("cid,hash").From(tableUserAsset).Where("md5 = ?", md5).Limit(1).ToSql()
 	if err != nil {
-		return false, fmt.Errorf("generate select hash from user_asset error:%w", err)
+		return "", false, fmt.Errorf("generate select hash from user_asset error:%w", err)
+	}
+	err = DB.GetContext(ctx, &cidInfo, query, args...)
+	if err != nil {
+		return "", false, fmt.Errorf("get hash from user_asset error:%w", err)
+	}
+
+	query, args, err = squirrel.Select("hash").From(tableUserAssetArea).Where("hash = ? AND area_id = ? AND is_sync = 1", cidInfo.Hash, areaID).Limit(1).ToSql()
+	if err != nil {
+		return "", false, fmt.Errorf("generate select hash from user_asset_area error:%w", err)
 	}
 	err = DB.GetContext(ctx, &hash, query, args...)
 	if err != nil {
-		return false, fmt.Errorf("get hash from user_asset error:%w", err)
+		return "", false, fmt.Errorf("get hash from user_asset_area error:%w", err)
 	}
 
-	query, args, err = squirrel.Select("hash").From(tableUserAssetArea).Where("hash = ? AND area_id = ? AND is_sync = 1", hash, areaID).Limit(1).ToSql()
-	if err != nil {
-		return false, fmt.Errorf("generate select hash from user_asset_area error:%w", err)
-	}
-	err = DB.GetContext(ctx, &hash, query, args...)
-	if err != nil {
-		return false, fmt.Errorf("get hash from user_asset_area error:%w", err)
-	}
-
-	return true, nil
+	return cidInfo.CID, true, nil
 }
 
 // GetNoExistCIDs 获取用户不存在的cid信息

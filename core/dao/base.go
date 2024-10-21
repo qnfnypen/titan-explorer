@@ -61,7 +61,7 @@ func Init(cfg *config.Config) error {
 	})
 	_, err = client.Ping(context.Background()).Result()
 	if err != nil {
-		return err
+		return fmt.Errorf("ping redis error:%w", err)
 	}
 
 	DB = db

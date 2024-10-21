@@ -158,7 +158,7 @@ func UploadTempFile(c *gin.Context) {
 	}
 	createAssetRsp, err := schCli.CreateAsset(c.Request.Context(), careq)
 	if err != nil {
-		log.Errorf("CreateAssetHandler CreateAsset error: %v", err)
+		log.Errorf("CreateAssetHandler CreateAsset error: %v area_id:%v", err, req.AreaIDs[0])
 		if webErr, ok := err.(*api.ErrWeb); ok {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
 			return
@@ -178,7 +178,10 @@ func UploadTempFile(c *gin.Context) {
 		}
 		payload.List = append(payload.List, oprds.UnloginSyncAreaDetail{AreaID: v, IsSync: isSync})
 	}
-	oprds.GetClient().SetUnloginAssetInfo(c.Request.Context(), hash, &payload)
+	err = oprds.GetClient().SetUnloginAssetInfo(c.Request.Context(), hash, &payload)
+	if err != nil {
+		log.Errorf("SetUnloginAssetInfo error: %v", err)
+	}
 
 	if !createAssetRsp.AlreadyExists {
 		for _, v := range createAssetRsp.List {
@@ -385,6 +388,7 @@ func GetUploadInfo(c *gin.Context) {
 	// 获取调度器区域
 	aids, err := oprds.GetClient().GetUnloginAssetAreaIDs(c.Request.Context(), hash)
 	if err != nil || len(aids) == 0 {
+		log.Errorf("GetUnloginAssetAreaIDs error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
