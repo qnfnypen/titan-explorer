@@ -43,7 +43,7 @@ type (
 	// GetNodeStatusListReq 获取用户节点状态请求
 	GetNodeStatusListReq struct {
 		Page uint64 `form:"page"`
-		Size uint64 `form:"size"`
+		Size uint64 `form:"page_size"`
 	}
 )
 
@@ -1420,7 +1420,7 @@ func GetIPRecordsHandler(c *gin.Context) {
 
 // GetNodeList 获取节点列表
 func GetNodeList(c *gin.Context) {
-	// device_status_code 1-在线 2-故障 3-离线 11-退出
+	// device_status_code 1-在线 2-故障 3-离线 11-退出 10-outing
 	// operation 1-退出
 	var (
 		claims = jwt.ExtractClaims(c)
@@ -1453,6 +1453,7 @@ func GetNodeList(c *gin.Context) {
 	resp["online"] = 0
 	resp["error"] = 0
 	resp["offline"] = 0
+	// resp["outing"] = 0
 	resp["out"] = 0
 	for _, v := range nums {
 		total += v.Num
@@ -1463,6 +1464,8 @@ func GetNodeList(c *gin.Context) {
 			resp["error"] = v.Num
 		case 3:
 			resp["offline"] = v.Num
+		// case 10:
+		// 	resp["outing"] = v.Num
 		case 11:
 			resp["out"] = v.Num
 		}
@@ -1489,13 +1492,17 @@ func DeactiveNodeHanlder(c *gin.Context) {
 		return
 	}
 
+	if req.Hours <= 0 {
+		req.Hours = 24
+	}
+
 	status, err := dao.CheckIsNodeOwner(c.Request.Context(), uid, req.NodeID)
 	if err != nil {
 		log.Errorf("CheckIsNodeOwner error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	if status == 0 || status == 11 {
+	if status == 0 || status >= 10 {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
@@ -1514,7 +1521,7 @@ func DeactiveNodeHanlder(c *gin.Context) {
 		return
 	}
 
-	err = dao.UpdateNodeOperationStatus(c.Request.Context(), uid, req.NodeID, 1)
+	err = dao.UpdateNodeOperationStatus(c.Request.Context(), uid, req.NodeID, 1, req.Hours)
 	if err != nil {
 		log.Errorf("UpdateNodeOperationStatus error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))

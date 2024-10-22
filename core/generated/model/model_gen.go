@@ -159,6 +159,7 @@ type DeviceInfo struct {
 	ProjectFailedCount     int64   `db:"project_failed_count" json:"-"`
 
 	Operation int `db:"operation"`
+	DeactiveTime int64 `db:"deactive_time"`
 
 	Location
 }

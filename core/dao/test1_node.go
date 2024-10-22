@@ -57,6 +57,7 @@ type (
 		AreaID   string `db:"area_id" json:"area_id"`
 		DeviceID string `db:"device_id" json:"node_id"`
 		Status   int64  `db:"status" json:"status"` // 1-在线 2-故障 3-离线 11-已退出
+		ExpTime  int64  `db:"deactive_time" json:"exp_time"`
 	}
 	// NodeStatus 节点状态数量
 	NodeStatus struct {
@@ -275,8 +276,8 @@ func GetNodeInfos(ctx context.Context, uid string, page, size uint64) ([]NodeSta
 		statusInfos []NodeStatusInfo
 	)
 
-	query, args, err := squirrel.Select("IF(operation>0,operation+10,device_status_code) AS `status`,COUNT(device_id) AS num").
-		From(test1NodeTable).Where("user_id = ?", uid).GroupBy("`status`").ToSql()
+	query, args, err := squirrel.Select("IF(operation>0,IF(UNIX_TIMESTAMP(NOW())>deactive_time,3,operation+10),device_status_code) AS `status`,COUNT(device_id) AS num").
+		From(test1NodeTable).Where("user_id = ? AND node_type = 2", uid).GroupBy("`status`").ToSql()
 	if err != nil {
 		return nil, nil, fmt.Errorf("generate sql of get device status number error:%w", err)
 	}
@@ -285,8 +286,8 @@ func GetNodeInfos(ctx context.Context, uid string, page, size uint64) ([]NodeSta
 		return nil, nil, fmt.Errorf("get device status number error:%w", err)
 	}
 
-	query, args, err = squirrel.Select("IF(operation>0,operation+10,device_status_code) AS `status`,device_name,area_id,device_id").
-		From(test1NodeTable).Where("user_id = ?", uid).Offset((page - 1) * size).Limit(size).ToSql()
+	query, args, err = squirrel.Select("IF(operation>0,IF(UNIX_TIMESTAMP(NOW())>deactive_time,3,operation+10),device_status_code) AS `status`,device_name,area_id,device_id,deactive_time").
+		From(test1NodeTable).Where("user_id = ? AND node_type = 2", uid).Offset((page - 1) * size).Limit(size).ToSql()
 	if err != nil {
 		return nil, nil, fmt.Errorf("generate sql of get device status info error:%w", err)
 	}
@@ -302,7 +303,7 @@ func GetNodeInfos(ctx context.Context, uid string, page, size uint64) ([]NodeSta
 func CheckIsNodeOwner(ctx context.Context, uid, nodeID string) (int64, error) {
 	var status int64
 
-	query, args, err := squirrel.Select("IF(operation>0,operation+10,device_status_code) AS `status`").From(test1NodeTable).Where("user_id = ? AND device_id = ?", uid, nodeID).ToSql()
+	query, args, err := squirrel.Select("IF(operation>0,IF(UNIX_TIMESTAMP(NOW())>deactive_time,3,operation+10),device_status_code) AS `status`").From(test1NodeTable).Where("user_id = ? AND device_id = ?", uid, nodeID).ToSql()
 	if err != nil {
 		return 0, fmt.Errorf("generate sql of get user_id of device_info error:%w", err)
 	}
@@ -319,8 +320,19 @@ func CheckIsNodeOwner(ctx context.Context, uid, nodeID string) (int64, error) {
 }
 
 // UpdateNodeOperationStatus 修改节点操作状态
-func UpdateNodeOperationStatus(ctx context.Context, uid, nodeID string, operation int64) error {
-	query, args, err := squirrel.Update(test1NodeTable).Where("user_id = ? AND device_id = ?", uid, nodeID).Set("operation", operation).ToSql()
+func UpdateNodeOperationStatus(ctx context.Context, uid, nodeID string, operation int64, hours ...int) error {
+	var hour int
+
+	if len(hours) > 0 {
+		hour = hours[0]
+	}
+	maps := make(map[string]interface{})
+	maps["operation"] = operation
+	if operation != 0 {
+		maps["deactive_time"] = time.Now().Add(time.Duration(hour) * time.Hour).Unix()
+	}
+
+	query, args, err := squirrel.Update(test1NodeTable).Where("user_id = ? AND device_id = ?", uid, nodeID).SetMap(maps).ToSql()
 	if err != nil {
 		return fmt.Errorf("generate sql of update operation of device_info error:%w", err)
 	}
