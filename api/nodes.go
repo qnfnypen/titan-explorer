@@ -33,6 +33,7 @@ type (
 	DeactiveNodeReq struct {
 		AreaID string `json:"area_id" binding:"required"`
 		NodeID string `json:"node_id" binding:"required"`
+		Code   string `json:"code" binding:"required"`
 		Hours  int    `json:"hours"`
 	}
 	// CancelDeactiveNodeReq 取消下线L1节点请求
@@ -1492,8 +1493,15 @@ func DeactiveNodeHanlder(c *gin.Context) {
 		return
 	}
 
-	if req.Hours <= 0 {
-		req.Hours = 24
+	// 校验验证码是否正确
+	code, err := getNonceFromCache(c.Request.Context(), uid, NonceStringTypeDeactive)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	if !strings.EqualFold(code, req.Code) {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidVerifyCode, c))
+		return
 	}
 
 	status, err := dao.CheckIsNodeOwner(c.Request.Context(), uid, req.NodeID)
@@ -1502,7 +1510,7 @@ func DeactiveNodeHanlder(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	if status == 0 || status >= 10 {
+	if status == 0 || status == 11 {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}

@@ -38,6 +38,11 @@ const (
 	NonceStringTypeLogin     NonceStringType = "2"
 	NonceStringTypeReset     NonceStringType = "3"
 	NonceStringTypeSignature NonceStringType = "4"
+	NonceStringTypeDeactive  NonceStringType = "5"
+)
+
+const (
+	deactivePre = "user_deactive_"
 )
 
 var defaultNonceExpiration = 5 * time.Minute
@@ -339,6 +344,8 @@ func GetNumericVerifyCodeHandler(c *gin.Context) {
 		key = getRedisNonceResetKey(userInfo.Username)
 	case NonceStringTypeSignature:
 		key = getRedisNonceSignatureKey(userInfo.Username)
+	case NonceStringTypeDeactive:
+		key = getRedisNonceDeactiveKey(userInfo.Username)
 	default:
 		c.JSON(http.StatusOK, respErrorCode(errors.UnsupportedVerifyCodeType, c))
 		return
@@ -633,6 +640,10 @@ func getRedisNonceResetKey(username string) string {
 	return fmt.Sprintf("TITAN::RESET::%s", username)
 }
 
+func getRedisNonceDeactiveKey(username string) string {
+	return fmt.Sprintf("TITAN::DEACTIVE::%s", username)
+}
+
 func getNonceFromCache(ctx context.Context, username string, t NonceStringType) (string, error) {
 	var key string
 
@@ -645,6 +656,8 @@ func getNonceFromCache(ctx context.Context, username string, t NonceStringType) 
 		key = getRedisNonceResetKey(username)
 	case NonceStringTypeSignature:
 		key = getRedisNonceSignatureKey(username)
+	case NonceStringTypeDeactive:
+		key = getRedisNonceDeactiveKey(username)
 	default:
 		return "", fmt.Errorf("unsupported nonce string type")
 	}

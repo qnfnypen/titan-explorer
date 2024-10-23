@@ -276,7 +276,7 @@ func GetNodeInfos(ctx context.Context, uid string, page, size uint64) ([]NodeSta
 		statusInfos []NodeStatusInfo
 	)
 
-	query, args, err := squirrel.Select("IF(operation>0,IF(UNIX_TIMESTAMP(NOW())>deactive_time,3,operation+10),device_status_code) AS `status`,COUNT(device_id) AS num").
+	query, args, err := squirrel.Select("IF(operation>0,operation+10,device_status_code) AS `status`,COUNT(device_id) AS num").
 		From(test1NodeTable).Where("user_id = ? AND node_type = 2", uid).GroupBy("`status`").ToSql()
 	if err != nil {
 		return nil, nil, fmt.Errorf("generate sql of get device status number error:%w", err)
@@ -286,7 +286,7 @@ func GetNodeInfos(ctx context.Context, uid string, page, size uint64) ([]NodeSta
 		return nil, nil, fmt.Errorf("get device status number error:%w", err)
 	}
 
-	query, args, err = squirrel.Select("IF(operation>0,IF(UNIX_TIMESTAMP(NOW())>deactive_time,3,operation+10),device_status_code) AS `status`,device_name,area_id,device_id,deactive_time").
+	query, args, err = squirrel.Select("IF(operation>0,operation+10,device_status_code) AS `status`,device_name,area_id,device_id,deactive_time").
 		From(test1NodeTable).Where("user_id = ? AND node_type = 2", uid).Offset((page - 1) * size).Limit(size).ToSql()
 	if err != nil {
 		return nil, nil, fmt.Errorf("generate sql of get device status info error:%w", err)
@@ -303,7 +303,7 @@ func GetNodeInfos(ctx context.Context, uid string, page, size uint64) ([]NodeSta
 func CheckIsNodeOwner(ctx context.Context, uid, nodeID string) (int64, error) {
 	var status int64
 
-	query, args, err := squirrel.Select("IF(operation>0,IF(UNIX_TIMESTAMP(NOW())>deactive_time,3,operation+10),device_status_code) AS `status`").From(test1NodeTable).Where("user_id = ? AND device_id = ?", uid, nodeID).ToSql()
+	query, args, err := squirrel.Select("IF(operation>0,operation+10,device_status_code) AS `status`").From(test1NodeTable).Where("user_id = ? AND device_id = ?", uid, nodeID).ToSql()
 	if err != nil {
 		return 0, fmt.Errorf("generate sql of get user_id of device_info error:%w", err)
 	}
