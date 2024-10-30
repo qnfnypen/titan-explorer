@@ -503,6 +503,7 @@ func listAssetSummary(ctx context.Context, uid string, parent, page, size int) (
 // SyncAreaIDs 同步未登陆用户文件的区域
 func SyncAreaIDs(ctx context.Context, sCli api.Scheduler, nodeID, cid string, size int64, areaIds []string) ([]string, error) {
 	zStrs := make([]string, 0)
+	syncAreaIDs := make([]string, 0)
 	if len(areaIds) == 0 {
 		return zStrs, nil
 	}
@@ -536,7 +537,20 @@ func SyncAreaIDs(ctx context.Context, sCli api.Scheduler, nodeID, cid string, si
 		zStrs = append(zStrs, v)
 	}
 
-	return zStrs, nil
+	// 等待5秒，判断文件是否同步成功
+	time.Sleep(10 * time.Second)
+	for _, v := range zStrs {
+		scli, err := getSchedulerClient(ctx, v)
+		if err != nil {
+			log.Errorf("getSchedulerClient error: %v", err)
+			continue
+		}
+		if rs, err := scli.GetAssetRecord(ctx, cid); err == nil && len(rs.ReplicaInfos) > 0 {
+			syncAreaIDs = append(syncAreaIDs, v)
+		}
+	}
+
+	return syncAreaIDs, nil
 }
 
 // GetAreaIPByID 根据areaid信息获取调度器的ip

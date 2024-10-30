@@ -260,7 +260,7 @@ retry:
 			if count < 5 {
 				goto retry
 			}
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c, areaID))
 			return
 		}
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))

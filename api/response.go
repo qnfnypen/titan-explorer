@@ -17,7 +17,7 @@ func respJSON(v interface{}) gin.H {
 	}
 }
 
-func respErrorCode(code int, c *gin.Context) gin.H {
+func respErrorCode(code int, c *gin.Context, extra ...string) gin.H {
 	lang := c.GetHeader("Lang")
 
 	var msg string
@@ -34,9 +34,10 @@ func respErrorCode(code int, c *gin.Context) gin.H {
 	}
 
 	return gin.H{
-		"code": -1,
-		"err":  code,
-		"msg":  msg,
+		"code":  -1,
+		"err":   code,
+		"msg":   msg,
+		"extra": extra,
 	}
 }
 
