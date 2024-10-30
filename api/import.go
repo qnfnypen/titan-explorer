@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	ipfsCli, _ = opfie.NewIPFSClient("")
+	ipfsCli, _ = opfie.NewIPFSClient("/ip4/39.108.214.29/tcp/5001")
 )
 
 type (
@@ -118,7 +118,7 @@ func SyncIPFSInfoByCIDs(c *gin.Context) {
 			return
 		}
 	}
-	err = sc.PullAsset(c.Request.Context(), &types.PullAssetReq{CIDs: cids})
+	err = sc.PullAsset(c.Request.Context(), &types.PullAssetReq{CIDs: cids, Replicas: 20, Owner: username, Expiration: time.Now().AddDate(99, 0, 0)})
 	if err != nil {
 		log.Errorf("PullAssetReq error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))

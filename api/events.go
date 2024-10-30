@@ -715,7 +715,6 @@ func CreateAssetPostHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 	}
 	if len(notExistsAids) == 0 {
-
 		var directUrl string
 		schedulerClient, err := getSchedulerClient(c.Request.Context(), areaIds[0])
 		if err == nil {

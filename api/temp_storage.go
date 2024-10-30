@@ -199,6 +199,7 @@ func UploadTempFile(c *gin.Context) {
 
 // ShareTempFile 分享
 func ShareTempFile(c *gin.Context) {
+	var count int64
 	cid := c.Param("cid")
 
 	// 获取文件hash
@@ -249,9 +250,16 @@ func ShareTempFile(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
 		return
 	}
+	// 增加重试机制，避免节点未同步完成
+retry:
 	urls, err := schedulerClient.ShareAssets(c.Request.Context(), "", []string{cid}, time.Time{})
 	if err != nil {
+		time.Sleep(1 * time.Second)
 		if webErr, ok := err.(*api.ErrWeb); ok {
+			count++
+			if count < 5 {
+				goto retry
+			}
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
 			return
 		}
@@ -274,6 +282,7 @@ func ShareTempFile(c *gin.Context) {
 // @Success 200 {object} JsonObject ""
 // @Router /api/v1/storage/temp_file/download/{cid} [get]
 func DownloadTempFile(c *gin.Context) {
+	var count int64
 	cid := c.Param("cid")
 
 	// 获取文件hash
@@ -336,6 +345,7 @@ func DownloadTempFile(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
 		return
 	}
+retry:
 	// urls, err := schedulerClient.ShareAssets(c.Request.Context(), "", []string{cid}, time.Time{})
 	urls, err := schedulerClient.ShareAssetV2(c.Request.Context(), &types.ShareAssetReq{
 		TraceID:    traceid,
@@ -343,7 +353,11 @@ func DownloadTempFile(c *gin.Context) {
 		ExpireTime: time.Time{},
 	})
 	if err != nil {
+		time.Sleep(1 * time.Second)
 		if webErr, ok := err.(*api.ErrWeb); ok {
+			if count < 5 {
+				goto retry
+			}
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
 			return
 		}

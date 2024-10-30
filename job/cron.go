@@ -70,6 +70,7 @@ func SyncShedulersAsset() {
 			log.Printf("syncUserScheduler is already running on another instance: %v", err)
 			return
 		}
+		GetSyncIPFSRecords()
 	})
 	c.AddFunc("@every 15s", func() {
 		time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
