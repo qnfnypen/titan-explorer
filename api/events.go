@@ -3205,7 +3205,7 @@ func AssetTransferReport(c *gin.Context) {
 					ExpireTime: time.Time{},
 				})
 				if err != nil {
-					log.Errorf("ShareAssetV2 error %+v", err)
+					log.Errorf("ShareAssetV2 error %v", err)
 				}
 				if len(ret) > 0 {
 					directUrl = ret[0]
