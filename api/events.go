@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -1157,7 +1158,11 @@ func ShareAssetsHandler(c *gin.Context) {
 	)
 	// userId := c.Query("user_id")
 	claims := jwt.ExtractClaims(c)
-	userId := claims[identityKey].(string)
+	userId, ok := claims[identityKey].(string)
+	if !ok {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidSignature, c))
+		return
+	}
 	cid := c.Query("asset_cid")
 	if c.Query("area_id") != "" {
 		areaIds = getAreaIDs(c)
@@ -1291,7 +1296,7 @@ func ShareAssetsHandler(c *gin.Context) {
 	})
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c, areaId))
 			return
 		}
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
@@ -3045,6 +3050,11 @@ func GetSchedulerAreaIDs(c *gin.Context) {
 	}
 
 	maps := operateAreaMaps(c.Request.Context(), keys, lan)
+	sort.Strings(keys)
+	// 按照a-z对区域进行排序
+	sort.Slice(maps, func(i, j int) bool {
+		return maps[i].Value < maps[j].Value
+	})
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"list":      keys,
@@ -3199,13 +3209,14 @@ func AssetTransferReport(c *gin.Context) {
 		if len(areaIDs) > 0 {
 			schedulerClient, err := getSchedulerClient(c.Request.Context(), areaIDs[0])
 			if err == nil {
-				ret, err := schedulerClient.ShareAssetV2(c.Request.Context(), &types.ShareAssetReq{
+				ret, serr := schedulerClient.ShareAssetV2(c.Request.Context(), &types.ShareAssetReq{
 					UserID:     req.UserId,
 					AssetCID:   req.Cid,
 					ExpireTime: time.Time{},
 				})
-				if err != nil {
-					log.Errorf("ShareAssetV2 error %v", err)
+				if serr != nil {
+					log.Errorf("ShareAssetV2 error:%#v", serr)
+					log.Errorf("ShareAssetV2 error %w", serr)
 				}
 				if len(ret) > 0 {
 					directUrl = ret[0]

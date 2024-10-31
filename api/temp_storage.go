@@ -447,7 +447,7 @@ func GetUploadInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"total":     resp.Total,
 		"complete":  complete,
-		"share_url": fmt.Sprintf("%s/api/v1/storage/temp_file/share/%s", config.Cfg.BaseURL, cid),
+		"share_url": fmt.Sprintf("%s/api/v1/storage/temp_file/share/%s?filename=%s", config.Cfg.BaseURL, cid, c.Query("filename")),
 		"maplist":   mapList,
 		"list":      resp.ReplicaInfos,
 	}))
@@ -503,7 +503,7 @@ func UploadTempFileCar(c *gin.Context) {
 	res, err := schedulerClient.GetNodeUploadInfo(c.Request.Context(), userId, randomPassNonce, urlModel)
 	if err != nil {
 		if webErr, ok := err.(*api.ErrWeb); ok {
-			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
+			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c, areaId[0]))
 			return
 		}
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
