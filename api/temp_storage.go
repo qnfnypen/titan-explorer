@@ -271,7 +271,11 @@ retry:
 		return
 	}
 	dao.AddTempAssetShareCount(c.Request.Context(), hash)
-	c.Redirect(301, urls[cid][0])
+	if strings.Contains(urls[cid][0], `?filename=`) {
+		c.Redirect(301, fmt.Sprintf("%s?filename=%s", urls[cid][0], c.Query("filename")))
+	} else {
+		c.Redirect(301, urls[cid][0])
+	}
 }
 
 // DownloadTempFile 下载 ·
