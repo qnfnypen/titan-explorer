@@ -3,6 +3,7 @@ package dao
 import (
 	"context"
 	"fmt"
+	"github.com/jmoiron/sqlx"
 
 	"github.com/gnasnik/titan-explorer/core/generated/model"
 )
@@ -139,4 +140,22 @@ func GetAssetsList(ctx context.Context, cid string, nodeId, areaId string, optio
 	}
 
 	return total, out, err
+}
+
+func GetAssetsListByCIds(ctx context.Context, cids []string) ([]*model.Asset, error) {
+	var out []*model.Asset
+
+	query := "SELECT * FROM assets where cid in (?)"
+
+	query, args, err := sqlx.In(query, cids)
+	if err != nil {
+		return nil, err
+	}
+
+	err = DB.SelectContext(ctx, &out, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, err
 }

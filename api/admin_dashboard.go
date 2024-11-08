@@ -177,15 +177,15 @@ func GetNodeAssetRecordsHandler(c *gin.Context) {
 	}
 
 	if len(cids) > 0 {
-		assetResp, err := schedulerClient.GetAssetRecordsWithCIDs(ctx, cids)
+		assetResp, err := dao.GetAssetsListByCIds(ctx, cids)
 		if err != nil {
-			log.Errorf("api GetAssetRecordsWithCIDs: %v", err)
+			log.Errorf("GetAssetsListByCIds: %v", err)
 			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 			return
 		}
 
 		for _, ar := range assetResp {
-			result = append(result, ar)
+			result = append(result, assetToAssetRecord(ar))
 		}
 	}
 
@@ -193,6 +193,29 @@ func GetNodeAssetRecordsHandler(c *gin.Context) {
 		"total":   resp.Total,
 		"records": result,
 	}))
+}
+
+func assetToAssetRecord(a *model.Asset) *types.AssetRecord {
+	return &types.AssetRecord{
+		CID:                   a.Cid,
+		Hash:                  a.Hash,
+		NeedEdgeReplica:       a.NeedEdgeReplica,
+		TotalSize:             a.TotalSize,
+		TotalBlocks:           a.TotalBlocks,
+		Expiration:            a.Expiration,
+		CreatedTime:           a.CreatedTime,
+		EndTime:               a.EndTime,
+		NeedCandidateReplicas: a.NeedCandidateReplicas,
+		State:                 a.State,
+		NeedBandwidth:         a.NeedBandwidth,
+		Note:                  a.Note,
+		Source:                a.Source,
+		Owner:                 a.UserId,
+		RetryCount:            a.RetryCount,
+		ReplenishReplicas:     a.ReplenishReplicas,
+		FailedCount:           int(a.FailedCount),
+		SucceededCount:        int(a.SucceededCount),
+	}
 }
 
 func GetSuccessfulReplicasHandler(c *gin.Context) {

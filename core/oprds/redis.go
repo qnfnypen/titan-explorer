@@ -18,6 +18,7 @@ const (
 	preNodeID      = "unsync_nodeid"
 	preStorageFlow = "storage_flow"
 	preDownload    = "asset_download"
+	preTempFile    = "temp_file_uid"
 )
 
 var cli *Client
@@ -282,4 +283,18 @@ func (c *Client) GetUserStorageFlowInfo(ctx context.Context, uid string) (string
 	key := fmt.Sprintf("%s_%s", preStorageFlow, uid)
 
 	return c.rds.Get(ctx, key).Result()
+}
+
+// SetUIDTempFileTime 设置用户临时存储文件时间
+func (c *Client) SetUIDTempFileTime(ctx context.Context, uid string) error {
+	key := fmt.Sprintf("%s_%s", preTempFile, uid)
+
+	return c.rds.SetEx(ctx, key, time.Now().Unix(), 24*time.Hour).Err()
+}
+
+// GetUIDTempFileTime 获取用户临时文件存储时间
+func (c *Client) GetUIDTempFileTime(ctx context.Context, uid string) (int64, error) {
+	key := fmt.Sprintf("%s_%s", preTempFile, uid)
+
+	return c.rds.Get(ctx, key).Int64()
 }

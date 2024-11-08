@@ -5,7 +5,7 @@ CREATE TABLE `sync_ipfs_record` (
     `name` varchar(255) NOT NULL DEFAULT '' COMMENT '文件名',
     `cid` varchar(255) NOT NULL DEFAULT '' COMMENT '文件cid',
     `group_id` int(10) NOT NULL DEFAULT '0' COMMENT '文件组id',
-    `size` int(10) NOT NULL DEFAULT '0' COMMENT '文件打小',
+    `size` int(10) NOT NULL DEFAULT '0' COMMENT '文件大小',
     `area_id` varchar(255) NOT NULL DEFAULT '' COMMENT '首个节点区域',
     `timestamp` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '同步开始的时间戳',
     `status` tinyint(1) NOT NULL DEFAULT '0' COMMENT '状态 0-未成功 1-成功',

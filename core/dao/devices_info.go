@@ -506,7 +506,7 @@ func SumFullNodeInfoFromDeviceInfo(ctx context.Context) (*model.FullNodeInfo, er
       		 ROUND(SUM(if(device_status_code = 1, bandwidth_up, 0)),2) AS total_upstream_bandwidth, 
 			 ROUND(SUM(if(device_status_code = 1, bandwidth_down, 0)),2) AS total_downstream_bandwidth,
 			 ROUND(SUM(if(device_status_code = 1, cpu_cores, 0)),0) as cpu_cores,
-			 ROUND(SUM(if(device_status_code = 1, memory, 0)),0) as memory,
+			 SUM(if(device_status_code = 1, memory, 0)) as memory,
 			 COUNT(distinct external_ip) as ip_count
 		     FROM %s`, tableNameDeviceInfo)
 
@@ -783,6 +783,15 @@ func GetTotalNodeStats(ctx context.Context, areaId string) (*model.TotalNodeStat
 	sum(if (node_type = 1 , cumulative_profit, 0)) as edge_rewards, 
 	sum(if (node_type = 2 , cumulative_profit, 0)) as candidate_rewards,
 	sum(if (device_status_code = 1, 1, 0)) as online_nodes,
+	sum(if (device_status_code <> 1, 1, 0)) as offline_nodes,
+	sum(if(node_type = 1 and device_status_code = 1, 1, 0)) AS online_edges,
+	sum(if(node_type = 1 and device_status_code <> 1, 1, 0)) AS offline_edges,
+	sum(if(node_type = 2 and device_status_code = 1, 1, 0)) AS online_candidates,
+	sum(if(node_type = 2 and device_status_code <> 1, 1, 0)) AS offline_candidates,
+	sum(if(node_type = 7 and device_status_code = 1, 1, 0)) AS online_l5,
+	sum(if(node_type = 7 and device_status_code <> 1, 1, 0)) AS offline_l5,
+	sum(if(node_type = 8 and device_status_code = 1, 1, 0)) AS online_l3,
+	sum(if(node_type = 8 and device_status_code <> 1, 1, 0)) AS offline_l3,
 	COUNT(DISTINCT CASE WHEN external_ip <> '' THEN external_ip END) as total_ips,
 	COUNT(DISTINCT CASE WHEN device_status_code = 1 AND external_ip <> '' THEN external_ip END) as online_ips,
 	sum(if(app_type = 1 and device_status_code = 1, 1, 0)) AS online_app_nodes,

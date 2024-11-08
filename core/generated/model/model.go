@@ -280,9 +280,13 @@ type TotalNodeStats struct {
 	OnlineNodes       int64 `json:"online_nodes" db:"online_nodes"`
 	OnlineCandidates  int64 `json:"online_candidates" db:"online_candidates"`
 	OnlineEdges       int64 `json:"online_edges" db:"online_edges"`
+	OnlineL3          int64 `json:"online_l3" db:"online_l3"`
+	OnlineL5          int64 `json:"online_l5" db:"online_l5"`
 	OfflineNodes      int64 `json:"offline_nodes" db:"offline_nodes"`
 	OfflineCandidates int64 `json:"offline_candidates" db:"offline_candidates"`
 	OfflineEdges      int64 `json:"offline_edges" db:"offline_edges"`
+	OfflineL3         int64 `json:"offline_l3" db:"offline_l3"`
+	OfflineL5         int64 `json:"offline_l5" db:"offline_l5"`
 	// ip
 	TotalIPs   int64 `json:"total_ips" db:"total_ips"`
 	OnlineIPs  int64 `json:"online_ips" db:"online_ips"`
