@@ -506,7 +506,7 @@ func SumFullNodeInfoFromDeviceInfo(ctx context.Context) (*model.FullNodeInfo, er
       		 ROUND(SUM(if(device_status_code = 1, bandwidth_up, 0)),2) AS total_upstream_bandwidth, 
 			 ROUND(SUM(if(device_status_code = 1, bandwidth_down, 0)),2) AS total_downstream_bandwidth,
 			 ROUND(SUM(if(device_status_code = 1, cpu_cores, 0)),0) as cpu_cores,
-			 ROUND(SUM(if(device_status_code = 1, memory, 0)),0) as memory,
+			 SUM(if(device_status_code = 1, memory, 0)) as memory,
 			 COUNT(distinct external_ip) as ip_count
 		     FROM %s`, tableNameDeviceInfo)
 
