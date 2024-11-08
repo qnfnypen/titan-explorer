@@ -32,13 +32,14 @@ func GetTotalStatsHandler(c *gin.Context) {
 
 	nodeStats.OfflineIPs = nodeStats.TotalIPs - nodeStats.OnlineIPs
 
-	beginToday := time.Now().Truncate(24 * time.Hour).Unix()
-	todayStats, err := dao.GetComprehensiveStatsInPeriod(ctx, beginToday, 0, "")
+	now := time.Now()
+	beginToday := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Unix()
+	todayStats, err := dao.GetComprehensiveStatsInPeriod(ctx, beginToday, 0, areaId)
 	if err != nil {
 		log.Errorf("get today asset stats: %v", err)
 	}
 
-	totalStats, err := dao.GetComprehensiveStatsInPeriod(ctx, 0, 0, "")
+	totalStats, err := dao.GetComprehensiveStatsInPeriod(ctx, 0, 0, areaId)
 	if err != nil {
 		log.Errorf("get total asset stats: %v", err)
 	}
