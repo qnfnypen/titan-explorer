@@ -773,7 +773,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 		}
 
 		createAssetRsp, err = schedulerClient.CreateAsset(c.Request.Context(), &types.CreateAssetReq{
-			UserID: username, AssetCID: createAssetReq.AssetCID, AssetSize: createAssetReq.AssetSize, NodeID: createAssetReq.NodeID, Owner: username, TraceID: traceID})
+			UserID: username, AssetCID: createAssetReq.AssetCID, AssetSize: createAssetReq.AssetSize, NodeID: createAssetReq.NodeID, Owner: username, TraceID: traceID, ExpirationDay: 99 * 365})
 		if err != nil {
 			log.Errorf("CreateAssetHandler CreateAsset error: %v", err)
 			if webErr, ok := err.(*api.ErrWeb); ok {

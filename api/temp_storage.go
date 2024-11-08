@@ -194,7 +194,13 @@ func UploadTempFile(c *gin.Context) {
 		log.Errorf("AddTempAssetShareCounterror: %v", err)
 	}
 
-	c.JSON(http.StatusOK, respJSON(rsp))
+	// 成功后将此次上传保存到redis，有效期为1天
+	oprds.GetClient().SetUIDTempFileTime(c.Request.Context(), uid)
+
+	c.JSON(http.StatusOK, respJSON(gin.H{
+		"uid":  uid,
+		"list": rsp,
+	}))
 }
 
 // ShareTempFile 分享
