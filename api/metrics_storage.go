@@ -179,7 +179,9 @@ func setStorageGatherer(ctx context.Context) {
 		View_TotalUploadAvgSpeed.Set(float64(totalStats.UploadAvgSpeed))
 	}
 
-	beginToday := time.Now().Truncate(24 * time.Hour).Unix()
+	now := time.Now()
+	beginToday := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Unix()
+
 	todayStats, err := dao.GetComprehensiveStatsInPeriod(ctx, beginToday, 0, "")
 	if err != nil {
 		log.Errorf("[gatherer] get today stats error: %s", err.Error())
