@@ -60,16 +60,16 @@ func GetComprehensiveStatsInPeriod(ctx context.Context, start, end int64, area s
 	var stats ComprehensiveStats
 	query := `
 		SELECT 
-			SUM(CASE WHEN transfer_type = 'download' THEN 1 ELSE 0 END) AS total_downloads,
-			SUM(CASE WHEN transfer_type = 'upload' THEN 1 ELSE 0 END) AS total_uploads,
-			SUM(CASE WHEN transfer_type = 'download' AND state = 1 THEN 1 ELSE 0 END) AS download_success,
-			SUM(CASE WHEN transfer_type = 'upload' AND state = 1 THEN 1 ELSE 0 END) AS upload_success,
-			SUM(CASE WHEN transfer_type = 'download' AND state = 2 THEN 1 ELSE 0 END) AS download_failure,
-			SUM(CASE WHEN transfer_type = 'upload' AND state = 2 THEN 1 ELSE 0 END) AS upload_failure,
-			SUM(CASE WHEN transfer_type = 'download' THEN total_size ELSE 0 END) AS download_size,
-			SUM(CASE WHEN transfer_type = 'upload' THEN total_size ELSE 0 END) AS upload_size,
-			AVG(CASE WHEN transfer_type = 'download' AND state = 1 THEN rate ELSE 0 END) AS download_avg_speed,
-			AVG(CASE WHEN transfer_type = 'upload' AND state = 1 THEN rate ELSE 0 END) AS upload_avg_speed
+			COALESCE(SUM(CASE WHEN transfer_type = 'download' THEN 1 ELSE 0 END), 0) AS total_downloads,
+			COALESCE(SUM(CASE WHEN transfer_type = 'upload' THEN 1 ELSE 0 END), 0) AS total_uploads,
+			COALESCE(SUM(CASE WHEN transfer_type = 'download' AND state = 1 THEN 1 ELSE 0 END), 0) AS download_success,
+			COALESCE(SUM(CASE WHEN transfer_type = 'upload' AND state = 1 THEN 1 ELSE 0 END), 0) AS upload_success,
+			COALESCE(SUM(CASE WHEN transfer_type = 'download' AND state = 2 THEN 1 ELSE 0 END), 0) AS download_failure,
+			COALESCE(SUM(CASE WHEN transfer_type = 'upload' AND state = 2 THEN 1 ELSE 0 END), 0) AS upload_failure,
+			COALESCE(SUM(CASE WHEN transfer_type = 'download' THEN total_size ELSE 0 END), 0) AS download_size,
+			COALESCE(SUM(CASE WHEN transfer_type = 'upload' THEN total_size ELSE 0 END), 0) AS upload_size,
+			COALESCE(AVG(CASE WHEN transfer_type = 'download' AND state = 1 THEN rate ELSE NULL END), 0) AS download_avg_speed,
+			COALESCE(AVG(CASE WHEN transfer_type = 'upload' AND state = 1 THEN rate ELSE NULL END), 0) AS upload_avg_speed
 		FROM asset_transfer_log`
 
 	var conditions []string

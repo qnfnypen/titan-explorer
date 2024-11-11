@@ -3166,6 +3166,9 @@ func AssetTransferReport(c *gin.Context) {
 	}
 
 	if req.State == dao.AssetTransferStateSuccess && req.NodeId != "" {
+		if !strings.HasPrefix(req.NodeId, "c_") {
+			req.NodeId = "c_" + req.NodeId
+		}
 		node, err := dao.GetDeviceInfo(c.Request.Context(), req.NodeId)
 		if err != nil {
 			log.Errorf("GetDeviceInfo error %+v", err)
@@ -3205,40 +3208,43 @@ func AssetTransferReport(c *gin.Context) {
 			log.Errorf("get user assest areaids error:%w", err)
 		}
 
-		var directUrl string
-		if len(areaIDs) > 0 {
-			schedulerClient, err := getSchedulerClient(c.Request.Context(), areaIDs[0])
-			if err == nil {
-				ret, serr := schedulerClient.ShareAssetV2(c.Request.Context(), &types.ShareAssetReq{
-					UserID:     req.UserId,
-					AssetCID:   req.Cid,
-					ExpireTime: time.Time{},
-				})
-				if serr != nil {
-					log.Errorf("ShareAssetV2 error:%#v", serr)
-					log.Errorf("ShareAssetV2 error %w", serr)
-				}
-				if len(ret) > 0 {
-					directUrl = ret[0]
-				}
-			} else {
-				log.Errorf("getSchedulerClient error %+v", err)
-			}
-		}
+		// var directUrl string
+		// if len(areaIDs) > 0 {
+		// schedulerClient, err := getSchedulerClient(c.Request.Context(), areaIDs[0])
+		// 	if err == nil {
+		// 		ret, serr := schedulerClient.ShareAssetV2(c.Request.Context(), &types.ShareAssetReq{
+		// 			UserID:     req.UserId,
+		// 			AssetCID:   req.Cid,
+		// 			ExpireTime: time.Time{},
+		// 		})
+		// 		if serr != nil {
+		// 			log.Errorf("ShareAssetV2 error:%#v", serr)
+		// 			log.Errorf("areaIDs:%#v, userID:%s", areaIDs, req.UserId)
+		// 		}
+		// 		if len(ret) > 0 {
+		// 			directUrl = ret[0]
+		// 		}
+		// 	} else {
+		// 		log.Errorf("getSchedulerClient error %+v", err)
+		// 	}
+		// }
 
-		opasynq.DefaultCli.EnqueueAssetUploadNotify(c.Request.Context(), opasynq.AssetUploadNotifyPayload{
+		if err := opasynq.DefaultCli.EnqueueAssetUploadNotify(c.Request.Context(), opasynq.AssetUploadNotifyPayload{
 			ExtraID:  assetInfo.ExtraID,
 			TenantID: tenantInfo.TenantID,
 			UserID:   req.UserId,
 
-			AssetName:      assetInfo.AssetName,
-			AssetCID:       assetInfo.Cid,
-			AssetType:      assetInfo.AssetType,
-			AssetSize:      assetInfo.TotalSize,
-			GroupID:        assetInfo.GroupID,
-			CreatedTime:    assetInfo.CreatedTime,
-			AssetDirectUrl: directUrl,
-		})
+			AssetName:   assetInfo.AssetName,
+			AssetCID:    assetInfo.Cid,
+			AssetType:   assetInfo.AssetType,
+			AssetSize:   assetInfo.TotalSize,
+			GroupID:     assetInfo.GroupID,
+			CreatedTime: assetInfo.CreatedTime,
+			Area:        areaIDs[0],
+			// AssetDirectUrl: directUrl,
+		}); err != nil {
+			log.Errorf("EnqueueAssetUploadNotify error %+v", err)
+		}
 
 	}
 

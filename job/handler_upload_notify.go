@@ -8,17 +8,25 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
 	"net/http"
 	"net/url"
+	"strings"
+	"sync"
 	"time"
 
+	"github.com/Filecoin-Titan/titan/api"
+	"github.com/Filecoin-Titan/titan/api/client"
+	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Masterminds/squirrel"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	"github.com/gnasnik/titan-explorer/core/opasynq"
+	"github.com/gnasnik/titan-explorer/core/statistics"
 	"github.com/gnasnik/titan-explorer/core/storage"
+	"github.com/go-redis/redis"
 	"github.com/hibiken/asynq"
 	"github.com/jinzhu/copier"
 )
@@ -38,7 +46,6 @@ type AssetUploadNotifyReq struct {
 }
 
 func assetUploadNotify(ctx context.Context, t *asynq.Task) error {
-
 	var (
 		payload opasynq.AssetUploadNotifyPayload
 		err     error
@@ -79,6 +86,41 @@ func assetUploadNotify(ctx context.Context, t *asynq.Task) error {
 		cronLog.Errorf("invalid URL %+v", err)
 		return err
 	}
+
+	var directUrl string
+	if len(payload.Area) > 0 {
+		schedulerClient, err := getSchedulerClient(ctx, payload.Area)
+		if err == nil {
+
+			var interval = 1 * time.Second
+			var startTime = time.Now()
+			var timeout = 5 * time.Second
+
+			for {
+				if time.Since(startTime) >= timeout {
+					break
+				}
+				ret, serr := schedulerClient.ShareAssetV2(ctx, &types.ShareAssetReq{
+					UserID:     payload.UserID,
+					AssetCID:   payload.AssetCID,
+					ExpireTime: time.Time{},
+				})
+				if serr != nil {
+					cronLog.Errorf("ShareAssetV2 error:%#v", serr)
+					cronLog.Errorf("areaIDs:%#v, userID:%s", payload.Area, payload.UserID)
+				}
+				if len(ret) > 0 {
+					directUrl = ret[0]
+					break
+				}
+				time.Sleep(interval)
+			}
+
+		} else {
+			cronLog.Errorf("getSchedulerClient error %+v", err)
+		}
+	}
+	body.AssetDirectUrl = directUrl
 
 	var (
 		secret = pair.ApiSecret
@@ -162,4 +204,42 @@ func genCallbackSignature(secret, method, path, body, timestamp, nonce string) s
 	h := hmac.New(sha256.New, []byte(secret))
 	h.Write([]byte(data))
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+var (
+	areaSchMaps              = new(sync.Map)
+	DefaultAreaId            = "Asia-China-Guangdong-Shenzhen"
+	SchedulerConfigKeyPrefix = "TITAN::SCHEDULERCFG"
+)
+
+// copy from api.getSchedulerClient
+func getSchedulerClient(ctx context.Context, areaId string) (api.Scheduler, error) {
+	v, ok := areaSchMaps.Load(areaId)
+	if ok {
+		return v.(api.Scheduler), nil
+	}
+	schedulers, err := statistics.GetSchedulerConfigs(ctx, fmt.Sprintf("%s::%s", SchedulerConfigKeyPrefix, areaId))
+	if err == redis.Nil && areaId != DefaultAreaId {
+		return getSchedulerClient(ctx, DefaultAreaId)
+	}
+
+	if err != nil || len(schedulers) == 0 {
+		cronLog.Errorf("no scheduler found")
+		return nil, errors.New("no scheduler found")
+	}
+
+	schedulerApiUrl := schedulers[0].SchedulerURL
+	schedulerApiToken := schedulers[0].AccessToken
+	SchedulerURL := strings.Replace(schedulerApiUrl, "https", "http", 1)
+	headers := http.Header{}
+	headers.Add("Authorization", "Bearer "+schedulerApiToken)
+	schedulerClient, _, err := client.NewScheduler(ctx, SchedulerURL, headers)
+	if err != nil {
+		cronLog.Errorf("create scheduler rpc client: %v", err)
+		return nil, err
+	}
+
+	areaSchMaps.Store(areaId, schedulerClient)
+
+	return schedulerClient, nil
 }

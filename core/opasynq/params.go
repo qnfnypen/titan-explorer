@@ -49,6 +49,7 @@ type (
 		GroupID        int64
 		CreatedTime    time.Time
 		AssetDirectUrl string // 上传完成的直接地址
+		Area           string // 用于获取AssetDirectUrl的区域
 
 		NotifyUrl  string
 		RetryCount int
