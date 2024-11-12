@@ -58,7 +58,7 @@ func CountAssets(ctx context.Context) (int64, error) {
 func GetAssetsByEmptyPath(ctx context.Context) ([]*model.Asset, int64, error) {
 	var out []*model.Asset
 	err := DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT * FROM %s WHERE backup_result = 1 AND path = ''`, tableNameAsset,
+		`SELECT * FROM %s WHERE backup_result = 1 AND path = '' and state = 'Servicing'`, tableNameAsset,
 	))
 
 	if err != nil {
@@ -67,7 +67,7 @@ func GetAssetsByEmptyPath(ctx context.Context) ([]*model.Asset, int64, error) {
 
 	var total int64
 	err = DB.GetContext(ctx, &total, fmt.Sprintf(
-		`SELECT count(*) FROM %s WHERE backup_result = 1 AND path = ''`, tableNameAsset))
+		`SELECT count(*) FROM %s WHERE backup_result = 1 AND path = '' and state = 'Servicing'`, tableNameAsset))
 	if err != nil {
 		return nil, 0, err
 	}

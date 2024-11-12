@@ -115,6 +115,7 @@ func toAssets(in []*types.AssetRecord, areaId string) ([]*model.Asset, error) {
 			Note:                  r.Note,
 			Source:                r.Source,
 			RetryCount:            r.RetryCount,
+			BackupResult:          1,
 			ReplenishReplicas:     r.ReplenishReplicas,
 			FailedCount:           int64(r.FailedCount),
 			SucceededCount:        int64(r.SucceededCount),
