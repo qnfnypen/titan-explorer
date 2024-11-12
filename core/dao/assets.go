@@ -56,18 +56,29 @@ func CountAssets(ctx context.Context) (int64, error) {
 }
 
 func GetAssetsByEmptyPath(ctx context.Context) ([]*model.Asset, int64, error) {
+	l1CompletedState := []string{"EdgesSelect", "EdgesPulling", "Servicing", "EdgesFailed"}
+
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE backup_result = 1 AND path = '' and state in (?)`, tableNameAsset)
+	queryIn, queryArgs, err := sqlx.In(query, l1CompletedState)
+	if err != nil {
+		return nil, 0, err
+	}
+
 	var out []*model.Asset
-	err := DB.SelectContext(ctx, &out, fmt.Sprintf(
-		`SELECT * FROM %s WHERE backup_result = 1 AND path = '' and state = 'Servicing'`, tableNameAsset,
-	))
+	err = DB.SelectContext(ctx, &out, queryIn, queryArgs...)
 
 	if err != nil {
 		return nil, 0, err
 	}
 
+	count := fmt.Sprintf(`SELECT count(*) FROM %s WHERE backup_result = 1 AND path = '' and state in (?)`, tableNameAsset)
+	countIn, countArgs, err := sqlx.In(count, l1CompletedState)
+	if err != nil {
+		return nil, 0, err
+	}
+
 	var total int64
-	err = DB.GetContext(ctx, &total, fmt.Sprintf(
-		`SELECT count(*) FROM %s WHERE backup_result = 1 AND path = '' and state = 'Servicing'`, tableNameAsset))
+	err = DB.GetContext(ctx, &total, countIn, countArgs...)
 	if err != nil {
 		return nil, 0, err
 	}
