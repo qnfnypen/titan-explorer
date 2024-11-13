@@ -98,6 +98,15 @@ func toAssets(in []*types.AssetRecord, areaId string) ([]*model.Asset, error) {
 	var out []*model.Asset
 	for _, r := range in {
 
+		ua, err := dao.GetUserAssetByHash(context.Background(), r.Hash)
+		if err != nil {
+			log.Errorf("GetUserAssetByHash: %v", err)
+		}
+
+		if ua == nil {
+			ua = &model.UserAsset{}
+		}
+
 		out = append(out, &model.Asset{
 			Cid:                   r.CID,
 			Hash:                  r.Hash,
@@ -106,7 +115,6 @@ func toAssets(in []*types.AssetRecord, areaId string) ([]*model.Asset, error) {
 			Expiration:            r.Expiration,
 			CreatedTime:           r.CreatedTime,
 			EndTime:               r.EndTime,
-			UserId:                r.Owner,
 			NeedCandidateReplicas: r.NeedCandidateReplicas,
 			NeedEdgeReplica:       r.NeedEdgeReplica,
 			NeedBandwidth:         r.NeedBandwidth,
@@ -119,6 +127,8 @@ func toAssets(in []*types.AssetRecord, areaId string) ([]*model.Asset, error) {
 			ReplenishReplicas:     r.ReplenishReplicas,
 			FailedCount:           int64(r.FailedCount),
 			SucceededCount:        int64(r.SucceededCount),
+			UserId:                ua.UserID,
+			ClientIP:              ua.ClientIP,
 		})
 	}
 	return out, nil

@@ -1,6 +1,8 @@
 package api
 
 import (
+	"context"
+	"github.com/Filecoin-Titan/titan/api"
 	"net/http"
 	"strconv"
 	"time"
@@ -99,6 +101,11 @@ func GetAssetRecordsHandler(c *gin.Context) {
 		PageSize: pageSize,
 	}
 
+	type recordWithUserCount struct {
+		*model.Asset
+		UserCount int64 `json:"user_count"`
+	}
+
 	total, records, err := dao.GetAssetsList(ctx, cid, nodeId, areaId, option)
 	if err != nil {
 		log.Errorf("get assets list: %v", err)
@@ -106,10 +113,24 @@ func GetAssetRecordsHandler(c *gin.Context) {
 		return
 	}
 
+	var out []*recordWithUserCount
+	for _, record := range records {
+		userCount, err := dao.GetUserAssetCount(ctx, record.Hash)
+		if err != nil {
+			log.Errorf("GetUserAssetCount: %v", err)
+		}
+		out = append(out, &recordWithUserCount{Asset: record, UserCount: userCount})
+	}
+
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"total":   total,
-		"records": records,
+		"records": out,
 	}))
+}
+
+type NodeAssetRecord struct {
+	*types.AssetRecord
+	ClientIP string
 }
 
 func GetNodeAssetRecordsHandler(c *gin.Context) {
@@ -143,17 +164,33 @@ func GetNodeAssetRecordsHandler(c *gin.Context) {
 		return
 	}
 
+	var result []*NodeAssetRecord
+
 	if cid != "" {
-		var result []*types.AssetRecord
-		resp, err := schedulerClient.GetAssetRecord(ctx, cid)
+		assetResp, err := dao.GetAssetsListByCIds(ctx, []string{cid})
 		if err != nil {
-			log.Errorf("api GetAssetRecord: %v", err)
+			log.Errorf("GetAssetsListByCIds: %v", err)
 			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 			return
 		}
 
-		if resp != nil {
-			result = append(result, resp)
+		if len(assetResp) == 0 {
+			log.Errorf("asset cid %s not found: %v", cid, err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+
+		dbAsset := assetResp[0]
+
+		replicaInfo, err := getAssetReplicaByHashes(ctx, schedulerClient, nodeId, []string{dbAsset.Hash})
+		if err != nil {
+			log.Errorf("getAssetReplicaByHashes: %v", err)
+		}
+
+		for _, ar := range assetResp {
+			record := assetToAssetRecord(ar)
+			record.ReplicaInfos = []*types.ReplicaInfo{replicaInfo[ar.Hash]}
+			result = append(result, &NodeAssetRecord{AssetRecord: record, ClientIP: dbAsset.ClientIP})
 		}
 
 		c.JSON(http.StatusOK, respJSON(JsonObject{
@@ -171,9 +208,11 @@ func GetNodeAssetRecordsHandler(c *gin.Context) {
 	}
 
 	var cids []string
-	var result []*types.AssetRecord
+	var hashes []string
+
 	for _, na := range resp.NodeAssetInfos {
 		cids = append(cids, na.Cid)
+		hashes = append(hashes, na.Hash)
 	}
 
 	if len(cids) > 0 {
@@ -184,8 +223,15 @@ func GetNodeAssetRecordsHandler(c *gin.Context) {
 			return
 		}
 
+		replicaInfo, err := getAssetReplicaByHashes(ctx, schedulerClient, nodeId, hashes)
+		if err != nil {
+			log.Errorf("getAssetReplicaByHashes: %v", err)
+		}
+
 		for _, ar := range assetResp {
-			result = append(result, assetToAssetRecord(ar))
+			record := assetToAssetRecord(ar)
+			record.ReplicaInfos = []*types.ReplicaInfo{replicaInfo[ar.Hash]}
+			result = append(result, &NodeAssetRecord{AssetRecord: record, ClientIP: ar.ClientIP})
 		}
 	}
 
@@ -193,6 +239,20 @@ func GetNodeAssetRecordsHandler(c *gin.Context) {
 		"total":   resp.Total,
 		"records": result,
 	}))
+}
+
+func getAssetReplicaByHashes(ctx context.Context, s api.Scheduler, nodeId string, hashes []string) (map[string]*types.ReplicaInfo, error) {
+	replicas, err := s.GetNodeAssetReplicasByHashes(ctx, nodeId, hashes)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make(map[string]*types.ReplicaInfo)
+	for _, r := range replicas {
+		out[r.Hash] = r
+	}
+
+	return out, nil
 }
 
 func assetToAssetRecord(a *model.Asset) *types.AssetRecord {

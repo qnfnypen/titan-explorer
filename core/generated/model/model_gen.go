@@ -488,6 +488,7 @@ type Asset struct {
 	EndTime               time.Time `db:"end_time" json:"end_time"`
 	Expiration            time.Time `db:"expiration" json:"expiration"`
 	UserId                string    `db:"user_id" json:"user_id"`
+	ClientIP  			  string    `db:"client_ip" json:"client_ip"`
 	NeedEdgeReplica       int64     `db:"edge_replicas" json:"edge_replicas"`
 	NeedCandidateReplicas int64     `db:"candidate_replicas" json:"candidate_replicas"`
 	AreaId                string    `db:"area_id" json:"area_id"`
@@ -659,6 +660,7 @@ type UserAsset struct {
 	GroupID int64  `db:"group_id"`
 	MD5     string `db:"md5"`
 	ExtraID string `db:"extra_id"`
+	ClientIP string `db:"client_ip"`
 }
 
 type AssetGroup struct {

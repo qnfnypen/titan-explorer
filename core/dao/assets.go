@@ -14,8 +14,10 @@ const (
 
 func AddAssets(ctx context.Context, assets []*model.Asset) error {
 	_, err := DB.NamedExecContext(ctx, fmt.Sprintf(
-		`INSERT INTO %s ( node_id, backup_result, cid, hash, total_size, end_time, expiration, user_id, edge_replicas, candidate_replicas, total_blocks, created_time, area_id, state, note, bandwidth, source, retry_count, replenish_replicas, failed_count, succeeded_count)
-			VALUES ( :node_id, :backup_result, :cid, :hash, :total_size, :end_time, :expiration, :user_id, :edge_replicas, :candidate_replicas, :total_blocks, :created_time, :area_id, :state, :note, :bandwidth, :source, :retry_count, :replenish_replicas, :failed_count, :succeeded_count) 
+		`INSERT INTO %s ( node_id, backup_result, cid, hash, total_size, end_time, expiration, user_id, edge_replicas, candidate_replicas, total_blocks, created_time, area_id, state, note, bandwidth, source, retry_count, replenish_replicas, failed_count, succeeded_count,
+                client_ip)
+			VALUES ( :node_id, :backup_result, :cid, :hash, :total_size, :end_time, :expiration, :user_id, :edge_replicas, :candidate_replicas, :total_blocks, :created_time, :area_id, :state, :note, :bandwidth, :source, :retry_count, :replenish_replicas, :failed_count, :succeeded_count,
+				:client_ip) 
 			ON DUPLICATE KEY UPDATE  backup_result = VALUES(backup_result), end_time = VALUES(end_time), expiration = VALUES(expiration), user_id = VALUES(user_id), edge_replicas = VALUES(edge_replicas), candidate_replicas = VALUES(candidate_replicas), 
 			total_blocks = values(total_blocks), area_id = values(area_id), state = values(state), note = values(note), bandwidth = values(bandwidth), source = values(source), retry_count = values(retry_count), replenish_replicas = values(replenish_replicas), 
 			failed_count = values(failed_count), succeeded_count = values(succeeded_count);`, tableNameAsset,

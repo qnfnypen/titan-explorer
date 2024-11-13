@@ -97,8 +97,8 @@ func AddAssetAndUpdateSize(ctx context.Context, asset *model.UserAsset, areaIDs 
 	}
 	if err == sql.ErrNoRows {
 		// 添加文件记录，判断文件是否存在，不存在则新增
-		query, args, err := squirrel.Insert(tableUserAsset).Columns("user_id,asset_name,asset_type,total_size,group_id,hash,created_time,expiration,password,cid,md5,extra_id").
-			Values(asset.UserID, asset.AssetName, asset.AssetType, asset.TotalSize, asset.GroupID, asset.Hash, asset.CreatedTime, asset.Expiration, asset.Password, asset.Cid, asset.MD5, asset.ExtraID).ToSql()
+		query, args, err := squirrel.Insert(tableUserAsset).Columns("user_id,asset_name,asset_type,total_size,group_id,hash,created_time,expiration,password,cid,md5,extra_id,client_ip").
+			Values(asset.UserID, asset.AssetName, asset.AssetType, asset.TotalSize, asset.GroupID, asset.Hash, asset.CreatedTime, asset.Expiration, asset.Password, asset.Cid, asset.MD5, asset.ExtraID, asset.ClientIP).ToSql()
 		if err != nil {
 			log.Error(err)
 			return fmt.Errorf("generate insert asset sql error:%w", err)
@@ -1270,4 +1270,20 @@ func GetNoExistCIDs(ctx context.Context, uid string, cids []string) ([]string, e
 	}
 
 	return ncids, nil
+}
+
+// GetUserAssetByHash 获取最先上传文件的用户
+func GetUserAssetByHash(ctx context.Context, hash string) (*model.UserAsset, error) {
+	var out model.UserAsset
+	query := "SELECT * FROM user_asset where hash = ? order by created_time limit 1"
+	err := DB.GetContext(ctx, &out, query, hash)
+	return &out, err
+}
+
+// GetUserAssetCount 获取上传文件的用户数量
+func GetUserAssetCount(ctx context.Context, hash string) (int64, error) {
+	var count int64
+	query := "SELECT count(user_id) FROM user_asset where hash = ?"
+	err := DB.GetContext(ctx, &count, query, hash)
+	return count, err
 }

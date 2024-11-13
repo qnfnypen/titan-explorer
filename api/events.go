@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/gnasnik/titan-explorer/pkg/iptool"
 	"math"
 	"math/rand"
 	"net/http"
@@ -671,6 +672,8 @@ func CreateAssetPostHandler(c *gin.Context) {
 		return
 	}
 
+	clientIP := iptool.GetClientIP(c.Request)
+
 	areaIds := getAreaIDsByArea(c, createAssetReq.AreaID)
 	if len(areaIds) == 0 {
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
@@ -820,6 +823,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 		GroupID:     int64(createAssetReq.GroupID),
 		MD5:         createAssetReq.MD5,
 		ExtraID:     createAssetReq.ExtraID,
+		ClientIP:    clientIP,
 	}, notExistsAids, areaIds[0]); err != nil {
 		log.Errorf("CreateAssetHandler AddAsset error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
