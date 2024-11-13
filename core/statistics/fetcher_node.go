@@ -353,6 +353,7 @@ func ToDeviceInfo(node types.NodeInfo, areaId string) *model.DeviceInfo {
 		ProjectCount:           node.ProjectCount,
 		ProjectSucceededCount:  node.ProjectSucceededCount,
 		ProjectFailedCount:     node.ProjectFailedCount,
+		ReplicaCount:           node.ReplicaCount,
 	}
 
 	switch node.Status {
