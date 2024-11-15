@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/gnasnik/titan-explorer/pkg/iptool"
 	"math"
 	"math/rand"
 	"net/http"
@@ -17,6 +16,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/gnasnik/titan-explorer/pkg/iptool"
 
 	"github.com/Masterminds/squirrel"
 	jwt "github.com/appleboy/gin-jwt/v2"
@@ -413,6 +414,7 @@ func GetUploadInfoHandler(c *gin.Context) {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
 			return
 		}
+		log.Errorf("GetNodeUploadInfoV2 error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
@@ -1314,7 +1316,7 @@ func ShareAssetsHandler(c *gin.Context) {
 	// 成功的时候，下载量+1
 	oprds.GetClient().IncrAssetHourDownload(c.Request.Context(), hash, userId)
 
-	c.JSON(http.StatusOK, respJSON(JsonObject{
+	c.PureJSON(http.StatusOK, respJSON(JsonObject{
 		"asset_cid": cid,
 		"size":      userAsset.TotalSize,
 		"url":       ret,
