@@ -879,7 +879,7 @@ func AddTempAssetDownloadCount(ctx context.Context, hash string) error {
 func GetAreaIDsByHash(ctx context.Context, hash string) ([]string, error) {
 	var areaIDs []string
 
-	query, args, err := squirrel.Select("DISTINCT(area_id)").From(tableUserAssetArea).Where("hash = ?", hash).ToSql()
+	query, args, err := squirrel.Select("DISTINCT(area_id)").From(tableUserAssetArea).Where("hash = ? AND is_sync = 1", hash).ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("generate asset's areaid sql error:%w", err)
 	}

@@ -599,6 +599,24 @@ func GetDeviceInfoListByIds(ctx context.Context, deviceIds []string) ([]*model.D
 	return out, nil
 }
 
+func GetCityCountByDeviceIds(ctx context.Context, deviceIds []string) (int64, error) {
+	var count int64
+
+	query, args, err := sqlx.In(fmt.Sprintf(
+		`SELECT COUNT(DISTINCT(ip_city)) FROM %s WHERE device_id IN (?)`, tableNameDeviceInfo), deviceIds)
+	if err != nil {
+		return count, err
+	}
+
+	query = DB.Rebind(query)
+	err = DB.GetContext(ctx, &count, query, args...)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
 func GetDeviceInfoById(ctx context.Context, deviceId string) model.DeviceInfo {
 	var deviceInfo model.DeviceInfo
 	query := fmt.Sprintf("SELECT * FROM %s where device_id = '%s'", tableNameDeviceInfo, deviceId)
