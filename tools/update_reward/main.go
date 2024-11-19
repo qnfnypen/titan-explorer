@@ -140,7 +140,7 @@ func update(ctx context.Context, deviceInfos []*model.DeviceInfo) error {
 		deviceInfoHour = append(deviceInfoHour, statistics.ToDeviceInfoHour(d, start))
 	}
 
-	if err = statistics.AddDeviceInfoHours(ctx, deviceInfoHour); err != nil {
+	if err = statistics.AddDeviceInfoHours(ctx, start, deviceInfoHour); err != nil {
 		log.Printf("add device info hours: %v", err)
 	}
 

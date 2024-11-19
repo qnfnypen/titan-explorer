@@ -137,7 +137,7 @@ loop:
 		}
 
 		if len(deviceInfoHours) > 0 {
-			if err = AddDeviceInfoHours(ctx, deviceInfoHours); err != nil {
+			if err = AddDeviceInfoHours(ctx, start, deviceInfoHours); err != nil {
 				log.Errorf("add device info hours: %v", err)
 			}
 		}
