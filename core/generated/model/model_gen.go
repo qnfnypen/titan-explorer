@@ -160,6 +160,7 @@ type DeviceInfo struct {
 
 	Operation int `db:"operation"`
 	DeactiveTime int64 `db:"deactive_time"`
+	ReplicaCount int64 `json:"replica_count" db:"replica_count"`
 
 	Location
 }

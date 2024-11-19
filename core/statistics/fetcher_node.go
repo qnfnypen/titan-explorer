@@ -137,7 +137,7 @@ loop:
 		}
 
 		if len(deviceInfoHours) > 0 {
-			if err = AddDeviceInfoHours(ctx, deviceInfoHours); err != nil {
+			if err = AddDeviceInfoHours(ctx, start, deviceInfoHours); err != nil {
 				log.Errorf("add device info hours: %v", err)
 			}
 		}
@@ -353,6 +353,7 @@ func ToDeviceInfo(node types.NodeInfo, areaId string) *model.DeviceInfo {
 		ProjectCount:           node.ProjectCount,
 		ProjectSucceededCount:  node.ProjectSucceededCount,
 		ProjectFailedCount:     node.ProjectFailedCount,
+		ReplicaCount:           node.ReplicaCount,
 	}
 
 	switch node.Status {

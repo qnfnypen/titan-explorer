@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"crypto/md5"
 	"database/sql"
 	"encoding/hex"
@@ -1316,7 +1317,7 @@ func ShareAssetsHandler(c *gin.Context) {
 	// 成功的时候，下载量+1
 	oprds.GetClient().IncrAssetHourDownload(c.Request.Context(), hash, userId)
 
-	c.JSON(http.StatusOK, respJSON(JsonObject{
+	c.PureJSON(http.StatusOK, respJSON(JsonObject{
 		"asset_cid": cid,
 		"size":      userAsset.TotalSize,
 		"url":       ret,
@@ -2209,70 +2210,57 @@ func GetAssetCountHandler(c *gin.Context) {
 // GetAssetDetailHandler 获取文件详情
 
 func GetAssetDetailHandler(c *gin.Context) {
+	var (
+		wg        = new(sync.WaitGroup)
+		mu        = new(sync.Mutex)
+		deviceIds []string
+	)
+
 	uid := c.Query("user_id")
 	cid := c.Query("cid")
 	lang := model.Language(c.GetHeader("Lang"))
-	resp := new(types.AssetRecord)
 
 	// 获取文件hash
-	hash, err := storage.CIDToHash(cid)
-	if err != nil {
-		log.Errorf("CreateAssetHandler CIDToHash error: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
-	info, err := dao.GetUserAsset(c.Request.Context(), hash, uid)
-	switch err {
-	case sql.ErrNoRows:
-		c.JSON(http.StatusOK, respErrorCode(errors.NotFound, c))
-		return
-	case nil:
-	default:
-		log.Errorf("get user asset info error: %v", err)
-		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-		return
-	}
-	// 获取调度器区域
-	areaIds, err := dao.GetAreaIDsByHash(c.Request.Context(), hash)
+	areaIds, info, _, err := getAssetInfo(c.Request.Context(), uid, cid)
 	if err != nil {
 		log.Error(err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	for _, v := range areaIds {
-		schedulerClient, err := getSchedulerClient(c.Request.Context(), v)
-		if err != nil {
-			log.Errorf("getSchedulerClient: %v", err)
-			continue
-		}
-		record, err := schedulerClient.GetAssetRecord(c.Request.Context(), cid)
-		if err != nil {
-			log.Errorf("api GetAssetRecord: %v", err)
-			continue
-		}
-		resp.ReplicaInfos = append(resp.ReplicaInfos, record.ReplicaInfos...)
+		wg.Add(1)
+		go func(v string) {
+			defer wg.Done()
+			schedulerClient, err := getSchedulerClient(c.Request.Context(), v)
+			if err != nil {
+				log.Errorf("getSchedulerClient: %v", err)
+				return
+			}
+			record, err := schedulerClient.GetAssetRecord(c.Request.Context(), cid)
+			if err != nil {
+				log.Errorf("api GetAssetRecord: %v", err)
+				return
+			}
+			for _, v := range record.ReplicaInfos {
+				if v.Status != 3 {
+					continue
+				}
+				mu.Lock()
+				deviceIds = append(deviceIds, v.NodeID)
+				mu.Unlock()
+			}
+		}(v)
 	}
-
-	cityMap := make(map[string]struct{})
-
-	var deviceIds []string
-	for _, replicas := range resp.ReplicaInfos {
-		if replicas.Status != 3 {
-			continue
-		}
-		deviceIds = append(deviceIds, replicas.NodeID)
-	}
+	wg.Wait()
 
 	deviceInfos, e := dao.GetDeviceInfoListByIds(c.Request.Context(), deviceIds)
 	if err != nil {
 		log.Errorf("GetAssetList err: %v", e)
 	}
 
-	for _, nodeInfo := range deviceInfos {
-		if _, ok := cityMap[nodeInfo.IpCity]; ok {
-			continue
-		}
-		cityMap[nodeInfo.IpCity] = struct{}{}
+	ac, err := dao.GetCityCountByDeviceIds(c.Request.Context(), deviceIds)
+	if err != nil {
+		log.Errorf("GetCityCountByDeviceIds err: %v", err)
 	}
 
 	mapList := dao.GenerateDeviceMapInfo(deviceInfos, lang)
@@ -2286,11 +2274,29 @@ func GetAssetDetailHandler(c *gin.Context) {
 		"cid":               cid,
 		"cid_name":          info.AssetName,
 		"ReplicaInfo_count": len(deviceIds),
-		"area_count":        len(cityMap),
+		"area_count":        ac,
 		"titan_count":       len(deviceIds),
 		"fileCoin_count":    filReplicas,
 		"list":              mapList,
 		"total":             len(mapList),
+	}))
+}
+
+func GetAssetAreaInfo(c *gin.Context) {
+	uid := c.Query("user_id")
+	cid := c.Query("cid")
+
+	// 获取文件hash
+	_, info, _, err := getAssetInfo(c.Request.Context(), uid, cid)
+	if err != nil {
+		log.Error(err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"cid":      cid,
+		"cid_name": info.AssetName,
 	}))
 }
 
@@ -3324,4 +3330,37 @@ func GetShareGroupInfo(c *gin.Context) {
 		},
 		"total": assetSummary.Total,
 	}))
+}
+
+func getAssetInfo(ctx context.Context, uid, cid string) ([]string, *model.UserAsset, int, error) {
+	var maps = make(map[string]struct{})
+
+	// 获取文件hash
+	hash, err := storage.CIDToHash(cid)
+	if err != nil {
+		return nil, nil, 0, fmt.Errorf("CreateAssetHandler CIDToHash error: %w", err)
+	}
+	info, err := dao.GetUserAsset(ctx, hash, uid)
+	switch err {
+	case sql.ErrNoRows:
+		return nil, nil, 0, fmt.Errorf("not found:%w", err)
+	case nil:
+	default:
+		return nil, nil, 0, fmt.Errorf("get user asset info error: %w", err)
+	}
+	// 获取调度器区域
+	areaIds, err := dao.GetAreaIDsByHash(ctx, hash)
+	if err != nil {
+		return nil, nil, 0, fmt.Errorf("get areaids error:%w", err)
+	}
+	for _, v := range areaIds {
+		as := strings.Split(v, "-")
+		if len(as) < 2 {
+			maps[v] = struct{}{}
+		} else {
+			maps[as[1]] = struct{}{}
+		}
+	}
+
+	return areaIds, info, len(maps), nil
 }

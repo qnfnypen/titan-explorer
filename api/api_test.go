@@ -237,3 +237,7 @@ func TestEncode(t *testing.T) {
 func TestGetAreaIDsCountry(t *testing.T) {
 	t.Log(getAreaIDsCountry([]string{"China"}))
 }
+
+func TestAdd(t *testing.T) {
+	t.Log(1024*1024*1024)
+}

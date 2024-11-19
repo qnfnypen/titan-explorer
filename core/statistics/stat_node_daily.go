@@ -20,7 +20,7 @@ const (
 const batchSize = 1000
 
 // AddDeviceInfoHours 写入 device_info_hour 表
-func AddDeviceInfoHours(ctx context.Context, upsertDevice []*model.DeviceInfoHour) error {
+func AddDeviceInfoHours(ctx context.Context, startTime time.Time, upsertDevice []*model.DeviceInfoHour) error {
 	log.Info("start to fetch device info hours")
 	start := time.Now()
 	defer func() {
@@ -32,13 +32,13 @@ func AddDeviceInfoHours(ctx context.Context, upsertDevice []*model.DeviceInfoHou
 		log.Errorf("bulk upsert device info: %v", err)
 	}
 
-	if start.Minute() != 0 {
+	if startTime.Minute() != 0 {
 		return nil
 	}
 
 	// Add a redundant record to make it easier to count data within the range of 0-60 minutes
 	for i := 0; i < len(upsertDevice); i++ {
-		upsertDevice[i].Time = start.Add(-1 * time.Minute)
+		upsertDevice[i].Time = startTime.Add(-1 * time.Minute)
 	}
 
 	err = dao.BulkUpsertDeviceInfoHours(ctx, upsertDevice)
