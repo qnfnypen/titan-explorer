@@ -719,7 +719,7 @@ func GetUserTransDetailHandler(c *gin.Context) {
 		return
 	}
 
-	sb := squirrel.Select("*").Where(squirrel.Eq{"userid": userid}).Where("DATE_FORMAT(created_at, '%Y%m%d') = ?", date)
+	sb := squirrel.Select("*").From("asset_transfer_log").Where(squirrel.Eq{"user_id": userid}).Where("DATE_FORMAT(created_at, '%Y%m%d') = ?", date)
 	if transferType != "" {
 		sb = sb.Where("transfer_type = ?", transferType)
 	}
