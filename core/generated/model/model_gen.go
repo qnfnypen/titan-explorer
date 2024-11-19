@@ -249,7 +249,7 @@ type FullNodeInfo struct {
 	FNodeCount               int64     `db:"f_node_count" json:"f_node_count"`
 	Time                     time.Time `db:"time" json:"time"`
 	CPUCores                 int64     `db:"cpu_cores" json:"cpu_cores"`
-	Memory                   int64     `db:"memory" json:"memory"`
+	Memory                   float64     `db:"memory" json:"memory"`
 	IPCount                  int64     `db:"ip_count" json:"ip_count"`
 	CreatedAt                time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt                time.Time `db:"updated_at" json:"updated_at"`
