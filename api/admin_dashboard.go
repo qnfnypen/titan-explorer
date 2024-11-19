@@ -728,7 +728,7 @@ func GetUserTransDetailHandler(c *gin.Context) {
 	case "success":
 		sb = sb.Where("state = ?", dao.AssetTransferStateSuccess)
 	case "failed":
-		sb = sb.Where("transfer_res= ?", dao.AssetTransferStateFailure)
+		sb = sb.Where("state= ?", dao.AssetTransferStateFailure)
 	case "": // add no filter
 	}
 

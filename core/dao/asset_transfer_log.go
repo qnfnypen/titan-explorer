@@ -44,16 +44,16 @@ func NewLogTrace(ctx context.Context, uid string, transferType string, area stri
 }
 
 type ComprehensiveStats struct {
-	TotalDownloads   int     `db:"total_downloads"`
-	TotalUploads     int     `db:"total_uploads"`
-	DownloadSuccess  int     `db:"download_success"`
-	UploadSuccess    int     `db:"upload_success"`
-	DownloadFailure  int     `db:"download_failure"`
-	UploadFailure    int     `db:"upload_failure"`
-	DownloadSize     int     `db:"download_size"`
-	UploadSize       int     `db:"upload_size"`
-	DownloadAvgSpeed float64 `db:"download_avg_speed"`
-	UploadAvgSpeed   float64 `db:"upload_avg_speed"`
+	TotalDownloads   int     `db:"total_downloads" json:"total_downloads"`
+	TotalUploads     int     `db:"total_uploads" json:"total_uploads"`
+	DownloadSuccess  int     `db:"download_success" json:"download_success"`
+	UploadSuccess    int     `db:"upload_success" json:"upload_success"`
+	DownloadFailure  int     `db:"download_failure" json:"download_failure"`
+	UploadFailure    int     `db:"upload_failure" json:"upload_failure"`
+	DownloadSize     int     `db:"download_size" json:"download_size"`
+	UploadSize       int     `db:"upload_size" json:"upload_size"`
+	DownloadAvgSpeed float64 `db:"download_avg_speed" json:"download_avg_speed"`
+	UploadAvgSpeed   float64 `db:"upload_avg_speed" json:"upload_avg_speed"`
 }
 
 // 获取所有统计数据
@@ -112,7 +112,6 @@ func GetComprehensiveStatsInPeriodByUser(ctx context.Context, start, end int64, 
 	var stats ComprehensiveStats
 	query := `
 		SELECT 
-			DATE(created_at) AS day,
 			COALESCE(SUM(CASE WHEN transfer_type = 'download' THEN 1 ELSE 0 END), 0) AS total_downloads,
 			COALESCE(SUM(CASE WHEN transfer_type = 'upload' THEN 1 ELSE 0 END), 0) AS total_uploads,
 			COALESCE(SUM(CASE WHEN transfer_type = 'download' AND state = 1 THEN 1 ELSE 0 END), 0) AS download_success,
@@ -147,8 +146,6 @@ func GetComprehensiveStatsInPeriodByUser(ctx context.Context, start, end int64, 
 		query += " WHERE " + joinConditions(conditions)
 	}
 
-	query += " GROUP BY DATE(created_at) ORDER BY DATE(created_at) DESC"
-
 	err := DB.GetContext(ctx, &stats, query, args...)
 	if err != nil {
 		return nil, err
@@ -156,8 +153,13 @@ func GetComprehensiveStatsInPeriodByUser(ctx context.Context, start, end int64, 
 	return &stats, nil
 }
 
-func GetComprehensiveStatsInPeriodByUserGroupByDay(ctx context.Context, start, end int64, username string) ([]*ComprehensiveStats, error) {
-	var stats []*ComprehensiveStats
+type ComprehensiveStatsWithDay struct {
+	*ComprehensiveStats
+	Day string `db:"day" json:"day"`
+}
+
+func GetComprehensiveStatsInPeriodByUserGroupByDay(ctx context.Context, start, end int64, username string) ([]*ComprehensiveStatsWithDay, error) {
+	var stats []*ComprehensiveStatsWithDay
 	query := `
 		SELECT 
 			DATE(created_at) AS day,

@@ -138,7 +138,7 @@ func ListUserByBuilder(ctx context.Context, page, size int64, sb squirrel.Select
 	if err != nil {
 		return nil, 0, err
 	}
-	if err := DB.QueryRowxContext(ctx, query, args...).StructScan(&users); err != nil {
+	if err := DB.SelectContext(ctx, &users, query, args...); err != nil {
 		return nil, 0, err
 	}
 
