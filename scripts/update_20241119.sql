@@ -1,0 +1,1 @@
+ALTER TABLE `asset_transfer_log` ADD COLUMN `ip` varchar(15) NOT NULL DEFAULT '';

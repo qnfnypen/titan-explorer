@@ -2,11 +2,17 @@ package storage
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"testing"
+	"time"
 
+	"github.com/Masterminds/squirrel"
+	"github.com/gnasnik/titan-explorer/core/dao"
+	"github.com/gnasnik/titan-explorer/core/generated/model"
 	"github.com/gnasnik/titan-explorer/pkg/random"
+	"github.com/google/uuid"
 )
 
 func TestAesEncryptCBC(t *testing.T) {
@@ -81,4 +87,27 @@ func TestAesDecryptCBCByKey(t *testing.T) {
 	}
 
 	t.Log(uid)
+}
+
+func TestCreateTenant(t *testing.T) {
+	tenant := &model.Tenant{
+		TenantID:        uuid.NewString(),
+		Name:            "tontdrive",
+		State:           dao.TenantStateActive,
+		UploadNotifyUrl: "https://dev.t-drive.io/api/v1/bot/titanCallback",
+		CreatedAt:       time.Now(),
+		// ApiKey:          uuid.NewString(),
+	}
+
+	apiKeySecretPairBlob, key, secret, err := CreateTenantKey(tenant.TenantID, tenant.Name)
+
+	fmt.Println(apiKeySecretPairBlob, key, secret, err)
+
+	sql, args, err := squirrel.Insert("tenants").Columns("tenant_id, name, api_key, state, upload_notify_url, created_at").Values(
+		tenant.TenantID, tenant.Name, apiKeySecretPairBlob, tenant.State, tenant.UploadNotifyUrl, tenant.CreatedAt,
+	).ToSql()
+
+	fmt.Println(sql, args, err)
+
+	fmt.Printf("%x\n", apiKeySecretPairBlob)
 }

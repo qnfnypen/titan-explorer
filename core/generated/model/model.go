@@ -339,6 +339,7 @@ type AssetTransferLog struct {
 	TransferType string    `db:"transfer_type" json:"transfer_type"`
 	Log          string    `db:"log" json:"log"`
 	Area         string    `db:"area" json:"area"`
+	Ip           string    `db:"ip" json:"ip"`
 	CreatedAt    time.Time `db:"created_at" json:"created_at"`
 }
 

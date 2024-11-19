@@ -2,10 +2,14 @@ package api
 
 import (
 	"context"
-	"github.com/Filecoin-Titan/titan/api"
 	"net/http"
+	"regexp"
 	"strconv"
 	"time"
+
+	"github.com/Filecoin-Titan/titan/api"
+	"github.com/Masterminds/squirrel"
+	"github.com/jinzhu/copier"
 
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/gin-gonic/gin"
@@ -617,4 +621,123 @@ func GetProjectInfoHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, respJSON(resp))
+}
+
+type UserStats struct {
+	*dao.StatsLimitUser
+	*dao.ComprehensiveStats
+}
+
+func GetUserStatsHandler(c *gin.Context) {
+	userid := c.Query("userid")
+	userType := c.Query("user_type") // user or tenant
+
+	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)
+	size, _ := strconv.ParseInt(c.Query("page_size"), 10, 64)
+
+	sb := squirrel.Select()
+	if userid != "" {
+		sb = sb.Where(squirrel.Eq{"userid": userid})
+	}
+	if userType == "user" {
+		sb = sb.Where(squirrel.Eq{"tenant_id": ""})
+	}
+	if userType == "tenant" {
+		sb = sb.Where(squirrel.NotEq{"tenant_id": ""})
+	}
+
+	users, total, err := dao.ListUserByBuilder(c.Request.Context(), page, size, sb)
+	if err != nil {
+		log.Errorf("Failed to get user stats: %s", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	ret := make([]*UserStats, len(users))
+	if err := copier.Copy(&ret, users); err != nil {
+		log.Errorf("Failed to copy user stats: %s", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	for i := range ret {
+		userStats, err := dao.GetComprehensiveStatsInPeriodByUser(c.Request.Context(), 0, 0, ret[i].Username)
+		if err != nil {
+			log.Errorf("Failed to get user stats: %s", err)
+			continue
+		}
+		if err := copier.Copy(&ret[i], userStats); err != nil {
+			log.Errorf("Failed to copy user stats: %s", err)
+		}
+	}
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"list":  ret,
+		"total": total,
+	}))
+}
+
+func GetUserStatsDailyHandler(c *gin.Context) {
+	userid := c.Query("userid")
+
+	startTime, _ := strconv.ParseInt(c.Query("start_time"), 10, 64)
+	endTime, _ := strconv.ParseInt(c.Query("end_time"), 10, 64)
+
+	list, err := dao.GetComprehensiveStatsInPeriodByUserGroupByDay(c.Request.Context(), startTime, endTime, userid)
+	if err != nil {
+		log.Errorf("Failed to get user stats: %s", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(list))
+}
+
+func GetUserTransDetailHandler(c *gin.Context) {
+	userid := c.Query("userid")
+	date := c.Query("date")                  // 20240901
+	transferType := c.Query("transfer_type") // upload download
+	transferRes := c.Query("transfer_res")   // success failed
+
+	if userid == "" || date == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	pattern := `^\d{4}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])$`
+	if matched, _ := regexp.MatchString(pattern, date); !matched {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	if transferType != "" && transferType != "upload" && transferType != "download" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	if transferRes != "" && transferRes != "success" && transferRes != "failed" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	sb := squirrel.Select("*").Where(squirrel.Eq{"userid": userid}).Where("DATE_FORMAT(created_at, '%Y%m%d') = ?", date)
+	if transferType != "" {
+		sb = sb.Where("transfer_type = ?", transferType)
+	}
+
+	switch transferRes {
+	case "success":
+		sb = sb.Where("state = ?", dao.AssetTransferStateSuccess)
+	case "failed":
+		sb = sb.Where("transfer_res= ?", dao.AssetTransferStateFailure)
+	case "": // add no filter
+	}
+
+	list, err := dao.ListAssetTransferDetail(c.Request.Context(), sb.OrderBy("created_at DESC"))
+	if err != nil {
+		log.Errorf("Failed to get user trans detail: %s", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+	c.JSON(http.StatusOK, respJSON(list))
+
 }

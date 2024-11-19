@@ -105,6 +105,46 @@ func GetUserByBuilder(ctx context.Context, sb squirrel.SelectBuilder) (*model.Us
 	return &user, err
 }
 
+type StatsLimitUser struct {
+	ID            int64  `db:"id" json:"id"`
+	Uuid          string `db:"uuid" json:"uuid"`
+	Username      string `db:"username" json:"username"`
+	UserEmail     string `db:"user_email" json:"user_email"`
+	WalletAddress string `db:"wallet_address" json:"wallet_address"`
+	TenantID      string `db:"tenant_id" json:"tenant_id"`
+}
+
+func ListUserByBuilder(ctx context.Context, page, size int64, sb squirrel.SelectBuilder) ([]*StatsLimitUser, int64, error) {
+	var (
+		users []*StatsLimitUser
+		total int64
+	)
+
+	// count builder
+	cb := sb.Column("Count(*) as count").From(tableNameUser)
+	query, args, err := cb.ToSql()
+	if err != nil {
+		return nil, 0, err
+	}
+	if err := DB.GetContext(ctx, &total, query, args...); err != nil {
+		return nil, 0, err
+	}
+
+	// query rows
+	if page <= 0 {
+		page = 1
+	}
+	query, args, err = sb.From(tableNameUser).Columns("id", "uuid", "user_email", "wallet_address", "username", "tenant_id").Offset(uint64((page - 1) * size)).Limit(uint64(size)).ToSql()
+	if err != nil {
+		return nil, 0, err
+	}
+	if err := DB.QueryRowxContext(ctx, query, args...).StructScan(&users); err != nil {
+		return nil, 0, err
+	}
+
+	return users, total, nil
+}
+
 func GetReferralList(ctx context.Context, username string, option QueryOption) (int64, []*model.InviteFrensRecord, error) {
 	var out []*model.InviteFrensRecord
 

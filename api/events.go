@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/gnasnik/titan-explorer/pkg/iptool"
 	"math"
 	"math/rand"
 	"net/http"
@@ -17,6 +16,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/gnasnik/titan-explorer/pkg/iptool"
 
 	"github.com/Masterminds/squirrel"
 	jwt "github.com/appleboy/gin-jwt/v2"
@@ -413,6 +414,7 @@ func GetUploadInfoHandler(c *gin.Context) {
 			c.JSON(http.StatusOK, respErrorCode(webErr.Code, c))
 			return
 		}
+		log.Errorf("GetNodeUploadInfoV2 error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
@@ -3168,6 +3170,8 @@ func AssetTransferReport(c *gin.Context) {
 	if req.Cid != "" && req.Hash == "" {
 		req.Hash, _ = cidutil.CIDToHash(req.Cid)
 	}
+
+	req.Ip, _ = GetIPFromRequest(c.Request)
 
 	if req.State == dao.AssetTransferStateSuccess && req.NodeId != "" {
 		if !strings.HasPrefix(req.NodeId, "c_") {

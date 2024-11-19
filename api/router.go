@@ -219,6 +219,9 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	admin.GET("/project/overview", GetProjectOverviewHandler)
 	admin.GET("/project/info", GetProjectInfoHandler)
 	admin.GET("/ip_records", GetIPRecordsHandler)
+	admin.GET("/user_stats", GetUserStatsHandler)
+	admin.GET("/user_stats/daily", GetUserStatsDailyHandler)
+	admin.GET("/user_stats/trans_detail", GetUserTransDetailHandler)
 
 	// storage
 	storage := apiV1.Group("/storage")
