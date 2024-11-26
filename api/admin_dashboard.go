@@ -637,7 +637,7 @@ func GetUserStatsHandler(c *gin.Context) {
 
 	sb := squirrel.Select()
 	if userid != "" {
-		sb = sb.Where(squirrel.Eq{"userid": userid})
+		sb = sb.Where(squirrel.Eq{"username": userid})
 	}
 	if userType == "user" {
 		sb = sb.Where(squirrel.Eq{"tenant_id": ""})
@@ -679,8 +679,15 @@ func GetUserStatsHandler(c *gin.Context) {
 func GetUserStatsDailyHandler(c *gin.Context) {
 	userid := c.Query("userid")
 
-	startTime, _ := strconv.ParseInt(c.Query("start_time"), 10, 64)
-	endTime, _ := strconv.ParseInt(c.Query("end_time"), 10, 64)
+	var startTime, endTime int64
+
+	if st, err := time.Parse("2006-01-02", c.Query("start_time")); err == nil && st.Unix() > 0 {
+		startTime = st.Unix()
+	}
+
+	if et, err := time.Parse("2006-01-02", c.Query("end_time")); err == nil && et.Unix() > 0 {
+		endTime = et.Unix() + 86400 - 1
+	}
 
 	list, err := dao.GetComprehensiveStatsInPeriodByUserGroupByDay(c.Request.Context(), startTime, endTime, userid)
 	if err != nil {
