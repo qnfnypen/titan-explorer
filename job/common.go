@@ -33,7 +33,7 @@ func SyncShedulers(ctx context.Context, sCli api.Scheduler, cid string, size int
 			continue
 		}
 		ar, err := scli.GetAssetRecord(ctx, cid)
-		if err == nil && len(ar.ReplicaInfos) > 0 {
+		if err == nil && len(ar.ReplicaInfos) > 0 && ar.Owner == owner {
 			zStrs = append(zStrs, v)
 			continue
 		}
