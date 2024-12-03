@@ -42,6 +42,7 @@ func SyncShedulers(ctx context.Context, sCli api.Scheduler, cid string, size int
 			AssetSize:     size,
 			Owner:         owner,
 			DownloadInfos: info,
+			ExpirationDay: 4 * 365,
 		})
 		if err != nil {
 			cronLog.Errorf("GetUserAssetByAreaIDs error: %v", err)
