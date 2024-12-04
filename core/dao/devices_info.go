@@ -307,6 +307,10 @@ func ContactIPLocation(loc model.Location, lang model.Language) string {
 		return in
 	}
 
+	if loc.Country == "China" || loc.Country == "中国" {
+		return fmt.Sprintf("%s-%s-%s-%s", cf(""), cf(""), cf(""), cf(""))
+	}
+
 	return fmt.Sprintf("%s-%s-%s-%s", cf(loc.Continent), cf(loc.Country), cf(loc.Province), cf(loc.City))
 }
 
