@@ -1310,9 +1310,9 @@ func ShareAssetsHandler(c *gin.Context) {
 		return
 	}
 
-	var urls = make([]string, len(ret.URLs), len(ret.URLs))
+	var urls = make([]string, len(ret.URLs))
 	for i := range ret.URLs {
-		urls[i] = fmt.Sprintf("%s&filename=%s", urls[i], url.QueryEscape(userAsset.AssetName))
+		urls[i] = fmt.Sprintf("%s&filename=%s", ret.URLs[i], url.QueryEscape(userAsset.AssetName))
 	}
 
 	// 成功的时候，下载量+1
@@ -1488,9 +1488,9 @@ func OpenAssetHandler(c *gin.Context) {
 		return
 	}
 
-	var urls = make([]string, len(ret.URLs), len(ret.URLs))
+	var urls = make([]string, len(ret.URLs))
 	for i := range ret.URLs {
-		urls[i] = fmt.Sprintf("%s&filename=%s", urls[i], url.QueryEscape(userAsset.AssetName))
+		urls[i] = fmt.Sprintf("%s&filename=%s", ret.URLs[i], url.QueryEscape(userAsset.AssetName))
 	}
 
 	// 成功的时候，下载量+1
