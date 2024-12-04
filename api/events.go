@@ -530,8 +530,8 @@ func CreateAssetHandler(c *gin.Context) {
 			if err != nil {
 				log.Errorf("ShareAssetV2 error %+v", err)
 			}
-			if len(ret) > 0 {
-				directUrl = ret[0]
+			if len(ret.URLs) > 0 {
+				directUrl = ret.URLs[0]
 			}
 		}
 		resp := respErrorCode(errors.FileExists, c)
@@ -733,8 +733,8 @@ func CreateAssetPostHandler(c *gin.Context) {
 			if err != nil {
 				log.Errorf("ShareAssetV2 error %+v", err)
 			}
-			if len(ret) > 0 {
-				directUrl = ret[0]
+			if len(ret.URLs) > 0 {
+				directUrl = ret.URLs[0]
 			}
 		}
 		resp := respErrorCode(errors.FileExists, c)
@@ -1310,19 +1310,21 @@ func ShareAssetsHandler(c *gin.Context) {
 		return
 	}
 
-	for i := range ret {
-		ret[i] = fmt.Sprintf("%s&filename=%s", ret[i], url.QueryEscape(userAsset.AssetName))
+	var urls = make([]string, len(ret.URLs), len(ret.URLs))
+	for i := range ret.URLs {
+		urls[i] = fmt.Sprintf("%s&filename=%s", urls[i], url.QueryEscape(userAsset.AssetName))
 	}
 
 	// 成功的时候，下载量+1
 	oprds.GetClient().IncrAssetHourDownload(c.Request.Context(), hash, userId)
 
 	c.PureJSON(http.StatusOK, respJSON(JsonObject{
-		"asset_cid": cid,
-		"size":      userAsset.TotalSize,
-		"url":       ret,
-		"redirect":  false,
-		"trace_id":  traceid,
+		"asset_cid":       cid,
+		"size":            userAsset.TotalSize,
+		"url":             urls,
+		"redirect":        false,
+		"trace_id":        traceid,
+		"available_nodes": ret.NodeCount,
 	}))
 }
 
@@ -1486,19 +1488,21 @@ func OpenAssetHandler(c *gin.Context) {
 		return
 	}
 
-	for i := range ret {
-		ret[i] = fmt.Sprintf("%s&filename=%s", ret[i], url.QueryEscape(userAsset.AssetName))
+	var urls = make([]string, len(ret.URLs), len(ret.URLs))
+	for i := range ret.URLs {
+		urls[i] = fmt.Sprintf("%s&filename=%s", urls[i], url.QueryEscape(userAsset.AssetName))
 	}
 
 	// 成功的时候，下载量+1
 	oprds.GetClient().IncrAssetHourDownload(c.Request.Context(), hash, userId)
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"asset_cid": cid,
-		"size":      userAsset.TotalSize,
-		"url":       ret,
-		"redirect":  false,
-		"trace_id":  traceid,
+		"asset_cid":       cid,
+		"size":            userAsset.TotalSize,
+		"url":             urls,
+		"redirect":        false,
+		"trace_id":        traceid,
+		"available_nodes": ret.NodeCount,
 	}))
 }
 

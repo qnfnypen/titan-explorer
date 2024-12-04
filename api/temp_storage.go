@@ -259,7 +259,12 @@ func ShareTempFile(c *gin.Context) {
 	}
 	// 增加重试机制，避免节点未同步完成
 retry:
-	urls, err := schedulerClient.ShareAssets(c.Request.Context(), "", []string{cid}, time.Time{})
+	// urls, err := schedulerClient.ShareAssetV2(c.Request.Context(), "", []string{cid}, time.Time{})
+	ret, err := schedulerClient.ShareAssetV2(c.Request.Context(), &types.ShareAssetReq{
+		TraceID:    "",
+		AssetCID:   cid,
+		ExpireTime: time.Time{},
+	})
 	if err != nil {
 		time.Sleep(1 * time.Second)
 		if webErr, ok := err.(*api.ErrWeb); ok {
@@ -273,15 +278,15 @@ retry:
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	if len(urls) == 0 {
+	if len(ret.URLs) == 0 {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 	dao.AddTempAssetShareCount(c.Request.Context(), hash)
-	if strings.Contains(urls[cid][0], `?filename=`) {
-		c.Redirect(301, fmt.Sprintf("%s?filename=%s", urls[cid][0], c.Query("filename")))
+	if strings.Contains(ret.URLs[0], `?filename=`) {
+		c.Redirect(301, fmt.Sprintf("%s?filename=%s", ret.URLs[0], c.Query("filename")))
 	} else {
-		c.Redirect(301, urls[cid][0])
+		c.Redirect(301, ret.URLs[0])
 	}
 }
 
@@ -358,7 +363,7 @@ func DownloadTempFile(c *gin.Context) {
 	}
 retry:
 	// urls, err := schedulerClient.ShareAssets(c.Request.Context(), "", []string{cid}, time.Time{})
-	urls, err := schedulerClient.ShareAssetV2(c.Request.Context(), &types.ShareAssetReq{
+	ret, err := schedulerClient.ShareAssetV2(c.Request.Context(), &types.ShareAssetReq{
 		TraceID:    traceid,
 		AssetCID:   cid,
 		ExpireTime: time.Time{},
@@ -375,7 +380,7 @@ retry:
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
-	if len(urls) == 0 {
+	if len(ret.URLs) == 0 {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
@@ -383,7 +388,7 @@ retry:
 	c.JSON(http.StatusOK, respJSON(JsonObject{
 		"asset_cid": cid,
 		"size":      taInfo.Size,
-		"url":       urls,
+		"url":       ret.URLs,
 		"trace_id":  traceid,
 	}))
 }

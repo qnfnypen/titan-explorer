@@ -327,20 +327,22 @@ type TotalAssetStats struct {
 }
 
 type AssetTransferLog struct {
-	TraceId      string    `json:"trace_id" db:"trace_id"`
-	UserId       string    `json:"user_id" db:"user_id"`
-	Cid          string    `db:"cid" json:"cid"`
-	Hash         string    `db:"hash" json:"hash"`
-	NodeId       string    `db:"node_id" json:"node_id"`
-	Rate         int64     `db:"rate" json:"rate"`
-	CostMs       int64     `db:"cost_ms" json:"cost_ms"`
-	TotalSize    int64     `db:"total_size" json:"total_size"`
-	State        int64     `db:"state" json:"state"`
-	TransferType string    `db:"transfer_type" json:"transfer_type"`
-	Log          string    `db:"log" json:"log"`
-	Area         string    `db:"area" json:"area"`
-	Ip           string    `db:"ip" json:"ip"`
-	CreatedAt    time.Time `db:"created_at" json:"created_at"`
+	TraceId            string    `json:"trace_id" db:"trace_id"`
+	UserId             string    `json:"user_id" db:"user_id"`
+	Cid                string    `db:"cid" json:"cid"`
+	Hash               string    `db:"hash" json:"hash"`
+	NodeId             string    `db:"node_id" json:"node_id"`
+	Rate               int64     `db:"rate" json:"rate"`
+	CostMs             int64     `db:"cost_ms" json:"cost_ms"`
+	TotalSize          int64     `db:"total_size" json:"total_size"`
+	State              int64     `db:"state" json:"state"`
+	TransferType       string    `db:"transfer_type" json:"transfer_type"`
+	Log                string    `db:"log" json:"log"`
+	Area               string    `db:"area" json:"area"`
+	Ip                 string    `db:"ip" json:"ip"`
+	FirstByteTime      int64     `db:"first_byte_time" json:"first_byte_time"`
+	AvailableBandwidth int64     `json:"available_bandwidth" db:"available_bandwidth"`
+	CreatedAt          time.Time `db:"created_at" json:"created_at"`
 }
 
 type NodeIPHistory struct {

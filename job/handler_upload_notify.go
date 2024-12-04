@@ -109,8 +109,8 @@ func assetUploadNotify(ctx context.Context, t *asynq.Task) error {
 					cronLog.Errorf("ShareAssetV2 error:%#v", serr)
 					cronLog.Errorf("areaIDs:%#v, userID:%s", payload.Area, payload.UserID)
 				}
-				if len(ret) > 0 {
-					directUrl = ret[0]
+				if len(ret.URLs) > 0 {
+					directUrl = ret.URLs[0]
 					break
 				}
 				time.Sleep(interval)
