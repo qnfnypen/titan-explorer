@@ -538,17 +538,19 @@ func getNodeCountRule(count int64) []Rule {
 
 func getNatRule(natType string, lang model.Language) []Rule {
 	var (
-		publicIPName      = "PublicIP"
-		natPublicFullName = "No NAT"
-		nat1FullName      = "Full Cone"
-		nat2FullName      = "Restricted Cone"
-		nat3FullName      = "Port Restricted Cone"
-		nat4FullName      = "Symmetric"
+		publicIPName       = "PublicIP"
+		natPublicFullName  = "No NAT"
+		natUnknownFullName = "NAT Detection In Progress"
+		nat1FullName       = "Full Cone"
+		nat2FullName       = "Restricted Cone"
+		nat3FullName       = "Port Restricted Cone"
+		nat4FullName       = "Symmetric"
 	)
 
 	if lang == model.LanguageCN {
 		publicIPName = "公网IP"
 		natPublicFullName = fmt.Sprintf("公网IP(%s)", natPublicFullName)
+		natUnknownFullName = fmt.Sprintf("NAT 检测中(%s)", natUnknownFullName)
 		nat1FullName = fmt.Sprintf("全锥型(%s)", nat1FullName)
 		nat2FullName = fmt.Sprintf("受限锥型(%s)", nat2FullName)
 		nat3FullName = fmt.Sprintf("端口受限锥形(%s)", nat3FullName)
@@ -556,11 +558,12 @@ func getNatRule(natType string, lang model.Language) []Rule {
 	}
 
 	return []Rule{
-		{Name: "NAT4", FullName: nat4FullName, Score: 0.8, Current: "SymmetricNAT" == natType || "UnknowNAT" == natType || "" == natType},
+		{Name: "NAT4", FullName: nat4FullName, Score: 0.8, Current: "SymmetricNAT" == natType},
 		{Name: "NAT3", FullName: nat3FullName, Score: 1.1, Current: "PortRestrictedNAT" == natType},
 		{Name: "NAT2", FullName: nat2FullName, Score: 1.3, Current: "RestrictedNAT" == natType},
 		{Name: "NAT1", FullName: nat1FullName, Score: 1.5, Current: "FullConeNAT" == natType},
 		{Name: publicIPName, FullName: natPublicFullName, Score: 2, Current: "NoNAT" == natType},
+		{Name: "UnknowNAT", FullName: natUnknownFullName, Score: 0, Current: "UnknowNAT" == natType || "" == natType},
 	}
 
 }
