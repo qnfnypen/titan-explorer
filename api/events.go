@@ -371,7 +371,7 @@ func GetUploadInfoHandler(c *gin.Context) {
 
 	// 判断文件是否已经存在
 	cid, exist, err := dao.CheckAssetByMd5AndAreaExists(c.Request.Context(), c.Query("md5"), areaId[0])
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		log.Errorf("CheckAssetByMd5AndAreaExists error:%v", err)
 	}
 
