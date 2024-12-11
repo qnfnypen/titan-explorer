@@ -563,7 +563,7 @@ func getNatRule(natType string, lang model.Language) []Rule {
 		{Name: "NAT2", FullName: nat2FullName, Score: 1.3, Current: "RestrictedNAT" == natType},
 		{Name: "NAT1", FullName: nat1FullName, Score: 1.5, Current: "FullConeNAT" == natType},
 		{Name: publicIPName, FullName: natPublicFullName, Score: 2, Current: "NoNAT" == natType},
-		{Name: "UnknowNAT", FullName: natUnknownFullName, Score: 0, Current: "UnknowNAT" == natType || "" == natType},
+		{Name: "UnknowNAT", FullName: natUnknownFullName, Score: 0.8, Current: "UnknowNAT" == natType || "" == natType},
 	}
 
 }
