@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/gnasnik/titan-explorer/pkg/iptool"
+	"github.com/jinzhu/copier"
 
 	"github.com/Masterminds/squirrel"
 	jwt "github.com/appleboy/gin-jwt/v2"
@@ -73,6 +74,8 @@ func GetCacheListHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.NoSchedulerFound, c))
 		return
 	}
+
+	// schedulerClient.AddNodeServiceEvent()
 
 	// todo: get scheduler from area id
 	resp, err := schedulerClient.GetReplicaEventsForNode(c.Request.Context(), nodeId, pageSize, (page-1)*pageSize)
@@ -3154,8 +3157,24 @@ func GetMonitor(c *gin.Context) {
 	}))
 }
 
+type AssetTransferReq struct {
+	model.AssetTransferLog
+	Details []*AssetTransferDetailReq `json:"details"`
+}
+
+type AssetTransferDetailReq struct {
+	NodeID       string `json:"node_id"`
+	State        int64  `json:"state"`
+	TransferType string `json:"transfer_type"`
+	Size         int64  `json:"size"`
+	StartAt      int64  `json:"start_at"`
+	EndAt        int64  `json:"end_at"`
+	StatusCode   int64  `json:"status_code"`
+	Error        string `json:"error"`
+}
+
 func AssetTransferReport(c *gin.Context) {
-	var req model.AssetTransferLog
+	var req AssetTransferReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Errorf("AssetTransferReport c.BindJSON() error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
@@ -3181,22 +3200,42 @@ func AssetTransferReport(c *gin.Context) {
 		req.Hash, _ = cidutil.CIDToHash(req.Cid)
 	}
 
+	// set ip
 	req.Ip, _ = GetIPFromRequest(c.Request)
 
-	if req.State == dao.AssetTransferStateSuccess && req.NodeId != "" {
-		if !strings.HasPrefix(req.NodeId, "c_") {
-			req.NodeId = "c_" + req.NodeId
+	// set area
+	for _, v := range req.Details {
+		nodeId := v.NodeID
+		if !strings.HasPrefix(nodeId, "c_") {
+			nodeId = "c_" + nodeId
 		}
-		node, err := dao.GetDeviceInfo(c.Request.Context(), req.NodeId)
+		node, err := dao.GetDeviceInfo(c.Request.Context(), nodeId)
 		if err != nil {
 			log.Errorf("GetDeviceInfo error %+v", err)
+			continue
 		}
 		if node != nil {
 			req.Area = node.AreaID
+			break
 		}
 	}
 
-	if err := dao.InsertOrUpdateAssetTransferLog(c.Request.Context(), &req); err != nil {
+	record, details := buildAssetTransferLog(req)
+
+	schedulerClient, err := getSchedulerClient(c.Request.Context(), req.Area)
+	if err != nil {
+		log.Errorf("getSchedulerClient error %+v", err)
+	}
+
+	serviceEvents := buildServiceEventsFromTransferDetails(details)
+
+	for _, v := range serviceEvents {
+		if err := schedulerClient.AddNodeServiceEvent(c.Request.Context(), v); err != nil {
+			log.Errorf("AddNodeServiceEvent error %+v", err)
+		}
+	}
+
+	if err := dao.InsertOrUpdateAssetTransferLog(c.Request.Context(), record, details); err != nil {
 		log.Errorf("InsertAssetTransferLog() error: %+v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
@@ -3268,6 +3307,76 @@ func AssetTransferReport(c *gin.Context) {
 
 End:
 	c.JSON(http.StatusOK, gin.H{"msg": "success"})
+}
+
+func buildServiceEventsFromTransferDetails(details []*model.AssetTrasnferDetail) []*types.ServiceEvent {
+	var ret = make([]*types.ServiceEvent, len(details))
+	for i, v := range details {
+		ret[i] = &types.ServiceEvent{
+			TraceID:   v.TraceId,
+			NodeID:    v.NodeID,
+			Type:      dao.AssetTransferTypeMap[v.TransferType],
+			Size:      v.Size,
+			Status:    dao.AssetServiceStatusMap[int(v.State)],
+			Peak:      v.Peek,
+			StartTime: v.CreateAt,
+			EndTime:   v.CreateAt.Add(time.Duration(v.ElaspedTime) * time.Millisecond),
+			Speed:     v.Size * 1000 / int64(v.ElaspedTime),
+		}
+	}
+
+	return ret
+}
+
+func buildAssetTransferLog(req AssetTransferReq) (*model.AssetTransferLog, []*model.AssetTrasnferDetail) {
+	// set details
+	var (
+		details []*model.AssetTrasnferDetail
+		detailM = make(map[string][]*model.AssetTrasnferDetail)
+		errM    = make(map[string]dao.AssetTransferDetailErrors)
+	)
+
+	for _, v := range req.Details {
+		detailM[v.NodeID] = append(detailM[v.NodeID], &model.AssetTrasnferDetail{
+			TraceId:      req.TraceId,
+			NodeID:       v.NodeID,
+			Size:         v.Size,
+			State:        v.State,
+			TransferType: v.TransferType,
+			CreateAt:     time.Unix(v.StartAt, 0),
+			ElaspedTime:  v.EndAt - v.StartAt,
+		})
+		if errM[v.NodeID] == nil {
+			errM[v.NodeID] = dao.AssetTransferDetailErrors{}
+		}
+		errM[v.NodeID].Append(v.StatusCode, v.Error)
+	}
+
+	for _, v := range detailM {
+		var sucesses, fails []*model.AssetTrasnferDetail
+		for _, d := range v {
+			if d.State == dao.AssetTransferStateSuccess {
+				sucesses = append(sucesses, d)
+			} else if d.State == dao.AssetTransferStateFailure {
+				fails = append(fails, d)
+			}
+		}
+		groupSuccess, groupFail := model.AssetTrasnferDetails(sucesses).GroupByNodeAndState(), model.AssetTrasnferDetails(fails).GroupByNodeAndState()
+
+		details = append(details, groupSuccess)
+
+		if groupFail != nil {
+			groupFail.Errors = errM[v[0].NodeID].ToString()
+			details = append(details, groupFail)
+		}
+	}
+
+	var record model.AssetTransferLog
+	if err := copier.Copy(&record, &req); err != nil {
+		log.Errorf("AssetTransferReport copier.Copy() error: %+v", err)
+	}
+
+	return &record, details
 }
 
 // GetShareGroupInfo 获取分享文件组信息

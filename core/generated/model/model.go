@@ -329,20 +329,32 @@ type TotalAssetStats struct {
 type AssetTransferLog struct {
 	TraceId            string    `json:"trace_id" db:"trace_id"`
 	UserId             string    `json:"user_id" db:"user_id"`
-	Cid                string    `db:"cid" json:"cid"`
-	Hash               string    `db:"hash" json:"hash"`
-	NodeId             string    `db:"node_id" json:"node_id"`
-	Rate               int64     `db:"rate" json:"rate"`
-	CostMs             int64     `db:"cost_ms" json:"cost_ms"`
-	TotalSize          int64     `db:"total_size" json:"total_size"`
-	State              int64     `db:"state" json:"state"`
-	TransferType       string    `db:"transfer_type" json:"transfer_type"`
-	Log                string    `db:"log" json:"log"`
-	Area               string    `db:"area" json:"area"`
-	Ip                 string    `db:"ip" json:"ip"`
-	FirstByteTime      int64     `db:"first_byte_time" json:"first_byte_time"`
+	Cid                string    `json:"cid" db:"cid"`
+	Hash               string    `json:"hash" db:"hash"`
+	NodeId             string    `json:"node_id" db:"node_id"`
+	Rate               int64     `json:"rate" db:"rate"`
+	CostMs             int64     `json:"cost_ms" db:"cost_ms"`
+	TotalSize          int64     `json:"total_size" db:"total_size"`
+	State              int64     `json:"state" db:"state"`
+	TransferType       string    `json:"transfer_type" db:"transfer_type"`
+	Log                string    `json:"log" db:"log"`
+	Area               string    `json:"area" db:"area"`
+	Ip                 string    `json:"ip" db:"ip"`
+	FirstByteTime      int64     `json:"first_byte_time" db:"first_byte_time"`
 	AvailableBandwidth int64     `json:"available_bandwidth" db:"available_bandwidth"`
-	CreatedAt          time.Time `db:"created_at" json:"created_at"`
+	CreatedAt          time.Time `json:"created_at" db:"created_at"`
+}
+
+type AssetTrasnferDetail struct {
+	TraceId      string    `json:"trace_id" db:"trace_id"`
+	NodeID       string    `json:"node_id" db:"node_id"`
+	State        int64     `json:"state" db:"state"`
+	TransferType string    `json:"transfer_type" db:"transfer_type"`
+	Peek         int64     `json:"peek" db:"peek"`
+	ElaspedTime  int64     `json:"elasped_time" db:"elasped_time"`
+	Size         int64     `json:"size" db:"size"`
+	Errors       string    `json:"errors" db:"errors"`
+	CreateAt     time.Time `json:"created_at" db:"created_at"`
 }
 
 type NodeIPHistory struct {
