@@ -53,6 +53,7 @@ func main() {
 	if err := oss.InitFromCfg(cfg.Oss); err != nil {
 		log.Fatalf("init oss: %v\n", err)
 	}
+	api.InitManagers(&cfg)
 
 	oplog.Subscribe(context.Background())
 	oprds.Init()

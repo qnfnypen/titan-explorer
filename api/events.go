@@ -736,7 +736,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 			if err != nil {
 				log.Errorf("ShareAssetV2 error %+v", err)
 			}
-			if len(ret.URLs) > 0 {
+			if ret != nil && len(ret.URLs) > 0 {
 				directUrl = ret.URLs[0]
 			}
 		}

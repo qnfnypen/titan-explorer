@@ -28,6 +28,13 @@ const (
 	connMaxLifetime    = 120
 	maxIdleConnections = 30
 	connMaxIdleTime    = 20
+
+	userInfoTable       = "users"
+	orderInfoTable      = "orders"
+	userReceiveTable    = "user_receive"
+	hourlyQuotasTable   = "hourly_quotas"
+	receiveHistoryTable = "receive_history"
+	userNonceTable      = "user_nonce"
 )
 
 var ErrNoRow = fmt.Errorf("no matching row found")
@@ -46,10 +53,8 @@ func Init(cfg *config.Config) error {
 		return err
 	}
 
-	db.SetMaxOpenConns(maxOpenConnections)
-	db.SetConnMaxLifetime(connMaxLifetime * time.Second)
-	db.SetMaxIdleConns(maxIdleConnections)
-	db.SetConnMaxIdleTime(connMaxIdleTime * time.Second)
+	setDBConfig(db, maxOpenConnections, connMaxLifetime, maxIdleConnections, connMaxIdleTime)
+	setDBConfig(qdb, maxOpenConnections, connMaxLifetime, maxIdleConnections, connMaxIdleTime)
 
 	client := redis.NewClient(&redis.Options{
 		Addr:         cfg.RedisAddr,
@@ -67,6 +72,7 @@ func Init(cfg *config.Config) error {
 	DB = db
 	QDB = qdb
 	RedisCache = client
+
 	return nil
 }
 
@@ -231,4 +237,11 @@ func OptionHandle(startTime, endTime string) QueryOption {
 	}
 
 	return option
+}
+
+func setDBConfig(db *sqlx.DB, maxOpenConnections, connMaxLifetime, maxIdleConnections, connMaxIdleTime int) {
+	db.SetMaxOpenConns(maxOpenConnections)
+	db.SetConnMaxLifetime(time.Duration(connMaxLifetime) * time.Second)
+	db.SetMaxIdleConns(maxIdleConnections)
+	db.SetConnMaxIdleTime(time.Duration(connMaxIdleTime) * time.Second)
 }

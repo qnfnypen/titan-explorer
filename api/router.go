@@ -343,6 +343,26 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 	tenant.POST("/sync_user", SubUserSyncHandler)
 	tenant.DELETE("/user", SubUserDeleteHandler)
 	tenant.GET("/refresh_token", SubUserRefreshTokenHandler)
+
+	// platform 容器平台
+	platform := apiV1.Group("/platform")
+	platform.Use(authMiddleware.MiddlewareFunc())
+	puser := platform.Group("/user")
+	puser.GET("/info", getUserInfoHandler)
+	puser.POST("/receive", receiveTokenHandler)
+	puser.GET("/balance", getBalanceHandler)
+	puser.GET("/receive_history", getReceiveHistoryHandler)
+	puser.POST("/reset_kub_pwd", resetKubPwdHandler)
+	puser.GET("/distributed", getDistributedAmountHandler)
+	porder := platform.Group("/order")
+	porder.GET("/price", getPriceHandler)
+	porder.GET("/refund", getRefundHandler)
+	porder.POST("/create", createOrderHandler)
+	porder.GET("/history", getOrderHistoryHandler)
+	porder.POST("/terminate", terminateOrderHandler)
+	porder.POST("/renewal", renewalOrderHandler)
+	porder.POST("/upgrade", upgradeOrderHandler)
+	porder.POST("/hash", setOrderHashHandler)
 }
 
 func RegisterRouterWithAPIKey(router *gin.Engine) {

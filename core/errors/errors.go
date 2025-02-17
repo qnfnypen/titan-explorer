@@ -82,8 +82,12 @@ const (
 	AssetVisitOutOfLimit
 
 	OutTotalFlow
+	QuotaIssued
+	Received
+	OrderStatus
 
 	Unknown     = -1
+	Success     = 0
 	GenericCode = 1
 )
 
@@ -95,6 +99,8 @@ var ErrMap = map[int]string{
 	UserNotFound:                             "user not found:用户不存在",
 	InvalidPassword:                          "invalid password:密码错误",
 	InternalServer:                           "Server Busy:服务器繁忙，请稍后再试",
+	QuotaIssued:                              "the quota has been issued: 额度已发完",
+	Received:                                 "received: 已领取",
 	NoSchedulerFound:                         "no scheduler found:没有可用的调度器",
 	DeviceExists:                             "device already exists:设备已存在",
 	DeviceNotExists:                          "device not exists:设备不存在",
@@ -176,6 +182,7 @@ var ErrMap = map[int]string{
 	MissingUserId:                            "missing user id:缺少用户ID",
 	AssetVisitOutOfLimit:                     "asset visit out of limit:访问次数超出限制",
 	OutTotalFlow:                             "out total flow:总流量超过使用限制",
+	OrderStatus:                              "Status does not match: 状态不匹配",
 }
 
 type GenericError struct {

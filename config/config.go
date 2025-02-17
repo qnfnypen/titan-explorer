@@ -7,6 +7,7 @@ type Config struct {
 	ApiListen                string
 	DatabaseURL              string
 	QuestDatabaseURL         string
+	PlatformDatabaseURL      string
 	SecretKey                string
 	RedisAddr                string
 	RedisPassword            string
@@ -23,6 +24,9 @@ type Config struct {
 	Oss                      OssConfig
 	Locators                 []string
 	BaseURL                  string
+
+	KubesphereAPI KubesphereAPIConfig
+	ChainAPI      ChainAPIConfig
 }
 
 type EmailConfig struct {
@@ -69,4 +73,23 @@ type OssConfig struct {
 	AccessKey string
 	Bucket    string
 	Host      string
+}
+
+// KubesphereAPIConfig holds the configuration for the KubeSphere API.
+type KubesphereAPIConfig struct {
+	URL           string
+	AdminAccount  string
+	AdminPassword string
+	Cluster       string
+}
+
+// ChainAPIConfig holds the configuration for the chain API.
+type ChainAPIConfig struct {
+	AddressPrefix        string
+	RPC                  string
+	TokenContractAddress string
+	ServiceName          string
+	KeyringDir           string
+	FaucetGas            string
+	OrderContractAddress string
 }
