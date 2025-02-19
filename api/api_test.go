@@ -172,7 +172,7 @@ func TestMove(t *testing.T) {
 }
 
 func TestChange(t *testing.T) {
-	cid := "bafybeiacqokqcyggsppoy2oe76x7vxuh5xupgzuxuvm4cmj267l4g2pbrq"
+	cid := "bafybeidkgbgbmm5rfxdarri5dk2nwcwjejjk42bhnbet7yolns3h2yrjxa"
 	// hash, err := storage.CIDToHash(cid)
 	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {
@@ -239,5 +239,5 @@ func TestGetAreaIDsCountry(t *testing.T) {
 }
 
 func TestAdd(t *testing.T) {
-	t.Log(1024*1024*1024)
+	t.Log(1024 * 1024 * 1024)
 }

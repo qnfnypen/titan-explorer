@@ -11,12 +11,13 @@ type UserNonce struct {
 
 // User represents a user in the system.
 type User struct {
-	Account   string    `db:"account" json:"account"`
-	Avatar    string    `db:"avatar" json:"avatar"`
-	Username  string    `db:"user_name" json:"user_name"`
-	UserEmail string    `db:"user_email" json:"user_email"`
-	KubPwd    string    `db:"kub_pwd" json:"kub_pwd"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	Account     string    `db:"account" json:"account"`
+	Avatar      string    `db:"avatar" json:"avatar"`
+	Username    string    `db:"user_name" json:"user_name"`
+	UserEmail   string    `db:"user_email" json:"user_email"`
+	KubPwd      string    `db:"kub_pwd" json:"kub_pwd"`
+	StorageUser string    `db:"storage_user" json:"storage_user"`
+	CreatedAt   time.Time `db:"created_at" json:"created_at"`
 }
 
 // OrderInfoReq represents a request to create or get price an order with specified resources.

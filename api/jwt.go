@@ -44,6 +44,7 @@ type loginResponse struct {
 
 var (
 	identityKey = "id"
+	platformKey = "platform_account"
 	roleKey     = "role"
 	tenantID    = "tenant_id"
 	tenantName  = "tenant_name"
@@ -253,7 +254,14 @@ func loginBySignature(c *gin.Context, username, address, msg, pk string) (interf
 		if !match {
 			return nil, errors.NewErrorCode(errors.PassWordNotAllowed, c)
 		}
+		// 添加容器平台用户信息
+		err = addPlatformUserInfo(c.Request.Context(), address, username)
+		if err != nil {
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return nil, errors.NewErrorCode(errors.InternalServer, c)
+		}
 	}
+
 	return &model.User{Username: username, Role: 0}, nil
 }
 
@@ -399,4 +407,23 @@ func GetLocation(ctx context.Context, ipAddr string) (*model.Location, error) {
 	}
 
 	return loc, nil
+}
+
+func ContainerPlatformAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 获取storage_user
+		claims := jwt.ExtractClaims(c)
+		su := claims[identityKey].(string)
+
+		account, err := checkCPlatformUserIsExist(c.Request.Context(), su)
+		if err != nil {
+			log.Errorf("checkCPlatformUserIsExist error %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.NeedBindKeplr, c))
+			return
+		}
+
+		c.Set(platformKey, account)
+
+		c.Next()
+	}
 }

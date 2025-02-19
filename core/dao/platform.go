@@ -12,6 +12,15 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+const (
+	userInfoTable       = "container_platform_users"
+	orderInfoTable      = "container_platform_orders"
+	userReceiveTable    = "container_platform_user_receive"
+	hourlyQuotasTable   = "container_platform_hourly_quotas"
+	receiveHistoryTable = "container_platform_receive_history"
+	// userNonceTable      = "user_nonce"
+)
+
 // Mgr manages database operations.
 type Mgr struct {
 	db *sqlx.DB
@@ -20,7 +29,7 @@ type Mgr struct {
 // NewDbMgr creates a new db instance.
 func NewDbMgr(cfg *config.Config) (*Mgr, error) {
 	n := new(Mgr)
-	pdb, err := sqlx.Connect("mysql", cfg.PlatformDatabaseURL)
+	pdb, err := sqlx.Connect("mysql", cfg.DatabaseURL)
 	if err != nil {
 		return nil, err
 	}
@@ -46,11 +55,11 @@ func (n *Mgr) cleanData() {
 		log.Warnf("cleanData receiveHistoryTable err:%s", err.Error())
 	}
 
-	query = fmt.Sprintf(`DELETE FROM %s WHERE expired_at<DATE_SUB(NOW(), INTERVAL 1 DAY) `, userNonceTable)
-	_, err = n.db.Exec(query)
-	if err != nil {
-		log.Warnf("cleanData userNonceTable err:%s", err.Error())
-	}
+	// query = fmt.Sprintf(`DELETE FROM %s WHERE expired_at<DATE_SUB(NOW(), INTERVAL 1 DAY) `, userNonceTable)
+	// _, err = n.db.Exec(query)
+	// if err != nil {
+	// 	log.Warnf("cleanData userNonceTable err:%s", err.Error())
+	// }
 
 	query = fmt.Sprintf(`DELETE FROM %s WHERE last_receive<DATE_SUB(NOW(), INTERVAL 5 DAY) `, userReceiveTable)
 	_, err = n.db.Exec(query)
@@ -395,30 +404,6 @@ func (n *Mgr) LoadReceiveHistory(ctx context.Context, account string, page, size
 	return out, count, nil
 }
 
-// SaveUserNonce saves the nonce for a user account in the database.
-func (n *Mgr) SaveUserNonce(info *core.UserNonce) error {
-	query := fmt.Sprintf(
-		`INSERT INTO %s (account, nonce, expired_at)
-				VALUES (:account, :nonce, :expired_at)
-				ON DUPLICATE KEY UPDATE nonce=:nonce, expired_at=:expired_at`, userNonceTable)
-
-	_, err := n.db.NamedExec(query, info)
-	return err
-}
-
-// GetUserNonce retrieves the nonce for a given user account.
-func (n *Mgr) GetUserNonce(ctx context.Context, account string) (*core.UserNonce, error) {
-	response := core.UserNonce{}
-
-	if err := n.db.QueryRowxContext(ctx, fmt.Sprintf(
-		`SELECT * FROM %s WHERE account = ?`, userNonceTable), account,
-	).StructScan(&response); err != nil {
-		return nil, err
-	}
-
-	return &response, nil
-}
-
 // GetUserInfo retrieves user information based on the account provided.
 func (n *Mgr) GetUserInfo(ctx context.Context, account string) (*core.User, error) {
 	response := core.User{}
@@ -434,7 +419,7 @@ func (n *Mgr) GetUserInfo(ctx context.Context, account string) (*core.User, erro
 
 // CreateUser creates a new user in the database.
 func (n *Mgr) CreateUser(ctx context.Context, user *core.User) error {
-	query := fmt.Sprintf(`INSERT INTO %s (account, user_name, user_email, avatar, kub_pwd) VALUES (:account, :user_name, :user_email, :avatar, :kub_pwd) `, userInfoTable)
+	query := fmt.Sprintf(`INSERT INTO %s (account, user_name, user_email, avatar, kub_pwd, storage_user) VALUES (:account, :user_name, :user_email, :avatar, :kub_pwd, :storage_user) `, userInfoTable)
 	_, err := n.db.NamedExec(query, user)
 
 	return err
@@ -445,6 +430,18 @@ func (n *Mgr) GetUserByAccount(ctx context.Context, account string) (*core.User,
 	var out core.User
 	if err := n.db.QueryRowxContext(ctx, fmt.Sprintf(
 		`SELECT * FROM %s WHERE account = ?`, userInfoTable), account,
+	).StructScan(&out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// GetUserByStorageUser retrieves a user by their storage_user from the database.
+func (n *Mgr) GetUserByStorageUser(ctx context.Context, su string) (*core.User, error) {
+	var out core.User
+	if err := n.db.QueryRowxContext(ctx, fmt.Sprintf(
+		`SELECT * FROM %s WHERE storage_user = ?`, userInfoTable), su,
 	).StructScan(&out); err != nil {
 		return nil, err
 	}

@@ -28,13 +28,6 @@ const (
 	connMaxLifetime    = 120
 	maxIdleConnections = 30
 	connMaxIdleTime    = 20
-
-	userInfoTable       = "users"
-	orderInfoTable      = "orders"
-	userReceiveTable    = "user_receive"
-	hourlyQuotasTable   = "hourly_quotas"
-	receiveHistoryTable = "receive_history"
-	userNonceTable      = "user_nonce"
 )
 
 var ErrNoRow = fmt.Errorf("no matching row found")

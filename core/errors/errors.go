@@ -85,6 +85,7 @@ const (
 	QuotaIssued
 	Received
 	OrderStatus
+	NeedBindKeplr
 
 	Unknown     = -1
 	Success     = 0
@@ -183,6 +184,7 @@ var ErrMap = map[int]string{
 	AssetVisitOutOfLimit:                     "asset visit out of limit:访问次数超出限制",
 	OutTotalFlow:                             "out total flow:总流量超过使用限制",
 	OrderStatus:                              "Status does not match: 状态不匹配",
+	NeedBindKeplr:                            "need bind keplr:需要绑定keplr钱包地址",
 }
 
 type GenericError struct {

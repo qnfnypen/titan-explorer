@@ -16,7 +16,7 @@ func (m *Mgr) GeneratePassword(length int) string {
 	numbers := "0123456789"
 	lowerCase := "abcdefghijklmnopqrstuvwxyz"
 	upperCase := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	special := "~!@#$%^&*()-_=+\\|[{}];:'\",<.>/? "
+	special := "@()[{}]:"
 
 	password := make([]string, 4)
 	var err error

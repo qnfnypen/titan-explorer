@@ -1,7 +1,10 @@
 package api
 
 import (
+	"context"
+	"database/sql"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -15,6 +18,7 @@ import (
 	kub "github.com/gnasnik/titan-explorer/core/kubesphere"
 	"github.com/gnasnik/titan-explorer/core/order"
 	"github.com/gnasnik/titan-explorer/core/token"
+	"github.com/gnasnik/titan-explorer/pkg/opcheck"
 	"github.com/google/uuid"
 )
 
@@ -24,6 +28,13 @@ var (
 	orderMgr *order.Mgr
 	tokenMgr *token.Mgr
 )
+
+// BindKeplrReq 绑定keplr请求参数
+type BindKeplrReq struct {
+	Address   string `json:"address"`
+	PublicKey string `json:"publicKey"`
+	Sign      string `form:"sign" json:"sign"`
+}
 
 // InitManagers 初始化platform manager配置
 func InitManagers(cfg *config.Config) {
@@ -48,6 +59,47 @@ func InitManagers(cfg *config.Config) {
 	tokenMgr = token.NewTokenManager(mDB, chainMgr)
 }
 
+func addPlatformUserInfo(ctx context.Context, account, userName string) error {
+	_, err := mDB.GetUserByAccount(ctx, account)
+
+	switch err {
+	case sql.ErrNoRows:
+		pwd := kubMgr.GeneratePassword(12)
+
+		err = kubMgr.CreateUserAccount(account, pwd)
+		if err != nil {
+			log.Errorf("CreateUserAccount: %s", err.Error())
+			return err
+		}
+
+		user := &core.User{
+			Account:     account,
+			Username:    userName,
+			KubPwd:      pwd,
+			StorageUser: account,
+		}
+
+		err = mDB.CreateUser(ctx, user)
+		if err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return err
+	}
+
+	return nil
+}
+
+func checkCPlatformUserIsExist(ctx context.Context, su string) (string, error) {
+	user, err := mDB.GetUserByStorageUser(ctx, su)
+	if err != nil {
+		return "", err
+	}
+
+	return user.Account, nil
+}
+
 func checkOrderParams(order *core.OrderInfoReq) int {
 	if order.CPUCores > 32 || order.CPUCores < 1 {
 		return errors.InvalidParams
@@ -68,9 +120,72 @@ func checkOrderParams(order *core.OrderInfoReq) int {
 	return 0
 }
 
-func getUserInfoHandler(c *gin.Context) {
+func bindKeplr(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	id := claims[identityKey].(string)
+
+	var req BindKeplrReq
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+
+	if checkTitanAddr(id) {
+		c.JSON(http.StatusOK, respErrorCode(errors.WalletBound, c))
+		return
+	}
+
+	// 判断是否已经绑定过
+	account, err := checkCPlatformUserIsExist(c.Request.Context(), id)
+	if account != "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.WalletBound, c))
+		return
+	}
+
+	nonce, err := getNonceFromCache(c.Request.Context(), req.Address, NonceStringTypeSignature)
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+	if nonce == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+	match, _ := opcheck.VerifyComosSign(req.Address, nonce, req.Sign, req.PublicKey)
+	if !match {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
+		return
+	}
+	// 添加容器平台用户信息
+	err = addPlatformUserInfo(c.Request.Context(), req.Address, "")
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+}
+
+func getBindInfo(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	id := claims[identityKey].(string)
+
+	if checkTitanAddr(id) {
+		c.JSON(http.StatusOK, gin.H{
+			"keplr": id,
+		})
+		return
+	}
+
+	account, _ := checkCPlatformUserIsExist(c.Request.Context(), id)
+	c.JSON(http.StatusOK, gin.H{
+		"keplr": account,
+	})
+}
+
+func getUserInfoHandler(c *gin.Context) {
+	// claims := jwt.ExtractClaims(c)
+	// id := claims[identityKey].(string)
+	idStr, _ := c.Get(platformKey)
+	id, _ := idStr.(string)
 
 	resp, err := mDB.GetUserInfo(c.Request.Context(), id)
 	if err != nil {
@@ -82,8 +197,10 @@ func getUserInfoHandler(c *gin.Context) {
 }
 
 func receiveTokenHandler(c *gin.Context) {
-	claims := jwt.ExtractClaims(c)
-	id := claims[identityKey].(string)
+	// claims := jwt.ExtractClaims(c)
+	// id := claims[identityKey].(string)
+	idStr, _ := c.Get(platformKey)
+	id, _ := idStr.(string)
 
 	code, err := tokenMgr.ReceiveTokens(id)
 	if code > 0 {
@@ -98,8 +215,10 @@ func receiveTokenHandler(c *gin.Context) {
 }
 
 func getBalanceHandler(c *gin.Context) {
-	claims := jwt.ExtractClaims(c)
-	id := claims[identityKey].(string)
+	// claims := jwt.ExtractClaims(c)
+	// id := claims[identityKey].(string)
+	idStr, _ := c.Get(platformKey)
+	id, _ := idStr.(string)
 
 	balance, err := tokenMgr.GetBalance(id)
 	if err != nil {
@@ -113,8 +232,10 @@ func getBalanceHandler(c *gin.Context) {
 }
 
 func getReceiveHistoryHandler(c *gin.Context) {
-	claims := jwt.ExtractClaims(c)
-	account := claims[identityKey].(string)
+	// claims := jwt.ExtractClaims(c)
+	// account := claims[identityKey].(string)
+	idStr, _ := c.Get(platformKey)
+	account, _ := idStr.(string)
 
 	var list []*core.ReceiveHistory
 	total := int64(0)
@@ -136,8 +257,10 @@ func getReceiveHistoryHandler(c *gin.Context) {
 }
 
 func resetKubPwdHandler(c *gin.Context) {
-	claims := jwt.ExtractClaims(c)
-	id := claims[identityKey].(string)
+	// claims := jwt.ExtractClaims(c)
+	// id := claims[identityKey].(string)
+	idStr, _ := c.Get(platformKey)
+	id, _ := idStr.(string)
 
 	pwd := kubMgr.GeneratePassword(12)
 
@@ -169,8 +292,10 @@ func getKubURLHandler(c *gin.Context) {
 }
 
 func getDistributedAmountHandler(c *gin.Context) {
-	claims := jwt.ExtractClaims(c)
-	id := claims[identityKey].(string)
+	// claims := jwt.ExtractClaims(c)
+	// id := claims[identityKey].(string)
+	idStr, _ := c.Get(platformKey)
+	id, _ := idStr.(string)
 
 	info, err := tokenMgr.GetAmountDistributedInfo(id)
 	if err != nil {
@@ -217,8 +342,10 @@ func getRefundHandler(c *gin.Context) {
 }
 
 func createOrderHandler(c *gin.Context) {
-	claims := jwt.ExtractClaims(c)
-	account := claims[identityKey].(string)
+	// claims := jwt.ExtractClaims(c)
+	// account := claims[identityKey].(string)
+	idStr, _ := c.Get(platformKey)
+	account, _ := idStr.(string)
 
 	var params core.OrderInfoReq
 	if err := c.BindJSON(&params); err != nil {
@@ -247,8 +374,10 @@ func createOrderHandler(c *gin.Context) {
 }
 
 func getOrderHistoryHandler(c *gin.Context) {
-	claims := jwt.ExtractClaims(c)
-	account := claims[identityKey].(string)
+	// claims := jwt.ExtractClaims(c)
+	// account := claims[identityKey].(string)
+	idStr, _ := c.Get(platformKey)
+	account, _ := idStr.(string)
 
 	var list []*core.Order
 	total := int64(0)
@@ -276,8 +405,10 @@ func getOrderHistoryHandler(c *gin.Context) {
 }
 
 func terminateOrderHandler(c *gin.Context) {
-	claims := jwt.ExtractClaims(c)
-	account := claims[identityKey].(string)
+	// claims := jwt.ExtractClaims(c)
+	// account := claims[identityKey].(string)
+	idStr, _ := c.Get(platformKey)
+	account, _ := idStr.(string)
 
 	var params core.OrderIDReq
 	if err := c.BindJSON(&params); err != nil {
@@ -316,8 +447,10 @@ func terminateOrderHandler(c *gin.Context) {
 }
 
 func renewalOrderHandler(c *gin.Context) {
-	claims := jwt.ExtractClaims(c)
-	account := claims[identityKey].(string)
+	// claims := jwt.ExtractClaims(c)
+	// account := claims[identityKey].(string)
+	idStr, _ := c.Get(platformKey)
+	account, _ := idStr.(string)
 
 	var params core.OrderIDReq
 	if err := c.BindJSON(&params); err != nil {
@@ -356,8 +489,10 @@ func renewalOrderHandler(c *gin.Context) {
 }
 
 func upgradeOrderHandler(c *gin.Context) {
-	claims := jwt.ExtractClaims(c)
-	account := claims[identityKey].(string)
+	// claims := jwt.ExtractClaims(c)
+	// account := claims[identityKey].(string)
+	idStr, _ := c.Get(platformKey)
+	account, _ := idStr.(string)
 
 	var params core.UpgradeOrderInfoReq
 	if err := c.BindJSON(&params); err != nil {
@@ -409,8 +544,10 @@ func upgradeOrderHandler(c *gin.Context) {
 }
 
 func setOrderHashHandler(c *gin.Context) {
-	claims := jwt.ExtractClaims(c)
-	account := claims[identityKey].(string)
+	// claims := jwt.ExtractClaims(c)
+	// account := claims[identityKey].(string)
+	idStr, _ := c.Get(platformKey)
+	account, _ := idStr.(string)
 
 	var params core.OrderHashReq
 	if err := c.BindJSON(&params); err != nil {
@@ -439,4 +576,11 @@ func setOrderHashHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, respJSON(gin.H{
 		"msg": "success",
 	}))
+}
+
+// checkTitanAddr 校验是不是titan的钱包
+func checkTitanAddr(addr string) bool {
+	re := regexp.MustCompile(`^titan[a-z0-9]{32}$`)
+
+	return re.MatchString(addr)
 }
