@@ -3,6 +3,7 @@ package kub
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -37,6 +38,9 @@ func (m *Mgr) CreateUserAccount(userAccount, password string) error {
 
 	_, err := m.doRequest("POST", "/kapis/iam.kubesphere.io/v1beta1/users", body)
 	if err != nil {
+		if strings.Contains(err.Error(), "already exists") {
+			return nil
+		}
 		log.Errorf("CreateUserAccount err:%s", err.Error())
 		return err
 	}

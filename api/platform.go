@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
@@ -59,8 +60,8 @@ func InitManagers(cfg *config.Config) {
 	tokenMgr = token.NewTokenManager(mDB, chainMgr)
 }
 
-func addPlatformUserInfo(ctx context.Context, account, userName string) error {
-	_, err := mDB.GetUserByAccount(ctx, account)
+func addPlatformUserInfo(ctx context.Context, su, account, userName string) error {
+	_, err := mDB.GetUserMapByAccount(ctx, su)
 
 	switch err {
 	case sql.ErrNoRows:
@@ -73,13 +74,13 @@ func addPlatformUserInfo(ctx context.Context, account, userName string) error {
 		}
 
 		user := &core.User{
-			Account:     account,
-			Username:    userName,
-			KubPwd:      pwd,
-			StorageUser: account,
+			Account:   account,
+			Username:  userName,
+			KubPwd:    pwd,
+			CreatedAt: time.Now(),
 		}
 
-		err = mDB.CreateUser(ctx, user)
+		err = mDB.CreateUserMap(ctx, su, user)
 		if err != nil {
 			return err
 		}
@@ -89,15 +90,6 @@ func addPlatformUserInfo(ctx context.Context, account, userName string) error {
 	}
 
 	return nil
-}
-
-func checkCPlatformUserIsExist(ctx context.Context, su string) (string, error) {
-	user, err := mDB.GetUserByStorageUser(ctx, su)
-	if err != nil {
-		return "", err
-	}
-
-	return user.Account, nil
 }
 
 func checkOrderParams(order *core.OrderInfoReq) int {
@@ -136,9 +128,17 @@ func bindKeplr(c *gin.Context) {
 	}
 
 	// 判断是否已经绑定过
-	account, err := checkCPlatformUserIsExist(c.Request.Context(), id)
-	if account != "" {
-		c.JSON(http.StatusOK, respErrorCode(errors.WalletBound, c))
+	user, err := mDB.GetUserMapByAccount(c.Request.Context(), id)
+	switch err {
+	case sql.ErrNoRows:
+	case nil:
+		if user.Keplr != "" {
+			c.JSON(http.StatusOK, respErrorCode(errors.WalletBound, c))
+			return
+		}
+	default:
+		log.Errorf("binding error:%v", err)
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 
@@ -157,28 +157,67 @@ func bindKeplr(c *gin.Context) {
 		return
 	}
 	// 添加容器平台用户信息
-	err = addPlatformUserInfo(c.Request.Context(), req.Address, "")
+	err = addPlatformUserInfo(c.Request.Context(), id, req.Address, "")
 	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(gin.H{
+		"msg": "success",
+	}))
+}
+
+func getBindInfo(c *gin.Context) {
+	var email string
+
+	claims := jwt.ExtractClaims(c)
+	id := claims[identityKey].(string)
+
+	if checkIsEmail(id) {
+		email = id
+	}
+
+	user, err := mDB.GetUserMapByAccount(c.Request.Context(), id)
+	switch err {
+	case sql.ErrNoRows:
+		c.JSON(http.StatusOK, respJSON(JsonObject{
+			"keplr": "",
+			"email": email,
+		}))
+		return
+	case nil:
+		if user.Email == "" {
+			user.Email = email
+		}
+		c.JSON(http.StatusOK, respJSON(JsonObject{
+			"keplr": user.Keplr,
+			"email": user.Email,
+		}))
+		return
+	default:
+		log.Errorf("binding error:%v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
 }
 
-func getBindInfo(c *gin.Context) {
-	claims := jwt.ExtractClaims(c)
-	id := claims[identityKey].(string)
-
-	if checkTitanAddr(id) {
-		c.JSON(http.StatusOK, gin.H{
-			"keplr": id,
-		})
+func getBindNonce(c *gin.Context) {
+	username := c.Query("address")
+	if username == "" {
+		c.JSON(http.StatusOK, respErrorCode(errors.InvalidParams, c))
 		return
 	}
 
-	account, _ := checkCPlatformUserIsExist(c.Request.Context(), id)
-	c.JSON(http.StatusOK, gin.H{
-		"keplr": account,
-	})
+	nonce, err := generateNonceString(c.Request.Context(), getRedisNonceSignatureKey(username))
+	if err != nil {
+		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+		return
+	}
+
+	c.JSON(http.StatusOK, respJSON(JsonObject{
+		"code": nonce,
+	}))
 }
 
 func getUserInfoHandler(c *gin.Context) {
@@ -248,6 +287,10 @@ func getReceiveHistoryHandler(c *gin.Context) {
 		log.Errorf("getOrderHistoryHandler: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
+	}
+
+	for _, v := range list {
+		v.CreatedAt = v.CreatedAt.UTC()
 	}
 
 	c.JSON(http.StatusOK, respJSON(gin.H{
@@ -381,6 +424,7 @@ func getOrderHistoryHandler(c *gin.Context) {
 
 	var list []*core.Order
 	total := int64(0)
+	statsMaps := make(map[core.OrderStatus]int64)
 
 	size, _ := strconv.Atoi(c.Query("size"))
 	page, _ := strconv.Atoi(c.Query("page"))
@@ -397,10 +441,21 @@ func getOrderHistoryHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 		return
 	}
+	infos, err := mDB.GetServiceNumsByStatus(account, []core.OrderStatus{
+		core.OrderStatusDone, core.OrderStatusExpired, core.OrderStatusTermination})
+	if err != nil {
+		log.Errorf("GetServiceNumsByStatus: %v", err)
+	}
+	for _, v := range infos {
+		statsMaps[v.Status] = v.Num
+	}
 
 	c.JSON(http.StatusOK, respJSON(gin.H{
-		"list":  list,
-		"total": total,
+		"list":        list,
+		"total":       total,
+		"done":        statsMaps[core.OrderStatusDone],
+		"expired":     statsMaps[core.OrderStatusExpired],
+		"termination": statsMaps[core.OrderStatusTermination],
 	}))
 }
 
@@ -581,6 +636,12 @@ func setOrderHashHandler(c *gin.Context) {
 // checkTitanAddr 校验是不是titan的钱包
 func checkTitanAddr(addr string) bool {
 	re := regexp.MustCompile(`^titan[a-z0-9]{32}$`)
+
+	return re.MatchString(addr)
+}
+
+func checkIsEmail(addr string) bool {
+	re := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 
 	return re.MatchString(addr)
 }

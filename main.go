@@ -53,11 +53,12 @@ func main() {
 	if err := oss.InitFromCfg(cfg.Oss); err != nil {
 		log.Fatalf("init oss: %v\n", err)
 	}
-	api.InitManagers(&cfg)
 
 	oplog.Subscribe(context.Background())
 	oprds.Init()
 	opasynq.Init()
+
+	api.InitManagers(&cfg)
 
 	srv, err := api.NewServer(cfg)
 	if err != nil {

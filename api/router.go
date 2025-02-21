@@ -346,10 +346,12 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 
 	// platform 容器平台
 	platform := apiV1.Group("/platform")
+	platform.GET("/kub_url", getKubURLHandler)
 	platform.Use(authMiddleware.MiddlewareFunc())
 	// 绑定钱包地址，展示用户的邮箱和钱包信息
 	platform.POST("/bind_keplr", bindKeplr)
 	platform.GET("/bind_info", getBindInfo)
+	platform.GET("/bind_nonce", getBindNonce)
 	platform.Use(ContainerPlatformAuth())
 	puser := platform.Group("/user")
 	puser.GET("/info", getUserInfoHandler)

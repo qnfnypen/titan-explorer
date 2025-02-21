@@ -2,22 +2,21 @@ package core
 
 import "time"
 
-// UserNonce represents a user's account and its associated nonce.
-type UserNonce struct {
-	Account   string    `db:"account" `
-	Nonce     string    `db:"nonce"`
-	ExpiredAt time.Time `db:"expired_at" json:"expired_at"`
-}
-
 // User represents a user in the system.
 type User struct {
-	Account     string    `db:"account" json:"account"`
-	Avatar      string    `db:"avatar" json:"avatar"`
-	Username    string    `db:"user_name" json:"user_name"`
-	UserEmail   string    `db:"user_email" json:"user_email"`
-	KubPwd      string    `db:"kub_pwd" json:"kub_pwd"`
-	StorageUser string    `db:"storage_user" json:"storage_user"`
-	CreatedAt   time.Time `db:"created_at" json:"created_at"`
+	Account   string    `db:"account" json:"account"`
+	Avatar    string    `db:"avatar" json:"avatar"`
+	Username  string    `db:"user_name" json:"user_name"`
+	UserEmail string    `db:"user_email" json:"user_email"`
+	KubPwd    string    `db:"kub_pwd" json:"kub_pwd"`
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
+}
+
+// UserInfoMap represents a user in the system.
+type UserInfoMap struct {
+	StorageUser string `db:"storage_user"`
+	Email       string `db:"email"`
+	Keplr       string `db:"keplr"`
 }
 
 // OrderInfoReq represents a request to create or get price an order with specified resources.
@@ -49,6 +48,12 @@ type OrderHashReq struct {
 	ID   string `json:"id"`
 }
 
+// OrderNums 订单数量
+type OrderNums struct {
+	Num    int64       `db:"num"`
+	Status OrderStatus `db:"status"`
+}
+
 // Order represents a customer's order in the system.
 type Order struct {
 	ID          string      `db:"id" json:"id"`
@@ -76,9 +81,9 @@ const (
 	// OrderStatusPaid indicates that the order has been paid.
 	OrderStatusPaid
 	// OrderStatusDone indicates that the order has been completed. (Active)
-	OrderStatusDone
+	OrderStatusDone // 运行中
 	// OrderStatusExpired indicates that the order has expired.
-	OrderStatusExpired
+	OrderStatusExpired // 到期
 	// OrderStatusFailed indicates that the order has creation failed.
 	OrderStatusFailed
 	// OrderStatusTimeout indicates that the order has payment timeout.
@@ -90,7 +95,7 @@ const (
 	// OrderStatusAbandoned indicates that the order has been abandoned. (Active)
 	OrderStatusAbandoned
 	// OrderStatusTermination indicates that the order has early termination.
-	OrderStatusTermination
+	OrderStatusTermination // 终止
 )
 
 // ReceiveHistory represents the history of receive for an account.

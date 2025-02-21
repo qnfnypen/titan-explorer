@@ -1964,6 +1964,15 @@ func GetShareLinkHandler(c *gin.Context) {
 
 	c.Redirect(http.StatusMovedPermanently, decodedLink)
 
+	// 获取请求的host
+	// origin := c.Request.Header.Get("origin")
+	// du, err := url.Parse(decodedLink)
+	// if origin == "" || err != nil {
+	// 	c.Redirect(http.StatusMovedPermanently, decodedLink)
+	// 	return
+	// }
+
+	// c.Redirect(http.StatusMovedPermanently, origin+du.Path+"?"+du.RawQuery)
 }
 
 func UpdateShareStatusHandler(c *gin.Context) {

@@ -2,6 +2,7 @@ package kub
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,7 +11,9 @@ import (
 	"time"
 
 	netURL "net/url"
+
 	"github.com/gnasnik/titan-explorer/config"
+	"github.com/gnasnik/titan-explorer/core/oprds"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/jmoiron/sqlx"
@@ -19,7 +22,9 @@ import (
 var log = logging.Logger("kubesphere")
 
 const (
-	timeInterval = 100 * time.Minute
+	timeInterval   = 10 * time.Minute
+	kuberToken     = "kuber_token"
+	kuberTokenLock = "kuber_token_lock"
 )
 
 // Mgr manages Kubernetes resources.
@@ -42,15 +47,19 @@ func NewKubManager(cfg *config.KubesphereAPIConfig) (*Mgr, error) {
 	m.adminPassword = cfg.AdminPassword
 	m.curCluster = cfg.Cluster
 
-	token, err := m.getToken()
-	if err != nil {
-		return nil, err
-	}
-	m.token = token
-
 	go m.startTimer()
 
-	return m, nil
+	for {
+		token, err := m.getToken()
+		if err != nil {
+			return nil, err
+		}
+		time.Sleep(2 * time.Second)
+		if token != "" {
+			m.token = token
+			return m, nil
+		}
+	}
 }
 
 func (m *Mgr) startTimer() {
@@ -101,6 +110,17 @@ func (m *Mgr) startTimer() {
 // }
 
 func (m *Mgr) getToken() (string, error) {
+	// 判断 token 是否存在，不存在再重新获取
+	token, _ := oprds.GetClient().RedisClient().Get(context.Background(), kuberToken).Result()
+	ttl, _ := oprds.GetClient().RedisClient().TTL(context.Background(), kuberToken).Result()
+	if token != "" && ttl > 20*time.Minute {
+		return token, nil
+	}
+	res, err := oprds.GetClient().RedisClient().SetNX(context.Background(), kuberTokenLock, "1", 10*time.Second).Result()
+	if err != nil || !res {
+		// return nil, errors.CustomError("Please try again later")
+		return "", nil
+	}
 	data := netURL.Values{}
 	data.Set("grant_type", "password")
 	data.Set("username", m.adminAccount)
@@ -141,6 +161,8 @@ func (m *Mgr) getToken() (string, error) {
 		log.Errorf("Error unmarshalling JSON: %v", err)
 		return "", err
 	}
+
+	oprds.GetClient().RedisClient().Set(context.Background(), kuberToken, tokenResp.AccessToken, 100*time.Minute)
 
 	return tokenResp.AccessToken, nil
 }

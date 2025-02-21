@@ -143,9 +143,9 @@ func TestMove(t *testing.T) {
 	var req MoveNodeReq
 	os.Setenv("ETCD_USERNAME", "web")
 	os.Setenv("ETCD_PASSWORD", "web_123")
-	req.FromAreaID = "Asia-China-Guangdong-Shenzhen"
-	req.NodeID = "c_e908199f-39cc-495a-9abb-becb4d8798b7"
-	req.ToAreaID = "Asia-HongKong"
+	req.FromAreaID = "Asia-HongKong"
+	req.NodeID = "c_a2f752f0-a934-4e86-8584-965441fdf006"
+	req.ToAreaID = "NorthAmerica-UnitedStates"
 	// 将node节点从from area移出
 	fscli, err := getSchedulerClient(ctx, req.FromAreaID)
 	if err != nil {
@@ -153,19 +153,19 @@ func TestMove(t *testing.T) {
 	}
 	info, err := fscli.MigrateNodeOut(ctx, req.NodeID)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("1", err)
 	}
 	tscli, err := getSchedulerClient(ctx, req.ToAreaID)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("2", err)
 	}
 	err = tscli.MigrateNodeIn(ctx, info)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("3", err)
 	}
 	err = fscli.CleanupNode(ctx, req.NodeID, info.Key)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("4", err)
 	}
 
 	t.Log("success")

@@ -1,12 +1,16 @@
 package order
 
 import (
+	"context"
 	"time"
+
+	zlog "log"
 
 	"github.com/gnasnik/titan-explorer/core"
 	"github.com/gnasnik/titan-explorer/core/chain"
 	"github.com/gnasnik/titan-explorer/core/dao"
 	kub "github.com/gnasnik/titan-explorer/core/kubesphere"
+	"github.com/gnasnik/titan-explorer/core/oprds"
 
 	logging "github.com/ipfs/go-log/v2"
 )
@@ -16,6 +20,7 @@ var log = logging.Logger("order")
 const (
 	timeInterval  = 10 * time.Second
 	timeInterval2 = 30 * time.Minute
+	orderExecLock = "container_platform_order_exec_lock"
 )
 
 // Mgr manages order resources.
@@ -33,6 +38,12 @@ func NewOrderManager(db *dao.Mgr, k *kub.Mgr, c *chain.Mgr) *Mgr {
 	m.kubMgr = k
 	m.chainMgr = c
 
+	res, err := oprds.GetClient().RedisClient().SetNX(context.Background(), orderExecLock, "1", 50*time.Second).Result()
+	if err != nil || !res {
+		return m
+	}
+
+	zlog.Println("get container_platform_order_exec_lock exec")
 	go m.startTimer()
 	go m.startTimer2()
 
@@ -336,8 +347,7 @@ func (m *Mgr) checkOrderActive() {
 }
 
 func (m *Mgr) checkOrderExpired() {
-	// TODO 续期 升级中 是不是也要判断
-	orders, err := m.mDB.LoadExpiredOrders()
+	orders, err := m.mDB.LoadExpiredOrders([]core.OrderStatus{core.OrderStatusDone, core.OrderStatusFailed, core.OrderStatusUpgrade, core.OrderStatusRenewal})
 	if err != nil {
 		log.Errorf("checkOrderExpired LoadExpiredOrders err:%s", err.Error())
 		return
@@ -348,7 +358,7 @@ func (m *Mgr) checkOrderExpired() {
 	}
 
 	for _, order := range orders {
-		m.Terminate(order.ID, order.WorkspaceID, order.Cluster, core.OrderStatusExpired, core.OrderStatusDone)
+		m.Terminate(order.ID, order.WorkspaceID, order.Cluster, core.OrderStatusExpired, order.Status)
 	}
 }
 

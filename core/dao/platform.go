@@ -14,6 +14,7 @@ import (
 
 const (
 	userInfoTable       = "container_platform_users"
+	userMapTable        = "container_platform_user_map"
 	orderInfoTable      = "container_platform_orders"
 	userReceiveTable    = "container_platform_user_receive"
 	hourlyQuotasTable   = "container_platform_hourly_quotas"
@@ -36,7 +37,7 @@ func NewDbMgr(cfg *config.Config) (*Mgr, error) {
 	setDBConfig(pdb, maxOpenConnections, connMaxLifetime, maxIdleConnections, connMaxIdleTime)
 	n.db = pdb
 
-	go n.startCheckNodeTimer()
+	// go n.startCheckNodeTimer()
 
 	return n, err
 }
@@ -122,11 +123,23 @@ func (n *Mgr) UpdateOrderInfo(order *core.Order, oldStatus core.OrderStatus) err
 }
 
 // LoadExpiredOrders retrieves a list of expired order IDs.
-func (n *Mgr) LoadExpiredOrders() ([]*core.Order, error) {
-	var infos []*core.Order
+func (n *Mgr) LoadExpiredOrders(statuses []core.OrderStatus) ([]*core.Order, error) {
+	var infos = make([]*core.Order, 0)
 
-	query := fmt.Sprintf("SELECT * FROM %s WHERE status=? AND expired_at<NOW()", orderInfoTable)
-	err := n.db.Select(&infos, query, core.OrderStatusDone)
+	// query := fmt.Sprintf("SELECT * FROM %s WHERE status=? AND expired_at<NOW()", orderInfoTable)
+	// err := n.db.Select(&infos, query, core.OrderStatusDone)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	query := fmt.Sprintf("SELECT * FROM %s WHERE status in (?) AND expired_at<NOW()", orderInfoTable)
+	srQuery, args, err := sqlx.In(query, statuses)
+	if err != nil {
+		return nil, err
+	}
+
+	srQuery = n.db.Rebind(srQuery)
+	err = n.db.Select(&infos, srQuery, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -241,6 +254,25 @@ func (n *Mgr) LoadAccountOrdersByStatuses(account string, statuses []core.OrderS
 	}
 
 	return infos, count, nil
+}
+
+// GetServiceNumsByStatus 根据状态获取服务数量
+func (n *Mgr) GetServiceNumsByStatus(account string, statuses []core.OrderStatus) ([]*core.OrderNums, error) {
+	infos := make([]*core.OrderNums, 0)
+
+	query := fmt.Sprintf("SELECT COUNT(*) AS num, status FROM %s WHERE account=? AND status IN (?) GROUP BY status", orderInfoTable)
+	srQuery, args, err := sqlx.In(query, account, statuses)
+	if err != nil {
+		return nil, err
+	}
+
+	srQuery = n.db.Rebind(srQuery)
+	err = n.db.Select(&infos, srQuery, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return infos, nil
 }
 
 // LoadAccountOrdersByStatus retrieves a list of orders for a given account, with pagination.
@@ -419,10 +451,44 @@ func (n *Mgr) GetUserInfo(ctx context.Context, account string) (*core.User, erro
 
 // CreateUser creates a new user in the database.
 func (n *Mgr) CreateUser(ctx context.Context, user *core.User) error {
-	query := fmt.Sprintf(`INSERT INTO %s (account, user_name, user_email, avatar, kub_pwd, storage_user) VALUES (:account, :user_name, :user_email, :avatar, :kub_pwd, :storage_user) `, userInfoTable)
+	query := fmt.Sprintf(`INSERT INTO %s (account, user_name, user_email, avatar, kub_pwd) VALUES (:account, :user_name, :user_email, :avatar, :kub_pwd) `, userInfoTable)
 	_, err := n.db.NamedExec(query, user)
 
 	return err
+}
+
+// CreateUserMap 创建container platform用户和映射关系
+func (n *Mgr) CreateUserMap(ctx context.Context, su string, user *core.User) error {
+	var oldUser core.User
+	tx, err := n.db.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	query := fmt.Sprintf(`INSERT INTO %s (storage_user, email, keplr) VALUES (:storage_user, :email, :keplr)`, userMapTable)
+	_, err = tx.NamedExecContext(ctx, query, &core.UserInfoMap{StorageUser: su, Keplr: user.Account})
+	if err != nil {
+		return err
+	}
+
+	// 判断是否存在
+	err = tx.QueryRowxContext(ctx, fmt.Sprintf(
+		`SELECT * FROM %s WHERE account = ?`, userInfoTable), user.Account,
+	).StructScan(&oldUser)
+	switch err {
+	case sql.ErrNoRows:
+		query = fmt.Sprintf(`INSERT INTO %s (account, user_name, user_email, avatar, kub_pwd) VALUES (:account, :user_name, :user_email, :avatar, :kub_pwd) `, userInfoTable)
+		_, err = tx.NamedExecContext(ctx, query, user)
+		if err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return err
+	}
+
+	return tx.Commit()
 }
 
 // GetUserByAccount retrieves a user by their account from the database.
@@ -437,11 +503,11 @@ func (n *Mgr) GetUserByAccount(ctx context.Context, account string) (*core.User,
 	return &out, nil
 }
 
-// GetUserByStorageUser retrieves a user by their storage_user from the database.
-func (n *Mgr) GetUserByStorageUser(ctx context.Context, su string) (*core.User, error) {
-	var out core.User
+// GetUserMapByAccount 获取映射关系
+func (n *Mgr) GetUserMapByAccount(ctx context.Context, su string) (*core.UserInfoMap, error) {
+	var out core.UserInfoMap
 	if err := n.db.QueryRowxContext(ctx, fmt.Sprintf(
-		`SELECT * FROM %s WHERE storage_user = ?`, userInfoTable), su,
+		`SELECT * FROM %s WHERE storage_user = ?`, userMapTable), su,
 	).StructScan(&out); err != nil {
 		return nil, err
 	}

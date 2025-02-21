@@ -255,10 +255,9 @@ func loginBySignature(c *gin.Context, username, address, msg, pk string) (interf
 			return nil, errors.NewErrorCode(errors.PassWordNotAllowed, c)
 		}
 		// 添加容器平台用户信息
-		err = addPlatformUserInfo(c.Request.Context(), address, username)
+		err = addPlatformUserInfo(c.Request.Context(), address, address, "")
 		if err != nil {
-			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-			return nil, errors.NewErrorCode(errors.InternalServer, c)
+			return nil, errors.GenericError{Code: 1000, Err: err}
 		}
 	}
 
@@ -415,14 +414,18 @@ func ContainerPlatformAuth() gin.HandlerFunc {
 		claims := jwt.ExtractClaims(c)
 		su := claims[identityKey].(string)
 
-		account, err := checkCPlatformUserIsExist(c.Request.Context(), su)
+		// 获取 wallet 信息
+		user, err := mDB.GetUserMapByAccount(c.Request.Context(), su)
 		if err != nil {
-			log.Errorf("checkCPlatformUserIsExist error %v", err)
+			c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			return
+		}
+		if user.Keplr == "" {
 			c.JSON(http.StatusOK, respErrorCode(errors.NeedBindKeplr, c))
 			return
 		}
 
-		c.Set(platformKey, account)
+		c.Set(platformKey, user.Keplr)
 
 		c.Next()
 	}
