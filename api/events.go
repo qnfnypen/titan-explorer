@@ -1321,14 +1321,84 @@ func ShareAssetsHandler(c *gin.Context) {
 	// 成功的时候，下载量+1
 	oprds.GetClient().IncrAssetHourDownload(c.Request.Context(), hash, userId)
 
+	fileSize := getFileSize(cid, urls)
+	if fileSize == 0 {
+		fileSize = userAsset.TotalSize
+	}
+
 	c.PureJSON(http.StatusOK, respJSON(JsonObject{
 		"asset_cid":       cid,
-		"size":            userAsset.TotalSize,
+		"size":            fileSize,
 		"url":             urls,
 		"redirect":        false,
 		"trace_id":        traceid,
 		"available_nodes": ret.NodeCount,
 	}))
+}
+
+var CidSizeCacheKey = "titan:cid:size:%s"
+
+func getFileSize(cid string, urls []string) int64 {
+	size, err := dao.RedisCache.Get(context.Background(), fmt.Sprintf(CidSizeCacheKey, cid)).Int64()
+	if size > 0 {
+		return size
+	}
+
+	if err != nil {
+		log.Errorf("Error while getting cid size: %s", err)
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(len(urls))
+	results := make(chan int64, len(urls))
+
+	for _, u := range urls {
+		go func(url string) {
+			defer wg.Done()
+			req, err := http.NewRequest("GET", url, nil)
+			if err != nil {
+				log.Error(err)
+				return
+			}
+			req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", 0, 1))
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				log.Error(err)
+				return
+			}
+			defer resp.Body.Close()
+			v := resp.Header.Get("Content-Range")
+			if v != "" {
+				subs := strings.Split(v, "/")
+				if len(subs) != 2 {
+					log.Errorf("invalid content range: %s", v)
+					return
+				}
+				size, err := strconv.ParseInt(subs[1], 10, 64)
+				if err != nil {
+					log.Errorf("invalid content range: %s", v)
+					return
+				}
+				results <- size
+			}
+		}(u)
+	}
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	for size := range results {
+		if size > 0 {
+			if err := dao.RedisCache.Set(context.Background(), fmt.Sprintf(CidSizeCacheKey, cid), size, -1).Err(); err != nil {
+				log.Errorf("Failed to set size for cid %s: %v")
+			}
+			return size
+		}
+	}
+
+	return 0
 }
 
 func OpenAssetHandler(c *gin.Context) {
