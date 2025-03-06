@@ -70,6 +70,8 @@ func RegisterRouterWithJWT(router *gin.Engine, cfg config.Config) {
 		log.Fatalf("authMiddleware.MiddlewareInit: %v", err)
 	}
 
+	apiV2.GET("/health", checkHealth)
+
 	// testnet
 	apiV2.POST("/subscribe", SubscribeHandler)
 

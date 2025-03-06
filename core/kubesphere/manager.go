@@ -62,6 +62,16 @@ func NewKubManager(cfg *config.KubesphereAPIConfig) (*Mgr, error) {
 	}
 }
 
+// Health 检测 token 是否过期
+func (m *Mgr) Health() error {
+	token, _ := oprds.GetClient().RedisClient().Get(context.Background(), kuberToken).Result()
+	if token == "" {
+		return fmt.Errorf("token error")
+	}
+
+	return nil
+}
+
 func (m *Mgr) startTimer() {
 	ticker := time.NewTicker(timeInterval)
 	defer ticker.Stop()

@@ -50,6 +50,13 @@ func NewOrderManager(db *dao.Mgr, k *kub.Mgr, c *chain.Mgr) *Mgr {
 	return m
 }
 
+// CheckChainMgr 检测 chain mgr
+func (m *Mgr) CheckChainMgr() error {
+	_, err := m.chainMgr.GetBalance("titan1u5vpfzh3eruy07rdx4884kjxgpqsxgg30ekum7")
+
+	return err
+}
+
 func (m *Mgr) startTimer() {
 	ticker := time.NewTicker(timeInterval)
 	defer ticker.Stop()

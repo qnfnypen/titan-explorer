@@ -42,6 +42,11 @@ func NewDbMgr(cfg *config.Config) (*Mgr, error) {
 	return n, err
 }
 
+// Health 数据库连接判断
+func (n *Mgr) Health() error {
+	return n.db.DB.Ping()
+}
+
 // CleanData performs a cleanup of outdated records across various tables based on predefined intervals.
 func (n *Mgr) cleanData() {
 	query := fmt.Sprintf(`DELETE FROM %s WHERE created_at<DATE_SUB(NOW(), INTERVAL 2 DAY) `, hourlyQuotasTable)
