@@ -724,6 +724,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 		log.Errorf("GetUserAssetByAreaIDs error: %v", err)
 		c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 	}
+	notExistsAids = getUnSyncAreas(c.Request.Context(), username, createAssetReq.AssetCID, hash, areaIds, notExistsAids)
 	if len(notExistsAids) == 0 {
 		var directUrl string
 		schedulerClient, err := getSchedulerClient(c.Request.Context(), areaIds[0])
@@ -757,7 +758,7 @@ func CreateAssetPostHandler(c *gin.Context) {
 		traceID        string
 	)
 	createAssetRsp.AlreadyExists = true
-	if !dao.CheckAssetIsSyncByAreaID(c.Request.Context(), hash, areaIds[0]) {
+	if !dao.CheckAssetIsSyncByAreaID(c.Request.Context(), username, hash, areaIds[0]) {
 		// 调用调度器
 		schedulerClient, err := getSchedulerClient(c.Request.Context(), areaIds[0])
 		if err != nil {

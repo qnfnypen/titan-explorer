@@ -574,10 +574,10 @@ func GetUserAssetNotAreaIDs(ctx context.Context, hash, uid string, areaID []stri
 }
 
 // CheckAssetIsSyncByAreaID 判断
-func CheckAssetIsSyncByAreaID(ctx context.Context, hash, areaID string) bool {
+func CheckAssetIsSyncByAreaID(ctx context.Context, uid, hash, areaID string) bool {
 	var isSync bool
 
-	query, args, err := squirrel.Select("is_sync").From(tableUserAssetArea).Where("area_id = ? AND hash = ?", areaID, hash).ToSql()
+	query, args, err := squirrel.Select("is_sync").From(tableUserAssetArea).Where("area_id = ? AND user_id = ? AND hash = ?", areaID, uid, hash).ToSql()
 	if err != nil {
 		log.Errorf("generate get asset sql error:%v", err)
 		return false
@@ -634,8 +634,12 @@ func GetUnSyncAreaIDs(ctx context.Context, uid, hash string) ([]string, error) {
 }
 
 // UpdateUnSyncAreaIDs 更新未同步的区域
-func UpdateUnSyncAreaIDs(ctx context.Context, uid, hash string, aids []string) error {
-	query, args, err := squirrel.Update(tableUserAssetArea).Set("is_sync", true).Where(squirrel.Eq{
+func UpdateUnSyncAreaIDs(ctx context.Context, uid, hash string, aids []string, isSyncs ...bool) error {
+	var isSync = true
+	if len(isSyncs) > 0 {
+		isSync = isSyncs[0]
+	}
+	query, args, err := squirrel.Update(tableUserAssetArea).Set("is_sync", isSync).Where(squirrel.Eq{
 		"area_id": aids,
 		"user_id": uid,
 		"hash":    hash,
