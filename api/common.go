@@ -102,10 +102,11 @@ type (
 func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string][]string) {
 	var (
 		aids, naids []string
+		isAuto      bool
 	)
 	// 兼容以前的区域请求
 	areaIDs = getAreaIDsCountry(areaIDs)
-
+	// 获取所有的区域
 	_, maps, err := GetAndStoreAreaIDs()
 	if err != nil {
 		log.Error(err)
@@ -120,12 +121,16 @@ func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string]
 		for _, v := range maps {
 			aids = append(aids, v...)
 		}
+		isAuto = true
+	}
+	if len(aids) == len(maps) {
+		isAuto = true
 	}
 
 	if len(aids) == 1 {
 		return aids, maps
 	}
-
+	// 排序，使得每次的区域都是固定的
 	sort.Slice(aids, func(i, j int) bool {
 		return aids[i] < aids[j]
 	})
@@ -139,6 +144,10 @@ func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string]
 		// 获取区域里的调度器
 		info, err := geo.GetIpLocation(c.Request.Context(), ip)
 		if err == nil {
+			// 如果是自动的，则中国的选中国区域，其他的都选公共区域
+			if isAuto && !strings.EqualFold(info.Country, "China") {
+				info.Country = "HongKong"
+			}
 			for _, v := range areaIDs {
 				if strings.EqualFold(v, info.Country) {
 					if vv, ok := maps[v]; ok {
@@ -148,6 +157,7 @@ func getAreaIDsByAreaID(c *gin.Context, areaIDs []string) ([]string, map[string]
 				}
 			}
 		}
+
 		areaID, err := GetNearestAreaID(c.Request.Context(), ip, tadis)
 		if err != nil {
 			log.Error(err)

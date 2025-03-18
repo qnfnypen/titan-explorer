@@ -1230,21 +1230,22 @@ func ShareAssetsHandler(c *gin.Context) {
 			return
 		}
 		// 获取用户的访问的ip
-		ip, err := GetIPFromRequest(c.Request)
+		_, err = GetIPFromRequest(c.Request)
 		if err != nil {
 			log.Errorf("get user's ip of request error:%w", err)
 			// c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
 			// return
 			areaId = areaIDs[0]
 		} else {
-			areaId, err = GetNearestAreaID(c.Request.Context(), ip, areaIDs)
-			if err != nil {
-				log.Error(err)
-				c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
-				return
-			}
+			aids, _ := getAreaIDsByAreaID(c, areaIDs)
+			// areaId, err = GetNearestAreaID(c.Request.Context(), ip, areaIDs)
+			// if err != nil {
+			// 	log.Error(err)
+			// 	c.JSON(http.StatusOK, respErrorCode(errors.InternalServer, c))
+			// 	return
+			// }
+			areaId = aids[0]
 		}
-
 	}
 	// 获取文件信息
 	userAsset, err := dao.GetUserAssetDetail(c.Request.Context(), hash, userId)
