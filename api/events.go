@@ -3149,16 +3149,36 @@ func GetSchedulerAreaIDs(c *gin.Context) {
 		}
 	}
 
+	// 剔除香港区域调度器
+	var (
+		pKeys, newKeys []string
+		newMaps        []dao.KVMap
+	)
+	for _, v := range keys {
+		if !strings.EqualFold(v, "HongKong") {
+			newKeys = append(newKeys, v)
+		} else {
+			pKeys = append(pKeys, "HongKong")
+		}
+	}
+
 	maps := operateAreaMaps(c.Request.Context(), keys, lan)
 	sort.Strings(keys)
 	// 按照a-z对区域进行排序
 	sort.Slice(maps, func(i, j int) bool {
 		return maps[i].Value < maps[j].Value
 	})
+	if lan == "cn" {
+		newMaps = append(newMaps, dao.KVMap{Key: "公共", Value: newKeys[0]})
+	} else {
+		newMaps = append(newMaps, dao.KVMap{Key: "Public", Value: newKeys[0]})
+	}
+	newMaps = append(newMaps, maps...)
+	newKeys = append(newKeys, keys...)
 
 	c.JSON(http.StatusOK, respJSON(JsonObject{
-		"list":      keys,
-		"area_maps": maps,
+		"list":      newKeys,
+		"area_maps": newMaps,
 	}))
 }
 
